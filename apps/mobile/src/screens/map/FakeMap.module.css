@@ -1,0 +1,83 @@
+/* Stylised map backdrop — ported from the Claude Design prototype. */
+
+.map {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #eaf7f0;
+}
+
+.grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(36, 48, 58, 0.05) 0 1px, transparent 1px 46px),
+    repeating-linear-gradient(90deg, rgba(36, 48, 58, 0.05) 0 1px, transparent 1px 46px);
+  background-size: 46px 46px;
+}
+
+.roadA {
+  position: absolute;
+  left: 0;
+  top: 30%;
+  width: 130%;
+  height: 9px;
+  background: #f4efd9;
+  border-radius: 5px;
+  transform: rotate(-4deg);
+}
+.roadB {
+  position: absolute;
+  left: 8%;
+  top: -10%;
+  width: 9px;
+  height: 130%;
+  background: #f4efd9;
+  border-radius: 5px;
+  transform: rotate(7deg);
+}
+.roadC {
+  position: absolute;
+  left: 0;
+  top: 74%;
+  width: 130%;
+  height: 6px;
+  background: #f4efd9;
+  border-radius: 4px;
+  transform: rotate(2deg);
+}
+
+.blob {
+  position: absolute;
+  width: 60px;
+  height: 48px;
+  background: #bfe8ce;
+  border-radius: 60% 40% 55% 45% / 45% 55% 40% 60%;
+}
+
+.userDot {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #4c9eeb;
+  border: 3px solid #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 9px rgba(76, 158, 235, 0.22), 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: var(--font-body);
+  padding: 5px 9px;
+  border-radius: 16px 16px 16px 4px;
+  border: 2.5px solid #fff;
+  box-shadow: 0 4px 10px rgba(36, 48, 58, 0.22);
+  cursor: pointer;
+}

@@ -1,0 +1,169 @@
+/* Explore / map — ported from the Claude Design prototype. */
+
+.screen {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: #eaf7f0;
+}
+
+.searchBar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: calc(14px + var(--safe-top));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 0 6px 0 14px;
+  height: 52px;
+  box-shadow: 0 10px 28px rgba(36, 48, 58, 0.14);
+}
+.searchBar input {
+  border: none;
+  background: none;
+  outline: none;
+  flex: 1;
+  font: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.weatherChip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: #f7f4ec;
+  border-radius: 999px;
+  padding: 8px 11px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+.weatherChip span:first-child {
+  font-size: 15px;
+  line-height: 1;
+}
+
+.iconBtn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: none;
+  background: #f7f4ec;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+}
+.iconBtn[data-on="1"] {
+  background: var(--color-primary);
+  color: #fff;
+}
+.badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.weatherAlert {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: calc(78px + var(--safe-top));
+  z-index: 20;
+  background: #fff3d6;
+  border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 8px 20px rgba(36, 48, 58, 0.12);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.waIcon {
+  font-size: 18px;
+  flex: none;
+  line-height: 1;
+}
+.waBody {
+  flex: 1;
+  min-width: 0;
+}
+.waText {
+  font-size: 12.5px;
+  color: #8a5a00;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.waBody button {
+  margin-top: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #059669;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.waClose {
+  background: none;
+  border: none;
+  flex: none;
+  color: #8a5a00;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+
+.fabStack {
+  position: absolute;
+  right: 14px;
+  bottom: calc(78px + 360px + 16px + var(--safe-bottom));
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fabAdd,
+.fabRecenter {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.fabAdd {
+  background: #16a34a;
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.4);
+}
+.fabRecenter {
+  background: var(--color-surface);
+  box-shadow: 0 4px 12px rgba(36, 48, 58, 0.2);
+}

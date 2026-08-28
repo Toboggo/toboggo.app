@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@toboggo/design-system": ["../../packages/design-system/src"],
+      "@toboggo/shared": ["../../packages/shared/src"]
+    }
+  },
+  "include": ["src"]
+}

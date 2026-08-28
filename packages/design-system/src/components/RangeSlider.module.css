@@ -1,0 +1,36 @@
+.wrap {
+  padding: var(--space-2) 0;
+}
+.track {
+  position: relative;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  margin: 20px 4px;
+}
+.fill {
+  position: absolute;
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+}
+.handle {
+  position: absolute;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  border: 3px solid var(--color-primary);
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  box-shadow: var(--shadow-sm);
+  touch-action: none;
+}
+.label {
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-primary-hover);
+}

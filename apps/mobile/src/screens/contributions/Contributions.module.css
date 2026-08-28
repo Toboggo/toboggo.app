@@ -1,0 +1,127 @@
+.screen {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 96px;
+}
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 6px 20px 14px;
+}
+.tab {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  background: #f1ece0;
+  color: #8a8578;
+  padding: 9px 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  cursor: pointer;
+}
+.tab[data-on="1"] {
+  background: #16a34a;
+  color: #fff;
+}
+
+.body {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 20px 30px;
+}
+.empty {
+  text-align: center;
+  padding: 40px 10px;
+  font-size: 13px;
+  color: #8a8578;
+}
+
+.parkRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+  cursor: pointer;
+}
+.thumb {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border-radius: 14px;
+  background: #ece6d8 center / cover no-repeat;
+}
+.rowBody {
+  flex: 1;
+  min-width: 0;
+}
+.rowName {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--color-text);
+}
+.rowSub {
+  font-size: 12px;
+  color: #8a8578;
+  margin-top: 2px;
+}
+.pending {
+  background: #fff3d6;
+  color: #8a5a00;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 14px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+}
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.cardName {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--color-text);
+}
+.cardDate {
+  font-size: 11px;
+  color: #a8a190;
+}
+.cardStars {
+  display: flex;
+  gap: 2px;
+  margin: 6px 0;
+}
+.card p {
+  margin: 0;
+  font-size: 13px;
+  color: #5b5648;
+}
+
+.reportRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-surface);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+}

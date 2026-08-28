@@ -1,0 +1,143 @@
+/*
+  Toboggo brand tokens.
+
+  Extracted from the actually-used inline styles in the "Parcs de Jeux app.dc.html"
+  prototype (the Modernist _ds bundle shipped alongside it was never linked from
+  any prototype and is not the real brand — see plan notes). Normalized here as
+  the single source of truth shared by the mobile app and the back office, so the
+  three surfaces (which were designed independently, in different chat sessions,
+  with three different ad-hoc palettes) read as one product.
+*/
+
+:root {
+  --font-heading: "Fredoka", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+
+  /* Light (default) */
+  --color-bg: #fff8ec;
+  --color-bg-alt: #f3efe3;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8f5ec;
+  --color-text: #24303a;
+  --color-text-muted: #8a8578;
+  --color-text-faint: #a8a190;
+  --color-border: #ece6d8;
+  --color-border-strong: #f1ecE0;
+
+  --color-primary: #16a34a;
+  --color-primary-hover: #128a3e;
+  --color-primary-pressed: #0f7434;
+  --color-primary-tint: #e6f6ec;
+  --color-on-primary: #ffffff;
+
+  --color-accent: #f08a2e;
+  --color-accent-tint: #fef1e2;
+
+  --color-info: #2e6fa8;
+  --color-info-tint: #eaf3fb;
+
+  --color-error: #ef4444;
+  --color-error-tint: #fdeaea;
+
+  --color-warning-bg: #fff3d6;
+  --color-warning-text: #8a5a00;
+
+  --radius-pill: 999px;
+  --radius-lg: 26px;
+  --radius-md: 18px;
+  --radius-sm: 14px;
+  --radius-xs: 10px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  --shadow-sm: 0 1px 3px rgba(36, 48, 58, 0.08);
+  --shadow-md: 0 4px 16px rgba(36, 48, 58, 0.12);
+  --shadow-lg: 0 12px 32px rgba(36, 48, 58, 0.18);
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #141a16;
+  --color-bg-alt: #1b221d;
+  --color-surface: #1e2620;
+  --color-surface-alt: #232c25;
+  --color-text: #f3efe3;
+  --color-text-muted: #a8b0a9;
+  --color-text-faint: #7c857d;
+  --color-border: #2c362f;
+  --color-border-strong: #364039;
+
+  --color-primary: #34c766;
+  --color-primary-hover: #3fe077;
+  --color-primary-pressed: #29a655;
+  --color-primary-tint: #16301f;
+  --color-on-primary: #0d1710;
+
+  --color-accent: #ffa552;
+  --color-accent-tint: #3a2917;
+
+  --color-info: #6fb0ee;
+  --color-info-tint: #172736;
+
+  --color-error: #f87171;
+  --color-error-tint: #3a1c1c;
+
+  --color-warning-bg: #3a3016;
+  --color-warning-text: #ffcf6b;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

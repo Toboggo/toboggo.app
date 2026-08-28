@@ -1,0 +1,102 @@
+.stepDots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border-strong);
+}
+.dot.active {
+  background: var(--color-primary);
+  width: 22px;
+  border-radius: var(--radius-pill);
+}
+.dot.done {
+  background: var(--color-primary-tint);
+}
+
+.toastWrap {
+  position: fixed;
+  bottom: calc(100px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text);
+  color: var(--color-bg);
+  padding: 12px 20px;
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  max-width: 90vw;
+  text-align: center;
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+}
+.emptyIcon {
+  font-size: 40px;
+  margin-bottom: var(--space-2);
+}
+
+.avatar {
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.statCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+}
+.statValue {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+}
+.statLabel {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin-top: 2px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.table th {
+  text-align: left;
+  font-family: var(--font-heading);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+  padding: 10px 14px;
+  border-bottom: 1.5px solid var(--color-border);
+}
+.table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+}
+.table tr:last-child td {
+  border-bottom: none;
+}

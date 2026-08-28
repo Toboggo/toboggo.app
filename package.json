@@ -1,0 +1,21 @@
+{
+  "name": "toboggo",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:mobile": "npm run dev -w @toboggo/mobile",
+    "dev:backoffice": "npm run dev -w @toboggo/backoffice",
+    "build": "npm run build -w @toboggo/mobile -w @toboggo/backoffice",
+    "build:mobile": "npm run build -w @toboggo/mobile",
+    "build:backoffice": "npm run build -w @toboggo/backoffice",
+    "lint": "npm run lint -w @toboggo/mobile -w @toboggo/backoffice",
+    "typecheck": "npm run typecheck -w @toboggo/design-system -w @toboggo/shared -w @toboggo/mobile -w @toboggo/backoffice"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

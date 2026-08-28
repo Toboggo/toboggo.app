@@ -1,0 +1,138 @@
+/* Park list inside the map bottom-sheet — ported from the Claude Design prototype. */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.head {
+  padding: 0 20px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.head span {
+  font-size: 12px;
+  font-weight: 800;
+  color: #5b5648;
+}
+.childChip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  color: #16a34a;
+  padding: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.childChip[data-on="1"] {
+  text-decoration: underline;
+}
+
+.divider {
+  height: 1px;
+  background: #f1ece0;
+  margin: 8px 20px 4px;
+}
+
+.sortRow {
+  display: flex;
+  gap: 8px;
+  padding: 2px 20px 12px;
+  overflow-x: auto;
+}
+.sortChip {
+  flex: none;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  cursor: pointer;
+  background: #f1ece0;
+  color: #8a8578;
+}
+.sortChip[data-on="1"] {
+  background: #16a34a;
+  color: #fff;
+}
+
+.list {
+  flex: 1;
+  overflow: auto;
+  padding: 0 14px;
+}
+
+.empty {
+  padding: 40px 24px;
+  text-align: center;
+  font-size: 13px;
+  color: #8a8578;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 6px;
+  border-bottom: 1px solid #f1ece0;
+}
+.thumb {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border-radius: 16px;
+  background: #ece6d8 center / cover no-repeat;
+}
+.rowBody {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.rowName {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  color: #24303a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rowMeta {
+  font-size: 12px;
+  color: #8a8578;
+  margin-top: 2px;
+}
+.rowStars {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+}
+.rowStars span {
+  font-size: 11px;
+  color: #8a8578;
+  margin-left: 3px;
+}
+.fav {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7f4ec;
+  cursor: pointer;
+}
+.fav[data-on="1"] {
+  background: #fde8e8;
+}

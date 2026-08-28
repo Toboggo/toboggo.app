@@ -1,0 +1,100 @@
+/* "Se connecter" method chooser — ported from the Claude Design prototype. */
+
+.wrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #fff8ec;
+  overflow: hidden;
+}
+
+.topbar {
+  padding: calc(20px + var(--safe-top)) 24px 0;
+}
+.back {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #5b5648;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.header {
+  padding: 20px 24px 0;
+  text-align: center;
+}
+.header h1 {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #24303a;
+}
+.header p {
+  margin: 0;
+  font-size: 14px;
+  color: #8a8578;
+}
+
+.list {
+  padding: 22px 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.card {
+  height: 64px;
+  border-radius: 18px;
+  border: none;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(36, 48, 58, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 16px;
+  cursor: pointer;
+  text-align: left;
+}
+.card:active {
+  background: #fdfbf5;
+}
+
+.tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+}
+.cardTitle {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  color: #24303a;
+}
+.cardSub {
+  display: block;
+  font-size: 12.5px;
+  color: #8a8578;
+}
+
+.illo {
+  flex: 1;
+  position: relative;
+  margin-top: 18px;
+  overflow: hidden;
+  min-height: 120px;
+  max-height: 200px;
+}

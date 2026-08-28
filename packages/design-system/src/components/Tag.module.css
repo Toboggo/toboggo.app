@@ -1,0 +1,44 @@
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.primary {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+}
+.accent {
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+}
+.info {
+  background: var(--color-info-tint);
+  color: var(--color-info);
+}
+.error {
+  background: var(--color-error-tint);
+  color: var(--color-error);
+}
+.warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.selectable {
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  background: var(--color-surface);
+  border-color: var(--color-border-strong);
+}
+.selectable.active {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary);
+}

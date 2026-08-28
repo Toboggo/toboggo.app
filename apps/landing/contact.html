@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contact — Toboggo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="wrap nav">
+  <a class="brand" href="index.html"><svg width="28" height="28" viewBox="0 0 56 56" aria-hidden="true"><defs><linearGradient id="tg-nav" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3DBE90"/><stop offset="1" stop-color="#1F7D5F"/></linearGradient></defs><rect width="56" height="56" rx="16" fill="url(#tg-nav)"/><path d="M17 15 L39 15 M28 15 L28 30" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M28 30 C28 39 34 39 34 45" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="34" cy="45" r="4.2" fill="#FFB020"/></svg><span>Toboggo</span></a>
+  <div class="nav-links">
+    <a href="index.html">Accueil</a>
+    <a href="faq.html">FAQ</a>
+    <a class="btn btn-primary" href="index.html#download">Télécharger</a>
+  </div>
+</div>
+
+<div class="doc-section" style="max-width:960px;">
+  <h1>Une question, un problème ?</h1>
+  <p style="color:var(--color-text-muted);">Pour un parc endommagé ou une information erronée, utilisez plutôt le bouton « Signaler » depuis la fiche du parc dans l'app — c'est traité plus vite.</p>
+
+  <div class="contact-grid" style="margin-top:32px;">
+    <div>
+      <div class="contact-card"><strong>Support général</strong><br /><a href="mailto:contact@toboggo.app">contact@toboggo.app</a></div>
+      <div class="contact-card"><strong>Presse</strong><br /><a href="mailto:presse@toboggo.app">presse@toboggo.app</a></div>
+      <div class="contact-card"><strong>Confidentialité RGPD</strong><br /><a href="mailto:privacy@toboggo.app">privacy@toboggo.app</a></div>
+    </div>
+
+    <div>
+      <div id="form-msg"></div>
+      <form id="contact-form">
+        <div class="form-field">
+          <label for="name">Nom</label>
+          <input id="name" name="name" required />
+        </div>
+        <div class="form-field">
+          <label for="email">E-mail</label>
+          <input id="email" name="email" type="email" required />
+        </div>
+        <div class="form-field">
+          <label for="subject">Sujet</label>
+          <select id="subject" name="subject">
+            <option>Question générale</option>
+            <option>Problème technique</option>
+            <option>Partenariat</option>
+            <option>Presse</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label for="message">Message</label>
+          <textarea id="message" name="message" rows="5" required></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit" id="submit-btn">Envoyer</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="index.html"><svg width="24" height="24" viewBox="0 0 56 56" aria-hidden="true"><defs><linearGradient id="tg-foot" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3DBE90"/><stop offset="1" stop-color="#1F7D5F"/></linearGradient></defs><rect width="56" height="56" rx="16" fill="url(#tg-foot)"/><path d="M17 15 L39 15 M28 15 L28 30" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><path d="M28 30 C28 39 34 39 34 45" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle cx="34" cy="45" r="4.2" fill="#FFB020"/></svg><span>Toboggo</span></a>
+    <div>© 2026 Toboggo SAS</div>
+  </div>
+</footer>
+
+<script src="config.js"></script>
+<script>
+  const form = document.getElementById("contact-form");
+  const msgEl = document.getElementById("form-msg");
+  const btn = document.getElementById("submit-btn");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msgEl.innerHTML = "";
+    const cfg = window.TOBOGGO_CONFIG;
+    if (!cfg || cfg.SUPABASE_URL.includes("YOUR-PROJECT")) {
+      msgEl.innerHTML = '<div class="form-msg error">Le formulaire n\'est pas encore connecté (config.js à renseigner). Écrivez-nous directement à contact@toboggo.app.</div>';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = "Envoi…";
+    const payload = {
+      name: document.getElementById("name").value,
+      email: document.getElementById("email").value,
+      subject: document.getElementById("subject").value,
+      message: document.getElementById("message").value,
+    };
+    try {
+      const res = await fetch(`${cfg.SUPABASE_URL}/rest/v1/contact_messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: cfg.SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${cfg.SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      msgEl.innerHTML = '<div class="form-msg success">🎉 Message envoyé — notre équipe vous répondra sous peu.</div>';
+      form.reset();
+    } catch (err) {
+      msgEl.innerHTML = '<div class="form-msg error">Une erreur est survenue. Écrivez-nous directement à contact@toboggo.app.</div>';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Envoyer";
+    }
+  });
+</script>
+
+</body>
+</html>

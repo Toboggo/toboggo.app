@@ -1,0 +1,212 @@
+/* E-mail auth form — ported from the Claude Design prototype. */
+
+.wrap {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #fff8ec;
+  padding: calc(20px + var(--safe-top)) 24px calc(40px + var(--safe-bottom));
+}
+
+.back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 12px;
+  color: #5b5648;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+.wordmark {
+  display: flex;
+  align-items: baseline;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 22px;
+}
+.hero h1 {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  line-height: 1.2;
+  color: #24303a;
+}
+.hero p {
+  margin: 0;
+  font-size: 14px;
+  color: #8a8578;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #5b5648;
+}
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 1.5px solid #ece6d8;
+  background: #fff;
+  font-size: 14px;
+  color: #24303a;
+}
+.field input:focus {
+  outline: none;
+  border-color: #16a34a;
+}
+
+.pwdWrap {
+  position: relative;
+}
+.pwdWrap input {
+  padding-right: 44px;
+}
+.eye {
+  position: absolute;
+  right: 6px;
+  top: 0;
+  height: 48px;
+  width: 36px;
+  background: none;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8a8578;
+  cursor: pointer;
+}
+
+.forgot {
+  text-align: right;
+  margin: 8px 0 0;
+}
+.forgot span {
+  font-size: 12.5px;
+  color: #16a34a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.error {
+  margin: 0;
+  font-size: 12.5px;
+  color: #c0392b;
+  background: #fceae8;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+.ok {
+  margin: 0;
+  font-size: 12.5px;
+  color: #16a34a;
+  background: #e7f6ec;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.submit {
+  margin-top: 6px;
+  height: 52px;
+  border-radius: 999px;
+  border: none;
+  background: #16a34a;
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 0.03em;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.35);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.submit:disabled {
+  cursor: default;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0;
+}
+.divider span {
+  flex: 1;
+  height: 1px;
+  background: #ece6d8;
+}
+.divider em {
+  font-size: 12px;
+  color: #a8a190;
+  font-style: normal;
+}
+
+.social {
+  height: 50px;
+  border-radius: 16px;
+  border: 1.5px solid #ece6d8;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: #24303a;
+  cursor: pointer;
+  text-align: left;
+}
+
+.switch {
+  text-align: center;
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: #8a8578;
+}
+.switch span {
+  color: #16a34a;
+  font-weight: 700;
+  cursor: pointer;
+}

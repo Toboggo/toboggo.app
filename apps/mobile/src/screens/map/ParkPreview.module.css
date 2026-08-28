@@ -1,0 +1,198 @@
+/* Park preview inside the map bottom-sheet — ported from the Claude Design prototype. */
+
+.wrap {
+  padding: 6px 20px 20px;
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: #8a8578;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 0 10px;
+}
+
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: 2px;
+}
+.photo {
+  width: 88px;
+  height: 88px;
+  flex: none;
+  border-radius: 16px;
+  background: #ece6d8 center / cover no-repeat;
+}
+.headBody {
+  min-width: 0;
+  flex: 1;
+}
+.titleRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.name {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 18px;
+  color: #24303a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.circleRow {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.circleBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #ece6d8;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.circleBtn[data-on="1"] {
+  background: #fde8e8;
+}
+
+.ratingRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.ratingRow strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: #24303a;
+}
+.reviewsLink {
+  font-size: 12px;
+  color: #8a8578;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.walk {
+  font-size: 12px;
+  color: #8a8578;
+  margin-left: 2px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.chip {
+  background: #e7f6ec;
+  color: #16a34a;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+}
+.primary,
+.secondary {
+  flex: 1;
+  height: 50px;
+  border-radius: 999px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+.primary {
+  border: none;
+  background: #16a34a;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.secondary {
+  border: 1.5px solid #ece6d8;
+  background: #fff;
+  color: #24303a;
+}
+
+.hr {
+  height: 1px;
+  background: #f1ece0;
+  margin: 20px 0 16px;
+}
+
+.infoRows {
+  font-size: 13px;
+  color: #5b5648;
+  line-height: 1.5;
+}
+.infoRow {
+  display: flex;
+  gap: 8px;
+}
+.infoRow svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+.section {
+  margin-top: 18px;
+}
+.kicker {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8a8578;
+  margin-bottom: 8px;
+}
+.photoStrip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+.stripThumb {
+  flex: none;
+  width: 80px;
+  height: 80px;
+  border-radius: 14px;
+  background: #ece6d8 center / cover no-repeat;
+}
+
+.report {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #8a8578;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 18px;
+}

@@ -1,0 +1,63 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 26, 22, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: 100;
+}
+.dialog {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  max-width: 420px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+}
+.title {
+  font-size: 18px;
+  margin-bottom: var(--space-2);
+}
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 26, 22, 0.45);
+  z-index: 90;
+}
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-surface);
+  border-radius: 26px 26px 0 0;
+  box-shadow: var(--shadow-lg);
+  z-index: 95;
+  padding-bottom: var(--safe-bottom);
+  touch-action: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.grabber {
+  width: 40px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+  margin: 10px auto 4px;
+  flex-shrink: 0;
+}
+.sheetBody {
+  overflow-y: auto;
+  flex: 1;
+}

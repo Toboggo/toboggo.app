@@ -1,0 +1,24 @@
+@import "@toboggo/design-system/tokens.css";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+.bo-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.bo-content {
+  flex: 1;
+  min-width: 0;
+  padding: 24px 32px 60px;
+}
+
+@media (max-width: 860px) {
+  .bo-content {
+    padding: 16px 16px 90px;
+  }
+}

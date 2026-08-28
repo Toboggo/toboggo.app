@@ -1,0 +1,37 @@
+.screen {
+  min-height: 100vh;
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+}
+.body {
+  flex: 1;
+  overflow: auto;
+  padding: 6px 20px 30px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-surface);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+.icon {
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+}
+.dash {
+  font-size: 13px;
+  color: #b3ac9c;
+}

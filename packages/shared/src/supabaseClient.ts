@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "./types/database.types";
 
-let client: SupabaseClient | null = null;
+let client: SupabaseClient<Database> | null = null;
 
 /**
  * Lazily creates the Supabase client from Vite env vars. Both apps must define
@@ -8,7 +9,7 @@ let client: SupabaseClient | null = null;
  * root) — until real credentials are supplied this throws with a clear message
  * instead of silently hitting a fake backend.
  */
-export function getSupabase(): SupabaseClient {
+export function getSupabase(): SupabaseClient<Database> {
   if (client) return client;
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -17,7 +18,7 @@ export function getSupabase(): SupabaseClient {
       "Supabase n'est pas configuré : renseignez VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY (voir .env.example).",
     );
   }
-  client = createClient(url, anonKey, {
+  client = createClient<Database>(url, anonKey, {
     auth: { persistSession: true, autoRefreshToken: true },
   });
   return client;

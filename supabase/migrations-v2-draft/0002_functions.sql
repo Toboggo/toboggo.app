@@ -219,7 +219,7 @@ select
   fvalue(p.id, 'fence_status') in ('fully_fenced', 'partially_fenced') as fenced,
   fstatus(p.id, 'wheelchair_access') = 'available' as pmr,
   fstatus(p.id, 'benches') = 'available' as benches,
-  (fstatus(p.id, 'drinking_water') = 'available' or fstatus(p.id, 'water_play') = 'available') as water,
+  fstatus(p.id, 'drinking_water') = 'available' as water,
   fstatus(p.id, 'parking') = 'available' as parking,
   case fvalue(p.id, 'surface_type')
     when 'sand' then 'sable' when 'grass' then 'gazon'

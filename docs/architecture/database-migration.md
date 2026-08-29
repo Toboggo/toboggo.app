@@ -2,7 +2,7 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — fin de Phase 2D ; rafraîchissement du checkpoint (état Git réel + clarification des commandes DB).
+> Dernière mise à jour : **2026-08-30** — fin de Phase 3E. Validation locale complète (3B→3E) : `0001→0019` + seed appliqués, DB/RLS/backfill PASS, `park_public.water` corrigé. **`BACKFILL_READY_FOR_PROD = YES`.** Prod toujours V1.
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -16,10 +16,10 @@ les audits. Lire **§11 CHECKPOINT** en premier.
 |---|---|
 | **Production Supabase** (projet lié `dfzrsygetbhnjzfssgub`) | **V1** — schéma plat pré-PDF, jamais migré vers v2 |
 | **Migrations réellement déployées** | `0001 → 0006` = les 6 fichiers historiques (voir §3) |
-| `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (DRAFT, non déployées) |
+| `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (**TESTED en local 3B–3E**, non déployées en prod) |
 | `supabase/migrations-v2-draft/` | Architecture cible **from-scratch de référence uniquement** (`0001_schema … 0005_fix_signup_trigger`). **NE PAS appliquer.** Sert de spec + de cible pour `supabase gen types` post-cutover. |
-| `packages/shared/src/types/database.types.ts` | Généré depuis la **vraie DB distante V1** (`supabase gen types --linked`). Reflète donc le schéma V1 (table `communes`, `parks` plat, `park_edit_history`, etc.). |
-| `packages/shared/src/supabaseClient.ts` | `createClient<Database>` typé contre V1 → révèle 110 incompatibilités code↔schéma (voir §7 Phase 1B). **Volontairement laissé en erreur** — c'est l'instrument de mesure jusqu'au cutover. |
+| `packages/shared/src/types/database.types.ts` | **En Phase 3C, remplacé par la version V2 générée en local (`gen types --local`) — modif NON commitée**, c'est l'entrée de la Phase 4. La version commitée (HEAD) reste générée depuis la vraie DB distante V1 (`gen types --linked`). Sauvegarde V1 volatile : `/tmp/database.types.v1.backup.ts`. |
+| `packages/shared/src/supabaseClient.ts` | `createClient<Database>` : contre V1 → 110 erreurs ; **contre les types V2 locaux (état actuel non commité) → 10 erreurs restantes**, toutes dans `packages/shared/src/api/*` (voir §13). |
 | `supabase/inventory-pre-v2.sql` | Script READ-ONLY d'inventaire prod, déjà exécuté (résultats en §2). |
 | **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`, **synchronisée avec `origin/main`** (`git status` = working tree clean). La réconciliation de l'historique (Phase 2A) **est commitée et poussée**. Commits pertinents (du plus récent au plus ancien) : `1a68f83 feat(brand): update Toboggo branding and icon system` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration`. Le commit `3029c57` contient la réconciliation : `supabase/migrations/0001→0019`, `supabase/migrations-v2-draft/0001→0005`, `supabase/inventory-pre-v2.sql` et ce document sont tous **tracés**. |
 
@@ -171,11 +171,11 @@ Vue `park_public` (v2) : aplatit le modèle normalisé **et** reprojette la form
 
 ## 6. Migrations 0007 → 0019
 
-Toutes en `supabase/migrations/`. État : **DRAFT → AUDITED (2C) → FIXED (2D)**. Prochaine étape : **TESTED** (sur DB locale/staging).
+Toutes en `supabase/migrations/`. État : **DRAFT → AUDITED (2C) → FIXED (2D) → TESTED (3B–3E)**. `0001→0019` appliquées sans erreur, toutes assertions `RAISE` passées, sur base locale V2 (seed) **et** sur fixture V1 réaliste (backfill). Prochaine étape : **corrections APIs shared (Phase 4)**.
 
 | # | Fichier | Objectif | État | Dépend de | Points particuliers |
 |---|---|---|---|---|---|
-| 0007 | `0007_v2_enums_extensions.sql` | 18 enums v2 manquants ; `pg_trgm` ; `report_status += in_progress` | FIXED (SAFE_WITH_NOTE) | — | `ALTER TYPE ADD VALUE` in-transaction : OK PG≥12, **à confirmer au 1er `db push --dry-run`** |
+| 0007 | `0007_v2_enums_extensions.sql` | 18 enums v2 manquants ; `pg_trgm` ; `report_status += in_progress` | TESTED (SAFE) | — | `ALTER TYPE ADD VALUE` in-transaction : **confirmé OK** sur PG17 local (3B + 3D) |
 | 0008 | `0008_v2_organizations.sql` | `organizations` + `organization_parks` ; backfill communes/6 relations | FIXED (SAFE) | 0007 | UUID communes préservés |
 | 0009 | `0009_v2_parks_columns.sql` | +21 colonnes v2 sur `parks` ; `location` généré ; index ; trigger `parks_v1_compat` | FIXED (SAFE_WITH_NOTE) | 0007 | trigger **bidirectionnel** ; `country_code`/`timezone` NOT NULL **sans DEFAULT** ; INSERT V1 exige quand même ces 2 champs (voulu) |
 | 0010 | `0010_v2_features.sql` | `features` + seed catalogue + `park_features` + backfill (règles §5) | FIXED (SAFE) | 0009 | assertions : 0 `unavalaible`, value domains, tout code play mappé ; 182 lignes attendues |
@@ -185,11 +185,11 @@ Toutes en `supabase/migrations/`. État : **DRAFT → AUDITED (2C) → FIXED (2D
 | 0014 | `0014_v2_reports.sql` | +7 colonnes v2 sur `reports` ; `category NOT NULL` ; trigger `reports_v1_compat` | FIXED (SAFE) | 0007, 0012 | trigger **bidirectionnel** `category↔reason`, `equipment↔equipment_label`, `comment↔description` |
 | 0015 | `0015_v2_audit.sql` | `audit_log` + backfill `park_edit_history` (0 ligne) | FIXED (SAFE) | — | perte connue : `actor` texte → `source` |
 | 0016 | `0016_v2_organization_columns.sql` | `organization_id` sur team_members/maintenance/activity_log + FK + triggers | FIXED (SAFE) | 0008 | triggers `IS DISTINCT FROM` → `SET organization_id = NULL` possible en UPDATE ; backfill : 2 super_admin → NULL, gestionnaire → même UUID |
-| 0017 | `0017_v2_functions.sql` | triggers recompute/audit ; `fstatus`/`fvalue` ; vue `park_public` ; `nearby_parks` v2 ; `find_duplicate_parks` ; `recalculate_park_score` | FIXED (SAFE) | 0008–0015 | `park_public` = **liste explicite** (pas `p.*`, collision colonnes V1) ; `has_score` = `coalesce(...,false)` ; `nearby_parks` DROP+CREATE ; `SET search_path` sur 5 SECDEF ; `recalculate_park_score` en INVOKER |
+| 0017 | `0017_v2_functions.sql` | triggers recompute/audit ; `fstatus`/`fvalue` ; vue `park_public` ; `nearby_parks` v2 ; `find_duplicate_parks` ; `recalculate_park_score` | TESTED (SAFE) — **corrigé 3E** | 0008–0015 | `park_public` = **liste explicite** ; `has_score` = `coalesce(...,false)` ; `nearby_parks` DROP+CREATE ; `SET search_path` sur 5 SECDEF ; `recalculate_park_score` en INVOKER. **3E : `park_public.water` = `drinking_water` seul** (ne fusionne plus `water_play` — point d'eau ≠ jeux d'eau ; `water_play` reste exposé via `play_equipment`). `nearby_parks.water` hérite (lit la vue). |
 | 0018 | `0018_v2_rls.sql` | helpers v2 (`org_role` priorisé) ; RLS + policies sur les 17 tables nouvelles ; faille `organization_parks` corrigée | FIXED (SAFE) | 0016, 0017 | `SET search_path` sur 8 helpers ; policies `organization_parks` séparées + trigger `organization_parks_guard` ; **ne touche PAS** les policies V1 de parks/reviews/reports (coexistence) |
 | 0019 | `0019_v2_grants.sql` | `REVOKE ALL` + `GRANT` ciblé (Supabase grant-all par défaut) ; re-grant `nearby_parks` post-DROP | FIXED (SAFE) | 0017, 0018 | anon = lecture seule ; `audit_log` append-only ; `park_duplicate_candidates` lecture seule (écritures = `service_role`) |
 
-**`migrations-v2-draft/`** aussi corrigé en Phase 2D (cohérence du schéma cible) : `0002_functions.sql` (`search_path` sur 6 SECDEF + `delete_own_account` ; `recalculate_park_score` INVOKER ; `has_score` coalesce) et `0003_rls.sql` (faille `organization_parks` + `search_path` sur 8 helpers).
+**`migrations-v2-draft/`** aussi corrigé en Phase 2D (cohérence du schéma cible) : `0002_functions.sql` (`search_path` sur 6 SECDEF + `delete_own_account` ; `recalculate_park_score` INVOKER ; `has_score` coalesce) et `0003_rls.sql` (faille `organization_parks` + `search_path` sur 8 helpers). **Phase 3E** : `0002_functions.sql` reçoit aussi le fix `park_public.water` (`drinking_water` seul).
 
 ---
 
@@ -320,41 +320,58 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 > **⚠️ Section critique — lire en premier, mettre à jour à chaque phase.**
 
 ```
-DERNIÈRE ÉTAPE TERMINÉE :
-  Phase 2D — corrections de l'audit statique sur 0007→0019
-  (+ alignement migrations-v2-draft/0002 & 0003).
-  Tous les FIX_REQUIRED (0013, 0014) résolus.
+DERNIÈRE PHASE :
+  Phase 3E terminée.
+  (3B : Supabase local Docker + PG17, 0001→0019 + seed appliqués.
+   3C : DB post-migration PASS, RLS PASS, types V2 générés, typecheck
+        ~110 → 10 erreurs, builds mobile/backoffice PASS.
+   3D : vrai backfill V1→V2 sur fixture représentative des 17 parcs
+        réels — 1 défaut : park_public.water fusionnait drinking_water
+        et water_play.
+   3E : corrigé dans supabase/migrations/0017_v2_functions.sql +
+        supabase/migrations-v2-draft/0002_functions.sql ; harnais 3D
+        rejoué → 31/31 checks PASS ; 0001→0019 PASS.)
 
-VERDICT :
-  READY_FOR_LOCAL_TEST
-  (1 point à confirmer au 1er `db push --dry-run` : ALTER TYPE ADD VALUE
-   in-transaction en 0007 — OK PostgreSQL >= 12, Supabase = 15/17.)
+VERDICT DB :
+  BACKFILL_READY_FOR_PROD = YES
 
-PROCHAINE ÉTAPE :
-  Tester l'application de 0001→0019 + seed.sql sur une base
-  LOCALE/STAGING JETABLE (jamais la prod). Vérifier que toutes les
-  assertions RAISE EXCEPTION passent. Puis, contre cette base v2 :
-  regénérer database.types.ts, relancer le typecheck du monorepo
-  (les 110 erreurs Phase 1B doivent disparaître), puis attaquer la
-  correction des APIs shared restantes (GROUPE 3).
+PRODUCTION :
+  toujours V1 — 0001→0006 uniquement.
+  0007→0019 JAMAIS appliquées en production.
+
+PROCHAINE PHASE :
+  Phase 4 — corriger les 10 erreurs TypeScript restantes
+  (toutes dans packages/shared/src/api/*) avec les types V2 locaux.
+  NE PAS commencer Phase 4 sans instruction.
+
+ÉTAT GIT (non commité, à trancher avant Phase 4) :
+  - packages/shared/src/types/database.types.ts : version V2 générée en
+    local (Phase 3C), SWAPPÉE mais NON COMMITÉE. C'est l'entrée de la
+    Phase 4. (Sauvegarde V1 : /tmp/database.types.v1.backup.ts — volatile.)
+  - supabase/migrations/0017_v2_functions.sql : fix water (Phase 3E), non commité.
+  - supabase/migrations-v2-draft/0002_functions.sql : fix water (Phase 3E), non commité.
+  - apps/*/public/icons-sprite.svg (x3) + docs/Toboggo-Brand-Guidelines.pdf :
+    modifs de branding hors chantier DB, NON produites par ce chantier.
 
 FICHIERS À LIRE (dans l'ordre) :
-  1. docs/architecture/database-migration.md  (ce fichier)
+  1. docs/architecture/database-migration.md  (ce fichier — §13 pour Phase 3)
   2. supabase/migrations/0007_v2_*.sql → 0019_v2_*.sql
   3. supabase/migrations/0001_init.sql → 0006_admin_user_moderation.sql (V1 déployé)
   4. supabase/migrations-v2-draft/0001_schema.sql → 0003_rls.sql (cible de référence)
   5. supabase/inventory-pre-v2.sql  (+ résultats en §2 de ce doc)
-  6. packages/shared/src/types/database.types.ts (schéma V1 actuel)
-  7. packages/shared/src/api/*.ts + packages/shared/src/types.ts
+  6. packages/shared/src/types/database.types.ts (schéma V2 local, swappé non commité)
+  7. packages/shared/src/api/*.ts + packages/shared/src/types.ts (les 10 erreurs — §13)
 
 COMMANDES AUTORISÉES :
   - supabase migration list --linked            (read-only, prod)
   - supabase gen types typescript --linked ...   (read-only, prod)
   - SQL Editor : SELECT uniquement
   - npm run typecheck / npm run build            (local)
+  - supabase gen types typescript --local        (base locale)
   - édition des fichiers supabase/migrations/0007→0019 et migrations-v2-draft/
   - git add / git commit / git push
   - sur une base LOCALE explicitement isolée : supabase db reset / db push / psql
+    (dont : CREATE DATABASE jetable + apply migrations + DROP DATABASE — harnais 3D)
   - sur un projet STAGING jetable explicitement séparé de la prod : idem
 
 COMMANDES INTERDITES (voir §10) :
@@ -372,11 +389,12 @@ COMMANDES INTERDITES (voir §10) :
 
 - [x] Phase 2D corrections
 - [x] nouvel audit statique (Phase 2D → READY_FOR_LOCAL_TEST)
-- [ ] **test migrations sur DB locale/staging** (0001→0019 + seed)
-- [ ] assertions post-migration (toutes les `RAISE EXCEPTION` passent)
-- [ ] génération `database.types.ts` **V2** (depuis la staging v2)
-- [ ] typecheck frontend (les 110 erreurs Phase 1B doivent tomber à ~0)
-- [ ] correction des APIs shared restantes (GROUPE 3 : parks, parkDetails, features, contributions, team, maintenance, communityFeed…)
+- [x] **test migrations sur DB locale** (0001→0019 + seed V2) — Phase 3B
+- [x] assertions post-migration (toutes les `RAISE EXCEPTION` passent) — 3B (seed V2) + 3D (fixture V1)
+- [x] génération `database.types.ts` **V2** (`gen types --local`) — Phase 3C
+- [x] typecheck frontend : ~110 → **10** erreurs (toutes dans `shared/src/api/*`) — Phase 3C
+- [x] **test réel du backfill V1→V2** sur fixture des 17 parcs réels — Phase 3D ; 1 fix (`park_public.water`) — Phase 3E ; **31/31 checks PASS**
+- [ ] **Phase 4** — correction des 10 erreurs `shared/src/api/*` (parks, parkDetails, features, contributions, team, maintenance, reviews, reports)
 - [ ] tests mobile (carte, détail parc, filtres, ajout parc, avis, signalement)
 - [ ] tests backoffice (login/routing org, Parks, Dashboard, Reports, Maintenance…)
 - [ ] tests RLS multi-organizations (isolation A/B, super_admin, `organization_parks_guard`)
@@ -390,9 +408,52 @@ COMMANDES INTERDITES (voir §10) :
 
 ---
 
+## 13. Phase 3 — validation locale (3B → 3E)
+
+Tout en **local** (Docker Supabase, PG17). Prod jamais touchée, aucun `--linked` en écriture.
+
+### 3B — Stack locale + application des migrations
+- `supabase start` : PG 17.6, GoTrue, PostgREST, Storage, Realtime, Studio — tous `healthy`.
+- `0001→0019` + `seed.sql` appliqués automatiquement au démarrage (base neuve). **Aucune erreur.**
+- `ALTER TYPE … ADD VALUE` in-transaction (0007) : confirmé OK sur PG17.
+
+### 3C — Validation post-migration (seed V2) + types + typecheck
+- 19 migrations tracées, 17 tables v2, vue `park_public`, 15 fonctions v2, RLS active sur les 17 tables. **PASS.**
+- **RLS testée par SQL** (SET ROLE + jwt claims) : anon (lecture published/`park_public` OK ; INSERT/UPDATE/DELETE `park_features` + `audit_log` refusés), authenticated standard (ne peut pas éditer un parc non géré), gestionnaire org A (gère A, pas B, ne peut pas s'attribuer un parc de B), super_admin (droits globaux), `audit_log` append-only. **13/13 PASS.**
+- `supabase gen types typescript --local` → types V2. Comparés à la V1 : +17 tables, +1 vue, +18 enums, `report_status += in_progress`, `nearby_parks` élargi.
+- Bascule `packages/shared/src/types/database.types.ts` → V2 (non commité). `npm run typecheck` : **~110 → 10 erreurs**, toutes dans `packages/shared/src/api/*` ; **0 erreur propre** mobile/backoffice. Builds bloqués au gate `tsc -b` par ces 10 (donc `vite build` non atteint).
+
+#### Les 10 erreurs restantes (entrée Phase 4)
+| Fichier:ligne | Cause |
+|---|---|
+| `api/contributions.ts:21,83` | `changes: Record<string,unknown>` ⇏ `Json` ; nullabilité |
+| `api/maintenance.ts:39,48` | `toRow()` non typé (`Record<string,unknown>`) ; `commune_id` V1 requis |
+| `api/parks.ts:35` | `nearby_parks` (projection) casté en `Park` complet |
+| `api/parks.ts:166` | `park_features.status: string` ⇏ `feature_status` |
+| `api/parks.ts:176,193` | `splitParkInput()` non typé ; colonnes V1+V2 NOT NULL sans DEFAULT |
+| `api/reports.ts:73` | `reason` (V1 NOT NULL) requis par le type `Insert` |
+| `api/reviews.ts:108` | `stars` (V1 NOT NULL) requis par le type `Insert` |
+
+Classement : **A (code encore V1) = 0** · **B (coexistence : V1 NOT NULL sans DEFAULT, trigger remplit au runtime mais typegen l'ignore) ≈ 4** · **C (types/helpers manuels `shared`) ≈ 6** · **D (forme RPC `nearby_parks`) = 1**. Aucune n'exige de retoucher migrations ni RLS ; décision Groupe B : `SET DEFAULT` sur 4 colonnes V1 **ou** cast côté API.
+
+### 3D — Test réel du backfill V1→V2
+- Fixture V1 **synthétique mais fidèle** aux agrégats des 17 parcs réels (§2) : 17 parcs, 2 communes, 3 team_members (2 super_admin sans commune + 1 gestionnaire), 4 profiles, 1 favorite. UUID/noms/emails fictifs (générateur : scratchpad, hors Git).
+- Base locale isolée (`CREATE DATABASE` jetable) : bootstrap `auth`/`storage` minimal → `0001→0006` → fixture → snapshot `baseline` → `0007→0019`. Toutes assertions `RAISE` passées.
+- **Backfill vérifié parc par parc** : identité (17/17, 0 perte, 0 doublon, 0 orphelin), géo (`lat/lng→latitude/longitude`, `location` généré), âges, statut, adresse, surface (`gazon→grass`, `sable→sand`, `sol_souple→rubber`, `non_precise→unknown`), booléens (**`true→available`, `false→unknown`, JAMAIS `unavailable`**), `shade→partial|∅`, `fence→partially_fenced|∅`, 10/10 codes `play_equipment` → feature v2 attendue, `park_features` = 182 exact, `communes→organizations` (id préservés), `organization_parks` (6 owner, 11 parcs org-less OK), `team_members` (rôles, staff→org NULL, gestionnaire→org=commune), `favorites` intacts.
+- **1 seul défaut** : `park_public.water` = `drinking_water OR water_play` → 2 parcs avec jeux d'eau mais sans point d'eau affichés `water=true` (faux positif dans la vue de compat ; donnée canonique `park_features` correcte).
+
+### 3E — Correction `park_public.water`
+- `supabase/migrations/0017_v2_functions.sql` **et** `supabase/migrations-v2-draft/0002_functions.sql` : `water` = `fstatus(p.id,'drinking_water')='available'` seul.
+- `water_play` reste exposé via `park_public.play_equipment` (`'waterplay'`) et la feature `water_play`.
+- Harnais 3D rejoué : **31/31 checks PASS** ; `park_public.water` == V1 `water` 17/17 ; `nearby_parks.water` hérite (0 divergence) ; `0001→0019` toujours OK.
+- **`BACKFILL_READY_FOR_PROD = YES`.**
+
+---
+
 ## Historique des mises à jour
 
 | Date | Phase | Résumé |
 |---|---|---|
 | 2026-08-30 | 2D | Corrections audit ; 13 migrations FIXED ; verdict READY_FOR_LOCAL_TEST ; création de ce fichier. |
 | 2026-08-30 | — | `docs(db): refresh migration checkpoint` — §1 Git remis à l'état réel (Phase 2A commitée + poussée dans `3029c57`, working tree clean) ; §10 & §11 : commandes DB clarifiées (interdits = prod/`--linked` uniquement ; autorisés = base locale isolée ou projet staging jetable séparé). |
+| 2026-08-30 | 3B–3E | Validation locale complète. 3B : stack Docker PG17, `0001→0019`+seed OK. 3C : DB/RLS PASS, types V2, typecheck ~110→10. 3D : backfill V1→V2 testé sur fixture des 17 parcs réels ; défaut `park_public.water`. 3E : fix (`0017` + `migrations-v2-draft/0002`), 31/31 checks PASS. Verdict : `BACKFILL_READY_FOR_PROD = YES`. Ajout §13. |

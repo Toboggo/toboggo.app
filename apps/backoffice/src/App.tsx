@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useOrgSession } from "./lib/orgSession";
+import { useIconSprite } from "@toboggo/design-system";
 import Login from "./screens/Login";
 import AccessDenied from "./screens/AccessDenied";
 import { Shell } from "./components/Shell";
@@ -20,6 +21,7 @@ export default function App() {
   const loading = useOrgSession((s) => s.loading);
   const userId = useOrgSession((s) => s.userId);
   const accessDenied = useOrgSession((s) => s.accessDenied);
+  useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
 
   useEffect(() => {
     init();

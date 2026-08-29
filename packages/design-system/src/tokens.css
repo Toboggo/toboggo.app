@@ -7,6 +7,12 @@
   the single source of truth shared by the mobile app and the back office, so the
   three surfaces (which were designed independently, in different chat sessions,
   with three different ad-hoc palettes) read as one product.
+
+  --color-primary / --color-accent / --color-info realigned on 29/08/2026 to the
+  confirmed brand hexes from docs/identite-visuelle-formats.md (#2FA37C green,
+  #FFB020 amber, #4C9EEB blue) — they previously used an unrelated generic
+  green/orange/blue. Dark-mode values are lighter derived tints for contrast on
+  a dark background, not officially validated by the founder yet.
 */
 
 :root {
@@ -24,17 +30,17 @@
   --color-border: #ece6d8;
   --color-border-strong: #f1ecE0;
 
-  --color-primary: #16a34a;
-  --color-primary-hover: #128a3e;
-  --color-primary-pressed: #0f7434;
-  --color-primary-tint: #e6f6ec;
+  --color-primary: #2fa37c;
+  --color-primary-hover: #268f6c;
+  --color-primary-pressed: #1f7d5f;
+  --color-primary-tint: #e6f5ee;
   --color-on-primary: #ffffff;
 
-  --color-accent: #f08a2e;
-  --color-accent-tint: #fef1e2;
+  --color-accent: #ffb020;
+  --color-accent-tint: #fff3dc;
 
-  --color-info: #2e6fa8;
-  --color-info-tint: #eaf3fb;
+  --color-info: #4c9eeb;
+  --color-info-tint: #eaf3fd;
 
   --color-error: #ef4444;
   --color-error-tint: #fdeaea;
@@ -75,16 +81,16 @@
   --color-border: #2c362f;
   --color-border-strong: #364039;
 
-  --color-primary: #34c766;
-  --color-primary-hover: #3fe077;
-  --color-primary-pressed: #29a655;
+  --color-primary: #4dbe95;
+  --color-primary-hover: #5fcb9e;
+  --color-primary-pressed: #2fa37c;
   --color-primary-tint: #16301f;
   --color-on-primary: #0d1710;
 
-  --color-accent: #ffa552;
+  --color-accent: #ffc257;
   --color-accent-tint: #3a2917;
 
-  --color-info: #6fb0ee;
+  --color-info: #7eb8ef;
   --color-info-tint: #172736;
 
   --color-error: #f87171;

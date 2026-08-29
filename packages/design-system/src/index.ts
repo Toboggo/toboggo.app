@@ -1,6 +1,7 @@
 import "./tokens.css";
 
 export * from "./components/Logo";
+export * from "./icons/Icon";
 export * from "./components/Button";
 export * from "./components/Card";
 export * from "./components/Tag";

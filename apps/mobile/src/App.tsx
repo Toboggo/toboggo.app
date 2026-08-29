@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useSession } from "./lib/session";
-import { useTheme } from "@toboggo/design-system";
+import { useTheme, useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
 
 import Splash from "./screens/onboarding/Splash";
@@ -47,6 +47,7 @@ export default function App() {
   const loading = useSession((s) => s.loading);
   const profile = useSession((s) => s.profile);
   const [, setTheme] = useTheme();
+  useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
 
   useEffect(() => {
     init();

@@ -11,7 +11,7 @@ import type { CSSProperties } from "react";
  * office. Do not eyeball-tweak the paths — re-export from the design file.
  */
 
-const GRAD_FROM = "#3DBE90";
+const GRAD_FROM = "#2FA37C";
 const GRAD_TO = "#1F7D5F";
 const BALL = "#FFB020";
 

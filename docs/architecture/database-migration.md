@@ -2,7 +2,7 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — fin de Phase 2D.
+> Dernière mise à jour : **2026-08-30** — fin de Phase 2D ; rafraîchissement du checkpoint (état Git réel + clarification des commandes DB).
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -21,9 +21,9 @@ les audits. Lire **§11 CHECKPOINT** en premier.
 | `packages/shared/src/types/database.types.ts` | Généré depuis la **vraie DB distante V1** (`supabase gen types --linked`). Reflète donc le schéma V1 (table `communes`, `parks` plat, `park_edit_history`, etc.). |
 | `packages/shared/src/supabaseClient.ts` | `createClient<Database>` typé contre V1 → révèle 110 incompatibilités code↔schéma (voir §7 Phase 1B). **Volontairement laissé en erreur** — c'est l'instrument de mesure jusqu'au cutover. |
 | `supabase/inventory-pre-v2.sql` | Script READ-ONLY d'inventaire prod, déjà exécuté (résultats en §2). |
-| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`. **La réconciliation de l'historique (Phase 2A) n'a jamais été commitée** : `supabase/migrations/*` et `supabase/migrations-v2-draft/*` sont **untracked** ; HEAD contient encore les anciens `migrations/0001_schema.sql…0005` (v2 from-scratch). Le disque est correct ; il faut committer l'état. |
+| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`, **synchronisée avec `origin/main`** (`git status` = working tree clean). La réconciliation de l'historique (Phase 2A) **est commitée et poussée**. Commits pertinents (du plus récent au plus ancien) : `1a68f83 feat(brand): update Toboggo branding and icon system` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration`. Le commit `3029c57` contient la réconciliation : `supabase/migrations/0001→0019`, `supabase/migrations-v2-draft/0001→0005`, `supabase/inventory-pre-v2.sql` et ce document sont tous **tracés**. |
 
-### Reconstruction de l'historique (fait en Phase 2A/2B, non commité)
+### Reconstruction de l'historique (fait en Phase 2A/2B, commité dans `3029c57`)
 
 - Les 6 fichiers historiques `_archive_migrations_pre_pdf/0001…0006` ont été **copiés** dans `supabase/migrations/` (SHA-1 identiques). L'archive est conservée.
 - Les 5 fichiers v2 from-scratch ont été **déplacés** vers `supabase/migrations-v2-draft/`.
@@ -295,18 +295,23 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 
 ## 10. INTERDICTIONS ACTUELLES
 
-**NE PAS**, tant que les étapes de test ne sont pas validées :
+**INTERDIT**, tant que les étapes de test ne sont pas validées :
 
-- ❌ `supabase db push`
-- ❌ `supabase db reset` (local ou linked)
-- ❌ `supabase migration repair`
-- ❌ appliquer `0007 → 0019` en **production**
+- ❌ `supabase db push --linked` vers la **production** (projet lié `dfzrsygetbhnjzfssgub`)
+- ❌ `supabase db reset --linked`
+- ❌ `supabase migration repair` sur la **production**
+- ❌ toute application de `0007 → 0019` sur la **production**
 - ❌ créer la migration `0020` (legacy cleanup)
 - ❌ supprimer / altérer les colonnes ou tables V1
-- ❌ modifier le schéma distant de quelque manière que ce soit
+- ❌ modifier le schéma distant de production de quelque manière que ce soit
 - ❌ committer un secret / token / mot de passe DB
 
-**Autorisé** : lecture seule distante (`supabase migration list --linked`, `supabase gen types --linked`, SQL Editor `SELECT`), édition locale des fichiers de migration, tests sur une DB **locale/staging jetable**.
+**AUTORISÉ** :
+
+- ✅ lecture seule sur la production distante : `supabase migration list --linked`, `supabase gen types typescript --linked`, SQL Editor `SELECT`
+- ✅ édition locale des fichiers de migration (`supabase/migrations/0007→0019`, `migrations-v2-draft/`)
+- ✅ `supabase db reset` / application des migrations sur une base **LOCALE explicitement isolée** (Postgres local jetable)
+- ✅ application des migrations sur un projet **STAGING jetable, explicitement séparé de la production**
 
 ---
 
@@ -343,17 +348,21 @@ FICHIERS À LIRE (dans l'ordre) :
   7. packages/shared/src/api/*.ts + packages/shared/src/types.ts
 
 COMMANDES AUTORISÉES :
-  - supabase migration list --linked            (read-only)
-  - supabase gen types typescript --linked ...   (read-only)
+  - supabase migration list --linked            (read-only, prod)
+  - supabase gen types typescript --linked ...   (read-only, prod)
   - SQL Editor : SELECT uniquement
   - npm run typecheck / npm run build            (local)
   - édition des fichiers supabase/migrations/0007→0019 et migrations-v2-draft/
-  - git add / git commit  (état local à figer)
-  - sur une DB LOCALE/STAGING jetable : supabase db reset / db push / psql
+  - git add / git commit / git push
+  - sur une base LOCALE explicitement isolée : supabase db reset / db push / psql
+  - sur un projet STAGING jetable explicitement séparé de la prod : idem
 
 COMMANDES INTERDITES (voir §10) :
-  - supabase db push / db reset / migration repair CONTRE LE PROJET LIÉ (prod)
-  - toute écriture sur le schéma distant
+  - supabase db push --linked vers la production
+  - supabase db reset --linked
+  - supabase migration repair sur la production
+  - toute application de 0007→0019 sur la production
+  - toute écriture sur le schéma distant de production
   - création de 0020
 ```
 
@@ -386,3 +395,4 @@ COMMANDES INTERDITES (voir §10) :
 | Date | Phase | Résumé |
 |---|---|---|
 | 2026-08-30 | 2D | Corrections audit ; 13 migrations FIXED ; verdict READY_FOR_LOCAL_TEST ; création de ce fichier. |
+| 2026-08-30 | — | `docs(db): refresh migration checkpoint` — §1 Git remis à l'état réel (Phase 2A commitée + poussée dans `3029c57`, working tree clean) ; §10 & §11 : commandes DB clarifiées (interdits = prod/`--linked` uniquement ; autorisés = base locale isolée ou projet staging jetable séparé). |

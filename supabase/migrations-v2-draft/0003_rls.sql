@@ -9,26 +9,26 @@
 -- ── Helper functions ─────────────────────────────────────────────────────
 create or replace function is_toboggo_staff(p_uid uuid) returns boolean as $$
   select exists (select 1 from team_members where user_id = p_uid and organization_id is null);
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 create or replace function is_toboggo_admin(p_uid uuid) returns boolean as $$
   select exists (
     select 1 from team_members
     where user_id = p_uid and organization_id is null and role in ('super_admin', 'moderation')
   );
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 create or replace function org_role(p_uid uuid, p_org_id uuid) returns team_role as $$
   select role from team_members where user_id = p_uid and organization_id = p_org_id limit 1;
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 create or replace function is_org_member(p_uid uuid, p_org_id uuid) returns boolean as $$
   select org_role(p_uid, p_org_id) is not null;
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 create or replace function is_org_gestionnaire(p_uid uuid, p_org_id uuid) returns boolean as $$
   select org_role(p_uid, p_org_id) = 'gestionnaire';
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 -- Is this user on the team of an organisation linked to this park? (§17 N-N)
 create or replace function manages_park(p_uid uuid, p_park_id uuid) returns boolean as $$
@@ -37,14 +37,14 @@ create or replace function manages_park(p_uid uuid, p_park_id uuid) returns bool
     join team_members tm on tm.organization_id = op.organization_id
     where op.park_id = p_park_id and tm.user_id = p_uid
   ) or is_toboggo_staff(p_uid);
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 -- Can this user edit canonical child rows of this park? Park creator (while the
 -- record is still theirs), the managing org's team, or Toboggo staff.
 create or replace function can_edit_park(p_uid uuid, p_park_id uuid) returns boolean as $$
   select exists (select 1 from parks where id = p_park_id and created_by = p_uid)
     or manages_park(p_uid, p_park_id);
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 -- ── Enable RLS ──────────────────────────────────────────────────────────
 alter table organizations            enable row level security;
@@ -87,7 +87,7 @@ create or replace function park_is_visible(p_park_id uuid) returns boolean as $$
       or manages_park(auth.uid(), p.id)
     )
   );
-$$ language sql stable security definer;
+$$ language sql stable security definer set search_path = public, pg_temp;
 
 -- ── organizations (§17) ────────────────────────────────────────────────
 create policy organizations_read on organizations for select using (true);
@@ -100,11 +100,50 @@ create policy organizations_delete on organizations for delete
   using (is_toboggo_admin(auth.uid()));
 
 create policy organization_parks_read on organization_parks for select using (true);
-create policy organization_parks_write on organization_parks for all using (
-  is_toboggo_staff(auth.uid()) or is_org_gestionnaire(auth.uid(), organization_id)
-) with check (
-  is_toboggo_staff(auth.uid()) or is_org_gestionnaire(auth.uid(), organization_id)
-);
+
+-- Staff Toboggo : gestion globale des rattachements parc <-> organisation.
+create policy organization_parks_staff_all on organization_parks for all
+  using (is_toboggo_staff(auth.uid()))
+  with check (is_toboggo_staff(auth.uid()));
+
+-- Gestionnaire : INSERT une relation pour SON organisation uniquement, et
+-- seulement si le parc n'a pas déjà un `owner` dans une AUTRE organisation
+-- (empêche de réclamer arbitrairement le parc d'une autre collectivité).
+create policy organization_parks_gest_insert on organization_parks for insert
+  with check (
+    is_org_gestionnaire(auth.uid(), organization_id)
+    and not exists (
+      select 1 from organization_parks o2
+      where o2.park_id = organization_parks.park_id
+        and o2.role = 'owner'
+        and o2.organization_id <> organization_parks.organization_id
+    )
+  );
+
+-- Gestionnaire : UPDATE (role / verified) d'une relation de SON organisation.
+create policy organization_parks_gest_update on organization_parks for update
+  using (is_org_gestionnaire(auth.uid(), organization_id))
+  with check (is_org_gestionnaire(auth.uid(), organization_id));
+
+-- Gestionnaire : DELETE d'une relation de SON organisation.
+create policy organization_parks_gest_delete on organization_parks for delete
+  using (is_org_gestionnaire(auth.uid(), organization_id));
+
+-- Garde-fou : un non-staff ne peut jamais changer la cible (park_id) ni
+-- l'organisation (organization_id) d'une relation existante.
+create or replace function organization_parks_guard() returns trigger as $$
+begin
+  if not is_toboggo_staff(auth.uid())
+     and (new.park_id is distinct from old.park_id
+          or new.organization_id is distinct from old.organization_id) then
+    raise exception 'organization_parks: seul le staff Toboggo peut déplacer une relation parc<->organisation';
+  end if;
+  return new;
+end $$ language plpgsql set search_path = public, pg_temp;
+
+create trigger organization_parks_guard_bu
+  before update on organization_parks
+  for each row execute function organization_parks_guard();
 
 -- ── parks (§2 §13) ─────────────────────────────────────────────────────
 create policy parks_read on parks for select using (

@@ -1,93 +1,89 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Triggers, derived values, RPCs, de-duplication, scoring.
+-- 0017 — Fonctions, triggers, vue `park_public`, RPC v2
+-- ────────────────────────────────────────────────────────────────────────────
+-- NON DESTRUCTIF sur les DONNÉES. Un seul DROP, sur une FONCTION (pas une
+-- table/colonne) : `nearby_parks` — voir la note "STRATÉGIE" plus bas.
+--
+-- STRATÉGIE nearby_parks :
+--   La fonction V1 `nearby_parks(double precision, double precision, int)`
+--   renvoie la forme plate V1. La v2 garde la MÊME signature d'arguments mais
+--   change le TYPE DE RETOUR (table(...) élargie). PostgreSQL interdit
+--   `CREATE OR REPLACE FUNCTION` quand le type de retour change -> il faut
+--   `DROP FUNCTION` puis `CREATE`. Le DROP + CREATE est atomique dans la
+--   transaction de la migration. Impact : la RPC `nearby_parks` renvoie
+--   désormais la forme v2 attendue par le front v2 (le front V1 est mort).
+--   Aucune donnée touchée.
+--
+-- `park_public` : la vue v2 d'origine (migrations-v2-draft) fait `select p.*`.
+--   Impossible pendant la coexistence : `parks` porte encore les colonnes V1
+--   (status, lat, lng, wc, ...) qui entreraient en collision avec les alias de
+--   compat de la vue. -> DÉVIATION assumée : liste EXPLICITE des colonnes
+--   canoniques de `parks`. Reviendra éventuellement à `p.*` au futur 0020.
 -- ════════════════════════════════════════════════════════════════════════════
 
--- ── updated_at maintenance ────────────────────────────────────────────────
-create or replace function touch_updated_at() returns trigger as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$ language plpgsql;
-
+-- ── updated_at : triggers pour les nouvelles tables ────────────────────
+-- touch_updated_at() existe déjà (V1 0001).
+drop trigger if exists organizations_touch on organizations;
 create trigger organizations_touch before update on organizations
   for each row execute function touch_updated_at();
-create trigger parks_touch before update on parks
-  for each row execute function touch_updated_at();
+drop trigger if exists park_zones_touch on park_zones;
 create trigger park_zones_touch before update on park_zones
   for each row execute function touch_updated_at();
+drop trigger if exists park_features_touch on park_features;
 create trigger park_features_touch before update on park_features
   for each row execute function touch_updated_at();
+drop trigger if exists park_equipment_touch on park_equipment;
 create trigger park_equipment_touch before update on park_equipment
   for each row execute function touch_updated_at();
+drop trigger if exists park_opening_hours_touch on park_opening_hours;
 create trigger park_opening_hours_touch before update on park_opening_hours
   for each row execute function touch_updated_at();
-create trigger reviews_touch before update on reviews
-  for each row execute function touch_updated_at();
 
--- ── §15 §16 Keep parks.rating / review_count in sync with reviews ─────────
+-- ── rating / review_count : version v2 (lit reviews.rating + status) ───
 create or replace function recompute_park_rating() returns trigger as $$
-declare
-  pid uuid := coalesce(new.park_id, old.park_id);
+declare pid uuid := coalesce(new.park_id, old.park_id);
 begin
   update parks set
-    rating = coalesce(
-      (select round(avg(rating)::numeric, 1) from reviews
-       where park_id = pid and status = 'published'), 0),
+    rating = coalesce((select round(avg(rating)::numeric, 1) from reviews
+                       where park_id = pid and status = 'published'), 0),
     review_count = (select count(*) from reviews
-       where park_id = pid and status = 'published')
+                    where park_id = pid and status = 'published')
   where id = pid;
   return null;
-end;
-$$ language plpgsql security definer;
+end $$ language plpgsql security definer set search_path = public, pg_temp;
+-- trigger `reviews_after_change` existe déjà (V1) et appelle cette fonction.
 
-create trigger reviews_after_change
-  after insert or update or delete on reviews
-  for each row execute function recompute_park_rating();
-
--- ── Keep parks.has_open_report in sync (§15) ─────────────────────────────
+-- ── has_open_report : version v2 (open + in_progress) ─────────────────
 create or replace function recompute_park_open_report() returns trigger as $$
-declare
-  pid uuid := coalesce(new.park_id, old.park_id);
+declare pid uuid := coalesce(new.park_id, old.park_id);
 begin
   update parks set has_open_report = exists (
-    select 1 from reports where park_id = pid and status in ('open', 'in_progress')
+    select 1 from reports where park_id = pid and status in ('open','in_progress')
   ) where id = pid;
   return null;
-end;
-$$ language plpgsql security definer;
+end $$ language plpgsql security definer set search_path = public, pg_temp;
+-- trigger `reports_after_change` existe déjà (V1) et appelle cette fonction.
 
-create trigger reports_after_change
-  after insert or update or delete on reports
-  for each row execute function recompute_park_open_report();
-
--- ── §2 §6 Derive parks.min_age / max_age from zones ──────────────────────
+-- ── §2 §6 min_age / max_age dérivés des zones ─────────────────────────
 create or replace function recompute_park_ages() returns trigger as $$
-declare
-  pid uuid := coalesce(new.park_id, old.park_id);
+declare pid uuid := coalesce(new.park_id, old.park_id);
 begin
-  update parks p set
-    min_age = z.min_age,
-    max_age = z.max_age
-  from (
-    select min(min_age) as min_age, max(max_age) as max_age
-    from park_zones where park_id = pid
-  ) z
+  update parks p set min_age = z.min_age, max_age = z.max_age
+  from (select min(min_age) as min_age, max(max_age) as max_age
+        from park_zones where park_id = pid) z
   where p.id = pid and p.ages_derived
     and (z.min_age is not null or z.max_age is not null);
   return null;
-end;
-$$ language plpgsql security definer;
+end $$ language plpgsql security definer set search_path = public, pg_temp;
 
+drop trigger if exists park_zones_after_change on park_zones;
 create trigger park_zones_after_change
   after insert or update or delete on park_zones
   for each row execute function recompute_park_ages();
 
--- ── §14 Generic audit trigger ───────────────────────────────────────────
--- Historises important changes for admin / support / collectivités / restore.
+-- ── §14 audit trigger générique ──────────────────────────────────────
 create or replace function audit_row() returns trigger as $$
-declare
-  actor uuid := auth.uid();
+declare actor uuid := auth.uid();
 begin
   if tg_op = 'INSERT' then
     insert into audit_log (entity_type, entity_id, action, new_value, actor_id)
@@ -102,15 +98,13 @@ begin
     values (tg_table_name, old.id, 'delete', to_jsonb(old), actor);
     return old;
   end if;
-end;
-$$ language plpgsql security definer;
+end $$ language plpgsql security definer set search_path = public, pg_temp;
 
--- parks: audit only meaningful field changes, not the trigger-maintained caches
--- (rating / review_count / has_open_report / views).
-create trigger parks_audit_ins after insert on parks
-  for each row execute function audit_row();
-create trigger parks_audit_del after delete on parks
-  for each row execute function audit_row();
+drop trigger if exists parks_audit_ins on parks;
+create trigger parks_audit_ins after insert on parks for each row execute function audit_row();
+drop trigger if exists parks_audit_del on parks;
+create trigger parks_audit_del after delete on parks for each row execute function audit_row();
+drop trigger if exists parks_audit_upd on parks;
 create trigger parks_audit_upd after update on parks
   for each row when (
     old.name is distinct from new.name
@@ -125,40 +119,20 @@ create trigger parks_audit_upd after update on parks
     or old.max_age is distinct from new.max_age
   ) execute function audit_row();
 
+drop trigger if exists park_equipment_audit on park_equipment;
 create trigger park_equipment_audit after insert or update or delete on park_equipment
   for each row execute function audit_row();
+drop trigger if exists reports_audit on reports;
 create trigger reports_audit after insert or update or delete on reports
   for each row execute function audit_row();
+drop trigger if exists organizations_audit on organizations;
 create trigger organizations_audit after insert or update or delete on organizations
   for each row execute function audit_row();
+drop trigger if exists park_edits_audit on park_edits;
 create trigger park_edits_audit after insert or update or delete on park_edits
   for each row execute function audit_row();
 
--- ── Auth: link an invited team member + create their profile on signup ───
--- SECURITY DEFINER + fires as `supabase_auth_admin` (no `public` in search_path),
--- so every table is schema-qualified and search_path is pinned — otherwise the
--- trigger raises and sign-up fails with "Database error saving new user".
-create or replace function link_team_member_on_signup() returns trigger as $$
-begin
-  update public.team_members set user_id = new.id
-    where lower(email) = lower(new.email) and user_id is null;
-  insert into public.profiles (id, name, email)
-  values (new.id, coalesce(new.raw_user_meta_data->>'name', split_part(new.email, '@', 1)), new.email)
-  on conflict (id) do nothing;
-  return new;
-end;
-$$ language plpgsql security definer set search_path = public;
-
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function link_team_member_on_signup();
-
--- ════════════════════════════════════════════════════════════════════════════
--- Public read view — flattens the normalised model for the consumer app.
--- security_invoker = true so the caller's RLS on the underlying tables applies.
--- ════════════════════════════════════════════════════════════════════════════
-
--- Feature-status / feature-value accessors used by the compatibility projection.
+-- ── Accesseurs feature (projection compat de la vue) ──────────────────
 create or replace function fstatus(p_park_id uuid, p_code text) returns text as $$
   select pf.status::text from park_features pf join features f on f.id = pf.feature_id
   where pf.park_id = p_park_id and f.code = p_code;
@@ -169,17 +143,26 @@ create or replace function fvalue(p_park_id uuid, p_code text) returns text as $
   where pf.park_id = p_park_id and f.code = p_code;
 $$ language sql stable;
 
+-- ── Vue publique aplatie + projection compat ─────────────────────────
+-- DÉVIATION : liste explicite (pas `p.*`) — cf. note en tête de fichier.
 create or replace view park_public
 with (security_invoker = true) as
 select
-  p.*,
+  p.id, p.name, p.slug, p.description,
+  p.latitude, p.longitude, p.boundary, p.location,
+  p.country_code, p.timezone,
+  p.address_line, p.postal_code, p.city, p.admin_area_1, p.admin_area_2,
+  p.min_age, p.max_age, p.ages_derived,
+  p.moderation_status, p.operational_status,
+  p.status_reason, p.status_from, p.status_until,
+  p.verification_status, p.created_by,
+  p.rating, p.review_count, p.has_open_report, p.views,
+  p.created_at, p.updated_at, p.last_verified_at,
+
   coalesce(
     (select jsonb_object_agg(f.code, jsonb_build_object(
-        'status', pf.status,
-        'value', pf.value,
-        'quantity', pf.quantity,
-        'category', f.category,
-        'verified_at', pf.verified_at))
+        'status', pf.status, 'value', pf.value, 'quantity', pf.quantity,
+        'category', f.category, 'verified_at', pf.verified_at))
      from park_features pf join features f on f.id = pf.feature_id
      where pf.park_id = p.id),
     '{}'::jsonb
@@ -195,17 +178,16 @@ select
   coalesce((select array_agg(pn.name) from park_names pn where pn.park_id = p.id), '{}'::text[]) as translated_names,
   (select s.overall_score from park_scores s
     where s.park_id = p.id order by s.calculated_at desc limit 1) as score,
-  (select overall_score is not null from park_scores s
-    where s.park_id = p.id order by s.calculated_at desc limit 1) as has_score,
+  coalesce(
+    (select overall_score is not null from park_scores s
+      where s.park_id = p.id order by s.calculated_at desc limit 1),
+    false) as has_score,
 
-  -- ── Compatibility projection ────────────────────────────────────────────
-  -- The normalised model above is canonical (PDF §2/§3). These derived
-  -- columns let the current apps read a flat shape while they migrate to the
-  -- `features` map. They are computed here, never stored on `parks`.
-  p.latitude as lat,
+  -- ── Projection compat (dérivée, jamais stockée) ──
+  p.latitude  as lat,
   p.longitude as lng,
-  p.min_age as age_min,
-  p.max_age as age_max,
+  p.min_age   as age_min,
+  p.max_age   as age_max,
   p.moderation_status as status,
   nullif(concat_ws(', ', p.address_line, nullif(trim(concat_ws(' ', p.postal_code, p.city)), '')), '') as formatted_address,
   (select op.organization_id from organization_parks op
@@ -234,11 +216,10 @@ select
   ), '{}'::text[]) as play_equipment
 from parks p;
 
--- ── §1 §7 Nearby parks (PostGIS) ────────────────────────────────────────
-create or replace function nearby_parks(
-  p_lat double precision,
-  p_lng double precision,
-  p_radius_m int default 20000
+-- ── §1 §7 nearby_parks — DROP V1 puis CREATE v2 (type de retour élargi) ──
+drop function if exists nearby_parks(double precision, double precision, int);
+create function nearby_parks(
+  p_lat double precision, p_lng double precision, p_radius_m int default 20000
 ) returns table (
   id uuid, name text, description text, latitude numeric, longitude numeric,
   lat numeric, lng numeric,
@@ -256,8 +237,7 @@ create or replace function nearby_parks(
   distance_m double precision
 ) as $$
   select
-    v.id, v.name, v.description, v.latitude, v.longitude,
-    v.lat, v.lng,
+    v.id, v.name, v.description, v.latitude, v.longitude, v.lat, v.lng,
     v.country_code, v.timezone, v.city, v.address_line,
     v.formatted_address, v.commune_id, v.organization_id,
     v.min_age, v.max_age, v.age_min, v.age_max,
@@ -267,8 +247,6 @@ create or replace function nearby_parks(
     v.features, v.cover_photo, v.photos, v.score,
     v.surface, v.play_equipment,
     v.wc, v.shade, v.fenced, v.pmr, v.benches, v.water, v.parking,
-    -- v.location is the stored generated column on parks; the view is inlined
-    -- so the GIST index (parks_location_idx) is used here.
     ST_Distance(v.location, ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography) as distance_m
   from park_public v
   where v.moderation_status = 'published'
@@ -277,28 +255,24 @@ create or replace function nearby_parks(
   order by distance_m asc;
 $$ language sql stable;
 
+-- ── increment_park_views — SECURITY DEFINER nécessaire (anon incrémente
+--    un compteur sans avoir l'UPDATE sur parks). Portée minimale : +1 vue.
 create or replace function increment_park_views(p_park_id uuid) returns void as $$
   update parks set views = views + 1 where id = p_park_id;
-$$ language sql security definer;
+$$ language sql security definer set search_path = public, pg_temp;
 
--- ── §11 Worldwide de-duplication ───────────────────────────────────────
--- Combine GPS distance + trigram name similarity. Never dedupe on name alone.
+-- ── §11 find_duplicate_parks (nouveau) ──────────────────────────────
 create or replace function find_duplicate_parks(
-  p_lat double precision,
-  p_lng double precision,
-  p_name text,
-  p_radius_m int default 200,
-  p_exclude uuid default null
+  p_lat double precision, p_lng double precision, p_name text,
+  p_radius_m int default 200, p_exclude uuid default null
 ) returns table (
   park_id uuid, name text, distance_m double precision,
   name_similarity real, score numeric
 ) as $$
-  select
-    p.id, p.name,
+  select p.id, p.name,
     ST_Distance(p.location, ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography) as distance_m,
     similarity(p.name, coalesce(p_name, '')) as name_similarity,
     round((
-      -- geo score: 1.0 at 0 m, 0.0 at p_radius_m
       greatest(0, 1 - ST_Distance(p.location, ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography) / p_radius_m) * 0.6
       + similarity(p.name, coalesce(p_name, '')) * 0.4
     )::numeric, 3) as score
@@ -308,59 +282,91 @@ create or replace function find_duplicate_parks(
   order by score desc;
 $$ language sql stable;
 
--- ── §16 Toboggo Score (v1) ─────────────────────────────────────────────
--- Deliberately simple and versioned. Confidence reflects data completeness.
+-- ── §16 recalculate_park_score (nouveau) ────────────────────────────
+-- SECURITY INVOKER (pas DEFINER) : l'INSERT dans park_scores reste soumis à la
+-- policy `park_scores_write` (manages_park) -> seul un gestionnaire du parc ou
+-- le staff Toboggo peut réellement (re)calculer un score. Moindre privilège.
 create or replace function recalculate_park_score(p_park_id uuid) returns uuid as $$
 declare
-  r record;
-  feature_total int;
-  feature_known int;
-  conf numeric(4,3);
-  new_id uuid;
+  r record; feature_total int; feature_known int; conf numeric(4,3); new_id uuid;
 begin
-  select
-    round(avg(rating), 1) as overall,
-    round(avg(equipment), 1) as equipment,
-    round(avg(safety), 1) as safety,
-    round(avg(cleanliness), 1) as cleanliness,
-    round(avg(comfort), 1) as comfort,
-    count(*) as n
-  into r
-  from reviews where park_id = p_park_id and status = 'published';
+  select round(avg(rating),1) as overall, round(avg(equipment),1) as equipment,
+         round(avg(safety),1) as safety, round(avg(cleanliness),1) as cleanliness,
+         round(avg(comfort),1) as comfort, count(*) as n
+  into r from reviews where park_id = p_park_id and status = 'published';
 
   select count(*) into feature_total from features where is_active;
   select count(*) into feature_known from park_features
     where park_id = p_park_id and status <> 'unknown';
 
-  conf := least(1.0, (coalesce(r.n, 0) / 10.0) * 0.5
-                   + (case when feature_total > 0 then feature_known::numeric / feature_total else 0 end) * 0.5);
+  conf := least(1.0, (coalesce(r.n,0) / 10.0) * 0.5
+    + (case when feature_total > 0 then feature_known::numeric / feature_total else 0 end) * 0.5);
 
   insert into park_scores (
     park_id, overall_score, equipment_score, safety_score,
     cleanliness_score, comfort_score, accessibility_score,
     confidence_score, algorithm_version
   ) values (
-    p_park_id, r.overall, r.equipment, r.safety,
-    r.cleanliness, r.comfort,
+    p_park_id, r.overall, r.equipment, r.safety, r.cleanliness, r.comfort,
     (select round(avg((pf.status = 'available')::int) * 5, 1)
        from park_features pf join features f on f.id = pf.feature_id
       where pf.park_id = p_park_id and f.category = 'accessibility'),
     conf, 'v1'
   ) returning id into new_id;
-
   return new_id;
-end;
-$$ language plpgsql security definer;
+end $$ language plpgsql set search_path = public, pg_temp;
 
--- ── Account self-deletion ──────────────────────────────────────────────
-create or replace function delete_own_account() returns void as $$
+-- ── Assertions ─────────────────────────────────────────────────────────
+do $$
+declare c_np int; c_parks int; c_pub int; bad_secdef text;
 begin
-  delete from auth.users where id = auth.uid();
-end;
-$$ language plpgsql security definer;
+  if to_regclass('public.park_public') is null then
+    raise exception '0017: vue park_public absente';
+  end if;
 
-grant execute on function delete_own_account() to authenticated;
-grant execute on function nearby_parks(double precision, double precision, int) to anon, authenticated;
-grant execute on function find_duplicate_parks(double precision, double precision, text, int, uuid) to authenticated;
-grant execute on function increment_park_views(uuid) to anon, authenticated;
-grant execute on function recalculate_park_score(uuid) to authenticated;
+  select count(*) into c_np
+  from pg_proc where proname = 'nearby_parks' and pronamespace = 'public'::regnamespace;
+  if c_np <> 1 then
+    raise exception '0017: attendu 1 fonction nearby_parks, trouvé %', c_np;
+  end if;
+
+  -- la vue expose bien la même population que parks
+  select count(*) into c_parks from parks;
+  select count(*) into c_pub from park_public;
+  if c_pub <> c_parks then
+    raise exception '0017: park_public expose % lignes != % parks', c_pub, c_parks;
+  end if;
+
+  -- fonctions v2 présentes
+  if (select count(*) from pg_proc where proname in
+      ('fstatus','fvalue','find_duplicate_parks','recalculate_park_score',
+       'recompute_park_ages','audit_row') and pronamespace = 'public'::regnamespace) < 6 then
+    raise exception '0017: fonctions v2 manquantes';
+  end if;
+
+  -- has_score : la vue doit renvoyer un boolean NON-NULL pour toute ligne
+  if exists (select 1 from park_public where has_score is null) then
+    raise exception '0017: park_public.has_score peut être NULL (coalesce(..., false) manquant)';
+  end if;
+
+  -- toute fonction SECURITY DEFINER de public créée/remplacée ici doit pinner search_path
+  select string_agg(p.proname, ', ') into bad_secdef
+  from pg_proc p
+  where p.pronamespace = 'public'::regnamespace and p.prosecdef
+    and p.proname in ('recompute_park_rating','recompute_park_open_report',
+                      'recompute_park_ages','audit_row','increment_park_views')
+    and not exists (
+      select 1 from unnest(coalesce(p.proconfig, array[]::text[])) c where c like 'search_path=%'
+    );
+  if bad_secdef is not null then
+    raise exception '0017: fonctions SECURITY DEFINER sans search_path pinné: %', bad_secdef;
+  end if;
+
+  -- recalculate_park_score ne doit PAS être SECURITY DEFINER (moindre privilège)
+  if exists (select 1 from pg_proc where proname = 'recalculate_park_score'
+             and pronamespace = 'public'::regnamespace and prosecdef) then
+    raise exception '0017: recalculate_park_score ne doit pas être SECURITY DEFINER';
+  end if;
+
+  raise notice '0017 OK — park_public (% lignes, has_score boolean), nearby_parks v2, SECDEF search_path pinné', c_pub;
+end $$;

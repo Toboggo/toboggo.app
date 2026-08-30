@@ -2,7 +2,7 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — Phase 4A (checkpoint types V2 avant refactor). Validation locale complète (3B→3E) : `0001→0019` + seed appliqués, DB/RLS/backfill PASS, `park_public.water` corrigé. **`BACKFILL_READY_FOR_PROD = YES`.** Prod toujours V1. Fix Phase 3E désormais commité (`9b13047`) ; seul `database.types.ts` V2 reste non commité (socle Phase 4).
+> Dernière mise à jour : **2026-08-30** — **Phase 4B terminée**. Validation locale complète (3B→3E) : `0001→0019` + seed appliqués, DB/RLS/backfill PASS. **`BACKFILL_READY_FOR_PROD = YES`.** `packages/shared/src/api/*` aligné avec les types V2 (`ca18c71`) : typecheck 10→0, `build:mobile` + `build:backoffice` PASS. Prod toujours V1. Prochaine étape : **Phase 5** — tests fonctionnels contre Supabase local V2.
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -18,10 +18,11 @@ les audits. Lire **§11 CHECKPOINT** en premier.
 | **Migrations réellement déployées** | `0001 → 0006` = les 6 fichiers historiques (voir §3) |
 | `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (**TESTED en local 3B–3E**, non déployées en prod) |
 | `supabase/migrations-v2-draft/` | Architecture cible **from-scratch de référence uniquement** (`0001_schema … 0005_fix_signup_trigger`). **NE PAS appliquer.** Sert de spec + de cible pour `supabase gen types` post-cutover. |
-| `packages/shared/src/types/database.types.ts` | **En Phase 3C, remplacé par la version V2 générée en local (`gen types --local`) — modif NON commitée**, c'est le socle de la Phase 4. La version commitée (HEAD) reste générée depuis la vraie DB distante V1 (`gen types --linked`). Sauvegarde V1 volatile : `/tmp/database.types.v1.backup.ts`. **Phase 4A** : contenu du working tree re-vérifié structurellement contre le schéma local V2 validé (17 tables v2 + vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi) — conforme. Le fix Phase 3E (`park_public.water`) ne change pas la forme du type (`water: boolean` inchangé), donc les types 3C restent valides post-3E. |
-| `packages/shared/src/supabaseClient.ts` | `createClient<Database>` : contre V1 → 110 erreurs ; **contre les types V2 locaux (état actuel non commité) → 10 erreurs restantes**, toutes dans `packages/shared/src/api/*` (voir §13). |
+| `packages/shared/src/types/database.types.ts` | Version V2 générée en local (`gen types --local`, Phase 3C), **commitée en `1f0510e` (Phase 4A)** après re-vérification structurelle contre le schéma local V2 validé (17 tables v2 + vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi). Le fix Phase 3E (`park_public.water`) ne change pas la forme du type (`water: boolean` inchangé). Sauvegarde V1 volatile : `/tmp/database.types.v1.backup.ts`. Régénérer post-cutover via `gen types --linked` une fois la prod en V2. |
+| `packages/shared/src/api/*.ts` + `packages/shared/src/types.ts` | **Phase 4B (`ca18c71`)** : alignés avec `database.types.ts` V2. `npm run typecheck` : **10 → 0 erreurs** ; `build:mobile` + `build:backoffice` PASS. Aucun `any` / `as any` / `@ts-ignore` / `@ts-expect-error` ajouté ; aucun `DEFAULT` ajouté aux colonnes legacy ; DB/RLS/migrations inchangées. Colonnes legacy NOT NULL (`parks.lat/lng/formatted_address`, `reviews.stars`, `reports.reason`, `maintenance.commune_id`) laissées aux triggers `*_v1_compat`. |
+| `packages/shared/src/supabaseClient.ts` | `createClient<Database>` typé contre `database.types.ts` (V2 depuis `1f0510e`). Typecheck applicatif : **0 erreur** (Phase 4B). |
 | `supabase/inventory-pre-v2.sql` | Script READ-ONLY d'inventaire prod, déjà exécuté (résultats en §2). |
-| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`, **synchronisée avec `origin/main`**. Working tree **non clean** : `database.types.ts` V2 (socle Phase 4, non commité) + fichiers branding hors chantier (voir §11 « ÉTAT GIT »). La réconciliation de l'historique (Phase 2A) **est commitée et poussée**. Commits pertinents (du plus récent au plus ancien) : `9b13047 fix(db): validate v1 to v2 backfill` (fix Phase 3E : `0017_v2_functions.sql` + `migrations-v2-draft/0002_functions.sql` + ce document — **désormais commités**) · `d0e1875 docs(db): refresh migration checkpoint` · `1a68f83 feat(brand): update Toboggo branding and icon system` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration`. Le commit `3029c57` contient la réconciliation : `supabase/migrations/0001→0019`, `supabase/migrations-v2-draft/0001→0005`, `supabase/inventory-pre-v2.sql` et ce document sont tous **tracés**. |
+| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`, **synchronisée avec `origin/main`**. Working tree : seuls les fichiers branding hors chantier restent non commités (3× `icons-sprite.svg` + `docs/Toboggo-Brand-Guidelines.pdf` non tracé — voir §11 « ÉTAT GIT »). Commits du chantier (du plus récent au plus ancien) : `ca18c71 fix(shared): align APIs with Supabase v2 types` (Phase 4B) · `1f0510e chore(types): switch Supabase types to v2 schema` (Phase 4A) · `9b13047 fix(db): validate v1 to v2 backfill` (Phases 3B→3E : `0017_v2_functions.sql` + `migrations-v2-draft/0002_functions.sql` + ce document) · `d0e1875 docs(db): refresh migration checkpoint` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration`. Le commit `3029c57` contient la réconciliation Phase 2A : `supabase/migrations/0001→0019`, `supabase/migrations-v2-draft/0001→0005`, `supabase/inventory-pre-v2.sql` — tous **tracés**. |
 
 ### Reconstruction de l'historique (fait en Phase 2A/2B, commité dans `3029c57`)
 
@@ -321,47 +322,74 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 
 ```
 DERNIÈRE PHASE :
-  Phase 4A — checkpoint types V2 avant refactor.
-  (Fix Phase 3E commité dans 9b13047 ; database.types.ts V2 re-vérifié
-   contre le schéma local V2 validé et stagé avec ce document.
-   Aucun fichier API touché.)
+  Phase 4B terminée.
 
-  Phase 3E terminée (commitée dans 9b13047).
-  (3B : Supabase local Docker + PG17, 0001→0019 + seed appliqués.
-   3C : DB post-migration PASS, RLS PASS, types V2 générés, typecheck
-        ~110 → 10 erreurs, builds mobile/backoffice PASS.
-   3D : vrai backfill V1→V2 sur fixture représentative des 17 parcs
-        réels — 1 défaut : park_public.water fusionnait drinking_water
-        et water_play.
-   3E : corrigé dans supabase/migrations/0017_v2_functions.sql +
-        supabase/migrations-v2-draft/0002_functions.sql ; harnais 3D
-        rejoué → 31/31 checks PASS ; 0001→0019 PASS.
-        Ces 2 fichiers SQL sont COMMITÉS (9b13047) — plus non commités.)
+PHASE 4B — TERMINÉE
+  - 10 erreurs TypeScript initiales
+  - 0 erreur finale
+  - npm run typecheck        = PASS
+  - npm run build:mobile     = PASS
+  - npm run build:backoffice = PASS
+  - packages/shared/src/api aligné avec database.types.ts V2
+  - aucune modification DB
+  - aucune modification RLS
+  - aucune nouvelle migration
+  - aucun DEFAULT artificiel ajouté aux colonnes legacy
+  - aucun any / as any / @ts-ignore / @ts-expect-error ajouté
+  Corrections principales :
+  - contributions   : Json + nullabilité RPC (p_exclude optionnel)
+  - maintenance     : payloads V2 typés (TablesInsert/TablesUpdate) +
+                      commune_id legacy laissé au trigger maintenance_v1_compat
+  - nearby_parks    : type RPC dédié (NearbyParkRow) + mapping explicite
+                      nearbyRowToPark (plus de cast global vers Park)
+  - park_features.status : typé feature_status / FeatureStatus
+  - splitParkInput  : payloads parks V2 typés
+                      (Omit<Tables{Insert,Update}<'parks'>, lat|lng|formatted_address>)
+  - reviews         : rating V2 fourni / stars legacy via trigger reviews_v1_compat
+  - reports         : category V2 fourni / reason legacy via trigger reports_v1_compat
+  Commit : ca18c71 fix(shared): align APIs with Supabase v2 types (poussé).
+
+  (Historique 3B→4A : voir §13 + table « Historique des mises à jour ».)
 
 VERDICT DB :
   BACKFILL_READY_FOR_PROD = YES
+
+ÉTAT APPLICATION :
+  TYPECHECK_V2     = PASS
+  MOBILE_BUILD     = PASS
+  BACKOFFICE_BUILD = PASS
 
 PRODUCTION :
   toujours V1 — 0001→0006 uniquement.
   0007→0019 JAMAIS appliquées en production.
 
+DETTE NON BLOQUANTE :
+  - createPark (packages/shared/src/api/parks.ts) conserve des fallbacks
+    APPLICATIFS country_code="FR" / timezone="Europe/Paris" quand le caller
+    ne les fournit pas. Ni DEFAULT de colonne ni trigger (conforme §5 #2),
+    mais à revoir avant tout déploiement mondial : un parc hors France doit
+    fournir sa géographie explicitement.
+
 PROCHAINE PHASE :
-  Phase 4B — corriger les 10 erreurs TypeScript restantes
-  (toutes dans packages/shared/src/api/*) avec les types V2 locaux.
-  NE PAS commencer Phase 4B sans instruction.
+  Phase 5 — tests fonctionnels de l'application contre Supabase LOCAL V2
+  (stack Docker : 0001→0019 + seed). Parcours mobile (carte, détail parc,
+  filtres, ajout parc, avis, signalement) + backoffice (login/routing org,
+  Parks, Dashboard, Reports, Maintenance) + RLS multi-organizations.
+  Prod jamais touchée. NE PAS commencer Phase 5 sans instruction.
 
 ÉTAT GIT :
-  DÉJÀ COMMITÉ (9b13047 fix(db): validate v1 to v2 backfill) :
-  - supabase/migrations/0017_v2_functions.sql        (fix water Phase 3E)
-  - supabase/migrations-v2-draft/0002_functions.sql  (fix water Phase 3E)
-  - docs/architecture/database-migration.md          (état au moment de 9b13047)
-
-  NON COMMITÉ, socle de la Phase 4 :
-  - packages/shared/src/types/database.types.ts : version V2 générée en
-    local (Phase 3C), SWAPPÉE mais NON COMMITÉE. Re-vérifiée en Phase 4A
-    (conforme au schéma local V2 validé). Stagée avec ce document en
-    Phase 4A, pas encore commitée.
-    (Sauvegarde V1 : /tmp/database.types.v1.backup.ts — volatile.)
+  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main :
+  - 9b13047 fix(db): validate v1 to v2 backfill
+      supabase/migrations/0017_v2_functions.sql        (fix water Phase 3E)
+      supabase/migrations-v2-draft/0002_functions.sql  (fix water Phase 3E)
+      docs/architecture/database-migration.md
+  - 1f0510e chore(types): switch Supabase types to v2 schema
+      packages/shared/src/types/database.types.ts      (schéma V2 local, Phase 4A)
+      docs/architecture/database-migration.md
+      (Sauvegarde V1 : /tmp/database.types.v1.backup.ts — volatile.)
+  - ca18c71 fix(shared): align APIs with Supabase v2 types
+      packages/shared/src/api/{contributions,maintenance,parks,reports,reviews}.ts
+      packages/shared/src/types.ts                     (Phase 4B)
 
   NON COMMITÉ, hors chantier DB — NE PAS toucher, NE PAS stager :
   - apps/backoffice/public/icons-sprite.svg
@@ -376,8 +404,8 @@ FICHIERS À LIRE (dans l'ordre) :
   3. supabase/migrations/0001_init.sql → 0006_admin_user_moderation.sql (V1 déployé)
   4. supabase/migrations-v2-draft/0001_schema.sql → 0003_rls.sql (cible de référence)
   5. supabase/inventory-pre-v2.sql  (+ résultats en §2 de ce doc)
-  6. packages/shared/src/types/database.types.ts (schéma V2 local, swappé non commité)
-  7. packages/shared/src/api/*.ts + packages/shared/src/types.ts (les 10 erreurs — §13)
+  6. packages/shared/src/types/database.types.ts (schéma V2 local, commité 1f0510e)
+  7. packages/shared/src/api/*.ts + packages/shared/src/types.ts (aligné V2 — commit ca18c71)
 
 COMMANDES AUTORISÉES :
   - supabase migration list --linked            (read-only, prod)
@@ -411,11 +439,12 @@ COMMANDES INTERDITES (voir §10) :
 - [x] génération `database.types.ts` **V2** (`gen types --local`) — Phase 3C
 - [x] typecheck frontend : ~110 → **10** erreurs (toutes dans `shared/src/api/*`) — Phase 3C
 - [x] **test réel du backfill V1→V2** sur fixture des 17 parcs réels — Phase 3D ; 1 fix (`park_public.water`) — Phase 3E ; **31/31 checks PASS**
-- [x] **Phase 4A** — checkpoint types V2 : fix Phase 3E confirmé commité (`9b13047`) ; `database.types.ts` V2 re-vérifié contre le schéma local V2 validé ; doc + types stagés (non commités) ; aucun fichier API touché
-- [ ] **Phase 4B** — correction des 10 erreurs `shared/src/api/*` (parks, parkDetails, features, contributions, team, maintenance, reviews, reports)
-- [ ] tests mobile (carte, détail parc, filtres, ajout parc, avis, signalement)
-- [ ] tests backoffice (login/routing org, Parks, Dashboard, Reports, Maintenance…)
-- [ ] tests RLS multi-organizations (isolation A/B, super_admin, `organization_parks_guard`)
+- [x] **Phase 4A** — checkpoint types V2 : fix Phase 3E confirmé commité (`9b13047`) ; `database.types.ts` V2 re-vérifié contre le schéma local V2 validé ; commité `1f0510e`
+- [x] **Phase 4B** — 10 erreurs `shared/src/api/*` → **0** ; `typecheck` + `build:mobile` + `build:backoffice` PASS ; commité `ca18c71`. Dette non bloquante : fallbacks applicatifs `country_code="FR"` / `timezone="Europe/Paris"` dans `createPark` (à revoir avant déploiement mondial)
+- [ ] **Phase 5** — tests fonctionnels de l'app contre Supabase **local V2** :
+  - [ ] tests mobile (carte, détail parc, filtres, ajout parc, avis, signalement)
+  - [ ] tests backoffice (login/routing org, Parks, Dashboard, Reports, Maintenance…)
+  - [ ] tests RLS multi-organizations (isolation A/B, super_admin, `organization_parks_guard`)
 - [ ] backup production (Docker/psql sur une autre machine, ou dump SQL Editor)
 - [ ] plan rollback documenté
 - [ ] migration production (`db push` du projet lié, fenêtre de maintenance)
@@ -441,7 +470,9 @@ Tout en **local** (Docker Supabase, PG17). Prod jamais touchée, aucun `--linked
 - `supabase gen types typescript --local` → types V2. Comparés à la V1 : +17 tables, +1 vue, +18 enums, `report_status += in_progress`, `nearby_parks` élargi.
 - Bascule `packages/shared/src/types/database.types.ts` → V2 (non commité). `npm run typecheck` : **~110 → 10 erreurs**, toutes dans `packages/shared/src/api/*` ; **0 erreur propre** mobile/backoffice. Builds bloqués au gate `tsc -b` par ces 10 (donc `vite build` non atteint).
 
-#### Les 10 erreurs restantes (entrée Phase 4)
+#### Les 10 erreurs restantes (entrée Phase 4) — **toutes résolues en Phase 4B (`ca18c71`)**
+> Résolution : cast étroit au point d'appel `.insert()` pour le Groupe B (colonnes legacy laissées aux triggers `*_v1_compat`, **pas** de `SET DEFAULT`), types générés (`TablesInsert`/`TablesUpdate`/`NearbyParkRow`/`feature_status`) pour C et D. Détail en table « Historique des mises à jour » ligne 4B.
+
 | Fichier:ligne | Cause |
 |---|---|
 | `api/contributions.ts:21,83` | `changes: Record<string,unknown>` ⇏ `Json` ; nullabilité |
@@ -475,4 +506,5 @@ Classement : **A (code encore V1) = 0** · **B (coexistence : V1 NOT NULL sans D
 | 2026-08-30 | 2D | Corrections audit ; 13 migrations FIXED ; verdict READY_FOR_LOCAL_TEST ; création de ce fichier. |
 | 2026-08-30 | — | `docs(db): refresh migration checkpoint` — §1 Git remis à l'état réel (Phase 2A commitée + poussée dans `3029c57`, working tree clean) ; §10 & §11 : commandes DB clarifiées (interdits = prod/`--linked` uniquement ; autorisés = base locale isolée ou projet staging jetable séparé). |
 | 2026-08-30 | 3B–3E | Validation locale complète. 3B : stack Docker PG17, `0001→0019`+seed OK. 3C : DB/RLS PASS, types V2, typecheck ~110→10. 3D : backfill V1→V2 testé sur fixture des 17 parcs réels ; défaut `park_public.water`. 3E : fix (`0017` + `migrations-v2-draft/0002`), 31/31 checks PASS. Verdict : `BACKFILL_READY_FOR_PROD = YES`. Ajout §13. Commité dans `9b13047 fix(db): validate v1 to v2 backfill`. |
-| 2026-08-30 | 4A | Checkpoint types V2 avant refactor. Checkpoint Git périmé corrigé : fix Phase 3E (`0017_v2_functions.sql`, `migrations-v2-draft/0002_functions.sql`, ce doc) désormais **commité** dans `9b13047` ; seul `database.types.ts` V2 reste non commité = socle Phase 4. `database.types.ts` du working tree re-vérifié structurellement contre le schéma local V2 validé (17 tables v2, vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi) — conforme ; le fix 3E ne change pas la forme du type. Non régénéré depuis `--linked`. Aucun fichier API modifié. Stagé : `docs/architecture/database-migration.md` + `packages/shared/src/types/database.types.ts` (pas encore commités). |
+| 2026-08-30 | 4A | Checkpoint types V2 avant refactor. Checkpoint Git périmé corrigé : fix Phase 3E désormais **commité** dans `9b13047`. `database.types.ts` du working tree re-vérifié structurellement contre le schéma local V2 validé (17 tables v2, vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi) — conforme ; le fix 3E ne change pas la forme du type. Non régénéré depuis `--linked`. Aucun fichier API modifié. Commité + poussé : `1f0510e chore(types): switch Supabase types to v2 schema` (`database.types.ts` V2 + ce doc). |
+| 2026-08-30 | 4B | Alignement `packages/shared/src/api/*` + `types.ts` avec les types V2. `npm run typecheck` : **10 → 0 erreurs** ; `build:mobile` PASS ; `build:backoffice` PASS. Corrections : `contributions` (`ParkEdit.changes → Json`, `find_duplicate_parks.p_exclude` optionnel) ; `maintenance` (payloads `TablesInsert/TablesUpdate` typés, `commune_id` legacy au trigger) ; `nearby_parks` (type RPC dédié `NearbyParkRow` + mapper explicite `nearbyRowToPark`) ; `park_features.status` typé `feature_status` ; `splitParkInput` (payloads parks V2 typés, `lat`/`lng`/`formatted_address` au trigger `parks_v1_compat`, champs requis validés) ; `reviews` (`rating` V2 / `stars` legacy au trigger) ; `reports` (`category` V2 / `reason` legacy au trigger). Aucune modif DB/RLS/migration ; aucun `DEFAULT` legacy ajouté ; aucun `any`/`as any`/`@ts-ignore`/`@ts-expect-error` ajouté. Dette non bloquante : fallbacks applicatifs `country_code="FR"` / `timezone="Europe/Paris"` dans `createPark`. Commité + poussé : `ca18c71 fix(shared): align APIs with Supabase v2 types`. Prochaine phase : **Phase 5** (tests fonctionnels contre Supabase local V2). |

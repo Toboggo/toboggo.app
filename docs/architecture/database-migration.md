@@ -2,7 +2,7 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — **Phase 4B terminée**. Validation locale complète (3B→3E) : `0001→0019` + seed appliqués, DB/RLS/backfill PASS. **`BACKFILL_READY_FOR_PROD = YES`.** `packages/shared/src/api/*` aligné avec les types V2 (`ca18c71`) : typecheck 10→0, `build:mobile` + `build:backoffice` PASS. Prod toujours V1. Prochaine étape : **Phase 5** — tests fonctionnels contre Supabase local V2.
+> Dernière mise à jour : **2026-08-30** — **Phase 5B.1 terminée**. Tests fonctionnels d'écriture contre Supabase **local V2** : Phase 5A/5A.1 PASS (app branchée local uniquement, reset local, fix 3E `park_public.water` live), Phase 5B PARTIAL (5 défauts D1–D5), **Phase 5B.1 PASS** (D1/D2/D3/D5 corrigés via nouvelle migration **`0020_fix_v2_runtime_compat.sql`** — non destructive). `AUTH_RUNTIME` / `PARK_UPDATE_RLS` / `AUDIT_RLS` / `V1_V2_COMPAT` / `DATA_INTEGRITY` / `typecheck` / `build:mobile` / `build:backoffice` = PASS. **Le numéro `0020` est désormais pris ; le legacy cleanup destructif devient `0021+` (toujours INTERDIT).** Prod toujours V1 (`0001→0006`). `READY_FOR_PHASE_5C = YES`. Prochaine étape : **Phase 5C** — tests backoffice / rôles / multi-organisation. Dette produit ouverte : **D4** (`ADDPARK_TRI_STATE_DECISION = OPEN`).
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -16,13 +16,13 @@ les audits. Lire **§11 CHECKPOINT** en premier.
 |---|---|
 | **Production Supabase** (projet lié `dfzrsygetbhnjzfssgub`) | **V1** — schéma plat pré-PDF, jamais migré vers v2 |
 | **Migrations réellement déployées** | `0001 → 0006` = les 6 fichiers historiques (voir §3) |
-| `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (**TESTED en local 3B–3E**, non déployées en prod) |
+| `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (**TESTED en local 3B–3E**) **+ `0020_fix_v2_runtime_compat.sql`** (Phase 5B.1 : corrections runtime coexistence D1/D2/D3, non destructif — voir §14). Non déployées en prod. |
 | `supabase/migrations-v2-draft/` | Architecture cible **from-scratch de référence uniquement** (`0001_schema … 0005_fix_signup_trigger`). **NE PAS appliquer.** Sert de spec + de cible pour `supabase gen types` post-cutover. |
 | `packages/shared/src/types/database.types.ts` | Version V2 générée en local (`gen types --local`, Phase 3C), **commitée en `1f0510e` (Phase 4A)** après re-vérification structurelle contre le schéma local V2 validé (17 tables v2 + vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi). Le fix Phase 3E (`park_public.water`) ne change pas la forme du type (`water: boolean` inchangé). Sauvegarde V1 volatile : `/tmp/database.types.v1.backup.ts`. Régénérer post-cutover via `gen types --linked` une fois la prod en V2. |
 | `packages/shared/src/api/*.ts` + `packages/shared/src/types.ts` | **Phase 4B (`ca18c71`)** : alignés avec `database.types.ts` V2. `npm run typecheck` : **10 → 0 erreurs** ; `build:mobile` + `build:backoffice` PASS. Aucun `any` / `as any` / `@ts-ignore` / `@ts-expect-error` ajouté ; aucun `DEFAULT` ajouté aux colonnes legacy ; DB/RLS/migrations inchangées. Colonnes legacy NOT NULL (`parks.lat/lng/formatted_address`, `reviews.stars`, `reports.reason`, `maintenance.commune_id`) laissées aux triggers `*_v1_compat`. |
 | `packages/shared/src/supabaseClient.ts` | `createClient<Database>` typé contre `database.types.ts` (V2 depuis `1f0510e`). Typecheck applicatif : **0 erreur** (Phase 4B). |
 | `supabase/inventory-pre-v2.sql` | Script READ-ONLY d'inventaire prod, déjà exécuté (résultats en §2). |
-| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`, **synchronisée avec `origin/main`**. Working tree : seuls les fichiers branding hors chantier restent non commités (3× `icons-sprite.svg` + `docs/Toboggo-Brand-Guidelines.pdf` non tracé — voir §11 « ÉTAT GIT »). Commits du chantier (du plus récent au plus ancien) : `ca18c71 fix(shared): align APIs with Supabase v2 types` (Phase 4B) · `1f0510e chore(types): switch Supabase types to v2 schema` (Phase 4A) · `9b13047 fix(db): validate v1 to v2 backfill` (Phases 3B→3E : `0017_v2_functions.sql` + `migrations-v2-draft/0002_functions.sql` + ce document) · `d0e1875 docs(db): refresh migration checkpoint` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration`. Le commit `3029c57` contient la réconciliation Phase 2A : `supabase/migrations/0001→0019`, `supabase/migrations-v2-draft/0001→0005`, `supabase/inventory-pre-v2.sql` — tous **tracés**. |
+| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`. Commits du chantier poussés (du plus récent au plus ancien) : `f270275 docs(db): checkpoint phase 4` · `ca18c71 fix(shared): align APIs with Supabase v2 types` (Phase 4B) · `1f0510e chore(types): switch Supabase types to v2 schema` (Phase 4A) · `9b13047 fix(db): validate v1 to v2 backfill` (Phases 3B→3E) · `d0e1875 docs(db): refresh migration checkpoint` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration` (réconciliation Phase 2A). **Non commité (Phase 5B.1, à commiter) : `supabase/migrations/0020_fix_v2_runtime_compat.sql` + `supabase/seed.sql`.** Non commité hors chantier (NE PAS toucher) : 3× `icons-sprite.svg` + `docs/Toboggo-Brand-Guidelines.pdf`. Voir §11 « ÉTAT GIT ». |
 
 ### Reconstruction de l'historique (fait en Phase 2A/2B, commité dans `3029c57`)
 
@@ -163,16 +163,16 @@ Vue `park_public` (v2) : aplatit le modèle normalisé **et** reprojette la form
 2. **`country_code` / `timezone`** : `'FR'` / `'Europe/Paris'` uniquement en **backfill des 17 parcs historiques** (français). **JAMAIS en DEFAULT de colonne, JAMAIS dans un trigger.** Tout nouveau parc doit fournir sa géographie explicitement (architecture mondiale). Un INSERT qui les omet doit échouer.
 3. **`organizations.id = communes.id`** : UUID préservés pour que `parks.commune_id`, `team_members.commune_id` pointent déjà la bonne organisation sans remapping.
 4. **Coexistence** : toutes les colonnes/tables V1 sont **conservées** pendant la migration (`parks.lat/lng/wc/...`, `communes`, `park_edit_history`, `*.commune_id`, `reviews.stars/flagged`, `reports.reason`…). Des triggers `*_v1_compat` synchronisent V1↔V2 (voir §9).
-5. **Aucun `DROP TABLE` / `DROP COLUMN` / `DELETE` / `TRUNCATE`** dans `0007→0019`. Seuls `DROP` admis : `DROP FUNCTION nearby_parks` (changement de type de retour, recréée immédiatement) et `DROP TRIGGER IF EXISTS x` (chacun recréé aussitôt).
-6. **Le nettoyage legacy = migration `0020`**, à écrire **seulement après cutover du front V2**. Contient tous les `DROP` de colonnes/tables/policies V1. Destructif, irréversible.
+5. **Aucun `DROP TABLE` / `DROP COLUMN` / `DELETE` / `TRUNCATE`** dans `0007→0020`. Seuls `DROP` admis : `DROP FUNCTION nearby_parks` (0017, changement de type de retour, recréée immédiatement) ; `DROP TRIGGER IF EXISTS x` (chacun recréé aussitôt) ; `DROP POLICY` en 0020 sur `audit_log_read` / `parks_*` (chacune **recréée aussitôt**, coexistence préservée).
+6. **Le nettoyage legacy destructif = migration `0021+`** (le `0020` initialement prévu est réaffecté à `0020_fix_v2_runtime_compat.sql`, non destructif — Phase 5B.1). À écrire **seulement après cutover du front V2**. Contient tous les `DROP` de colonnes/tables/policies V1 (`communes` incluse), `DROP` des triggers `*_v1_compat`, retour `park_public` à `p.*`. Destructif, irréversible.
 7. **`recalculate_park_score`** : `SECURITY INVOKER` (pas DEFINER) → soumis à la policy `park_scores_write` (moindre privilège).
 8. **`nearby_parks`** : stratégie `DROP + CREATE` retenue (auditée sûre) — pas de `nearby_parks_v2`.
 
 ---
 
-## 6. Migrations 0007 → 0019
+## 6. Migrations 0007 → 0020
 
-Toutes en `supabase/migrations/`. État : **DRAFT → AUDITED (2C) → FIXED (2D) → TESTED (3B–3E)**. `0001→0019` appliquées sans erreur, toutes assertions `RAISE` passées, sur base locale V2 (seed) **et** sur fixture V1 réaliste (backfill). Prochaine étape : **corrections APIs shared (Phase 4)**.
+Toutes en `supabase/migrations/`. État `0007→0019` : **DRAFT → AUDITED (2C) → FIXED (2D) → TESTED (3B–3E)**. `0001→0019` appliquées sans erreur, toutes assertions `RAISE` passées, sur base locale V2 (seed) **et** sur fixture V1 réaliste (backfill). `0020` ajoutée en **Phase 5B.1** (corrections runtime coexistence, non destructif).
 
 | # | Fichier | Objectif | État | Dépend de | Points particuliers |
 |---|---|---|---|---|---|
@@ -189,6 +189,7 @@ Toutes en `supabase/migrations/`. État : **DRAFT → AUDITED (2C) → FIXED (2D
 | 0017 | `0017_v2_functions.sql` | triggers recompute/audit ; `fstatus`/`fvalue` ; vue `park_public` ; `nearby_parks` v2 ; `find_duplicate_parks` ; `recalculate_park_score` | TESTED (SAFE) — **corrigé 3E** | 0008–0015 | `park_public` = **liste explicite** ; `has_score` = `coalesce(...,false)` ; `nearby_parks` DROP+CREATE ; `SET search_path` sur 5 SECDEF ; `recalculate_park_score` en INVOKER. **3E : `park_public.water` = `drinking_water` seul** (ne fusionne plus `water_play` — point d'eau ≠ jeux d'eau ; `water_play` reste exposé via `play_equipment`). `nearby_parks.water` hérite (lit la vue). |
 | 0018 | `0018_v2_rls.sql` | helpers v2 (`org_role` priorisé) ; RLS + policies sur les 17 tables nouvelles ; faille `organization_parks` corrigée | FIXED (SAFE) | 0016, 0017 | `SET search_path` sur 8 helpers ; policies `organization_parks` séparées + trigger `organization_parks_guard` ; **ne touche PAS** les policies V1 de parks/reviews/reports (coexistence) |
 | 0019 | `0019_v2_grants.sql` | `REVOKE ALL` + `GRANT` ciblé (Supabase grant-all par défaut) ; re-grant `nearby_parks` post-DROP | FIXED (SAFE) | 0017, 0018 | anon = lecture seule ; `audit_log` append-only ; `park_duplicate_candidates` lecture seule (écritures = `service_role`) |
+| 0020 | `0020_fix_v2_runtime_compat.sql` | **corrections runtime coexistence (Phase 5B.1)** : D1 `link_team_member_on_signup` `SET search_path=''` + objets `public.*` qualifiés ; D2 `audit_log_read` → `entity_type='parks'` ; D3 `parks_update` (+ `can_edit_park()`, `USING`+`WITH CHECK`), `parks_public_read` + `parks_delete` alignées V2 | TESTED (SAFE) — Phase 5B.1 | 0018 | **NON DESTRUCTIF** : 0 `DROP TABLE/COLUMN`, 0 `DELETE/TRUNCATE`. Branche V1 `commune_id` **conservée** (coexistence, OR permissif). `parks_insert` inchangée. ⚠️ ce `0020` **n'est pas** le legacy cleanup du plan (§5 #6) → devient `0021+`. |
 
 **`migrations-v2-draft/`** aussi corrigé en Phase 2D (cohérence du schéma cible) : `0002_functions.sql` (`search_path` sur 6 SECDEF + `delete_own_account` ; `recalculate_park_score` INVOKER ; `has_score` coalesce) et `0003_rls.sql` (faille `organization_parks` + `search_path` sur 8 helpers). **Phase 3E** : `0002_functions.sql` reçoit aussi le fix `park_public.water` (`drinking_water` seul).
 
@@ -301,8 +302,8 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 - ❌ `supabase db push --linked` vers la **production** (projet lié `dfzrsygetbhnjzfssgub`)
 - ❌ `supabase db reset --linked`
 - ❌ `supabase migration repair` sur la **production**
-- ❌ toute application de `0007 → 0019` sur la **production**
-- ❌ créer la migration `0020` (legacy cleanup)
+- ❌ toute application de `0007 → 0020` sur la **production**
+- ❌ créer la migration **`0021+` de legacy cleanup destructif** (`0020` est maintenant pris par `0020_fix_v2_runtime_compat.sql`, non destructif — voir §14 ; le cleanup destructif reste conditionné au cutover)
 - ❌ supprimer / altérer les colonnes ou tables V1
 - ❌ modifier le schéma distant de production de quelque manière que ce soit
 - ❌ committer un secret / token / mot de passe DB
@@ -310,7 +311,7 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 **AUTORISÉ** :
 
 - ✅ lecture seule sur la production distante : `supabase migration list --linked`, `supabase gen types typescript --linked`, SQL Editor `SELECT`
-- ✅ édition locale des fichiers de migration (`supabase/migrations/0007→0019`, `migrations-v2-draft/`)
+- ✅ édition locale des fichiers de migration (`supabase/migrations/0007→0020`, `migrations-v2-draft/`)
 - ✅ `supabase db reset` / application des migrations sur une base **LOCALE explicitement isolée** (Postgres local jetable)
 - ✅ application des migrations sur un projet **STAGING jetable, explicitement séparé de la production**
 
@@ -322,34 +323,67 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 
 ```
 DERNIÈRE PHASE :
-  Phase 4B terminée.
+  Phase 5B.1 terminée.
 
-PHASE 4B — TERMINÉE
-  - 10 erreurs TypeScript initiales
-  - 0 erreur finale
-  - npm run typecheck        = PASS
-  - npm run build:mobile     = PASS
-  - npm run build:backoffice = PASS
-  - packages/shared/src/api aligné avec database.types.ts V2
-  - aucune modification DB
-  - aucune modification RLS
-  - aucune nouvelle migration
-  - aucun DEFAULT artificiel ajouté aux colonnes legacy
-  - aucun any / as any / @ts-ignore / @ts-expect-error ajouté
-  Corrections principales :
-  - contributions   : Json + nullabilité RPC (p_exclude optionnel)
-  - maintenance     : payloads V2 typés (TablesInsert/TablesUpdate) +
-                      commune_id legacy laissé au trigger maintenance_v1_compat
-  - nearby_parks    : type RPC dédié (NearbyParkRow) + mapping explicite
-                      nearbyRowToPark (plus de cast global vers Park)
-  - park_features.status : typé feature_status / FeatureStatus
-  - splitParkInput  : payloads parks V2 typés
-                      (Omit<Tables{Insert,Update}<'parks'>, lat|lng|formatted_address>)
-  - reviews         : rating V2 fourni / stars legacy via trigger reviews_v1_compat
-  - reports         : category V2 fourni / reason legacy via trigger reports_v1_compat
-  Commit : ca18c71 fix(shared): align APIs with Supabase v2 types (poussé).
+PHASE 5A — PASS (brancher l'app sur Supabase local + smoke tests read-only)
+  - mobile (5173) + backoffice (5175) : VITE_SUPABASE_URL = http://127.0.0.1:54321
+    uniquement (vérifié dans le module servi par Vite + trafic réseau).
+  - .env.local créé (racine, gitignored, non tracké) ; .env (prod) NON touché ;
+    .env.local a priorité sur .env en dev.
+  - PROD_GUARD = PASS : 0 requête vers dfzrsygetbhnjzfssgub.supabase.co.
+  - smoke read-only : liste/carte, recherche, détail parc, amenities, photos,
+    score, reviews = PASS ; park_public anon = 5 published (pending masqué) ;
+    nearby_parks anon = PASS ; écriture anon refusée (401).
 
-  (Historique 3B→4A : voir §13 + table « Historique des mises à jour ».)
+PHASE 5A.1 — PASS (réalignement local avant 5B)
+  - supabase db reset (LOCAL, sans --linked) : 0001→0019 + seed = PASS.
+  - park_public.water : définition LIVE == fix 3E
+    (fstatus(id,'drinking_water')='available' SEUL, aucun OR water_play).
+  - nearby_parks.water hérite de la vue.
+  - dataset local : parks=6 / organizations=2 / park_features=35 / park_zones=4.
+  - port 5174 : ancien vite backoffice fantôme arrêté proprement.
+
+PHASE 5B — PARTIAL (tests fonctionnels d'écriture, sessions Auth réelles)
+  MOBILE_WRITES = PASS · BACKOFFICE_WRITES = PARTIAL · DATA_INTEGRITY = PASS
+  · TYPECHECK/BUILDS = PASS · V1_V2_COMPAT_TRIGGERS = PASS.
+  5 défauts détectés :
+  - D1 BLOCKER : link_team_member_on_signup() SECURITY DEFINER sans search_path
+      → tout supabase.auth.signUp() renvoie 500
+      (relation "team_members" does not exist, rôle supabase_auth_admin).
+  - D2 IMPORTANT : audit_row() écrit entity_type='parks' mais la policy
+      audit_log_read teste 'park' → gestionnaire ne lit jamais l'historique parc.
+  - D3 IMPORTANT : parks_update / parks_public_read / parks_delete reposent sur
+      parks.commune_id (NULL dans le seed V2) → gestionnaire V2 bloqué,
+      UPDATE 0-ligne SILENCIEUX.
+  - D4 MINOR (produit) : AddPark mappe un équipement non coché → 'unavailable'
+      (le modèle permet unknown/available/unavailable).
+  - D5 MINOR (fidélité seed) : table V1 `communes` vide → FK
+      team_members/maintenance.commune_id non satisfiables sans INSERT manuel.
+
+PHASE 5B.1 — PASS (corrections D1/D2/D3/D5)
+  - Nouvelle migration NON DESTRUCTIVE : supabase/migrations/0020_fix_v2_runtime_compat.sql
+    (0 DROP TABLE/COLUMN, 0 DELETE/TRUNCATE ; 0001→0019 inchangées). Voir §14.
+  - D1 FIXED : link_team_member_on_signup() → SET search_path = '' + objets
+    public.* qualifiés ; logique de liaison par e-mail inchangée. Vrai
+    supabase.auth.signUp() testé (parent + 3 pré-invités) : session OK,
+    profiles + team_members liés par trigger, signInWithOtp sans erreur DB.
+  - D2 FIXED : audit_log_read teste maintenant entity_type = 'parks'.
+    owner-read / cross-org-denied / parent-denied / super_admin-read = PASS.
+  - D3 FIXED : parks_update reconnaît can_edit_park() (USING + WITH CHECK
+    explicites) ; branche V1 commune_id conservée (coexistence, OR permissif) ;
+    parks_public_read + parks_delete alignées V2 (parks_delete : gestionnaire
+    d'une organisation propriétaire via organization_parks). parks_insert
+    inchangée (CHECK auth.uid() IS NOT NULL, aucune dette). Matrice A/B testée
+    avec sessions Auth réelles + COMPTAGE DE LIGNES (aucun 0-row silencieux
+    pour un acteur autorisé).
+  - D5 FIXED : seed.sql insère les 2 lignes `communes` miroir (id = organizations.id,
+    type municipality). `communes` N'EST PAS canonique V2. Prouvé : après
+    db reset, team_members/maintenance/*_v1_compat fonctionnent sans INSERT manuel.
+  - D4 : NON corrigé — décision produit. ADDPARK_TRI_STATE_DECISION = OPEN.
+  Tests : AUTH_RUNTIME=PASS · PARK_UPDATE_RLS=PASS · AUDIT_RLS=PASS ·
+  V1_V2_COMPAT=PASS · DATA_INTEGRITY=PASS (0 orphelin, 0 faux 'unavailable',
+  géo cohérente) · TYPECHECK=PASS · MOBILE_BUILD=PASS · BACKOFFICE_BUILD=PASS.
+  READY_FOR_PHASE_5C = YES.
 
 VERDICT DB :
   BACKFILL_READY_FOR_PROD = YES
@@ -361,35 +395,33 @@ VERDICT DB :
 
 PRODUCTION :
   toujours V1 — 0001→0006 uniquement.
-  0007→0019 JAMAIS appliquées en production.
+  0007→0020 JAMAIS appliquées en production.
 
-DETTE NON BLOQUANTE :
+DETTE NON BLOQUANTE / OUVERTE :
   - createPark (packages/shared/src/api/parks.ts) conserve des fallbacks
     APPLICATIFS country_code="FR" / timezone="Europe/Paris" quand le caller
     ne les fournit pas. Ni DEFAULT de colonne ni trigger (conforme §5 #2),
-    mais à revoir avant tout déploiement mondial : un parc hors France doit
-    fournir sa géographie explicitement.
+    à revoir avant déploiement mondial. Confirmé UTILISÉ en 5B (AddPark ne
+    passe pas ces champs).
+  - D4 — ADDPARK_TRI_STATE_DECISION = OPEN. AddPark : équipement non coché
+    → park_features.status='unavailable'. Le modèle permet unknown / available
+    / unavailable. Décision produit ; ne bloque pas la Phase 5C.
 
 PROCHAINE PHASE :
-  Phase 5 — tests fonctionnels de l'application contre Supabase LOCAL V2
-  (stack Docker : 0001→0019 + seed). Parcours mobile (carte, détail parc,
-  filtres, ajout parc, avis, signalement) + backoffice (login/routing org,
-  Parks, Dashboard, Reports, Maintenance) + RLS multi-organizations.
-  Prod jamais touchée. NE PAS commencer Phase 5 sans instruction.
+  Phase 5C — tests fonctionnels complets backoffice / rôles / parcours
+  multi-organisation contre Supabase LOCAL V2 (0001→0020 + seed). Prod jamais
+  touchée. NE PAS commencer Phase 5C sans instruction.
 
 ÉTAT GIT :
-  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main :
-  - 9b13047 fix(db): validate v1 to v2 backfill
-      supabase/migrations/0017_v2_functions.sql        (fix water Phase 3E)
-      supabase/migrations-v2-draft/0002_functions.sql  (fix water Phase 3E)
-      docs/architecture/database-migration.md
-  - 1f0510e chore(types): switch Supabase types to v2 schema
-      packages/shared/src/types/database.types.ts      (schéma V2 local, Phase 4A)
-      docs/architecture/database-migration.md
-      (Sauvegarde V1 : /tmp/database.types.v1.backup.ts — volatile.)
-  - ca18c71 fix(shared): align APIs with Supabase v2 types
-      packages/shared/src/api/{contributions,maintenance,parks,reports,reviews}.ts
-      packages/shared/src/types.ts                     (Phase 4B)
+  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main (jusqu'à Phase 4B / checkpoint 4) :
+  - f270275 docs(db): checkpoint phase 4
+  - ca18c71 fix(shared): align APIs with Supabase v2 types      (Phase 4B)
+  - 1f0510e chore(types): switch Supabase types to v2 schema    (Phase 4A)
+  - 9b13047 fix(db): validate v1 to v2 backfill                 (Phases 3B→3E)
+
+  NON COMMITÉ — produit par ce chantier (Phase 5B.1), À COMMITER :
+  - supabase/migrations/0020_fix_v2_runtime_compat.sql  (nouveau — D1/D2/D3)
+  - supabase/seed.sql                                   (+11 lignes — D5 communes)
 
   NON COMMITÉ, hors chantier DB — NE PAS toucher, NE PAS stager :
   - apps/backoffice/public/icons-sprite.svg
@@ -398,11 +430,15 @@ PROCHAINE PHASE :
   - docs/Toboggo-Brand-Guidelines.pdf (non tracé)
     modifs de branding hors chantier DB, NON produites par ce chantier.
 
+  LOCAL, hors Git : .env.local (racine, gitignored — URL locale + clé anon
+  LOCALE), scripts de test 5B/5B.1 (scratchpad de session), données de test
+  dans la base locale (non resetée en fin de 5B.1).
+
 FICHIERS À LIRE (dans l'ordre) :
-  1. docs/architecture/database-migration.md  (ce fichier — §13 pour Phase 3)
-  2. supabase/migrations/0007_v2_*.sql → 0019_v2_*.sql
+  1. docs/architecture/database-migration.md  (ce fichier — §13 Phase 3, §14 Phase 5)
+  2. supabase/migrations/0007_v2_*.sql → 0019_v2_*.sql + 0020_fix_v2_runtime_compat.sql
   3. supabase/migrations/0001_init.sql → 0006_admin_user_moderation.sql (V1 déployé)
-  4. supabase/migrations-v2-draft/0001_schema.sql → 0003_rls.sql (cible de référence)
+  4. supabase/migrations-v2-draft/0001_schema.sql → 0005_fix_signup_trigger.sql (cible de référence)
   5. supabase/inventory-pre-v2.sql  (+ résultats en §2 de ce doc)
   6. packages/shared/src/types/database.types.ts (schéma V2 local, commité 1f0510e)
   7. packages/shared/src/api/*.ts + packages/shared/src/types.ts (aligné V2 — commit ca18c71)
@@ -412,20 +448,24 @@ COMMANDES AUTORISÉES :
   - supabase gen types typescript --linked ...   (read-only, prod)
   - SQL Editor : SELECT uniquement
   - npm run typecheck / npm run build            (local)
+  - npm run dev:mobile / npm run dev:backoffice  (local, contre .env.local)
   - supabase gen types typescript --local        (base locale)
-  - édition des fichiers supabase/migrations/0007→0019 et migrations-v2-draft/
+  - édition des fichiers supabase/migrations/0007→0020 et migrations-v2-draft/
   - git add / git commit / git push
   - sur une base LOCALE explicitement isolée : supabase db reset / db push / psql
     (dont : CREATE DATABASE jetable + apply migrations + DROP DATABASE — harnais 3D)
+  - création LOCALE d'utilisateurs de test fictifs via supabase.auth.signUp()
+    ou l'API admin auth (jamais de compte réel)
   - sur un projet STAGING jetable explicitement séparé de la prod : idem
 
 COMMANDES INTERDITES (voir §10) :
   - supabase db push --linked vers la production
   - supabase db reset --linked
   - supabase migration repair sur la production
-  - toute application de 0007→0019 sur la production
+  - toute application de 0007→0020 sur la production
   - toute écriture sur le schéma distant de production
-  - création de 0020
+  - création de la migration 0021+ de legacy cleanup destructif
+    (0020 est pris par 0020_fix_v2_runtime_compat.sql, non destructif)
 ```
 
 ---
@@ -441,17 +481,17 @@ COMMANDES INTERDITES (voir §10) :
 - [x] **test réel du backfill V1→V2** sur fixture des 17 parcs réels — Phase 3D ; 1 fix (`park_public.water`) — Phase 3E ; **31/31 checks PASS**
 - [x] **Phase 4A** — checkpoint types V2 : fix Phase 3E confirmé commité (`9b13047`) ; `database.types.ts` V2 re-vérifié contre le schéma local V2 validé ; commité `1f0510e`
 - [x] **Phase 4B** — 10 erreurs `shared/src/api/*` → **0** ; `typecheck` + `build:mobile` + `build:backoffice` PASS ; commité `ca18c71`. Dette non bloquante : fallbacks applicatifs `country_code="FR"` / `timezone="Europe/Paris"` dans `createPark` (à revoir avant déploiement mondial)
-- [ ] **Phase 5** — tests fonctionnels de l'app contre Supabase **local V2** :
-  - [ ] tests mobile (carte, détail parc, filtres, ajout parc, avis, signalement)
-  - [ ] tests backoffice (login/routing org, Parks, Dashboard, Reports, Maintenance…)
-  - [ ] tests RLS multi-organizations (isolation A/B, super_admin, `organization_parks_guard`)
+- [x] **Phase 5A / 5A.1** — app branchée sur Supabase local uniquement (`.env.local`), smoke tests read-only PASS, prod guard PASS ; `db reset` local, fix 3E `park_public.water` live, dataset réaligné. Voir §14.
+- [x] **Phase 5B** — tests fonctionnels d'écriture (sessions Auth réelles) : mobile PASS, backoffice PARTIAL, intégrité PASS. 5 défauts D1–D5. Voir §14.
+- [x] **Phase 5B.1** — corrections D1/D2/D3/D5 via `0020_fix_v2_runtime_compat.sql` (non destructif) + `seed.sql` ; rejeu des tests = PASS ; `READY_FOR_PHASE_5C = YES`. D4 laissé ouvert (décision produit). Voir §14.
+- [ ] **Phase 5C** — tests fonctionnels complets backoffice / rôles / parcours multi-organisation contre Supabase local V2 (`0001→0020` + seed)
 - [ ] backup production (Docker/psql sur une autre machine, ou dump SQL Editor)
 - [ ] plan rollback documenté
 - [ ] migration production (`db push` du projet lié, fenêtre de maintenance)
 - [ ] validation production (parcours critiques + assertions)
 - [ ] période de coexistence (front v2 déployé, colonnes V1 encore là)
 - [ ] cutover (front v2 = seul en prod)
-- [ ] **seulement ensuite** : migration `0020` — legacy cleanup (DROP colonnes/tables/policies V1, DROP triggers `*_v1_compat`, retour `park_public` à `p.*`, DROP enums V1 obsolètes)
+- [ ] **seulement ensuite** : migration **`0021+`** — legacy cleanup destructif (DROP colonnes/tables/policies V1, DROP triggers `*_v1_compat`, retour `park_public` à `p.*`, DROP enums V1 obsolètes). ⚠️ le numéro `0020` initialement prévu pour ce lot est désormais pris par `0020_fix_v2_runtime_compat.sql` (non destructif).
 
 ---
 
@@ -499,6 +539,65 @@ Classement : **A (code encore V1) = 0** · **B (coexistence : V1 NOT NULL sans D
 
 ---
 
+## 14. Phase 5 — tests fonctionnels contre Supabase local V2
+
+Tout en **local** (Docker Supabase, PG17), `.env.local` → `http://127.0.0.1:54321`.
+Prod jamais touchée, aucun `--linked`.
+
+### 5A — Brancher l'app + smoke tests read-only  → **PASS**
+- `.env.local` créé à la racine (Vite `envDir` = racine du monorepo) : `VITE_SUPABASE_URL=http://127.0.0.1:54321` + clé anon **LOCALE**. `.env` (prod) **non modifié** ; `.env.local` gitignored (`.gitignore:4`), non tracké, prioritaire sur `.env` en dev.
+- **PROD_GUARD** : `import.meta.env` inliné par Vite dans le module servi = `http://127.0.0.1:54321` (mobile 5173 **et** backoffice 5175) ; trafic réseau 100 % local ; **0 requête** vers `dfzrsygetbhnjzfssgub.supabase.co`.
+- Smoke read-only mobile : carte/liste (`nearby_parks`), recherche (`park_public` ilike), détail parc, amenities, photos (vide), score, reviews (vide) = **PASS**, 0 erreur console.
+- Backoffice : démarre, login screen, `/parks` redirige vers login (routing guard OK).
+- API anon directe : `park_public` = **5 published** (parc `pending` masqué) ; `nearby_parks` répond (signature `p_lat,p_lng,p_radius_m`) ; écriture anon `park_features`/`parks` → **401**.
+
+### 5A.1 — Réalignement local  → **PASS**
+- `supabase db reset` (LOCAL) : `0001→0019` + `seed` = **PASS**.
+- `park_public.water` LIVE == fix 3E : `fstatus(id,'drinking_water')='available'` **seul** (aucun `OR water_play`). `nearby_parks` lit `v.water` de la vue.
+- Dataset : `parks=6` / `organizations=2` / `park_features=35` / `park_zones=4`.
+- Port `5174` : ancien serveur Vite backoffice fantôme (session antérieure) arrêté proprement.
+
+### 5B — Tests fonctionnels d'écriture (sessions Auth réelles)  → **PARTIAL**
+Chemins testés en répliquant fidèlement les payloads de `packages/shared/src/api/*` + des écrans mobile (`AddPark` / `RatePark` / `ReportProblem`), via des sessions `signInWithPassword` réelles.
+
+| Domaine | Résultat |
+|---|---|
+| `createPark` + `parks_v1_compat` (lat/lng, formatted_address, âges, status miroir) | PASS |
+| `applyFeatures` (`park_features` upsert) | PASS |
+| `createReview` + `reviews_v1_compat` (`stars`←`rating`), recompute rating/count | PASS |
+| `createReport` + `reports_v1_compat` (`reason`←`category`, equipment/comment) | PASS |
+| `createMaintenance` / `updateMaintenance` + `maintenance_v1_compat` (`commune_id`←`organization_id`) | PASS |
+| `submitParkEdit` (`park_edits`, `changes` jsonb), `findDuplicateParks` | PASS |
+| RLS isolation A/B, `organization_parks_guard`, super_admin, parent-deny | PASS |
+| Intégrité référentielle / sémantique features / géo | PASS (0 orphelin, 0 faux `unavailable`) |
+| typecheck / build:mobile / build:backoffice | PASS |
+
+**5 défauts** (voir §11 CHECKPOINT pour le détail) :
+- **D1 BLOCKER** — `link_team_member_on_signup()` SECURITY DEFINER sans `search_path` → **tout `supabase.auth.signUp()` renvoie 500** (`relation "team_members" does not exist` ; rôle GoTrue `supabase_auth_admin` en search_path `auth`). Déjà pré-identifié §8 (« à traiter au cutover »). Contourné en 5B par création SQL directe des users.
+- **D2 IMPORTANT** — `audit_row()` écrit `entity_type = 'parks'` ; `audit_log_read` teste `'park'` → gestionnaire ne lit jamais l'historique de son parc (fail-closed, pas de fuite).
+- **D3 IMPORTANT** — `parks_update` / `parks_public_read` / `parks_delete` reposent sur `parks.commune_id` (NULL dans le seed V2 ; propriété via `organization_parks`) → gestionnaire V2 bloqué, **`UPDATE` 0 ligne silencieux**. `park_features` (policy V2 `can_edit_park`) non affecté.
+- **D4 MINOR (produit)** — `AddPark` : équipement/amenity non coché → `park_features.status='unavailable'` (le modèle permet `unknown`). `ADDPARK_TRI_STATE_DECISION = OPEN`.
+- **D5 MINOR (fidélité seed)** — table V1 `communes` vide → FK `team_members`/`maintenance.commune_id → communes.id` non satisfiables sans INSERT manuel.
+
+### 5B.1 — Corrections D1/D2/D3/D5  → **PASS**
+
+**`supabase/migrations/0020_fix_v2_runtime_compat.sql`** (NON DESTRUCTIF — 0 `DROP TABLE/COLUMN`, 0 `DELETE/TRUNCATE`, 0 changement de forme ; `0001→0019` inchangées). ⚠️ **le numéro `0020` du plan (legacy cleanup destructif) est réaffecté ; le cleanup devient `0021+`, toujours interdit.**
+
+- **D1** : `create or replace function public.link_team_member_on_signup()` `SET search_path = ''` + `public.team_members` / `public.profiles` qualifiés. Liaison par e-mail **inchangée**. Trigger `on_auth_user_created` conservé (référence par nom).
+  Test **vrai `supabase.auth.signUp()`** (parent + gestA + gestB + superadmin pré-invités) : session retournée, `profiles` (4) auto-créés, `team_members` (3) liés par trigger (`user_id` + `commune_id`=`organization_id`), `signInWithOtp` sans erreur DB. `AUTH_SIGNUP_PARENT` / `AUTH_SIGNUP_TEAM_MEMBER` / `AUTH_PROFILE_TRIGGER` / `AUTH_TEAM_LINK_TRIGGER` / `AUTH_OTP_PATH` = **PASS**.
+- **D2** : `drop policy` + `create policy audit_log_read` avec `entity_type = 'parks'`.
+  `AUDIT_OWNER_READ` (gestA lit l'audit de son parc) / `AUDIT_CROSS_ORG_DENIED` / `AUDIT_PARENT_DENIED` / `AUDIT_SUPER_ADMIN_READ` = **PASS**.
+- **D3** : `parks_update` reconnaît `can_edit_park(auth.uid(), id)` (`USING` **et** `WITH CHECK` explicites) ; branche V1 `commune_id` **conservée** (coexistence, OR permissif). `parks_public_read` + `parks_delete` alignées V2 (`parks_delete` : gestionnaire d'une organisation propriétaire via `organization_parks` + `is_org_gestionnaire`). `parks_insert` **inchangée** (`CHECK auth.uid() IS NOT NULL`, aucune dette).
+  Matrice testée avec **comptage de lignes** : gestA→parc A `rows=1`, gestA→parc B `rows=0`, gestB→parc B `rows=1`, gestB→parc A `rows=0`, parent→parc géré `rows=0` (contrôle : parent→son parc créé `rows=1`), super_admin→A+B `rows=1`. **Aucun `UPDATE` 0-ligne silencieux pour un acteur autorisé.** `PARK_UPDATE_ORG_A` / `ORG_B` / `CROSS_ORG_DENIED` / `PARENT_DENIED` / `SUPER_ADMIN` = **PASS**.
+- **D5** : `seed.sql` (+11 lignes) insère les 2 lignes `communes` miroir (`id` = `organizations.id`, `type` municipality). **`communes` n'est pas canonique V2** ; le seed la garde seulement alignée sur les organisations issues de l'ancien modèle commune. Prouvé : après `db reset`, `team_members` / `maintenance` / triggers `*_v1_compat` fonctionnent **sans INSERT manuel**.
+- **D4** : **non corrigé** — `ADDPARK_TRI_STATE_DECISION = OPEN`. Ne bloque pas la Phase 5C.
+
+Reset complet `0001→0020` + `seed` = **PASS** ; définitions LIVE == fichiers vérifiées. Régressions 5B rejouées (v1_compat parks/reviews/reports/maintenance, `organization_parks_guard`, cross-org `park_features`, intégrité) = **PASS**. `typecheck` / `build:mobile` / `build:backoffice` = **PASS**.
+
+`READY_FOR_PHASE_5C = YES`.
+
+---
+
 ## Historique des mises à jour
 
 | Date | Phase | Résumé |
@@ -508,3 +607,7 @@ Classement : **A (code encore V1) = 0** · **B (coexistence : V1 NOT NULL sans D
 | 2026-08-30 | 3B–3E | Validation locale complète. 3B : stack Docker PG17, `0001→0019`+seed OK. 3C : DB/RLS PASS, types V2, typecheck ~110→10. 3D : backfill V1→V2 testé sur fixture des 17 parcs réels ; défaut `park_public.water`. 3E : fix (`0017` + `migrations-v2-draft/0002`), 31/31 checks PASS. Verdict : `BACKFILL_READY_FOR_PROD = YES`. Ajout §13. Commité dans `9b13047 fix(db): validate v1 to v2 backfill`. |
 | 2026-08-30 | 4A | Checkpoint types V2 avant refactor. Checkpoint Git périmé corrigé : fix Phase 3E désormais **commité** dans `9b13047`. `database.types.ts` du working tree re-vérifié structurellement contre le schéma local V2 validé (17 tables v2, vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi) — conforme ; le fix 3E ne change pas la forme du type. Non régénéré depuis `--linked`. Aucun fichier API modifié. Commité + poussé : `1f0510e chore(types): switch Supabase types to v2 schema` (`database.types.ts` V2 + ce doc). |
 | 2026-08-30 | 4B | Alignement `packages/shared/src/api/*` + `types.ts` avec les types V2. `npm run typecheck` : **10 → 0 erreurs** ; `build:mobile` PASS ; `build:backoffice` PASS. Corrections : `contributions` (`ParkEdit.changes → Json`, `find_duplicate_parks.p_exclude` optionnel) ; `maintenance` (payloads `TablesInsert/TablesUpdate` typés, `commune_id` legacy au trigger) ; `nearby_parks` (type RPC dédié `NearbyParkRow` + mapper explicite `nearbyRowToPark`) ; `park_features.status` typé `feature_status` ; `splitParkInput` (payloads parks V2 typés, `lat`/`lng`/`formatted_address` au trigger `parks_v1_compat`, champs requis validés) ; `reviews` (`rating` V2 / `stars` legacy au trigger) ; `reports` (`category` V2 / `reason` legacy au trigger). Aucune modif DB/RLS/migration ; aucun `DEFAULT` legacy ajouté ; aucun `any`/`as any`/`@ts-ignore`/`@ts-expect-error` ajouté. Dette non bloquante : fallbacks applicatifs `country_code="FR"` / `timezone="Europe/Paris"` dans `createPark`. Commité + poussé : `ca18c71 fix(shared): align APIs with Supabase v2 types`. Prochaine phase : **Phase 5** (tests fonctionnels contre Supabase local V2). |
+| 2026-08-30 | — | `f270275 docs(db): checkpoint phase 4` — checkpoint §11 mis à jour fin Phase 4B (poussé). |
+| 2026-08-30 | 5A / 5A.1 | **PASS.** App mobile + backoffice branchées sur Supabase **local uniquement** via `.env.local` (racine, gitignored, prioritaire sur `.env` ; `.env` prod non touché). PROD_GUARD vérifié (env inliné + trafic réseau, 0 requête prod). Smoke tests read-only mobile/backoffice + API anon (`park_public` 5 published, `nearby_parks`, écriture anon 401) = PASS. 5A.1 : `supabase db reset` LOCAL, `0001→0019` + seed PASS, `park_public.water` LIVE == fix 3E, dataset réaligné (6/2/35/4), port 5174 nettoyé. Ajout §14. |
+| 2026-08-30 | 5B | **PARTIAL.** Tests fonctionnels d'écriture (sessions Auth réelles) : mobile PASS, backoffice PARTIAL, `V1_V2_COMPAT_TRIGGERS` PASS, `DATA_INTEGRITY` PASS, typecheck/builds PASS. 5 défauts : **D1** (BLOCKER — `link_team_member_on_signup` sans `search_path` → signup 500), **D2** (audit_log `entity_type` 'parks' vs policy 'park'), **D3** (`parks_update`/`parks_public_read`/`parks_delete` sur `parks.commune_id` NULL → UPDATE 0-ligne silencieux), **D4** (MINOR produit — AddPark non coché → `unavailable`), **D5** (MINOR — table V1 `communes` vide). |
+| 2026-08-30 | 5B.1 | **PASS.** Corrections D1/D2/D3/D5. Nouvelle migration **non destructive** `0020_fix_v2_runtime_compat.sql` : D1 (`link_team_member_on_signup` → `SET search_path=''` + objets `public.*` qualifiés), D2 (`audit_log_read` → `entity_type='parks'`), D3 (`parks_update` reconnaît `can_edit_park()` avec `USING`+`WITH CHECK` ; branche V1 `commune_id` conservée ; `parks_public_read`+`parks_delete` alignées V2 ; `parks_insert` inchangée). D5 : `seed.sql` (+11 lignes) crée les `communes` miroir (`communes` **non** canonique V2). **⚠️ Le numéro `0020` initialement réservé au legacy cleanup destructif est réaffecté → cleanup destructif = `0021+` (toujours INTERDIT).** Vrai `supabase.auth.signUp()` testé (session + profiles + team link OK). Matrice `parks_update` A/B avec comptage de lignes (aucun 0-row silencieux pour un acteur autorisé). D4 laissé ouvert (décision produit). `AUTH_RUNTIME`/`PARK_UPDATE_RLS`/`AUDIT_RLS`/`V1_V2_COMPAT`/`DATA_INTEGRITY`/`TYPECHECK`/`MOBILE_BUILD`/`BACKOFFICE_BUILD` = PASS. `READY_FOR_PHASE_5C = YES`. Non commité (checkpoint) : `supabase/migrations/0020_fix_v2_runtime_compat.sql` + `supabase/seed.sql`. |

@@ -45,6 +45,17 @@ insert into organizations (id, name, type, country_code, contact_email) values
   ('00000000-0000-0000-0000-000000000002', 'Ville de Bordeaux', 'municipality', 'FR', 'contact@bordeaux.fr')
 on conflict (id) do nothing;
 
+-- ── Coexistence V1 : lignes `communes` legacy correspondantes ───────────
+-- `organizations.id = communes.id` (UUID préservés). Les triggers *_v1_compat
+-- (team_members / maintenance / activity_log) mettent `commune_id := organization_id`
+-- et les FK `*.commune_id → communes.id` doivent être satisfaites pendant la
+-- coexistence. `communes` n'est PAS canonique V2 : le seed la garde seulement
+-- alignée sur les organizations de type `municipality` issues de l'ancien modèle.
+insert into communes (id, name, contact_email) values
+  ('00000000-0000-0000-0000-000000000001', 'Ville de Lyon', 'contact@lyon.fr'),
+  ('00000000-0000-0000-0000-000000000002', 'Ville de Bordeaux', 'contact@bordeaux.fr')
+on conflict (id) do nothing;
+
 -- ── §1 §2 Parks (geo-first; country_code + IANA timezone mandatory) ─────
 insert into parks (id, name, description, latitude, longitude, country_code, timezone,
   city, postal_code, min_age, max_age, ages_derived, moderation_status, verification_status)

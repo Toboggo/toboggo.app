@@ -2,7 +2,7 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — **Phase 5B.1 terminée**. Tests fonctionnels d'écriture contre Supabase **local V2** : Phase 5A/5A.1 PASS (app branchée local uniquement, reset local, fix 3E `park_public.water` live), Phase 5B PARTIAL (5 défauts D1–D5), **Phase 5B.1 PASS** (D1/D2/D3/D5 corrigés via nouvelle migration **`0020_fix_v2_runtime_compat.sql`** — non destructive). `AUTH_RUNTIME` / `PARK_UPDATE_RLS` / `AUDIT_RLS` / `V1_V2_COMPAT` / `DATA_INTEGRITY` / `typecheck` / `build:mobile` / `build:backoffice` = PASS. **Le numéro `0020` est désormais pris ; le legacy cleanup destructif devient `0021+` (toujours INTERDIT).** Prod toujours V1 (`0001→0006`). `READY_FOR_PHASE_5C = YES`. Prochaine étape : **Phase 5C** — tests backoffice / rôles / multi-organisation. Dette produit ouverte : **D4** (`ADDPARK_TRI_STATE_DECISION = OPEN`).
+> Dernière mise à jour : **2026-08-30** — **Phase 5C.1 terminée = PASS**. Phase 5C (tests fonctionnels backoffice + rôles multi-organisation contre Supabase **local V2**) a découvert 3 défauts : **P5C-1** (BLOCKER — `ParkModal` reçoit `park=null`, `existing!.status` déréférencé au rendu → écran blanc admin/gestionnaire), **P5C-2** / **P5C-3** (IMPORTANT — policies `reports_read`/`reports_update`/`reviews_update` encore basées sur `parks.commune_id`, NULL en V2 → gestionnaire aveugle + `PATCH` 0-ligne silencieux). **Phase 5C.1 PASS** : P5C-1 corrigé côté app (`Parks.tsx` + `ParkModal.tsx`, gardes explicites, 0 `any`/`ts-ignore`) ; P5C-2/P5C-3 corrigés via nouvelle migration **`0021_fix_remaining_v2_rls.sql`** (non destructive — branche V2 `manages_park`/`organization_parks` ajoutée en OR, branche V1 `commune_id` conservée). `LEGACY_RLS_AUDIT = PASS` (aucune autre policy de la même dette en usage réel ; `park_edit_history` + `communes` = tables mortes/legacy laissées au cleanup destructif). `db reset` local → `0001→0021` + seed = **PASS** ; corrections re-vérifiées depuis état propre (rows + UI). `BACKOFFICE_PARKS/REPORTS/REVIEWS/MULTI_ORG` = PASS · `TYPECHECK` / `build:mobile` / `build:backoffice` = PASS. **`0021` est désormais pris ; le legacy cleanup destructif devient `0022+` (toujours INTERDIT).** Prod toujours V1 (`0001→0006`) ; `0007→0021` JAMAIS appliquées en prod. `READY_FOR_PHASE_5D = YES`. Dettes non bloquantes ouvertes : **D4** (`ADDPARK_TRI_STATE_DECISION = OPEN`), **M1–M5** (voir §11).
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -16,13 +16,13 @@ les audits. Lire **§11 CHECKPOINT** en premier.
 |---|---|
 | **Production Supabase** (projet lié `dfzrsygetbhnjzfssgub`) | **V1** — schéma plat pré-PDF, jamais migré vers v2 |
 | **Migrations réellement déployées** | `0001 → 0006` = les 6 fichiers historiques (voir §3) |
-| `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (**TESTED en local 3B–3E**) **+ `0020_fix_v2_runtime_compat.sql`** (Phase 5B.1 : corrections runtime coexistence D1/D2/D3, non destructif — voir §14). Non déployées en prod. |
+| `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (**TESTED en local 3B–3E**) **+ `0020_fix_v2_runtime_compat.sql`** (Phase 5B.1 : corrections runtime coexistence D1/D2/D3, non destructif — voir §14) **+ `0021_fix_remaining_v2_rls.sql`** (Phase 5C.1 : P5C-2/P5C-3, `reports_*` + `reviews_update` alignées `organization_parks`, non destructif — voir §14). Non déployées en prod. |
 | `supabase/migrations-v2-draft/` | Architecture cible **from-scratch de référence uniquement** (`0001_schema … 0005_fix_signup_trigger`). **NE PAS appliquer.** Sert de spec + de cible pour `supabase gen types` post-cutover. |
 | `packages/shared/src/types/database.types.ts` | Version V2 générée en local (`gen types --local`, Phase 3C), **commitée en `1f0510e` (Phase 4A)** après re-vérification structurelle contre le schéma local V2 validé (17 tables v2 + vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi). Le fix Phase 3E (`park_public.water`) ne change pas la forme du type (`water: boolean` inchangé). Sauvegarde V1 volatile : `/tmp/database.types.v1.backup.ts`. Régénérer post-cutover via `gen types --linked` une fois la prod en V2. |
 | `packages/shared/src/api/*.ts` + `packages/shared/src/types.ts` | **Phase 4B (`ca18c71`)** : alignés avec `database.types.ts` V2. `npm run typecheck` : **10 → 0 erreurs** ; `build:mobile` + `build:backoffice` PASS. Aucun `any` / `as any` / `@ts-ignore` / `@ts-expect-error` ajouté ; aucun `DEFAULT` ajouté aux colonnes legacy ; DB/RLS/migrations inchangées. Colonnes legacy NOT NULL (`parks.lat/lng/formatted_address`, `reviews.stars`, `reports.reason`, `maintenance.commune_id`) laissées aux triggers `*_v1_compat`. |
 | `packages/shared/src/supabaseClient.ts` | `createClient<Database>` typé contre `database.types.ts` (V2 depuis `1f0510e`). Typecheck applicatif : **0 erreur** (Phase 4B). |
 | `supabase/inventory-pre-v2.sql` | Script READ-ONLY d'inventaire prod, déjà exécuté (résultats en §2). |
-| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`. Commits du chantier poussés (du plus récent au plus ancien) : `f270275 docs(db): checkpoint phase 4` · `ca18c71 fix(shared): align APIs with Supabase v2 types` (Phase 4B) · `1f0510e chore(types): switch Supabase types to v2 schema` (Phase 4A) · `9b13047 fix(db): validate v1 to v2 backfill` (Phases 3B→3E) · `d0e1875 docs(db): refresh migration checkpoint` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration` (réconciliation Phase 2A). **Non commité (Phase 5B.1, à commiter) : `supabase/migrations/0020_fix_v2_runtime_compat.sql` + `supabase/seed.sql`.** Non commité hors chantier (NE PAS toucher) : 3× `icons-sprite.svg` + `docs/Toboggo-Brand-Guidelines.pdf`. Voir §11 « ÉTAT GIT ». |
+| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`. Commits du chantier poussés (du plus récent au plus ancien) : `b530265 fix(db): resolve v2 runtime compatibility issues` (Phase 5B.1 — `0020_fix_v2_runtime_compat.sql` + `seed.sql` + doc) · `f270275 docs(db): checkpoint phase 4` · `ca18c71 fix(shared): align APIs with Supabase v2 types` (Phase 4B) · `1f0510e chore(types): switch Supabase types to v2 schema` (Phase 4A) · `9b13047 fix(db): validate v1 to v2 backfill` (Phases 3B→3E) · `d0e1875 docs(db): refresh migration checkpoint` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration` (réconciliation Phase 2A). **Non commité (Phase 5C.1, à commiter) : `supabase/migrations/0021_fix_remaining_v2_rls.sql` (nouveau) + `apps/backoffice/src/components/ParkModal.tsx` + `apps/backoffice/src/screens/Parks.tsx` + ce doc.** Non commité hors chantier (NE PAS toucher, NE PAS stager) : 3× `icons-sprite.svg` + `docs/Toboggo-Brand-Guidelines.pdf`. Voir §11 « ÉTAT GIT ». |
 
 ### Reconstruction de l'historique (fait en Phase 2A/2B, commité dans `3029c57`)
 
@@ -163,16 +163,16 @@ Vue `park_public` (v2) : aplatit le modèle normalisé **et** reprojette la form
 2. **`country_code` / `timezone`** : `'FR'` / `'Europe/Paris'` uniquement en **backfill des 17 parcs historiques** (français). **JAMAIS en DEFAULT de colonne, JAMAIS dans un trigger.** Tout nouveau parc doit fournir sa géographie explicitement (architecture mondiale). Un INSERT qui les omet doit échouer.
 3. **`organizations.id = communes.id`** : UUID préservés pour que `parks.commune_id`, `team_members.commune_id` pointent déjà la bonne organisation sans remapping.
 4. **Coexistence** : toutes les colonnes/tables V1 sont **conservées** pendant la migration (`parks.lat/lng/wc/...`, `communes`, `park_edit_history`, `*.commune_id`, `reviews.stars/flagged`, `reports.reason`…). Des triggers `*_v1_compat` synchronisent V1↔V2 (voir §9).
-5. **Aucun `DROP TABLE` / `DROP COLUMN` / `DELETE` / `TRUNCATE`** dans `0007→0020`. Seuls `DROP` admis : `DROP FUNCTION nearby_parks` (0017, changement de type de retour, recréée immédiatement) ; `DROP TRIGGER IF EXISTS x` (chacun recréé aussitôt) ; `DROP POLICY` en 0020 sur `audit_log_read` / `parks_*` (chacune **recréée aussitôt**, coexistence préservée).
-6. **Le nettoyage legacy destructif = migration `0021+`** (le `0020` initialement prévu est réaffecté à `0020_fix_v2_runtime_compat.sql`, non destructif — Phase 5B.1). À écrire **seulement après cutover du front V2**. Contient tous les `DROP` de colonnes/tables/policies V1 (`communes` incluse), `DROP` des triggers `*_v1_compat`, retour `park_public` à `p.*`. Destructif, irréversible.
+5. **Aucun `DROP TABLE` / `DROP COLUMN` / `DELETE` / `TRUNCATE`** dans `0007→0021`. Seuls `DROP` admis : `DROP FUNCTION nearby_parks` (0017, changement de type de retour, recréée immédiatement) ; `DROP TRIGGER IF EXISTS x` (chacun recréé aussitôt) ; `DROP POLICY` en 0020 sur `audit_log_read` / `parks_*` et en 0021 sur `reports_read` / `reports_update` / `reviews_update` (chacune **recréée aussitôt**, coexistence préservée).
+6. **Le nettoyage legacy destructif = migration `0022+`** (`0020` réaffecté au fix runtime — Phase 5B.1 ; `0021` réaffecté au fix RLS restant — Phase 5C.1 ; les deux non destructifs). À écrire **seulement après cutover du front V2**. Contient tous les `DROP` de colonnes/tables/policies V1 (`communes` **et** `park_edit_history` incluses — cf. §14 audit legacy RLS 5C.1), `DROP` des triggers `*_v1_compat`, retour `park_public` à `p.*`. Destructif, irréversible.
 7. **`recalculate_park_score`** : `SECURITY INVOKER` (pas DEFINER) → soumis à la policy `park_scores_write` (moindre privilège).
 8. **`nearby_parks`** : stratégie `DROP + CREATE` retenue (auditée sûre) — pas de `nearby_parks_v2`.
 
 ---
 
-## 6. Migrations 0007 → 0020
+## 6. Migrations 0007 → 0021
 
-Toutes en `supabase/migrations/`. État `0007→0019` : **DRAFT → AUDITED (2C) → FIXED (2D) → TESTED (3B–3E)**. `0001→0019` appliquées sans erreur, toutes assertions `RAISE` passées, sur base locale V2 (seed) **et** sur fixture V1 réaliste (backfill). `0020` ajoutée en **Phase 5B.1** (corrections runtime coexistence, non destructif).
+Toutes en `supabase/migrations/`. État `0007→0019` : **DRAFT → AUDITED (2C) → FIXED (2D) → TESTED (3B–3E)**. `0001→0019` appliquées sans erreur, toutes assertions `RAISE` passées, sur base locale V2 (seed) **et** sur fixture V1 réaliste (backfill). `0020` ajoutée en **Phase 5B.1** (corrections runtime coexistence, non destructif). `0021` ajoutée en **Phase 5C.1** (RLS restante de coexistence : `reports_*` + `reviews_update`, non destructif). `db reset` local `0001→0021` + seed = **PASS**.
 
 | # | Fichier | Objectif | État | Dépend de | Points particuliers |
 |---|---|---|---|---|---|
@@ -189,7 +189,8 @@ Toutes en `supabase/migrations/`. État `0007→0019` : **DRAFT → AUDITED (2C)
 | 0017 | `0017_v2_functions.sql` | triggers recompute/audit ; `fstatus`/`fvalue` ; vue `park_public` ; `nearby_parks` v2 ; `find_duplicate_parks` ; `recalculate_park_score` | TESTED (SAFE) — **corrigé 3E** | 0008–0015 | `park_public` = **liste explicite** ; `has_score` = `coalesce(...,false)` ; `nearby_parks` DROP+CREATE ; `SET search_path` sur 5 SECDEF ; `recalculate_park_score` en INVOKER. **3E : `park_public.water` = `drinking_water` seul** (ne fusionne plus `water_play` — point d'eau ≠ jeux d'eau ; `water_play` reste exposé via `play_equipment`). `nearby_parks.water` hérite (lit la vue). |
 | 0018 | `0018_v2_rls.sql` | helpers v2 (`org_role` priorisé) ; RLS + policies sur les 17 tables nouvelles ; faille `organization_parks` corrigée | FIXED (SAFE) | 0016, 0017 | `SET search_path` sur 8 helpers ; policies `organization_parks` séparées + trigger `organization_parks_guard` ; **ne touche PAS** les policies V1 de parks/reviews/reports (coexistence) |
 | 0019 | `0019_v2_grants.sql` | `REVOKE ALL` + `GRANT` ciblé (Supabase grant-all par défaut) ; re-grant `nearby_parks` post-DROP | FIXED (SAFE) | 0017, 0018 | anon = lecture seule ; `audit_log` append-only ; `park_duplicate_candidates` lecture seule (écritures = `service_role`) |
-| 0020 | `0020_fix_v2_runtime_compat.sql` | **corrections runtime coexistence (Phase 5B.1)** : D1 `link_team_member_on_signup` `SET search_path=''` + objets `public.*` qualifiés ; D2 `audit_log_read` → `entity_type='parks'` ; D3 `parks_update` (+ `can_edit_park()`, `USING`+`WITH CHECK`), `parks_public_read` + `parks_delete` alignées V2 | TESTED (SAFE) — Phase 5B.1 | 0018 | **NON DESTRUCTIF** : 0 `DROP TABLE/COLUMN`, 0 `DELETE/TRUNCATE`. Branche V1 `commune_id` **conservée** (coexistence, OR permissif). `parks_insert` inchangée. ⚠️ ce `0020` **n'est pas** le legacy cleanup du plan (§5 #6) → devient `0021+`. |
+| 0020 | `0020_fix_v2_runtime_compat.sql` | **corrections runtime coexistence (Phase 5B.1)** : D1 `link_team_member_on_signup` `SET search_path=''` + objets `public.*` qualifiés ; D2 `audit_log_read` → `entity_type='parks'` ; D3 `parks_update` (+ `can_edit_park()`, `USING`+`WITH CHECK`), `parks_public_read` + `parks_delete` alignées V2 | TESTED (SAFE) — Phase 5B.1 | 0018 | **NON DESTRUCTIF** : 0 `DROP TABLE/COLUMN`, 0 `DELETE/TRUNCATE`. Branche V1 `commune_id` **conservée** (coexistence, OR permissif). `parks_insert` inchangée. ⚠️ ce `0020` **n'est pas** le legacy cleanup du plan (§5 #6) → devient `0022+`. |
+| 0021 | `0021_fix_remaining_v2_rls.sql` | **RLS restante de coexistence (Phase 5C.1)** : P5C-2 `reports_read` (+ `manages_park()`), `reports_update` (+ `organization_parks`/`is_org_gestionnaire`, `USING`+`WITH CHECK`) ; P5C-3 `reviews_update` (branche `user_id = auth.uid()` **retirée** — restriction, elle laissait l'auteur réécrire `reply*` ; + `organization_parks`/`is_org_gestionnaire`, `USING`+`WITH CHECK`) | TESTED (SAFE) — Phase 5C.1 | 0018, 0020 | **NON DESTRUCTIF** : 0 `DROP TABLE/COLUMN`, 0 `DELETE/TRUNCATE`. `DROP POLICY` × 3 chacune recréée aussitôt. Branche V1 `commune_id` **conservée** sur les 3. `reports_insert` / `reviews_insert` / `reviews_delete` inchangées. ⚠️ ce `0021` **n'est pas** le legacy cleanup du plan (§5 #6) → devient `0022+`. |
 
 **`migrations-v2-draft/`** aussi corrigé en Phase 2D (cohérence du schéma cible) : `0002_functions.sql` (`search_path` sur 6 SECDEF + `delete_own_account` ; `recalculate_park_score` INVOKER ; `has_score` coalesce) et `0003_rls.sql` (faille `organization_parks` + `search_path` sur 8 helpers). **Phase 3E** : `0002_functions.sql` reçoit aussi le fix `park_public.water` (`drinking_water` seul).
 
@@ -302,8 +303,9 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 - ❌ `supabase db push --linked` vers la **production** (projet lié `dfzrsygetbhnjzfssgub`)
 - ❌ `supabase db reset --linked`
 - ❌ `supabase migration repair` sur la **production**
-- ❌ toute application de `0007 → 0020` sur la **production**
-- ❌ créer la migration **`0021+` de legacy cleanup destructif** (`0020` est maintenant pris par `0020_fix_v2_runtime_compat.sql`, non destructif — voir §14 ; le cleanup destructif reste conditionné au cutover)
+- ❌ toute application de `0007 → 0021` sur la **production**
+- ❌ créer la migration **`0022+` de legacy cleanup destructif** (`0020` = fix runtime Phase 5B.1, `0021` = fix RLS restant Phase 5C.1, tous deux non destructifs — voir §14 ; le cleanup destructif reste conditionné au cutover)
+- ❌ modifier rétroactivement `0001 → 0021` (figées)
 - ❌ supprimer / altérer les colonnes ou tables V1
 - ❌ modifier le schéma distant de production de quelque manière que ce soit
 - ❌ committer un secret / token / mot de passe DB
@@ -311,7 +313,7 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 **AUTORISÉ** :
 
 - ✅ lecture seule sur la production distante : `supabase migration list --linked`, `supabase gen types typescript --linked`, SQL Editor `SELECT`
-- ✅ édition locale des fichiers de migration (`supabase/migrations/0007→0020`, `migrations-v2-draft/`)
+- ✅ édition locale des fichiers de migration **non encore figés** (`migrations-v2-draft/` ; un futur `0022+` uniquement)
 - ✅ `supabase db reset` / application des migrations sur une base **LOCALE explicitement isolée** (Postgres local jetable)
 - ✅ application des migrations sur un projet **STAGING jetable, explicitement séparé de la production**
 
@@ -323,7 +325,7 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 
 ```
 DERNIÈRE PHASE :
-  Phase 5B.1 terminée.
+  Phase 5C.1 terminée = PASS (checkpoint + staging en cours — Phase 5C.2).
 
 PHASE 5A — PASS (brancher l'app sur Supabase local + smoke tests read-only)
   - mobile (5173) + backoffice (5175) : VITE_SUPABASE_URL = http://127.0.0.1:54321
@@ -385,6 +387,101 @@ PHASE 5B.1 — PASS (corrections D1/D2/D3/D5)
   géo cohérente) · TYPECHECK=PASS · MOBILE_BUILD=PASS · BACKOFFICE_BUILD=PASS.
   READY_FOR_PHASE_5C = YES.
 
+PHASE 5C — PARTIAL (tests fonctionnels backoffice + rôles multi-organisation,
+                    sessions Auth réelles + navigation UI réelle ; voir §14)
+  6 comptes créés via vrai auth/v1/signup (D1 confirmé, 0 signup 500) :
+  super_admin + support (org NULL, staff) · gestA (Lyon) · gestB (Bordeaux) ·
+  contribA (Lyon) · parent (aucun team_member).
+  PASS : auth/login/routing (admin vs collectivité), dashboard + isolation A/B,
+  maintenance (create/update/done/cross-org), audit_log (0020 D2 confirmé),
+  team (list/invite/signup-link/cross-org), organization_parks guard,
+  intégrité (0 orphelin, 0 multi-owner, 0 écart commune_id/organization_id),
+  typecheck + builds.
+  3 défauts :
+  - P5C-1 BLOCKER : apps/backoffice/src/screens/Parks.tsx rend <ParkModal
+      park={modalPark}> INCONDITIONNELLEMENT, modalPark initial null →
+      ParkModal : existing=null, isNew=false → {!isNew && canManage && (
+      existing!.status ... )} déréférence null au RENDU → TypeError, pas
+      d'error boundary → écran blanc pour admin + gestionnaire (canManage=true).
+      Contributeur non touché (canManage=false). BUG PRÉEXISTANT (commit initial
+      5cb0260), pas une régression du chantier V2 ; exposé par la 1re navigation
+      UI privilégiée. /map non touché (rend <ParkModal> conditionnellement).
+  - P5C-2 IMPORTANT : policies reports_read / reports_update reposent sur
+      parks.commune_id (colonne V1, NULL dans le modèle V2 canonique où la
+      propriété passe par organization_parks). Gestionnaire d'une organisation
+      propriétaire : voit 0 signalement (liste + dashboard faux "0") ; PATCH
+      /reports → HTTP 200 [] = 0-ligne SILENCIEUX. Staff (is_toboggo_staff) OK.
+      Même famille que D3, NON couverte par 0020 (qui n'a fait que parks_*).
+  - P5C-3 IMPORTANT : reviews_update repose sur parks.commune_id → réponse d'un
+      gestionnaire à un avis = PATCH 204 mais 0 ligne. Même dette.
+  Contributions/park_edits : RLS/API V2 corrects (manages_park) mais AUCUNE UI
+  back-office → BO_PARK_EDIT_ACTION = NOT_IMPLEMENTED. Team role update = idem.
+  organization_parks : pas d'UI dédiée (implicite via createPark/updatePark).
+
+PHASE 5C.1 — PASS (corrections P5C-1 / P5C-2 / P5C-3)
+  AUDIT LEGACY RLS (LEGACY_RLS_AUDIT = PASS) — scan pg_policies LIVE de toute
+  policy sur parks.commune_id / is_commune_member / is_commune_gestionnaire :
+    CLASSE C (dette identique, à corriger) : reports_read, reports_update,
+      reviews_update → corrigées en 0021.
+    CLASSE B (OK) : parks_* (déjà 0020) ; maintenance_all / activity_read /
+      team_* → filtrent sur le commune_id PROPRE de la ligne, tenu par les
+      triggers *_v1_compat (testé PASS 5C + régression).
+    CLASSE D (table morte / legacy, laissée au cleanup destructif 0022+) :
+      park_edit_history.park_history_read (0 ligne, 0 trigger, 0 usage app —
+      l'historique parc passe par audit_log, déjà corrigé 0020) ;
+      communes.communes_write (l'app écrit organizations / organizations_update).
+    EXTRA_POLICIES_FIXED = NONE (aucune autre dette démontrable en usage réel).
+
+  P5C-1 FIXED — app uniquement, 0 modif DB :
+  - apps/backoffice/src/screens/Parks.tsx : {modalPark && <ParkModal … />}
+    (garde de rendu explicite, même schéma que MapScreen).
+  - apps/backoffice/src/components/ParkModal.tsx : gardes {!isNew && …} →
+    {existing && …} (2×) ; existing!.status → existing.status (3×) ;
+    else → else if (existing) dans save(). Assertions `!` supprimées.
+    Aucun try/catch global, aucun any/ts-ignore/ts-expect-error.
+  - UI réelle (avant ET après db reset) : /parks + « Mes parcs » chargent pour
+    super_admin / gestA / gestB ; modal ouvre/édite/enregistre/réouvre ;
+    historique parc dans la modal (audit_log) rendu ; contributeur = lecture
+    seule préservée (0 bouton Enregistrer/statut/suppression).
+    BO_PARKS_SCREEN_ADMIN / BO_PARK_MODAL_ADMIN / BO_PARKS_SCREEN_GEST /
+    BO_PARK_MODAL_GEST / BO_PARK_MODAL_CONTRIB_READONLY / BO_NO_REACT_CRASH = PASS.
+
+  P5C-2 FIXED — 0021 :
+  - reports_read : + manages_park(auth.uid(), park_id) (membre d'une org
+    propriétaire OU staff). Branche V1 commune_id conservée.
+  - reports_update : + exists(organization_parks op WHERE op.park_id=… AND
+    is_org_gestionnaire(auth.uid(), op.organization_id)) ; USING + WITH CHECK
+    explicites et identiques. Branches is_toboggo_admin + V1 commune_id conservées.
+  - Tests sessions Auth réelles + comptage de lignes (état propre 0001→0021) :
+    REPORT_OWNER_READ (gestA 1 / gestB 1 / contribA 1 / admin 2 / support 2 /
+    parent 2 en tant que reporter) / REPORT_OWNER_UPDATE (gestA→Lyon rows=1,
+    gestB→Bordeaux rows=1) / REPORT_CROSS_ORG_DENIED (gestA→Bordeaux rows=0,
+    gestB→Lyon rows=0) / REPORT_STAFF_GLOBAL (admin rows=1 ; contributeur rows=0 ;
+    parent rows=0 — pas de triage) = PASS. UI : gestA voit + rouvre + résout.
+
+  P5C-3 FIXED — 0021 :
+  - reviews_update : branche `user_id = auth.uid()` RETIRÉE (restriction, pas
+    extension — elle laissait l'auteur réécrire sa propre ligne d'avis, colonnes
+    reply* incluses ; aucun parcours applicatif ne l'utilise) ; + is_toboggo_staff
+    + exists(organization_parks … is_org_gestionnaire) ; USING + WITH CHECK
+    explicites. Branche V1 commune_id gestionnaire conservée. insert/delete inchangées.
+  - Tests (état propre) : REVIEW_REPLY_OWNER (gestA rows=1) /
+    REVIEW_REPLY_CROSS_ORG_DENIED (gestB rows=0) / REVIEW_REPLY_ADMIN (rows=1) /
+    REVIEW_REPLY_PARENT_DENIED (parent — même sur son propre avis — rows=0 ;
+    contributeur rows=0) = PASS. Readback reply/reply_by/reply_at OK. UI : gestA
+    répond → « Réponse : … » affichée, persistée (fini le 204/0-row silencieux).
+  - Observation hors périmètre : flagReview() (mobile — signalement d'un avis
+    par un tiers) était DÉJÀ non fonctionnel sous la policy V1 (seul l'auteur
+    passait). Comportement inchangé par 0021 → dette M5.
+
+  RESET : supabase db reset (LOCAL, sans --linked) → 0001→0021 + seed = PASS.
+    Fixtures recréées via vrais flux Auth (signup ×6 → 200, 5 team_members liés
+    par trigger). Corrections re-vérifiées depuis état propre → toutes PASS.
+  RÉGRESSION : AUTH / RLS_MULTI_ORG / MAINTENANCE / AUDIT / TEAM = PASS.
+  TYPECHECK / BACKOFFICE_BUILD / MOBILE_BUILD = PASS ; 0 as any/ts-ignore ajouté.
+  BACKOFFICE_PARKS / BACKOFFICE_REPORTS / BACKOFFICE_REVIEWS / BACKOFFICE_MULTI_ORG = PASS.
+  PHASE_5C_1 = PASS. READY_FOR_PHASE_5D = YES.
+
 VERDICT DB :
   BACKFILL_READY_FOR_PROD = YES
 
@@ -395,7 +492,7 @@ VERDICT DB :
 
 PRODUCTION :
   toujours V1 — 0001→0006 uniquement.
-  0007→0020 JAMAIS appliquées en production.
+  0007→0021 JAMAIS appliquées en production.
 
 DETTE NON BLOQUANTE / OUVERTE :
   - createPark (packages/shared/src/api/parks.ts) conserve des fallbacks
@@ -403,25 +500,47 @@ DETTE NON BLOQUANTE / OUVERTE :
     ne les fournit pas. Ni DEFAULT de colonne ni trigger (conforme §5 #2),
     à revoir avant déploiement mondial. Confirmé UTILISÉ en 5B (AddPark ne
     passe pas ces champs).
-  - D4 — ADDPARK_TRI_STATE_DECISION = OPEN. AddPark : équipement non coché
-    → park_features.status='unavailable'. Le modèle permet unknown / available
-    / unavailable. Décision produit ; ne bloque pas la Phase 5C.
+  - D4 — ADDPARK_TRI_STATE_DECISION = OPEN. AddPark : équipement/amenity non
+    coché → park_features.status='unavailable' (splitParkInput, parks.ts).
+    Le modèle permet unknown / available / unavailable. Décision produit.
+  - M1 — badges React Query du Shell back-office (pendingParks / openReports)
+    utilisent des clés non invalidées par les mutations des modales →
+    compteurs périmés jusqu'au rechargement. Cosmétique.
+  - M2 — nav collectivité (Shell.tsx communeItems) non filtrée par rôle : un
+    contributeur voit Entretien/Journal/Statistiques comme un gestionnaire ;
+    les actions internes sont gardées SAUF l'entretien (maintenance_all =
+    is_commune_member → contributeur peut créer/éditer/supprimer). À arbitrer
+    produit.
+  - M3 — [auth.rate_limit] email_sent = 2/h en local ⇒ >2 invitations/h
+    échouent sur l'étape supabase.auth.signInWithOtp de inviteTeamMember.
+    Config locale, non bloquant.
+  - M4 — warning dev-only React « validateDOMNesting: <button> descendant de
+    <button> » dans Parks.tsx (la ligne de liste est un <button> contenant des
+    <Button>). Dev-only, absent du build prod.
+  - M5 — flagReview() (mobile, « Avis signalé, merci ») : le signalement d'un
+    avis PAR UN TIERS est non fonctionnel sous reviews_update (RLS V1 puis 0021 :
+    seuls auteur→retiré / gestionnaire org / staff passent). Rows=0 silencieux
+    côté mobile. À traiter séparément (policy dédiée ou flux modération).
+  NE PAS corriger D4 ni M1–M5 maintenant.
 
 PROCHAINE PHASE :
-  Phase 5C — tests fonctionnels complets backoffice / rôles / parcours
-  multi-organisation contre Supabase LOCAL V2 (0001→0020 + seed). Prod jamais
-  touchée. NE PAS commencer Phase 5C sans instruction.
+  Phase 5C.2 — checkpoint + commit des corrections 5C.1 (ce lot). Puis, sur
+  instruction, Phase 5D. Prod jamais touchée. NE PAS commencer Phase 5D.
 
 ÉTAT GIT :
-  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main (jusqu'à Phase 4B / checkpoint 4) :
+  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main :
+  - b530265 fix(db): resolve v2 runtime compatibility issues    (Phase 5B.1 —
+      0020_fix_v2_runtime_compat.sql + seed.sql + doc)
   - f270275 docs(db): checkpoint phase 4
   - ca18c71 fix(shared): align APIs with Supabase v2 types      (Phase 4B)
   - 1f0510e chore(types): switch Supabase types to v2 schema    (Phase 4A)
   - 9b13047 fix(db): validate v1 to v2 backfill                 (Phases 3B→3E)
 
-  NON COMMITÉ — produit par ce chantier (Phase 5B.1), À COMMITER :
-  - supabase/migrations/0020_fix_v2_runtime_compat.sql  (nouveau — D1/D2/D3)
-  - supabase/seed.sql                                   (+11 lignes — D5 communes)
+  NON COMMITÉ — produit par ce chantier (Phase 5C.1), À COMMITER (Phase 5C.2) :
+  - supabase/migrations/0021_fix_remaining_v2_rls.sql   (nouveau — P5C-2 / P5C-3)
+  - apps/backoffice/src/components/ParkModal.tsx        (P5C-1 — gardes existing)
+  - apps/backoffice/src/screens/Parks.tsx              (P5C-1 — garde {modalPark &&})
+  - docs/architecture/database-migration.md            (ce checkpoint)
 
   NON COMMITÉ, hors chantier DB — NE PAS toucher, NE PAS stager :
   - apps/backoffice/public/icons-sprite.svg
@@ -431,12 +550,13 @@ PROCHAINE PHASE :
     modifs de branding hors chantier DB, NON produites par ce chantier.
 
   LOCAL, hors Git : .env.local (racine, gitignored — URL locale + clé anon
-  LOCALE), scripts de test 5B/5B.1 (scratchpad de session), données de test
-  dans la base locale (non resetée en fin de 5B.1).
+  LOCALE), scripts de test 5B→5C.1 (scratchpad de session), données de test
+  dans la base locale (reset 0001→0021 en 5C.1, fixtures recréées).
 
 FICHIERS À LIRE (dans l'ordre) :
   1. docs/architecture/database-migration.md  (ce fichier — §13 Phase 3, §14 Phase 5)
   2. supabase/migrations/0007_v2_*.sql → 0019_v2_*.sql + 0020_fix_v2_runtime_compat.sql
+     + 0021_fix_remaining_v2_rls.sql
   3. supabase/migrations/0001_init.sql → 0006_admin_user_moderation.sql (V1 déployé)
   4. supabase/migrations-v2-draft/0001_schema.sql → 0005_fix_signup_trigger.sql (cible de référence)
   5. supabase/inventory-pre-v2.sql  (+ résultats en §2 de ce doc)
@@ -450,7 +570,7 @@ COMMANDES AUTORISÉES :
   - npm run typecheck / npm run build            (local)
   - npm run dev:mobile / npm run dev:backoffice  (local, contre .env.local)
   - supabase gen types typescript --local        (base locale)
-  - édition des fichiers supabase/migrations/0007→0020 et migrations-v2-draft/
+  - édition de migrations-v2-draft/ et d'un futur 0022+ uniquement (0001→0021 figées)
   - git add / git commit / git push
   - sur une base LOCALE explicitement isolée : supabase db reset / db push / psql
     (dont : CREATE DATABASE jetable + apply migrations + DROP DATABASE — harnais 3D)
@@ -462,10 +582,11 @@ COMMANDES INTERDITES (voir §10) :
   - supabase db push --linked vers la production
   - supabase db reset --linked
   - supabase migration repair sur la production
-  - toute application de 0007→0020 sur la production
+  - toute application de 0007→0021 sur la production
   - toute écriture sur le schéma distant de production
-  - création de la migration 0021+ de legacy cleanup destructif
-    (0020 est pris par 0020_fix_v2_runtime_compat.sql, non destructif)
+  - modification rétroactive de 0001→0021 (figées)
+  - création de la migration 0022+ de legacy cleanup destructif
+    (0020 = fix runtime 5B.1, 0021 = fix RLS 5C.1, non destructifs)
 ```
 
 ---
@@ -483,15 +604,17 @@ COMMANDES INTERDITES (voir §10) :
 - [x] **Phase 4B** — 10 erreurs `shared/src/api/*` → **0** ; `typecheck` + `build:mobile` + `build:backoffice` PASS ; commité `ca18c71`. Dette non bloquante : fallbacks applicatifs `country_code="FR"` / `timezone="Europe/Paris"` dans `createPark` (à revoir avant déploiement mondial)
 - [x] **Phase 5A / 5A.1** — app branchée sur Supabase local uniquement (`.env.local`), smoke tests read-only PASS, prod guard PASS ; `db reset` local, fix 3E `park_public.water` live, dataset réaligné. Voir §14.
 - [x] **Phase 5B** — tests fonctionnels d'écriture (sessions Auth réelles) : mobile PASS, backoffice PARTIAL, intégrité PASS. 5 défauts D1–D5. Voir §14.
-- [x] **Phase 5B.1** — corrections D1/D2/D3/D5 via `0020_fix_v2_runtime_compat.sql` (non destructif) + `seed.sql` ; rejeu des tests = PASS ; `READY_FOR_PHASE_5C = YES`. D4 laissé ouvert (décision produit). Voir §14.
-- [ ] **Phase 5C** — tests fonctionnels complets backoffice / rôles / parcours multi-organisation contre Supabase local V2 (`0001→0020` + seed)
+- [x] **Phase 5B.1** — corrections D1/D2/D3/D5 via `0020_fix_v2_runtime_compat.sql` (non destructif) + `seed.sql` ; rejeu des tests = PASS ; `READY_FOR_PHASE_5C = YES`. D4 laissé ouvert (décision produit). Voir §14. Commité `b530265`.
+- [x] **Phase 5C** — tests fonctionnels backoffice + rôles multi-organisation (sessions Auth réelles + navigation UI réelle) contre Supabase local V2 (`0001→0021` + seed). PARTIAL : auth/routing/dashboard/maintenance/audit/team/org_parks/intégrité = PASS ; 3 défauts P5C-1 (BLOCKER — ParkModal null crash) / P5C-2 / P5C-3 (IMPORTANT — RLS `reports_*`/`reviews_update` sur `parks.commune_id`). Voir §14.
+- [x] **Phase 5C.1** — P5C-1 corrigé côté app (`Parks.tsx` + `ParkModal.tsx`) ; P5C-2/P5C-3 corrigés via `0021_fix_remaining_v2_rls.sql` (non destructif) ; `LEGACY_RLS_AUDIT = PASS` ; `db reset` `0001→0021` + seed = PASS ; corrections re-vérifiées (rows + UI) ; régression + typecheck + builds = PASS. `PHASE_5C_1 = PASS` · `READY_FOR_PHASE_5D = YES`. Dettes M1–M5 documentées, non corrigées. Voir §14.
+- [x] **Phase 5C.2** — checkpoint (ce doc) + staging Git des 4 fichiers du chantier 5C.1.
 - [ ] backup production (Docker/psql sur une autre machine, ou dump SQL Editor)
 - [ ] plan rollback documenté
 - [ ] migration production (`db push` du projet lié, fenêtre de maintenance)
 - [ ] validation production (parcours critiques + assertions)
 - [ ] période de coexistence (front v2 déployé, colonnes V1 encore là)
 - [ ] cutover (front v2 = seul en prod)
-- [ ] **seulement ensuite** : migration **`0021+`** — legacy cleanup destructif (DROP colonnes/tables/policies V1, DROP triggers `*_v1_compat`, retour `park_public` à `p.*`, DROP enums V1 obsolètes). ⚠️ le numéro `0020` initialement prévu pour ce lot est désormais pris par `0020_fix_v2_runtime_compat.sql` (non destructif).
+- [ ] **seulement ensuite** : migration **`0022+`** — legacy cleanup destructif (DROP colonnes/tables/policies V1 — `communes` + `park_edit_history` incluses, DROP triggers `*_v1_compat`, retour `park_public` à `p.*`, DROP enums V1 obsolètes). ⚠️ les numéros `0020` (fix runtime 5B.1) et `0021` (fix RLS restant 5C.1) sont pris par des migrations non destructives.
 
 ---
 
@@ -596,6 +719,64 @@ Reset complet `0001→0020` + `seed` = **PASS** ; définitions LIVE == fichiers 
 
 `READY_FOR_PHASE_5C = YES`.
 
+### 5C — Tests fonctionnels backoffice + rôles multi-organisation  → **PARTIAL**
+
+Sessions Auth réelles (`auth/v1/signup` — **D1 confirmé, 0 signup 500**) + navigation UI réelle du back-office + matrice REST authentifiée avec **comptage de lignes**. 6 comptes : `super_admin` + `support` (org NULL — staff), `gestA` (Lyon), `gestB` (Bordeaux), `contribA` (Lyon), `parent` (aucun `team_member`).
+
+| Domaine | Résultat |
+|---|---|
+| Login + routing (admin vs collectivité, scope, pas de sélecteur cross-org) | PASS |
+| Dashboard + isolation A/B (gestB ne voit aucune donnée Lyon) | PASS |
+| Parcs / « Mes parcs » (écran + modale) | **FAIL (UI)** — P5C-1 |
+| Édition parc / features (couche RLS/API) | PASS (`parks_update` 0020 OK, cross-org rows=0, `park_features_write` = `can_edit_park`) |
+| Signalements (gestionnaire) | **FAIL** — P5C-2 (0 signalement visible, `PATCH` 0-ligne silencieux) ; admin/support PASS |
+| Avis — réponse gestionnaire | **FAIL** — P5C-3 (`PATCH` 204, 0 ligne) ; admin PASS |
+| Maintenance (create/update/done/cross-org, `commune_id`=`organization_id`) | PASS |
+| Audit / historique parc (`audit_log`, 0020 D2) | PASS (gestA 2 / gestB 0 / admin 2 / parent 0) — mais surface UI dans `ParkModal`, inatteignable admin/gest tant que P5C-1 non corrigé |
+| Équipe / invitations (list / invite / signup-link / cross-org) | PASS ; role update = **NOT_IMPLEMENTED** (UI) |
+| Contributions / `park_edits` | RLS/API V2 corrects (`manages_park`, cross-org rows=0) ; **aucune UI back-office** → actions NOT_IMPLEMENTED |
+| `organization_parks` (claim / steal / guard) | PASS (API) ; pas d'UI dédiée |
+| Intégrité (0 orphelin, 0 multi-owner, 0 écart `commune_id`/`organization_id`, feature_status propre, géo complète) | PASS |
+| typecheck / build:mobile / build:backoffice | PASS |
+
+**3 défauts :**
+- **P5C-1 BLOCKER** — `apps/backoffice/src/screens/Parks.tsx:174` rend `<ParkModal park={modalPark}>` **inconditionnellement**, `modalPark` initial `null`. Dans `ParkModal` : `park=null` ⇒ `isNew=false` ⇒ `existing=null` ⇒ le bloc `{!isNew && canManage && ( … existing!.status … )}` (lignes ~188/198/203) déréférence `null` **au rendu** (l'assertion `existing!` masque l'erreur à `tsc`) → `TypeError`, pas d'error boundary → **écran blanc pour `admin` + `gestionnaire`** (`canManage=true`). `contributeur` non touché (`canManage=false`). **Bug PRÉEXISTANT** (commit initial `5cb0260`), pas une régression du chantier V2 — exposé par la 1re navigation UI en tant qu'utilisateur privilégié. `/map` non touché (rend `<ParkModal>` conditionnellement).
+- **P5C-2 IMPORTANT** — `reports_read` / `reports_update` (`0002_rls.sql`) reposent sur `parks.commune_id` (colonne V1, `NULL` dans le modèle V2 canonique — propriété via `organization_parks`). Gestionnaire d'une organisation propriétaire : **voit 0 signalement** (liste + dashboard faux « 0 ») ; `PATCH /reports` → HTTP 200 `[]` = **0-ligne silencieux**. `is_toboggo_staff` non affecté. Même famille que **D3**, NON couverte par `0020` (qui n'a fait que `parks_*`).
+- **P5C-3 IMPORTANT** — `reviews_update` (`0002_rls.sql`) repose sur `parks.commune_id` → réponse d'un gestionnaire à un avis = `PATCH` 204 mais **0 ligne**. Même dette.
+
+Mineurs relevés (non corrigés — voir §11) : **M1** badges React Query périmés · **M2** nav contributeur non filtrée + `maintenance_all` ouvert au contributeur · **M3** rate-limit OTP local · **M4** `validateDOMNesting` `<button>/<button>` dans `Parks.tsx` (dev-only) · **M5** `flagReview()` par un tiers non fonctionnel sous RLS.
+
+### 5C.1 — Corrections P5C-1 / P5C-2 / P5C-3  → **PASS**
+
+**Audit legacy RLS (`LEGACY_RLS_AUDIT = PASS`)** — scan `pg_policies` LIVE de toute policy sur `parks.commune_id` / `is_commune_member` / `is_commune_gestionnaire` (14 policies) :
+
+| Policy(s) | Classe | Décision |
+|---|---|---|
+| `reports_read`, `reports_update`, `reviews_update` | **C** (dette identique P5C-2/P5C-3) | corrigées en `0021` |
+| `parks_public_read` / `parks_update` / `parks_delete` | **B** | déjà branche V2 en `0020` |
+| `maintenance_all`, `activity_read`, `team_read/write/update/delete` | **B** | filtrent sur le `commune_id` **propre** de la ligne, tenu par les triggers `*_v1_compat` (testé PASS 5C + régression) |
+| `park_edit_history.park_history_read` | **D** | **table morte** en V2 (0 ligne, 0 trigger, 0 usage app — l'historique parc passe par `audit_log`, déjà corrigé 0020) → cleanup destructif `0022+` |
+| `communes.communes_write` | **D** | **table legacy** (l'app écrit `organizations` / `organizations_update`) → cleanup destructif `0022+` |
+
+`EXTRA_POLICIES_FIXED = NONE` (aucune autre dette démontrable en usage réel).
+
+**P5C-1 — app uniquement, 0 modif DB :**
+- `apps/backoffice/src/screens/Parks.tsx` : `<ParkModal … />` → `{modalPark && <ParkModal … />}` (garde de rendu explicite, même schéma que `MapScreen`).
+- `apps/backoffice/src/components/ParkModal.tsx` : `{!isNew && …}` → `{existing && …}` (bloc historique + bloc actions statut) ; `existing!.status` → `existing.status` (3×) ; `else` → `else if (existing)` dans `save()`. Assertions `!` supprimées. Aucun `try/catch` global, aucun `any` / `@ts-ignore` / `@ts-expect-error`.
+- **UI réelle (avant ET après `db reset`)** : `/parks` + « Mes parcs » chargent pour `super_admin` / `gestA` / `gestB` ; modale ouvre → édite → enregistre (persisté) → réouvre ; historique parc (`audit_log`) rendu dans la modale ; contributeur = **lecture seule préservée** (tous les inputs `disabled`, 0 bouton Enregistrer/statut/suppression). `BO_PARKS_SCREEN_ADMIN` / `BO_PARK_MODAL_ADMIN` / `BO_PARKS_SCREEN_GEST` / `BO_PARK_MODAL_GEST` / `BO_PARK_MODAL_CONTRIB_READONLY` / `BO_NO_REACT_CRASH` = **PASS**.
+
+**`supabase/migrations/0021_fix_remaining_v2_rls.sql`** (NON DESTRUCTIF — 0 `DROP TABLE/COLUMN`, 0 `DELETE/TRUNCATE` ; `DROP POLICY` × 3 chacune recréée aussitôt ; `0001→0020` inchangées). Principe identique à `0020` : **AJOUTER une branche V2 en `OR`, sans retirer la branche V1** `commune_id`.
+
+- **P5C-2** : `reports_read` += `manages_park(auth.uid(), park_id)` (membre d'une org propriétaire **OU** staff). `reports_update` += `exists(organization_parks op WHERE op.park_id = reports.park_id AND is_org_gestionnaire(auth.uid(), op.organization_id))` ; `USING` + `WITH CHECK` explicites et identiques ; branches `is_toboggo_admin` + V1 `commune_id` gestionnaire conservées.
+  Tests état propre `0001→0021` : `REPORT_OWNER_READ` (gestA 1 / gestB 1 / contribA 1 / admin 2 / support 2 / parent 2 en tant que reporter) · `REPORT_OWNER_UPDATE` (gestA→Lyon rows=1, gestB→Bordeaux rows=1) · `REPORT_CROSS_ORG_DENIED` (gestA→Bordeaux rows=0, gestB→Lyon rows=0) · `REPORT_STAFF_GLOBAL` (admin rows=1 ; contributeur rows=0 — pas gestionnaire ; parent rows=0 — pas de triage) = **PASS**. UI : gestA voit le signalement Lyon, le rouvre, le résout → persisté.
+- **P5C-3** : `reviews_update` — branche `user_id = auth.uid()` **RETIRÉE** (restriction, pas extension : elle n'autorisait que l'auteur à réécrire sa propre ligne d'avis, colonnes `reply*` incluses ; aucun parcours applicatif ne l'utilise). += `is_toboggo_staff` + `exists(organization_parks … is_org_gestionnaire)` ; `USING` + `WITH CHECK` explicites ; branche V1 `commune_id` gestionnaire conservée. `reviews_insert` / `reviews_delete` inchangées.
+  Tests état propre : `REVIEW_REPLY_OWNER` (gestA rows=1) · `REVIEW_REPLY_CROSS_ORG_DENIED` (gestB rows=0) · `REVIEW_REPLY_ADMIN` (rows=1) · `REVIEW_REPLY_PARENT_DENIED` (parent — même sur son propre avis — rows=0 ; contributeur rows=0) = **PASS**. Readback `reply` / `reply_by` / `reply_at` OK. UI : gestA répond → « Réponse : … » affichée, persistée (fini le 204/0-row silencieux).
+  Observation hors périmètre : `flagReview()` (mobile — signalement d'un avis par un tiers) était **déjà** non fonctionnel sous la policy V1 (seul l'auteur passait) → comportement inchangé par `0021`, dette **M5**.
+
+**Reset + non-régression** : `supabase db reset` (LOCAL, sans `--linked`) → `0001→0021` + `seed` = **PASS** (`MIGRATIONS_0001_0021` / `SEED_AFTER_0021` = PASS). Fixtures recréées via **vrais flux Auth** (`signup` ×6 → 200 ; 5 `team_members` liés par trigger). Corrections re-vérifiées depuis l'état propre → toutes **PASS**. Régressions : `AUTH` / `RLS_MULTI_ORG` (cross-org rows=0, `organization_parks_guard` → 400, steal → 403) / `MAINTENANCE` / `AUDIT` / `TEAM` = **PASS**. `TYPECHECK` / `BACKOFFICE_BUILD` / `MOBILE_BUILD` = **PASS** ; 0 `as any` / `@ts-ignore` / `@ts-expect-error` ajouté (2 assertions `!` supprimées).
+
+`BACKOFFICE_PARKS` / `BACKOFFICE_REPORTS` / `BACKOFFICE_REVIEWS` / `BACKOFFICE_MULTI_ORG` = **PASS**. **`PHASE_5C_1 = PASS`** · **`READY_FOR_PHASE_5D = YES`**.
+
 ---
 
 ## Historique des mises à jour
@@ -610,4 +791,7 @@ Reset complet `0001→0020` + `seed` = **PASS** ; définitions LIVE == fichiers 
 | 2026-08-30 | — | `f270275 docs(db): checkpoint phase 4` — checkpoint §11 mis à jour fin Phase 4B (poussé). |
 | 2026-08-30 | 5A / 5A.1 | **PASS.** App mobile + backoffice branchées sur Supabase **local uniquement** via `.env.local` (racine, gitignored, prioritaire sur `.env` ; `.env` prod non touché). PROD_GUARD vérifié (env inliné + trafic réseau, 0 requête prod). Smoke tests read-only mobile/backoffice + API anon (`park_public` 5 published, `nearby_parks`, écriture anon 401) = PASS. 5A.1 : `supabase db reset` LOCAL, `0001→0019` + seed PASS, `park_public.water` LIVE == fix 3E, dataset réaligné (6/2/35/4), port 5174 nettoyé. Ajout §14. |
 | 2026-08-30 | 5B | **PARTIAL.** Tests fonctionnels d'écriture (sessions Auth réelles) : mobile PASS, backoffice PARTIAL, `V1_V2_COMPAT_TRIGGERS` PASS, `DATA_INTEGRITY` PASS, typecheck/builds PASS. 5 défauts : **D1** (BLOCKER — `link_team_member_on_signup` sans `search_path` → signup 500), **D2** (audit_log `entity_type` 'parks' vs policy 'park'), **D3** (`parks_update`/`parks_public_read`/`parks_delete` sur `parks.commune_id` NULL → UPDATE 0-ligne silencieux), **D4** (MINOR produit — AddPark non coché → `unavailable`), **D5** (MINOR — table V1 `communes` vide). |
-| 2026-08-30 | 5B.1 | **PASS.** Corrections D1/D2/D3/D5. Nouvelle migration **non destructive** `0020_fix_v2_runtime_compat.sql` : D1 (`link_team_member_on_signup` → `SET search_path=''` + objets `public.*` qualifiés), D2 (`audit_log_read` → `entity_type='parks'`), D3 (`parks_update` reconnaît `can_edit_park()` avec `USING`+`WITH CHECK` ; branche V1 `commune_id` conservée ; `parks_public_read`+`parks_delete` alignées V2 ; `parks_insert` inchangée). D5 : `seed.sql` (+11 lignes) crée les `communes` miroir (`communes` **non** canonique V2). **⚠️ Le numéro `0020` initialement réservé au legacy cleanup destructif est réaffecté → cleanup destructif = `0021+` (toujours INTERDIT).** Vrai `supabase.auth.signUp()` testé (session + profiles + team link OK). Matrice `parks_update` A/B avec comptage de lignes (aucun 0-row silencieux pour un acteur autorisé). D4 laissé ouvert (décision produit). `AUTH_RUNTIME`/`PARK_UPDATE_RLS`/`AUDIT_RLS`/`V1_V2_COMPAT`/`DATA_INTEGRITY`/`TYPECHECK`/`MOBILE_BUILD`/`BACKOFFICE_BUILD` = PASS. `READY_FOR_PHASE_5C = YES`. Non commité (checkpoint) : `supabase/migrations/0020_fix_v2_runtime_compat.sql` + `supabase/seed.sql`. |
+| 2026-08-30 | 5B.1 | **PASS.** Corrections D1/D2/D3/D5. Nouvelle migration **non destructive** `0020_fix_v2_runtime_compat.sql` : D1 (`link_team_member_on_signup` → `SET search_path=''` + objets `public.*` qualifiés), D2 (`audit_log_read` → `entity_type='parks'`), D3 (`parks_update` reconnaît `can_edit_park()` avec `USING`+`WITH CHECK` ; branche V1 `commune_id` conservée ; `parks_public_read`+`parks_delete` alignées V2 ; `parks_insert` inchangée). D5 : `seed.sql` (+11 lignes) crée les `communes` miroir (`communes` **non** canonique V2). Vrai `supabase.auth.signUp()` testé (session + profiles + team link OK). Matrice `parks_update` A/B avec comptage de lignes (aucun 0-row silencieux pour un acteur autorisé). D4 laissé ouvert. `AUTH_RUNTIME`/`PARK_UPDATE_RLS`/`AUDIT_RLS`/`V1_V2_COMPAT`/`DATA_INTEGRITY`/`TYPECHECK`/`MOBILE_BUILD`/`BACKOFFICE_BUILD` = PASS. `READY_FOR_PHASE_5C = YES`. Commité + poussé : `b530265 fix(db): resolve v2 runtime compatibility issues` (`0020` + `seed.sql` + doc). |
+| 2026-08-30 | 5C | **PARTIAL.** Tests fonctionnels backoffice + rôles multi-organisation (sessions Auth réelles via `auth/v1/signup` — D1 confirmé, 0 signup 500 — + navigation UI réelle + matrice REST avec comptage de lignes). PASS : login/routing (admin vs collectivité), dashboard + isolation A/B, maintenance, audit (`0020` D2 confirmé), team (list/invite/signup-link/cross-org), `organization_parks` guard, intégrité, typecheck/builds. **3 défauts** : **P5C-1** (BLOCKER — `Parks.tsx` rend `<ParkModal park=null>` inconditionnellement → `existing!.status` déréférencé au rendu → écran blanc admin/gestionnaire ; bug préexistant `5cb0260`), **P5C-2** (IMPORTANT — `reports_read`/`reports_update` sur `parks.commune_id` NULL → gestionnaire aveugle + `PATCH` 0-ligne silencieux), **P5C-3** (IMPORTANT — `reviews_update` sur `parks.commune_id` → réponse avis `PATCH` 204 / 0 ligne). Mineurs M1–M5 relevés. Contributions/`park_edits` + team role update + `organization_parks` : pas d'UI back-office (NOT_IMPLEMENTED). Ajout §14. |
+| 2026-08-30 | 5C.1 | **PASS.** `LEGACY_RLS_AUDIT = PASS` : seules `reports_read`/`reports_update`/`reviews_update` (classe C) portent la dette `parks.commune_id` en usage réel ; `maintenance_all`/`activity_read`/`team_*` (classe B) filtrent sur le `commune_id` propre de la ligne (trigger `*_v1_compat`) ; `park_history_read` + `communes_write` (classe D) = tables mortes/legacy laissées au cleanup destructif `0022+`. `EXTRA_POLICIES_FIXED = NONE`. **P5C-1** corrigé côté app (`Parks.tsx` : `{modalPark && …}` ; `ParkModal.tsx` : gardes `{existing && …}`, `existing!.status` → `existing.status`, assertions `!` supprimées ; 0 `try/catch` global, 0 `any`/`ts-ignore`). **P5C-2 / P5C-3** corrigés via **migration non destructive** `0021_fix_remaining_v2_rls.sql` (`DROP POLICY` × 3 recréées aussitôt ; `0001→0020` inchangées) : `reports_read` += `manages_park()` ; `reports_update` += `organization_parks`/`is_org_gestionnaire` (`USING`+`WITH CHECK`) ; `reviews_update` — branche `user_id = auth.uid()` **retirée** (restriction) + `organization_parks`/`is_org_gestionnaire`. Branche V1 `commune_id` conservée sur les 3. `db reset` → `0001→0021` + seed = PASS ; fixtures recréées via vrais flux Auth ; corrections re-vérifiées (rows + UI). Régression AUTH/RLS_MULTI_ORG/MAINTENANCE/AUDIT/TEAM = PASS. `TYPECHECK`/`BACKOFFICE_BUILD`/`MOBILE_BUILD` = PASS. **⚠️ `0021` réaffecté → legacy cleanup destructif = `0022+` (toujours INTERDIT).** `PHASE_5C_1 = PASS` · `READY_FOR_PHASE_5D = YES`. Dettes D4 + M1–M5 documentées, non corrigées. |
+| 2026-08-30 | 5C.2 | Checkpoint (ce doc) + staging Git des 4 fichiers du chantier 5C.1 : `supabase/migrations/0021_fix_remaining_v2_rls.sql`, `apps/backoffice/src/components/ParkModal.tsx`, `apps/backoffice/src/screens/Parks.tsx`, `docs/architecture/database-migration.md`. Fichiers hors chantier (3× `icons-sprite.svg` + `Toboggo-Brand-Guidelines.pdf`) NON stagés. Commit à valider par le fondateur. |

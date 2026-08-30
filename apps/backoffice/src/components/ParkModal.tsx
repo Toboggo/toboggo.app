@@ -87,8 +87,8 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
       if (isNew) {
         const created = await createPark({ ...payload, commune_id: communeId ?? null, lat: 45.75, lng: 4.85, status: "published", surface: "non_precise" } as Partial<Park>);
         await logActivity(communeId ?? null, userName, `Parc ajouté : ${created.name}`);
-      } else {
-        await updatePark(existing!.id, payload, "Modifié depuis le back office");
+      } else if (existing) {
+        await updatePark(existing.id, payload, "Modifié depuis le back office");
         await logActivity(communeId ?? null, userName, `Parc modifié : ${name}`);
       }
       void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
@@ -171,7 +171,7 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
           </div>
         </div>
 
-        {!isNew && history.length > 0 && (
+        {existing && history.length > 0 && (
           <div>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Historique</div>
             {history.map((h) => (
@@ -183,9 +183,9 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
           </div>
         )}
 
-        {!isNew && canManage && (
+        {existing && canManage && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {existing!.status === "pending" && (
+            {existing.status === "pending" && (
               <>
                 <Button size="sm" onClick={() => setStatus("published", "Validé")}>
                   Valider
@@ -195,12 +195,12 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
                 </Button>
               </>
             )}
-            {existing!.status === "published" && (
+            {existing.status === "published" && (
               <Button size="sm" variant="secondary" onClick={() => setStatus("blocked", "Bloqué")}>
                 Bloquer
               </Button>
             )}
-            {existing!.status === "blocked" && (
+            {existing.status === "blocked" && (
               <Button size="sm" onClick={() => setStatus("published", "Débloqué")}>
                 Débloquer
               </Button>

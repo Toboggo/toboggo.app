@@ -171,7 +171,7 @@ export default function Parks() {
         </div>
       )}
 
-      <ParkModal park={modalPark} onClose={() => setModalPark(null)} canManage={canManage} />
+      {modalPark && <ParkModal park={modalPark} onClose={() => setModalPark(null)} canManage={canManage} />}
     </div>
   );
 }

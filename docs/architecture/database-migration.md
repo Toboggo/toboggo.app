@@ -2,7 +2,9 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — **Phase 5C.1 terminée = PASS**. Phase 5C (tests fonctionnels backoffice + rôles multi-organisation contre Supabase **local V2**) a découvert 3 défauts : **P5C-1** (BLOCKER — `ParkModal` reçoit `park=null`, `existing!.status` déréférencé au rendu → écran blanc admin/gestionnaire), **P5C-2** / **P5C-3** (IMPORTANT — policies `reports_read`/`reports_update`/`reviews_update` encore basées sur `parks.commune_id`, NULL en V2 → gestionnaire aveugle + `PATCH` 0-ligne silencieux). **Phase 5C.1 PASS** : P5C-1 corrigé côté app (`Parks.tsx` + `ParkModal.tsx`, gardes explicites, 0 `any`/`ts-ignore`) ; P5C-2/P5C-3 corrigés via nouvelle migration **`0021_fix_remaining_v2_rls.sql`** (non destructive — branche V2 `manages_park`/`organization_parks` ajoutée en OR, branche V1 `commune_id` conservée). `LEGACY_RLS_AUDIT = PASS` (aucune autre policy de la même dette en usage réel ; `park_edit_history` + `communes` = tables mortes/legacy laissées au cleanup destructif). `db reset` local → `0001→0021` + seed = **PASS** ; corrections re-vérifiées depuis état propre (rows + UI). `BACKOFFICE_PARKS/REPORTS/REVIEWS/MULTI_ORG` = PASS · `TYPECHECK` / `build:mobile` / `build:backoffice` = PASS. **`0021` est désormais pris ; le legacy cleanup destructif devient `0022+` (toujours INTERDIT).** Prod toujours V1 (`0001→0006`) ; `0007→0021` JAMAIS appliquées en prod. `READY_FOR_PHASE_5D = YES`. Dettes non bloquantes ouvertes : **D4** (`ADDPARK_TRI_STATE_DECISION = OPEN`), **M1–M5** (voir §11).
+> Dernière mise à jour : **2026-08-30** — **Phase 5C = CLOSED / PASS** (commit `e0712f8` commité **et poussé** sur `origin/main` ; `HEAD == origin/main`). **Phase 5D en cours = PRÉPARATION AU CUTOVER V2** (préparation seule, prod jamais touchée) : réconciliation du checkpoint, analyse du backup production (Docker **redevenu disponible** sur cette machine → `supabase db dump --linked` viable), **plan de rollback écrit (§15)**, **procédure staging jetable (§16)**, **audit pré-cutover (§17)**. Aucun `db push --linked`, aucun `db reset --linked`, aucun `migration repair`, aucune migration `0022+`, aucun commit/push effectué en 5D.
+>
+> Rappel Phase 5C.1 (close) : P5C-1 corrigé côté app (`Parks.tsx` + `ParkModal.tsx`, gardes explicites, 0 `any`/`ts-ignore`) ; P5C-2/P5C-3 corrigés via **`0021_fix_remaining_v2_rls.sql`** (non destructive — branche V2 `manages_park`/`organization_parks` ajoutée en OR, branche V1 `commune_id` conservée). `LEGACY_RLS_AUDIT = PASS`. `db reset` local → `0001→0021` + seed = **PASS**. `BACKOFFICE_PARKS/REPORTS/REVIEWS/MULTI_ORG` = PASS · `TYPECHECK` / `build:mobile` / `build:backoffice` = PASS. **`0021` est pris ; le legacy cleanup destructif est `0022+` (toujours INTERDIT).** Prod toujours V1 (`0001→0006`) ; `0007→0021` JAMAIS appliquées en prod. `READY_FOR_PHASE_5D = YES`. Dettes non bloquantes ouvertes : **D4** (`ADDPARK_TRI_STATE_DECISION = OPEN`), **M1–M5** (voir §11).
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -325,7 +327,23 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 
 ```
 DERNIÈRE PHASE :
-  Phase 5C.1 terminée = PASS (checkpoint + staging en cours — Phase 5C.2).
+  Phase 5C = CLOSED / PASS. Corrections 5C.1 (0021 + Parks.tsx + ParkModal.tsx
+  + doc) commitées ET poussées : e0712f8 fix(backoffice): resolve v2 parks and
+  rls issues. HEAD == origin/main == e0712f8. Working tree : seuls 3× icons-sprite
+  + Toboggo-Brand-Guidelines.pdf modifiés (HORS chantier, NON stagés).
+  READY_FOR_PHASE_5D = YES.
+
+  Phase 5D EN COURS = PRÉPARATION AU CUTOVER (préparation seule) :
+    - §11 checkpoint réconcilié (e0712f8 poussé ; Phase 5C close).
+    - §15 PLAN DE ROLLBACK écrit (avant / échec pendant / front V2 KO /
+      restauration DB / GO-NO-GO).
+    - §16 PROCÉDURE STAGING JETABLE écrite (nouveau projet, jamais
+      dfzrsygetbhnjzfssgub, garde-fous, preuve TARGET_DB=STAGING).
+    - §17 AUDIT PRÉ-CUTOVER exécuté (0007→0021 présentes/ordonnées, 0022+
+      absente, 0001→0021 == commits de validation, types V2, typecheck+builds
+      PASS, aucune URL/clé trackée, scan destructif OK).
+    - PROD_TOUCHED = NO. Aucun db push/reset/repair, aucun 0022, aucun commit.
+    - Backup prod : PAS ENCORE LANCÉ (commande présentée §15.A / ÉTAPE 2).
 
 PHASE 5A — PASS (brancher l'app sur Supabase local + smoke tests read-only)
   - mobile (5173) + backoffice (5175) : VITE_SUPABASE_URL = http://127.0.0.1:54321
@@ -524,11 +542,16 @@ DETTE NON BLOQUANTE / OUVERTE :
   NE PAS corriger D4 ni M1–M5 maintenant.
 
 PROCHAINE PHASE :
-  Phase 5C.2 — checkpoint + commit des corrections 5C.1 (ce lot). Puis, sur
-  instruction, Phase 5D. Prod jamais touchée. NE PAS commencer Phase 5D.
+  Fin de Phase 5D (préparation) → décision du fondateur : (a) créer le staging
+  jetable et rejouer 0001→0021 dessus (§16), et/ou (b) lancer le backup prod
+  (§15.A), et/ou (c) planifier la fenêtre de maintenance + db push --linked.
+  AUCUNE de ces actions n'est faite tant que le fondateur ne l'a pas demandée.
+  Prod jamais touchée en 5D.
 
 ÉTAT GIT :
-  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main :
+  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main (HEAD == origin/main == e0712f8) :
+  - e0712f8 fix(backoffice): resolve v2 parks and rls issues    (Phase 5C.1 —
+      0021_fix_remaining_v2_rls.sql + ParkModal.tsx + Parks.tsx + doc)
   - b530265 fix(db): resolve v2 runtime compatibility issues    (Phase 5B.1 —
       0020_fix_v2_runtime_compat.sql + seed.sql + doc)
   - f270275 docs(db): checkpoint phase 4
@@ -536,11 +559,10 @@ PROCHAINE PHASE :
   - 1f0510e chore(types): switch Supabase types to v2 schema    (Phase 4A)
   - 9b13047 fix(db): validate v1 to v2 backfill                 (Phases 3B→3E)
 
-  NON COMMITÉ — produit par ce chantier (Phase 5C.1), À COMMITER (Phase 5C.2) :
-  - supabase/migrations/0021_fix_remaining_v2_rls.sql   (nouveau — P5C-2 / P5C-3)
-  - apps/backoffice/src/components/ParkModal.tsx        (P5C-1 — gardes existing)
-  - apps/backoffice/src/screens/Parks.tsx              (P5C-1 — garde {modalPark &&})
-  - docs/architecture/database-migration.md            (ce checkpoint)
+  NON COMMITÉ — produit par Phase 5D (préparation cutover), à commiter sur
+  instruction du fondateur :
+  - docs/architecture/database-migration.md   (ce checkpoint + §15 rollback
+      + §16 staging + §17 audit pré-cutover)
 
   NON COMMITÉ, hors chantier DB — NE PAS toucher, NE PAS stager :
   - apps/backoffice/public/icons-sprite.svg
@@ -607,10 +629,11 @@ COMMANDES INTERDITES (voir §10) :
 - [x] **Phase 5B.1** — corrections D1/D2/D3/D5 via `0020_fix_v2_runtime_compat.sql` (non destructif) + `seed.sql` ; rejeu des tests = PASS ; `READY_FOR_PHASE_5C = YES`. D4 laissé ouvert (décision produit). Voir §14. Commité `b530265`.
 - [x] **Phase 5C** — tests fonctionnels backoffice + rôles multi-organisation (sessions Auth réelles + navigation UI réelle) contre Supabase local V2 (`0001→0021` + seed). PARTIAL : auth/routing/dashboard/maintenance/audit/team/org_parks/intégrité = PASS ; 3 défauts P5C-1 (BLOCKER — ParkModal null crash) / P5C-2 / P5C-3 (IMPORTANT — RLS `reports_*`/`reviews_update` sur `parks.commune_id`). Voir §14.
 - [x] **Phase 5C.1** — P5C-1 corrigé côté app (`Parks.tsx` + `ParkModal.tsx`) ; P5C-2/P5C-3 corrigés via `0021_fix_remaining_v2_rls.sql` (non destructif) ; `LEGACY_RLS_AUDIT = PASS` ; `db reset` `0001→0021` + seed = PASS ; corrections re-vérifiées (rows + UI) ; régression + typecheck + builds = PASS. `PHASE_5C_1 = PASS` · `READY_FOR_PHASE_5D = YES`. Dettes M1–M5 documentées, non corrigées. Voir §14.
-- [x] **Phase 5C.2** — checkpoint (ce doc) + staging Git des 4 fichiers du chantier 5C.1.
-- [ ] backup production (Docker/psql sur une autre machine, ou dump SQL Editor)
-- [ ] plan rollback documenté
-- [ ] migration production (`db push` du projet lié, fenêtre de maintenance)
+- [x] **Phase 5C.2** — checkpoint + commit des 4 fichiers du chantier 5C.1. Commité + poussé : `e0712f8 fix(backoffice): resolve v2 parks and rls issues`. `HEAD == origin/main`. Phase 5C = CLOSED / PASS.
+- [~] **Phase 5D — préparation au cutover** (préparation seule, prod jamais touchée) : checkpoint réconcilié ; **§15 plan de rollback** ; **§16 procédure staging jetable** ; **§17 audit pré-cutover** (PASS). Docker redevenu disponible → `supabase db dump --linked` viable (commande présentée §15.A, PAS lancée). `PROD_TOUCHED = NO`.
+- [ ] backup production (`supabase db dump --linked` — schema + `--data-only` + `--role-only` ; voir §15.A) — **présenté, non lancé**
+- [ ] (option) staging jetable : nouveau projet, `0001→0021` + seed synthétique, rejeu de l'audit (§16) — **présenté, non créé**
+- [ ] migration production (`db push` du projet lié, fenêtre de maintenance) — checklist GO/NO-GO en §15.E
 - [ ] validation production (parcours critiques + assertions)
 - [ ] période de coexistence (front v2 déployé, colonnes V1 encore là)
 - [ ] cutover (front v2 = seul en prod)
@@ -777,6 +800,329 @@ Mineurs relevés (non corrigés — voir §11) : **M1** badges React Query péri
 
 `BACKOFFICE_PARKS` / `BACKOFFICE_REPORTS` / `BACKOFFICE_REVIEWS` / `BACKOFFICE_MULTI_ORG` = **PASS**. **`PHASE_5C_1 = PASS`** · **`READY_FOR_PHASE_5D = YES`**.
 
+### 5C.2 — Checkpoint + commit  → **CLOSED / PASS**
+
+Les 4 fichiers du chantier 5C.1 ont été commités **et poussés** :
+`e0712f8 fix(backoffice): resolve v2 parks and rls issues` — `0021_fix_remaining_v2_rls.sql`, `apps/backoffice/src/components/ParkModal.tsx`, `apps/backoffice/src/screens/Parks.tsx`, `docs/architecture/database-migration.md` (250 lignes). `git rev-parse HEAD == git rev-parse origin/main == e0712f8`. Fichiers hors chantier (3× `icons-sprite.svg` + `Toboggo-Brand-Guidelines.pdf`) **non stagés**. **Phase 5C = CLOSED.**
+
+---
+
+## 15. Plan de rollback du cutover V1→V2  (Phase 5D — préparation, rien exécuté)
+
+> **But** : rendre le `db push --linked` de `0007→0021` sur la prod `dfzrsygetbhnjzfssgub` réversible.
+> Contexte favorable : `0007→0021` sont **non destructives** (§5 #5, confirmé §17) — toutes les
+> colonnes/tables/enums V1 restent en place, les triggers `*_v1_compat` maintiennent la
+> coexistence, `0022+` (destructif) n'est **pas** appliquée. Le front reste sur `package.json`
+> actuel (types V2 depuis `1f0510e`, déjà compatible via la vue `park_public`).
+
+### 15.A — AVANT migration (checklist de préparation)
+
+1. **Backup production — logique, via la CLI (Docker requis, redevenu disponible).**
+   `supabase login` est valide (vérifié : `supabase projects list` + `migration list --linked` OK sans prompt).
+   Trois dumps, dans `backups/` (déjà gitignored — `.gitignore:11`), horodatés :
+
+   ```
+   supabase db dump --linked --schema public          -f backups/prod_v1_schema_YYYYMMDD.sql
+   supabase db dump --linked --data-only --use-copy    -f backups/prod_v1_data_YYYYMMDD.sql
+   supabase db dump --linked --role-only               -f backups/prod_v1_roles_YYYYMMDD.sql
+   ```
+
+   - **Impact** : lecture seule côté prod (`pg_dump`), aucune écriture, aucun lock exclusif.
+   - **Auth** : le `--dry-run` montre que la CLI se connecte via le rôle `cli_login_postgres`
+     (mot de passe de session généré par `supabase login`) → **aucun credential supplémentaire à saisir**.
+     ⚠️ le script `--dry-run` **imprime ce mot de passe de session en clair** dans le terminal —
+     ne jamais le copier dans ce doc ni dans un commit.
+   - **Portée** : `--schema public` = schéma métier V1 (tables `parks`, `reviews`, `reports`,
+     `communes`, `team_members`, `maintenance`, `activity_log`, `park_edit_history`, `profiles`,
+     `notifications`, `contact_messages`, …) + RLS + fonctions + triggers. Les schémas
+     `auth` / `storage` / `supabase_migrations` sont **exclus** par la CLI (maintenus par la
+     plateforme) — acceptable : `0007→0021` ne touchent ni `auth.users` ni `storage.objects`
+     (0 objet Storage, §2). `--role-only` capture les rôles cluster.
+   - **Vérification post-dump** : `wc -l` non nul sur les 3 fichiers ; `grep -c "CREATE TABLE" schema`
+     ≥ 13 ; présence de `parks`, `communes`, `park_edit_history` dans le schema dump ;
+     `grep -c "public\".\"parks" data` cohérent avec 17 lignes.
+
+2. **Backup production — physique, côté plateforme Supabase (complémentaire, à privilégier si dispo).**
+   Dashboard → *Database → Backups*. Selon le plan :
+   - Pro/Team : backup quotidien automatique + rétention 7 j → **noter la date/heure du dernier
+     backup** juste avant la fenêtre ; si un bouton *on-demand backup* est présent, le déclencher.
+   - PITR (add-on payant) : noter le *recovery window* — permet un retour à un timestamp précis.
+   - Free : pas de backup plateforme → le dump logique (point 1) est **le seul filet**, donc obligatoire.
+   > Le backup physique plateforme est restaurable en self-service / via support Supabase et
+   > couvre `auth` + `storage`, que le dump CLI n'a pas. Faire **les deux**.
+
+3. **Inventaire / counts prod** (SQL Editor, `SELECT` seul) — rejouer `supabase/inventory-pre-v2.sql`
+   et **archiver le résultat daté** à côté des dumps. Référence attendue (§2) :
+   `communes=2, profiles=4, team_members=3, parks=17 (16 published + 1 pending, 6 avec commune_id),
+   reviews=0, reports=0, maintenance=0, park_edit_history=0`, 0 orphelin.
+   Sert d'oracle de non-régression post-migration (les backfills 0008/0010/0016 doivent produire
+   `organizations=2`, `organization_parks=6`, `park_features=182 dont 46 unknown`).
+
+4. **`supabase migration list --linked`** — capturer la sortie : doit montrer
+   `remote 0001→0006` renseigné, `0007→0021` avec `remote` vide. Archiver.
+
+5. **Commit Git exact** — figer le SHA déployé : `git rev-parse HEAD` doit valoir **`e0712f8`**
+   (ou le futur commit qui n'aura QUE des changements de doc au-dessus). `git status` : working
+   tree propre hormis les fichiers branding hors chantier. Noter le SHA dans le journal de cutover.
+
+6. **Fenêtre de maintenance** — communiquée à l'avance. Pendant la fenêtre :
+   - activer une bannière « maintenance » côté front (ou couper le trafic écriture) ;
+   - `0007→0021` s'appliquent en quelques secondes (17 parcs, 0 review/report) mais
+     `ALTER TYPE … ADD VALUE` (0007) et la recréation de `nearby_parks` (0017) exigent qu'aucune
+     transaction longue ne tourne — donc trafic applicatif idéalement à zéro ;
+   - durée estimée : < 5 min migration + vérifications.
+
+### 15.B — SI `0007→0021` ÉCHOUE PENDANT L'APPLICATION (`db push --linked` sort en erreur)
+
+1. **Arrêter immédiatement** — ne pas relancer `db push`, ne pas enchaîner une autre commande.
+   Chaque migration Supabase s'exécute dans **sa propre transaction** : une migration qui
+   échoue est **rollback-ée intégralement** par Postgres ; les migrations précédentes de ce
+   push sont, elles, **déjà committées** et enregistrées dans `supabase_migrations.schema_migrations`.
+2. **Diagnostiquer sans rien modifier** :
+   - lire le message d'erreur complet (numéro de migration + ligne SQL + `SQLSTATE`) ;
+   - `supabase migration list --linked` → identifier la **dernière migration réellement
+     appliquée** (`NNNN`) ;
+   - SQL Editor (`SELECT` seul) : `SELECT version FROM supabase_migrations.schema_migrations
+     ORDER BY version;` + inspecter l'objet fautif (`\d+ table`, `pg_policies`, `pg_proc`) ;
+   - comparer au comportement local : `supabase db reset` LOCAL rejoue `0001→0021` sans erreur
+     (§17) → l'écart est un état prod non reproduit en local (extension manquante, objet
+     pré-existant, rôle, donnée). Reproduire d'abord l'écart **en local ou sur le staging (§16)**.
+3. **INTERDICTION ABSOLUE d'improviser** :
+   - ❌ `supabase migration repair` sur la prod (réécrit l'historique sans toucher le schéma → désync) ;
+   - ❌ éditer `0007→0021` puis re-push (migrations figées — §10) ;
+   - ❌ patcher le schéma prod à la main dans le SQL Editor ;
+   - ❌ `db reset --linked`.
+   La correction se fait **en local**, dans une **nouvelle** migration `0022_*` (non destructive)
+   validée par `db reset` local + staging, puis re-planifiée.
+4. **Quand restaurer** (§15.D) plutôt que corriger en avant :
+   - l'échec a laissé la prod dans un état où `0001→NNNN` sont appliquées mais le schéma est
+     **incohérent** (ex. une migration a fait un `CREATE` partiel qu'un `IF NOT EXISTS` masquera
+     au retry — les `0007→0021` sont écrites idempotentes/`IF EXISTS` mais vérifier au cas par cas) ;
+   - **ou** le front commence à voir des erreurs 500 en prod ;
+   - **ou** on est hors fenêtre de maintenance et on ne peut pas la prolonger.
+   Sinon : geler l'état, corriger à froid, re-planifier.
+
+### 15.C — SI LA MIGRATION DB PASSE MAIS LE FRONT V2 ÉCHOUE
+
+Rappel de l'état après un `0007→0021` réussi :
+- **toutes les colonnes V1 sont conservées** (`parks.lat/lng/wc/shade/…`, `reviews.stars/flagged`,
+  `reports.reason/equipment/comment`, `*.commune_id`) ;
+- **les tables legacy sont conservées** (`communes`, `park_edit_history`) ;
+- **les triggers `*_v1_compat` sont actifs** (`parks`/`reviews`/`reports`/`team_members`/
+  `maintenance`/`activity_log`) → un INSERT/UPDATE au format V1 **pur** reste valide et
+  alimente les colonnes V2, et réciproquement ;
+- **`0022+` n'est pas appliquée** → rien n'a été supprimé, `park_public` expose toujours la
+  forme plate.
+
+**Conséquence : le front V1 (pré-`1f0510e`) peut être redéployé directement** — la base
+post-`0021` est un **sur-ensemble** de la base V1. Procédure :
+
+1. `git revert` / redeploy du build front antérieur à `1f0510e` (dernier tag/commit « front V1 »),
+   **ou** simple rollback de la plateforme d'hébergement (Vercel/Netlify → *promote previous deploy*).
+2. Le front V1 lit/écrit les colonnes V1 : lectures via `park_public` (compatible), écritures
+   parks/reviews/reports/maintenance → triggers `*_v1_compat` remplissent le V2. **RAS attendu.**
+3. **Vérifications obligatoires après redeploy front V1** :
+   - carte + liste + détail parc (lecture `park_public` / `nearby_parks`) ;
+   - `signUp` d'un compte test → 200 (le fix D1 de `0020` est en base, donc **mieux** qu'avant) ;
+   - création d'un avis + d'un signalement test → 201, `stars`/`reason` remplis, `rating`/`category`
+     remplis par trigger ;
+   - back-office : login gestionnaire, liste parcs, ouverture modale (le fix P5C-1 est **front**,
+     donc un front V1 antérieur **réintroduit le crash P5C-1** si sa version est < `e0712f8` —
+     **choisir un build front qui contient déjà le fix P5C-1**, c.-à-d. `e0712f8` ou plus récent,
+     même si on rollback les types : P5C-1 est indépendant des types V2) ;
+   - `commune_id` d'un parc édité via back-office → toujours cohérent avec `organization_parks`.
+4. Si le front V2 échoue seulement partiellement (un écran) : préférer un **hotfix front** à un
+   rollback DB — la DB est saine.
+
+> **Point d'attention** : ne pas rollback le front en-dessous de `e0712f8` (P5C-1). Le
+> « front V1 » sûr = **`e0712f8` avec, si besoin, `database.types.ts` regénéré ou reverté** ;
+> en pratique le front actuel (`e0712f8`, types V2) fonctionne contre la base post-`0021`,
+> donc le scénario le plus probable est **« ne rien rollback, hotfix »**.
+
+### 15.D — SI UNE RESTAURATION DB EST NÉCESSAIRE (procédure générale — NON exécutée)
+
+> À n'utiliser que si 15.B pointe une incohérence de schéma non corrigeable à froid.
+
+**Option 1 — restauration plateforme (préférée si backup physique dispo)** :
+1. Fenêtre de maintenance, trafic coupé.
+2. Dashboard → *Database → Backups* → restaurer le backup daté pris en 15.A.2
+   (ou PITR au timestamp juste avant le `db push`).
+3. La restauration Supabase remet `auth` + `storage` + `public` cohérents.
+4. `supabase migration list --linked` → doit revenir à `remote 0001→0006`.
+   Si l'historique de migration ne correspond plus (la restauration a remis l'ancienne table
+   `schema_migrations`), **ne pas** `migration repair` à l'aveugle : ouvrir un ticket support
+   Supabase avec l'état constaté.
+5. Rejouer l'inventaire (§15.A.3) → comparer aux counts archivés.
+
+**Option 2 — restauration logique depuis les dumps CLI (si pas de backup physique)** :
+1. Fenêtre de maintenance, trafic coupé.
+2. Cette option **ne peut pas** « défaire » proprement `0007→0021` sur la base en place
+   (pas de `DROP` scripté — c'est justement `0022+`). Elle sert à reconstruire une base vierge :
+   restaurer `prod_v1_roles`, puis `prod_v1_schema`, puis `prod_v1_data` sur un **nouveau**
+   projet Supabase, puis re-pointer le DNS/clients — lourd, à réserver au désastre.
+3. Alternative plus légère si le schéma post-`0021` est cohérent mais qu'on veut annuler
+   *fonctionnellement* : écrire un `0022_rollback_v2.sql` **dédié** (non prévu au plan, à auditer
+   comme les autres) qui `DROP` les objets `0007→0021` dans l'ordre inverse. **Non écrit, non autorisé
+   à ce stade.**
+
+**Dans tous les cas** : after restauration, `git` du front revient au commit archivé en 15.A.5,
+et on ne retente `db push` qu'après avoir reproduit et corrigé l'échec sur le staging (§16).
+
+### 15.E — Checklist GO / NO-GO avant `db push --linked` production
+
+Tout doit être **coché** ; un seul NO-GO ⇒ on ne pousse pas.
+
+| # | Critère | Comment le prouver | État |
+|---|---|---|---|
+| G1 | `HEAD == origin/main`, working tree propre (hors branding) | `git rev-parse HEAD origin/main` ; `git status` | ☐ |
+| G2 | `0007→0021` présentes, ordonnées, **`0022+` absente** | `ls supabase/migrations/` ; §17 | ☐ |
+| G3 | `0001→0021` identiques à leurs commits de validation | `git diff --stat HEAD -- supabase/migrations/` vide ; §17 | ☐ |
+| G4 | `db reset` LOCAL `0001→0021` + seed = PASS (rejoué le jour J) | sortie CLI | ☐ |
+| G5 | (recommandé) rejeu `0001→0021` + seed synthétique sur **staging jetable** = PASS | §16 | ☐ |
+| G6 | `npm run typecheck` + `npm run build` = PASS | sortie CLI | ☐ |
+| G7 | Backup prod **logique** (3 dumps) pris, daté, vérifié (`wc -l`, `grep`) | fichiers dans `backups/` | ☐ |
+| G8 | Backup prod **physique** plateforme noté (date/heure) OU plan Free assumé | dashboard | ☐ |
+| G9 | Inventaire prod daté archivé (oracle de non-régression) | fichier | ☐ |
+| G10 | `supabase migration list --linked` = `remote 0001→0006`, `0007→0021` vide | sortie CLI archivée | ☐ |
+| G11 | Fenêtre de maintenance planifiée + bannière front prête + trafic écriture maîtrisé | — | ☐ |
+| G12 | Plan de rollback (15.B/C/D) relu par le fondateur | — | ☐ |
+| G13 | Build front à déployer post-migration ≥ `e0712f8` (fix P5C-1) et types V2 | `git log` | ☐ |
+| G14 | Dettes D4 + M1→M5 confirmées non bloquantes pour le cutover DB (§17) | §17 | ☐ |
+| G15 | `supabase login` valide, `--dry-run` du dump OK, `cli_login_postgres` fonctionnel | sortie CLI | ☐ |
+
+**Ordre le jour J** : G1–G6 (froid) → fenêtre de maintenance → G7–G10 → `supabase db push --linked`
+→ inventaire post-migration vs oracle → smoke tests prod (carte, détail, signup, avis, back-office
+login+modale) → lever la bannière. Si un smoke test échoue → 15.C (hotfix front d'abord) ou 15.D.
+
+---
+
+## 16. Procédure staging jetable  (Phase 5D — écrite, NON exécutée)
+
+> **Objectif** : un dernier rejeu de `0001→0021` + seed **synthétique** sur un projet Supabase
+> **neuf**, totalement séparé de la prod, avant d'envisager le `db push` prod. Rien n'est créé
+> tant que le fondateur n'a pas tranché.
+
+### 16.1 — Procédure exacte
+
+1. **Créer un nouveau projet Supabase** (dashboard, plan Free suffisant) — région au choix,
+   nom explicite type `toboggo-staging-cutover`. Il reçoit une **nouvelle project ref** distincte
+   (ex. `abcd…` ≠ `dfzrsygetbhnjzfssgub`). Noter la ref **hors Git** (ex. `backups/STAGING_REF.txt`,
+   déjà gitignored).
+2. **Ne pas relier le repo au staging.** Ne pas faire `supabase link --project-ref <staging>`
+   (ça écrirait `supabase/config.toml` / `.supabase/`). À la place, utiliser `--db-url` explicite :
+
+   ```
+   # URL récupérée dans le dashboard staging (Settings → Database → Connection string, mode "URI")
+   # stockée hors Git, jamais collée dans le doc :
+   export STAGING_DB_URL='postgresql://postgres:<pwd>@db.<staging-ref>.supabase.co:5432/postgres'
+
+   supabase db push --db-url "$STAGING_DB_URL"           # applique 0001→0021
+   # puis seed synthétique :
+   psql "$STAGING_DB_URL" -f supabase/seed.sql           # (ou via docker exec ... psql)
+   ```
+
+   > `supabase db push --db-url …` applique le dossier `supabase/migrations/` local (`0001→0021`)
+   > sur la cible pointée par l'URL, **sans** toucher au projet lié.
+3. **Rejouer l'audit §17 + les tests de non-régression 5C.1** contre `$STAGING_DB_URL`
+   (matrice RLS multi-org, comptages de lignes, intégrité, `park_public.water`, `nearby_parks`).
+4. **Détruire le projet staging** dès la validation obtenue (dashboard → *Settings → General →
+   Delete project*). Supprimer `backups/STAGING_REF.txt` et `unset STAGING_DB_URL`.
+
+### 16.2 — Garde-fous
+
+- ❌ **jamais** réutiliser `dfzrsygetbhnjzfssgub` ni son URL / ses clés.
+- ❌ **jamais** `supabase link` vers le staging (aucune modif de `supabase/config.toml`,
+  `.supabase/`, `.env`, `.env.local`).
+- ❌ **aucune** ref/URL/clé staging committée — tout dans `backups/` (gitignored) ou des variables
+  d'environnement de session.
+- ❌ **aucune** donnée personnelle de prod : seed **synthétique uniquement** (`supabase/seed.sql`
+  + fixtures générées, comme en Phase 3D/5C). Pas de `--data-only` depuis la prod vers le staging.
+- ❌ ne pas pointer `.env.local` (front) sur le staging sauf test explicite et temporaire, puis
+  restaurer sur `http://127.0.0.1:54321`.
+- ✅ le `.env` prod n'est jamais ouvert ni modifié.
+
+### 16.3 — Commandes envisagées (récap)
+
+```
+supabase projects create toboggo-staging-cutover --org <org> --region <region> --db-password <gen>
+# (ou création via dashboard)
+export STAGING_DB_URL='postgresql://postgres:<pwd>@db.<staging-ref>.supabase.co:5432/postgres'
+supabase db push --db-url "$STAGING_DB_URL"
+psql "$STAGING_DB_URL" -f supabase/seed.sql
+# … audit §17 + régression 5C.1 …
+supabase projects delete <staging-ref>
+```
+
+### 16.4 — Prouver `TARGET_DB = STAGING` et `PROD_TARGETED = NO`
+
+Avant toute commande d'écriture, exécuter et archiver :
+
+1. `echo "$STAGING_DB_URL" | sed -E 's/:[^:@]+@/:***@/'` → l'hôte doit être
+   `db.<staging-ref>.supabase.co` avec `<staging-ref> != dfzrsygetbhnjzfssgub`.
+2. `grep -R "dfzrsygetbhnjzfssgub" <<<"$STAGING_DB_URL"` → **aucun match**.
+3. `supabase status -o json | jq -r .linked_project.project_ref` → doit **rester**
+   `dfzrsygetbhnjzfssgub` (le lien n'a pas bougé) **et** aucune commande `--linked` n'est utilisée
+   pour le staging (on n'utilise que `--db-url`).
+4. `git status --porcelain` → **vide** pour `supabase/config.toml`, `.env`, `.env.local`
+   (le staging n'a rien écrit dans le repo).
+5. `psql "$STAGING_DB_URL" -c "select current_database(), inet_server_addr();"` → IP ≠ IP prod.
+6. Sur la prod, en parallèle : `supabase migration list --linked` → **inchangé**
+   (`remote 0001→0006`, `0007→0021` vide) avant/après la session staging.
+
+`STAGING_RECOMMENDED = YES` (Free, ~15 min, filet supplémentaire avant le push prod) —
+**création soumise à décision du fondateur.**
+
+---
+
+## 17. Audit pré-cutover  (Phase 5D — exécuté 2026-08-30, READ-ONLY)
+
+| # | Contrôle | Méthode | Résultat |
+|---|---|---|---|
+| A1 | `0007→0021` présentes et ordonnées | `ls supabase/migrations/` | **PASS** — `0007_v2_enums_extensions` … `0021_fix_remaining_v2_rls`, 21 fichiers `00NN_*.sql` contigus |
+| A2 | Aucune migration `0022+` | `ls supabase/migrations/ \| grep -E '^002[2-9]\|^00[3-9][0-9]'` | **PASS** — aucune |
+| A3 | `0001→0021` non modifiées depuis leur commit de validation | `git diff --stat HEAD -- supabase/migrations/` ; `git log -1 -- <f>` | **PASS** — diff vide ; dernier commit par fichier : `0001–0016,0018,0019` = `3029c57` (réconciliation 2A/2B, contient déjà les fixes 2C/2D), `0017` = `9b13047` (fix 3E), `0020` = `b530265` (5B.1), `0021` = `e0712f8` (5C.1). Tous == HEAD. |
+| A4 | `database.types.ts` = schéma V2 | `grep organizations/organization_parks/park_features/park_public/park_zones` ; `grep in_progress` ; `git diff HEAD` | **PASS** — 5/5 marqueurs V2 présents, `report_status` inclut `in_progress`, fichier == commit `1f0510e`, working tree clean |
+| A5 | `typecheck` PASS | `npm run typecheck` | **PASS** — design-system + shared + mobile + backoffice, 0 erreur |
+| A6 | builds PASS | `npm run build` | **PASS** — `build:mobile` ✓ (3.38 s), `build:backoffice` ✓ (4.12 s) ; warnings chunk > 500 kB = cosmétiques préexistants |
+| A7 | Aucune URL/clé staging ou locale trackée | `git grep -nE '127.0.0.1:54321\|dfzrsygetbhnjzfssgub\|sb_secret_\|sb_publishable_\|SERVICE_ROLE'` (hors ce doc) | **PASS** — 0 match dans le code ; `.env.example` = 3 clés vides ; `supabase/config.toml` `project_id="Toboggo_App"` (nom CLI local, pas la ref prod) |
+| A8 | `.env.local` gitignored | `git check-ignore -v .env.local` ; `git ls-files \| grep .env` | **PASS** — `.gitignore:4` ; seul `.env.example` est tracké |
+| A9 | Aucun `DROP TABLE/COLUMN`, `DELETE`, `TRUNCATE` hors cas documentés dans `0007→0021` | `grep -niE 'drop table\|drop column\|truncate\|delete from'` + revue de tous les `DROP` | **PASS** — 0 `DROP TABLE/COLUMN`, 0 `DELETE FROM`, 0 `TRUNCATE`. `DROP` présents = `DROP TRIGGER IF EXISTS` (chacun recréé), `DROP POLICY IF EXISTS` (0020 ×4, 0021 ×3 — chacune recréée), `DROP FUNCTION nearby_parks` (0017, recréée). Conforme §5 #5. |
+| A10 | Dettes D4 + M1→M5 non bloquantes pour le cutover DB | revue | **PASS** — voir tableau ci-dessous |
+| A11 | Prod = V1 confirmé | `supabase migration list --linked` | **PASS** — `remote 0001→0006` renseigné ; `0007→0021` : `remote` vide |
+| A12 | Base LOCALE à `0001→0021` (référence de rejeu) | `psql … schema_migrations` | **PASS** — 21 versions `0001…0021` ; dataset `parks=6 / organizations=2 / park_features=35` (seed synthétique) |
+
+### A10 — D4 + M1→M5 : impact cutover DB
+
+| Dette | Nature | Bloquant pour `db push` prod ? | Justification |
+|---|---|---|---|
+| **D4** | Produit — `AddPark` mappe un équipement non coché → `park_features.status='unavailable'` | **NON** | Bug d'écriture **front**, pas dans les migrations. Le backfill `0010` respecte §5 (`false→unknown`). N'affecte que les parcs créés **après** cutover via l'UI mobile actuelle. À trancher produit avant d'ouvrir AddPark en grand, pas avant le push DB. |
+| **M1** | Badges React Query périmés (back-office) | **NON** | Cosmétique front, 0 lien DB. |
+| **M2** | Nav collectivité non filtrée par rôle + `maintenance_all` ouvert au contributeur | **NON** (à surveiller) | `maintenance_all = is_commune_member` est une policy **V1 déjà en prod aujourd'hui** — le cutover ne l'aggrave pas. Durcissement = `0022+` ou policy dédiée, post-cutover. |
+| **M3** | Rate-limit OTP local 2/h | **NON** | Config **locale** uniquement ; la prod a sa propre config Auth. |
+| **M4** | `validateDOMNesting <button>/<button>` dans `Parks.tsx` | **NON** | Warning dev-only, absent du build prod (vérifié §5C). |
+| **M5** | `flagReview()` (signalement d'avis par un tiers) non fonctionnel sous `reviews_update` | **NON** | **Déjà cassé en V1 prod aujourd'hui** (seul l'auteur passait). `0021` ne régresse pas, ne corrige pas. Flux modération dédié = chantier séparé, post-cutover. |
+
+**Aucune dette n'est un NO-GO pour l'application de `0007→0021` en production.** Toutes sont soit
+front-only, soit local-only, soit un état déjà présent en V1 que le cutover ne dégrade pas.
+
+### Écarts / points de vigilance relevés par l'audit
+
+1. **Dump CLI n'inclut pas `auth` / `storage`** → le backup logique seul ne couvre pas les
+   comptes utilisateurs. Mitigation : backup physique plateforme en complément (§15.A.2), et
+   `0007→0021` ne touchent pas ces schémas.
+2. **Le `--dry-run` du dump imprime le mot de passe de session `cli_login_postgres` en clair.**
+   Ne jamais le committer. Rotation possible via `supabase logout` / `login`.
+3. **Docker est redevenu disponible** sur cette machine (12 conteneurs Supabase `healthy`,
+   `docker info` OK) — la note Phase 2A (« `supabase db dump` exige Docker (indisponible) »)
+   est **caduque**. Le backup CLI est faisable ici.
+4. **`pg_dump` / `psql` absents du PATH hôte** mais présents dans le conteneur
+   `supabase_db_Toboggo_App` (PG 17.6) ; `supabase db dump` utilise sa propre image dockerisée.
+   Pour `psql` ad hoc : `docker exec supabase_db_Toboggo_App psql …`.
+5. **Un seul projet dans le compte Supabase** (`supabase projects list`) → un staging serait
+   bien un projet **neuf** avec une ref distincte (pas de risque de confusion d'alias).
+
+`PRE_CUTOVER_AUDIT = PASS` · `PROD_TOUCHED = NO`.
+
 ---
 
 ## Historique des mises à jour
@@ -794,4 +1140,5 @@ Mineurs relevés (non corrigés — voir §11) : **M1** badges React Query péri
 | 2026-08-30 | 5B.1 | **PASS.** Corrections D1/D2/D3/D5. Nouvelle migration **non destructive** `0020_fix_v2_runtime_compat.sql` : D1 (`link_team_member_on_signup` → `SET search_path=''` + objets `public.*` qualifiés), D2 (`audit_log_read` → `entity_type='parks'`), D3 (`parks_update` reconnaît `can_edit_park()` avec `USING`+`WITH CHECK` ; branche V1 `commune_id` conservée ; `parks_public_read`+`parks_delete` alignées V2 ; `parks_insert` inchangée). D5 : `seed.sql` (+11 lignes) crée les `communes` miroir (`communes` **non** canonique V2). Vrai `supabase.auth.signUp()` testé (session + profiles + team link OK). Matrice `parks_update` A/B avec comptage de lignes (aucun 0-row silencieux pour un acteur autorisé). D4 laissé ouvert. `AUTH_RUNTIME`/`PARK_UPDATE_RLS`/`AUDIT_RLS`/`V1_V2_COMPAT`/`DATA_INTEGRITY`/`TYPECHECK`/`MOBILE_BUILD`/`BACKOFFICE_BUILD` = PASS. `READY_FOR_PHASE_5C = YES`. Commité + poussé : `b530265 fix(db): resolve v2 runtime compatibility issues` (`0020` + `seed.sql` + doc). |
 | 2026-08-30 | 5C | **PARTIAL.** Tests fonctionnels backoffice + rôles multi-organisation (sessions Auth réelles via `auth/v1/signup` — D1 confirmé, 0 signup 500 — + navigation UI réelle + matrice REST avec comptage de lignes). PASS : login/routing (admin vs collectivité), dashboard + isolation A/B, maintenance, audit (`0020` D2 confirmé), team (list/invite/signup-link/cross-org), `organization_parks` guard, intégrité, typecheck/builds. **3 défauts** : **P5C-1** (BLOCKER — `Parks.tsx` rend `<ParkModal park=null>` inconditionnellement → `existing!.status` déréférencé au rendu → écran blanc admin/gestionnaire ; bug préexistant `5cb0260`), **P5C-2** (IMPORTANT — `reports_read`/`reports_update` sur `parks.commune_id` NULL → gestionnaire aveugle + `PATCH` 0-ligne silencieux), **P5C-3** (IMPORTANT — `reviews_update` sur `parks.commune_id` → réponse avis `PATCH` 204 / 0 ligne). Mineurs M1–M5 relevés. Contributions/`park_edits` + team role update + `organization_parks` : pas d'UI back-office (NOT_IMPLEMENTED). Ajout §14. |
 | 2026-08-30 | 5C.1 | **PASS.** `LEGACY_RLS_AUDIT = PASS` : seules `reports_read`/`reports_update`/`reviews_update` (classe C) portent la dette `parks.commune_id` en usage réel ; `maintenance_all`/`activity_read`/`team_*` (classe B) filtrent sur le `commune_id` propre de la ligne (trigger `*_v1_compat`) ; `park_history_read` + `communes_write` (classe D) = tables mortes/legacy laissées au cleanup destructif `0022+`. `EXTRA_POLICIES_FIXED = NONE`. **P5C-1** corrigé côté app (`Parks.tsx` : `{modalPark && …}` ; `ParkModal.tsx` : gardes `{existing && …}`, `existing!.status` → `existing.status`, assertions `!` supprimées ; 0 `try/catch` global, 0 `any`/`ts-ignore`). **P5C-2 / P5C-3** corrigés via **migration non destructive** `0021_fix_remaining_v2_rls.sql` (`DROP POLICY` × 3 recréées aussitôt ; `0001→0020` inchangées) : `reports_read` += `manages_park()` ; `reports_update` += `organization_parks`/`is_org_gestionnaire` (`USING`+`WITH CHECK`) ; `reviews_update` — branche `user_id = auth.uid()` **retirée** (restriction) + `organization_parks`/`is_org_gestionnaire`. Branche V1 `commune_id` conservée sur les 3. `db reset` → `0001→0021` + seed = PASS ; fixtures recréées via vrais flux Auth ; corrections re-vérifiées (rows + UI). Régression AUTH/RLS_MULTI_ORG/MAINTENANCE/AUDIT/TEAM = PASS. `TYPECHECK`/`BACKOFFICE_BUILD`/`MOBILE_BUILD` = PASS. **⚠️ `0021` réaffecté → legacy cleanup destructif = `0022+` (toujours INTERDIT).** `PHASE_5C_1 = PASS` · `READY_FOR_PHASE_5D = YES`. Dettes D4 + M1–M5 documentées, non corrigées. |
-| 2026-08-30 | 5C.2 | Checkpoint (ce doc) + staging Git des 4 fichiers du chantier 5C.1 : `supabase/migrations/0021_fix_remaining_v2_rls.sql`, `apps/backoffice/src/components/ParkModal.tsx`, `apps/backoffice/src/screens/Parks.tsx`, `docs/architecture/database-migration.md`. Fichiers hors chantier (3× `icons-sprite.svg` + `Toboggo-Brand-Guidelines.pdf`) NON stagés. Commit à valider par le fondateur. |
+| 2026-08-30 | 5C.2 | Checkpoint (ce doc) + staging Git des 4 fichiers du chantier 5C.1 : `supabase/migrations/0021_fix_remaining_v2_rls.sql`, `apps/backoffice/src/components/ParkModal.tsx`, `apps/backoffice/src/screens/Parks.tsx`, `docs/architecture/database-migration.md`. Fichiers hors chantier (3× `icons-sprite.svg` + `Toboggo-Brand-Guidelines.pdf`) NON stagés. **Commité + poussé : `e0712f8 fix(backoffice): resolve v2 parks and rls issues`. `HEAD == origin/main`. Phase 5C = CLOSED / PASS.** |
+| 2026-08-30 | 5D (prépa) | **PRÉPARATION AU CUTOVER — préparation seule, `PROD_TOUCHED = NO`.** ÉTAPE 1 : checkpoint réconcilié (`e0712f8` poussé, Phase 5C close). ÉTAPE 2 : analyse backup — **Docker redevenu disponible** (12 conteneurs Supabase `healthy`) → `supabase db dump --linked` viable, `supabase login` valide, `--dry-run` OK via rôle `cli_login_postgres` (aucun credential supplémentaire ; ⚠️ le dry-run imprime ce mdp de session — non committé). `pg_dump`/`psql` absents du PATH hôte mais dans le conteneur. Commande de backup **présentée, NON lancée** (§15.A). ÉTAPE 3 : **§15 plan de rollback** écrit (A avant / B échec pendant — interdiction `migration repair` / C front V2 KO — redeploy front ≥ `e0712f8` possible, base post-`0021` = sur-ensemble V1 / D restauration DB / E checklist GO-NO-GO 15 critères). ÉTAPE 4 : **§16 procédure staging jetable** écrite (nouveau projet, `--db-url` jamais `--linked`, seed synthétique, garde-fous, preuve `TARGET_DB=STAGING`) — `STAGING_RECOMMENDED = YES`, **non créé**. ÉTAPE 5 : **§17 audit pré-cutover = PASS** (A1–A12 ; `0007→0021` présentes/ordonnées, `0022+` absente, `0001→0021` == commits de validation & == HEAD, types V2, `typecheck`+`build` PASS, 0 URL/clé trackée, `.env.local` gitignored, scan destructif conforme §5 #5, D4+M1→M5 non bloquantes). Aucun commit/push effectué. |

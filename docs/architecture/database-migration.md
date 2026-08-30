@@ -2,7 +2,7 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — fin de Phase 3E. Validation locale complète (3B→3E) : `0001→0019` + seed appliqués, DB/RLS/backfill PASS, `park_public.water` corrigé. **`BACKFILL_READY_FOR_PROD = YES`.** Prod toujours V1.
+> Dernière mise à jour : **2026-08-30** — Phase 4A (checkpoint types V2 avant refactor). Validation locale complète (3B→3E) : `0001→0019` + seed appliqués, DB/RLS/backfill PASS, `park_public.water` corrigé. **`BACKFILL_READY_FOR_PROD = YES`.** Prod toujours V1. Fix Phase 3E désormais commité (`9b13047`) ; seul `database.types.ts` V2 reste non commité (socle Phase 4).
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -18,10 +18,10 @@ les audits. Lire **§11 CHECKPOINT** en premier.
 | **Migrations réellement déployées** | `0001 → 0006` = les 6 fichiers historiques (voir §3) |
 | `supabase/migrations/` | Historique réel `0001_init … 0006_admin_user_moderation` **+** migrations incrémentales `0007 → 0019` (**TESTED en local 3B–3E**, non déployées en prod) |
 | `supabase/migrations-v2-draft/` | Architecture cible **from-scratch de référence uniquement** (`0001_schema … 0005_fix_signup_trigger`). **NE PAS appliquer.** Sert de spec + de cible pour `supabase gen types` post-cutover. |
-| `packages/shared/src/types/database.types.ts` | **En Phase 3C, remplacé par la version V2 générée en local (`gen types --local`) — modif NON commitée**, c'est l'entrée de la Phase 4. La version commitée (HEAD) reste générée depuis la vraie DB distante V1 (`gen types --linked`). Sauvegarde V1 volatile : `/tmp/database.types.v1.backup.ts`. |
+| `packages/shared/src/types/database.types.ts` | **En Phase 3C, remplacé par la version V2 générée en local (`gen types --local`) — modif NON commitée**, c'est le socle de la Phase 4. La version commitée (HEAD) reste générée depuis la vraie DB distante V1 (`gen types --linked`). Sauvegarde V1 volatile : `/tmp/database.types.v1.backup.ts`. **Phase 4A** : contenu du working tree re-vérifié structurellement contre le schéma local V2 validé (17 tables v2 + vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi) — conforme. Le fix Phase 3E (`park_public.water`) ne change pas la forme du type (`water: boolean` inchangé), donc les types 3C restent valides post-3E. |
 | `packages/shared/src/supabaseClient.ts` | `createClient<Database>` : contre V1 → 110 erreurs ; **contre les types V2 locaux (état actuel non commité) → 10 erreurs restantes**, toutes dans `packages/shared/src/api/*` (voir §13). |
 | `supabase/inventory-pre-v2.sql` | Script READ-ONLY d'inventaire prod, déjà exécuté (résultats en §2). |
-| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`, **synchronisée avec `origin/main`** (`git status` = working tree clean). La réconciliation de l'historique (Phase 2A) **est commitée et poussée**. Commits pertinents (du plus récent au plus ancien) : `1a68f83 feat(brand): update Toboggo branding and icon system` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration`. Le commit `3029c57` contient la réconciliation : `supabase/migrations/0001→0019`, `supabase/migrations-v2-draft/0001→0005`, `supabase/inventory-pre-v2.sql` et ce document sont tous **tracés**. |
+| **Git** | Repo `github.com/Toboggo/toboggo.app` branche `main`, **synchronisée avec `origin/main`**. Working tree **non clean** : `database.types.ts` V2 (socle Phase 4, non commité) + fichiers branding hors chantier (voir §11 « ÉTAT GIT »). La réconciliation de l'historique (Phase 2A) **est commitée et poussée**. Commits pertinents (du plus récent au plus ancien) : `9b13047 fix(db): validate v1 to v2 backfill` (fix Phase 3E : `0017_v2_functions.sql` + `migrations-v2-draft/0002_functions.sql` + ce document — **désormais commités**) · `d0e1875 docs(db): refresh migration checkpoint` · `1a68f83 feat(brand): update Toboggo branding and icon system` · `c0da9a2 chore(types): type Supabase client from remote schema` · `3029c57 chore(db): prepare incremental Supabase v2 migration`. Le commit `3029c57` contient la réconciliation : `supabase/migrations/0001→0019`, `supabase/migrations-v2-draft/0001→0005`, `supabase/inventory-pre-v2.sql` et ce document sont tous **tracés**. |
 
 ### Reconstruction de l'historique (fait en Phase 2A/2B, commité dans `3029c57`)
 
@@ -321,7 +321,12 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 
 ```
 DERNIÈRE PHASE :
-  Phase 3E terminée.
+  Phase 4A — checkpoint types V2 avant refactor.
+  (Fix Phase 3E commité dans 9b13047 ; database.types.ts V2 re-vérifié
+   contre le schéma local V2 validé et stagé avec ce document.
+   Aucun fichier API touché.)
+
+  Phase 3E terminée (commitée dans 9b13047).
   (3B : Supabase local Docker + PG17, 0001→0019 + seed appliqués.
    3C : DB post-migration PASS, RLS PASS, types V2 générés, typecheck
         ~110 → 10 erreurs, builds mobile/backoffice PASS.
@@ -330,7 +335,8 @@ DERNIÈRE PHASE :
         et water_play.
    3E : corrigé dans supabase/migrations/0017_v2_functions.sql +
         supabase/migrations-v2-draft/0002_functions.sql ; harnais 3D
-        rejoué → 31/31 checks PASS ; 0001→0019 PASS.)
+        rejoué → 31/31 checks PASS ; 0001→0019 PASS.
+        Ces 2 fichiers SQL sont COMMITÉS (9b13047) — plus non commités.)
 
 VERDICT DB :
   BACKFILL_READY_FOR_PROD = YES
@@ -340,17 +346,28 @@ PRODUCTION :
   0007→0019 JAMAIS appliquées en production.
 
 PROCHAINE PHASE :
-  Phase 4 — corriger les 10 erreurs TypeScript restantes
+  Phase 4B — corriger les 10 erreurs TypeScript restantes
   (toutes dans packages/shared/src/api/*) avec les types V2 locaux.
-  NE PAS commencer Phase 4 sans instruction.
+  NE PAS commencer Phase 4B sans instruction.
 
-ÉTAT GIT (non commité, à trancher avant Phase 4) :
+ÉTAT GIT :
+  DÉJÀ COMMITÉ (9b13047 fix(db): validate v1 to v2 backfill) :
+  - supabase/migrations/0017_v2_functions.sql        (fix water Phase 3E)
+  - supabase/migrations-v2-draft/0002_functions.sql  (fix water Phase 3E)
+  - docs/architecture/database-migration.md          (état au moment de 9b13047)
+
+  NON COMMITÉ, socle de la Phase 4 :
   - packages/shared/src/types/database.types.ts : version V2 générée en
-    local (Phase 3C), SWAPPÉE mais NON COMMITÉE. C'est l'entrée de la
-    Phase 4. (Sauvegarde V1 : /tmp/database.types.v1.backup.ts — volatile.)
-  - supabase/migrations/0017_v2_functions.sql : fix water (Phase 3E), non commité.
-  - supabase/migrations-v2-draft/0002_functions.sql : fix water (Phase 3E), non commité.
-  - apps/*/public/icons-sprite.svg (x3) + docs/Toboggo-Brand-Guidelines.pdf :
+    local (Phase 3C), SWAPPÉE mais NON COMMITÉE. Re-vérifiée en Phase 4A
+    (conforme au schéma local V2 validé). Stagée avec ce document en
+    Phase 4A, pas encore commitée.
+    (Sauvegarde V1 : /tmp/database.types.v1.backup.ts — volatile.)
+
+  NON COMMITÉ, hors chantier DB — NE PAS toucher, NE PAS stager :
+  - apps/backoffice/public/icons-sprite.svg
+  - apps/mobile/public/icons-sprite.svg
+  - packages/design-system/src/icons/icons-sprite.svg
+  - docs/Toboggo-Brand-Guidelines.pdf (non tracé)
     modifs de branding hors chantier DB, NON produites par ce chantier.
 
 FICHIERS À LIRE (dans l'ordre) :
@@ -394,7 +411,8 @@ COMMANDES INTERDITES (voir §10) :
 - [x] génération `database.types.ts` **V2** (`gen types --local`) — Phase 3C
 - [x] typecheck frontend : ~110 → **10** erreurs (toutes dans `shared/src/api/*`) — Phase 3C
 - [x] **test réel du backfill V1→V2** sur fixture des 17 parcs réels — Phase 3D ; 1 fix (`park_public.water`) — Phase 3E ; **31/31 checks PASS**
-- [ ] **Phase 4** — correction des 10 erreurs `shared/src/api/*` (parks, parkDetails, features, contributions, team, maintenance, reviews, reports)
+- [x] **Phase 4A** — checkpoint types V2 : fix Phase 3E confirmé commité (`9b13047`) ; `database.types.ts` V2 re-vérifié contre le schéma local V2 validé ; doc + types stagés (non commités) ; aucun fichier API touché
+- [ ] **Phase 4B** — correction des 10 erreurs `shared/src/api/*` (parks, parkDetails, features, contributions, team, maintenance, reviews, reports)
 - [ ] tests mobile (carte, détail parc, filtres, ajout parc, avis, signalement)
 - [ ] tests backoffice (login/routing org, Parks, Dashboard, Reports, Maintenance…)
 - [ ] tests RLS multi-organizations (isolation A/B, super_admin, `organization_parks_guard`)
@@ -456,4 +474,5 @@ Classement : **A (code encore V1) = 0** · **B (coexistence : V1 NOT NULL sans D
 |---|---|---|
 | 2026-08-30 | 2D | Corrections audit ; 13 migrations FIXED ; verdict READY_FOR_LOCAL_TEST ; création de ce fichier. |
 | 2026-08-30 | — | `docs(db): refresh migration checkpoint` — §1 Git remis à l'état réel (Phase 2A commitée + poussée dans `3029c57`, working tree clean) ; §10 & §11 : commandes DB clarifiées (interdits = prod/`--linked` uniquement ; autorisés = base locale isolée ou projet staging jetable séparé). |
-| 2026-08-30 | 3B–3E | Validation locale complète. 3B : stack Docker PG17, `0001→0019`+seed OK. 3C : DB/RLS PASS, types V2, typecheck ~110→10. 3D : backfill V1→V2 testé sur fixture des 17 parcs réels ; défaut `park_public.water`. 3E : fix (`0017` + `migrations-v2-draft/0002`), 31/31 checks PASS. Verdict : `BACKFILL_READY_FOR_PROD = YES`. Ajout §13. |
+| 2026-08-30 | 3B–3E | Validation locale complète. 3B : stack Docker PG17, `0001→0019`+seed OK. 3C : DB/RLS PASS, types V2, typecheck ~110→10. 3D : backfill V1→V2 testé sur fixture des 17 parcs réels ; défaut `park_public.water`. 3E : fix (`0017` + `migrations-v2-draft/0002`), 31/31 checks PASS. Verdict : `BACKFILL_READY_FOR_PROD = YES`. Ajout §13. Commité dans `9b13047 fix(db): validate v1 to v2 backfill`. |
+| 2026-08-30 | 4A | Checkpoint types V2 avant refactor. Checkpoint Git périmé corrigé : fix Phase 3E (`0017_v2_functions.sql`, `migrations-v2-draft/0002_functions.sql`, ce doc) désormais **commité** dans `9b13047` ; seul `database.types.ts` V2 reste non commité = socle Phase 4. `database.types.ts` du working tree re-vérifié structurellement contre le schéma local V2 validé (17 tables v2, vue `park_public`, ~18 enums v2, `report_status += in_progress`, `nearby_parks` élargi) — conforme ; le fix 3E ne change pas la forme du type. Non régénéré depuis `--linked`. Aucun fichier API modifié. Stagé : `docs/architecture/database-migration.md` + `packages/shared/src/types/database.types.ts` (pas encore commités). |

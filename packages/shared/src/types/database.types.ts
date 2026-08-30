@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   public: {
     Tables: {
       activity_log: {
@@ -21,6 +16,7 @@ export type Database = {
           commune_id: string | null
           created_at: string
           id: string
+          organization_id: string | null
           text: string
         }
         Insert: {
@@ -29,6 +25,7 @@ export type Database = {
           commune_id?: string | null
           created_at?: string
           id?: string
+          organization_id?: string | null
           text: string
         }
         Update: {
@@ -37,6 +34,7 @@ export type Database = {
           commune_id?: string | null
           created_at?: string
           id?: string
+          organization_id?: string | null
           text?: string
         }
         Relationships: [
@@ -47,7 +45,53 @@ export type Database = {
             referencedRelation: "communes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "activity_log_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          field: string | null
+          id: string
+          new_value: Json | null
+          old_value: Json | null
+          source: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          field?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          source?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          field?: string | null
+          id?: string
+          new_value?: Json | null
+          old_value?: Json | null
+          source?: string
+        }
+        Relationships: []
       }
       communes: {
         Row: {
@@ -97,6 +141,81 @@ export type Database = {
           message?: string
           name?: string
           subject?: string
+        }
+        Relationships: []
+      }
+      external_ids: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          park_id: string
+          provider: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          park_id: string
+          provider: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          park_id?: string
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_ids_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "external_ids_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      features: {
+        Row: {
+          category: Database["public"]["Enums"]["feature_category"]
+          code: string
+          created_at: string
+          icon_key: string | null
+          id: string
+          is_active: boolean
+          label_key: string
+          sort_order: number
+          value_set: string[] | null
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["feature_category"]
+          code: string
+          created_at?: string
+          icon_key?: string | null
+          id?: string
+          is_active?: boolean
+          label_key: string
+          sort_order?: number
+          value_set?: string[] | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["feature_category"]
+          code?: string
+          created_at?: string
+          icon_key?: string | null
+          id?: string
+          is_active?: boolean
+          label_key?: string
+          sort_order?: number
+          value_set?: string[] | null
         }
         Relationships: []
       }
@@ -159,6 +278,13 @@ export type Database = {
             foreignKeyName: "groups_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groups_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
             referencedRelation: "parks"
             referencedColumns: ["id"]
           },
@@ -172,10 +298,13 @@ export type Database = {
           date: string
           done: boolean
           done_date: string | null
+          equipment_id: string | null
           id: string
           note: string | null
+          organization_id: string
           park_id: string
           recur: Database["public"]["Enums"]["maintenance_recur"]
+          zone_id: string | null
         }
         Insert: {
           assignee?: string | null
@@ -184,10 +313,13 @@ export type Database = {
           date: string
           done?: boolean
           done_date?: string | null
+          equipment_id?: string | null
           id?: string
           note?: string | null
+          organization_id: string
           park_id: string
           recur?: Database["public"]["Enums"]["maintenance_recur"]
+          zone_id?: string | null
         }
         Update: {
           assignee?: string | null
@@ -196,10 +328,13 @@ export type Database = {
           date?: string
           done?: boolean
           done_date?: string | null
+          equipment_id?: string | null
           id?: string
           note?: string | null
+          organization_id?: string
           park_id?: string
           recur?: Database["public"]["Enums"]["maintenance_recur"]
+          zone_id?: string | null
         }
         Relationships: [
           {
@@ -210,10 +345,38 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "park_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "maintenance_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
             referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "park_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -254,6 +417,233 @@ export type Database = {
             foreignKeyName: "notifications_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_parks: {
+        Row: {
+          created_at: string
+          organization_id: string
+          park_id: string
+          role: Database["public"]["Enums"]["organization_park_role"]
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          organization_id: string
+          park_id: string
+          role?: Database["public"]["Enums"]["organization_park_role"]
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          organization_id?: string
+          park_id?: string
+          role?: Database["public"]["Enums"]["organization_park_role"]
+          verified?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_parks_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_parks_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_parks_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          contact_email: string | null
+          country_code: string | null
+          created_at: string
+          email_notif: boolean
+          id: string
+          name: string
+          type: Database["public"]["Enums"]["organization_type"]
+          updated_at: string
+          verified: boolean
+          website: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          country_code?: string | null
+          created_at?: string
+          email_notif?: boolean
+          id?: string
+          name: string
+          type?: Database["public"]["Enums"]["organization_type"]
+          updated_at?: string
+          verified?: boolean
+          website?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          country_code?: string | null
+          created_at?: string
+          email_notif?: boolean
+          id?: string
+          name?: string
+          type?: Database["public"]["Enums"]["organization_type"]
+          updated_at?: string
+          verified?: boolean
+          website?: string | null
+        }
+        Relationships: []
+      }
+      park_attribute_sources: {
+        Row: {
+          attribute_key: string
+          confidence: number | null
+          created_at: string
+          id: string
+          is_current: boolean
+          park_id: string
+          source_id: string | null
+          value_json: Json
+          verified_at: string | null
+        }
+        Insert: {
+          attribute_key: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          park_id: string
+          source_id?: string | null
+          value_json: Json
+          verified_at?: string | null
+        }
+        Update: {
+          attribute_key?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          is_current?: boolean
+          park_id?: string
+          source_id?: string | null
+          value_json?: Json
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_attribute_sources_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_attribute_sources_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_attribute_sources_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "park_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_duplicate_candidates: {
+        Row: {
+          address_similarity: number | null
+          candidate_park_id: string
+          created_at: string
+          external_id_match: boolean
+          geo_distance_m: number | null
+          geo_distance_score: number | null
+          id: string
+          name_similarity: number | null
+          park_id: string
+          resolution: string
+          resolved_at: string | null
+          resolved_by: string | null
+          total_score: number | null
+        }
+        Insert: {
+          address_similarity?: number | null
+          candidate_park_id: string
+          created_at?: string
+          external_id_match?: boolean
+          geo_distance_m?: number | null
+          geo_distance_score?: number | null
+          id?: string
+          name_similarity?: number | null
+          park_id: string
+          resolution?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          total_score?: number | null
+        }
+        Update: {
+          address_similarity?: number | null
+          candidate_park_id?: string
+          created_at?: string
+          external_id_match?: boolean
+          geo_distance_m?: number | null
+          geo_distance_score?: number | null
+          id?: string
+          name_similarity?: number | null
+          park_id?: string
+          resolution?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          total_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_duplicate_candidates_candidate_park_id_fkey"
+            columns: ["candidate_park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_duplicate_candidates_candidate_park_id_fkey"
+            columns: ["candidate_park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_duplicate_candidates_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_duplicate_candidates_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
             referencedRelation: "parks"
             referencedColumns: ["id"]
           },
@@ -289,6 +679,609 @@ export type Database = {
             foreignKeyName: "park_edit_history_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_edit_history_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_edits: {
+        Row: {
+          changes: Json
+          created_at: string
+          id: string
+          organization_id: string | null
+          park_id: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["edit_status"]
+          user_id: string | null
+        }
+        Insert: {
+          changes: Json
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          park_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["edit_status"]
+          user_id?: string | null
+        }
+        Update: {
+          changes?: Json
+          created_at?: string
+          id?: string
+          organization_id?: string | null
+          park_id?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["edit_status"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_edits_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_edits_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_edits_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_entrances: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          location: unknown
+          name: string | null
+          park_id: string
+          type: Database["public"]["Enums"]["entrance_type"]
+          wheelchair_access: Database["public"]["Enums"]["access_level"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          location: unknown
+          name?: string | null
+          park_id: string
+          type?: Database["public"]["Enums"]["entrance_type"]
+          wheelchair_access?: Database["public"]["Enums"]["access_level"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          location?: unknown
+          name?: string | null
+          park_id?: string
+          type?: Database["public"]["Enums"]["entrance_type"]
+          wheelchair_access?: Database["public"]["Enums"]["access_level"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_entrances_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_entrances_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_equipment: {
+        Row: {
+          condition: Database["public"]["Enums"]["equipment_condition"] | null
+          created_at: string
+          feature_id: string | null
+          id: string
+          installation_date: string | null
+          last_inspection_at: string | null
+          location: unknown
+          manufacturer: string | null
+          model: string | null
+          name: string | null
+          next_inspection_at: string | null
+          park_id: string
+          quantity: number
+          status: Database["public"]["Enums"]["equipment_status"]
+          updated_at: string
+          zone_id: string | null
+        }
+        Insert: {
+          condition?: Database["public"]["Enums"]["equipment_condition"] | null
+          created_at?: string
+          feature_id?: string | null
+          id?: string
+          installation_date?: string | null
+          last_inspection_at?: string | null
+          location?: unknown
+          manufacturer?: string | null
+          model?: string | null
+          name?: string | null
+          next_inspection_at?: string | null
+          park_id: string
+          quantity?: number
+          status?: Database["public"]["Enums"]["equipment_status"]
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Update: {
+          condition?: Database["public"]["Enums"]["equipment_condition"] | null
+          created_at?: string
+          feature_id?: string | null
+          id?: string
+          installation_date?: string | null
+          last_inspection_at?: string | null
+          location?: unknown
+          manufacturer?: string | null
+          model?: string | null
+          name?: string | null
+          next_inspection_at?: string | null
+          park_id?: string
+          quantity?: number
+          status?: Database["public"]["Enums"]["equipment_status"]
+          updated_at?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_equipment_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_equipment_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_equipment_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_equipment_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "park_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_features: {
+        Row: {
+          feature_id: string
+          note: string | null
+          park_id: string
+          quantity: number | null
+          source_id: string | null
+          status: Database["public"]["Enums"]["feature_status"]
+          updated_at: string
+          value: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          feature_id: string
+          note?: string | null
+          park_id: string
+          quantity?: number | null
+          source_id?: string | null
+          status?: Database["public"]["Enums"]["feature_status"]
+          updated_at?: string
+          value?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          feature_id?: string
+          note?: string | null
+          park_id?: string
+          quantity?: number | null
+          source_id?: string | null
+          status?: Database["public"]["Enums"]["feature_status"]
+          updated_at?: string
+          value?: string | null
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_features_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_features_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_features_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_features_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "park_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_media: {
+        Row: {
+          caption: string | null
+          category: Database["public"]["Enums"]["media_category"]
+          created_at: string
+          id: string
+          is_cover: boolean
+          park_id: string
+          status: Database["public"]["Enums"]["media_status"]
+          url: string
+          user_id: string | null
+          zone_id: string | null
+        }
+        Insert: {
+          caption?: string | null
+          category?: Database["public"]["Enums"]["media_category"]
+          created_at?: string
+          id?: string
+          is_cover?: boolean
+          park_id: string
+          status?: Database["public"]["Enums"]["media_status"]
+          url: string
+          user_id?: string | null
+          zone_id?: string | null
+        }
+        Update: {
+          caption?: string | null
+          category?: Database["public"]["Enums"]["media_category"]
+          created_at?: string
+          id?: string
+          is_cover?: boolean
+          park_id?: string
+          status?: Database["public"]["Enums"]["media_status"]
+          url?: string
+          user_id?: string | null
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_media_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_media_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_media_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "park_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_names: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          lang: string
+          name: string
+          park_id: string
+          source_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          lang: string
+          name: string
+          park_id: string
+          source_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          lang?: string
+          name?: string
+          park_id?: string
+          source_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_names_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_names_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_names_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "park_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_opening_hours: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          opening_hours: string
+          park_id: string
+          season_from: string | null
+          season_until: string | null
+          source_id: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          opening_hours: string
+          park_id: string
+          season_from?: string | null
+          season_until?: string | null
+          source_id?: string | null
+          timezone: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          opening_hours?: string
+          park_id?: string
+          season_from?: string | null
+          season_until?: string | null
+          source_id?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_opening_hours_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_opening_hours_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_opening_hours_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "park_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_scores: {
+        Row: {
+          accessibility_score: number | null
+          algorithm_version: string
+          calculated_at: string
+          cleanliness_score: number | null
+          comfort_score: number | null
+          confidence_score: number | null
+          equipment_score: number | null
+          id: string
+          overall_score: number | null
+          park_id: string
+          safety_score: number | null
+        }
+        Insert: {
+          accessibility_score?: number | null
+          algorithm_version: string
+          calculated_at?: string
+          cleanliness_score?: number | null
+          comfort_score?: number | null
+          confidence_score?: number | null
+          equipment_score?: number | null
+          id?: string
+          overall_score?: number | null
+          park_id: string
+          safety_score?: number | null
+        }
+        Update: {
+          accessibility_score?: number | null
+          algorithm_version?: string
+          calculated_at?: string
+          cleanliness_score?: number | null
+          comfort_score?: number | null
+          confidence_score?: number | null
+          equipment_score?: number | null
+          id?: string
+          overall_score?: number | null
+          park_id?: string
+          safety_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_scores_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_scores_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_sources: {
+        Row: {
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          license: string | null
+          park_id: string
+          source_name: string | null
+          source_type: Database["public"]["Enums"]["source_type"]
+          source_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          license?: string | null
+          park_id: string
+          source_name?: string | null
+          source_type: Database["public"]["Enums"]["source_type"]
+          source_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          license?: string | null
+          park_id?: string
+          source_name?: string | null
+          source_type?: Database["public"]["Enums"]["source_type"]
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_sources_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_sources_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      park_zones: {
+        Row: {
+          boundary: unknown
+          created_at: string
+          description: string | null
+          id: string
+          location: unknown
+          max_age: number | null
+          min_age: number | null
+          name: string
+          park_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          boundary?: unknown
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: unknown
+          max_age?: number | null
+          min_age?: number | null
+          name: string
+          park_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          boundary?: unknown
+          created_at?: string
+          description?: string | null
+          id?: string
+          location?: unknown
+          max_age?: number | null
+          min_age?: number | null
+          name?: string
+          park_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_zones_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_zones_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
             referencedRelation: "parks"
             referencedColumns: ["id"]
           },
@@ -296,10 +1289,17 @@ export type Database = {
       }
       parks: {
         Row: {
+          address_line: string | null
+          admin_area_1: string | null
+          admin_area_2: string | null
           age_max: number
           age_min: number
+          ages_derived: boolean
           benches: boolean
+          boundary: unknown
+          city: string | null
           commune_id: string | null
+          country_code: string
           created_at: string
           created_by: string | null
           description: string | null
@@ -308,28 +1308,50 @@ export type Database = {
           geom: unknown
           has_open_report: boolean
           id: string
+          last_verified_at: string | null
           lat: number
+          latitude: number
           lng: number
+          location: unknown
+          longitude: number
+          max_age: number | null
+          min_age: number | null
+          moderation_status: Database["public"]["Enums"]["park_moderation_status"]
           name: string
+          operational_status: Database["public"]["Enums"]["park_operational_status"]
           parking: boolean
           photos: string[]
           play_equipment: string[]
           pmr: boolean
+          postal_code: string | null
           rating: number
           review_count: number
           shade: boolean
+          slug: string | null
           status: Database["public"]["Enums"]["park_status"]
+          status_from: string | null
+          status_reason: string | null
+          status_until: string | null
           surface: Database["public"]["Enums"]["park_surface"]
+          timezone: string
           updated_at: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
           views: number
           water: boolean
           wc: boolean
         }
         Insert: {
+          address_line?: string | null
+          admin_area_1?: string | null
+          admin_area_2?: string | null
           age_max?: number
           age_min?: number
+          ages_derived?: boolean
           benches?: boolean
+          boundary?: unknown
+          city?: string | null
           commune_id?: string | null
+          country_code: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -338,28 +1360,50 @@ export type Database = {
           geom?: unknown
           has_open_report?: boolean
           id?: string
+          last_verified_at?: string | null
           lat: number
+          latitude: number
           lng: number
+          location?: unknown
+          longitude: number
+          max_age?: number | null
+          min_age?: number | null
+          moderation_status?: Database["public"]["Enums"]["park_moderation_status"]
           name: string
+          operational_status?: Database["public"]["Enums"]["park_operational_status"]
           parking?: boolean
           photos?: string[]
           play_equipment?: string[]
           pmr?: boolean
+          postal_code?: string | null
           rating?: number
           review_count?: number
           shade?: boolean
+          slug?: string | null
           status?: Database["public"]["Enums"]["park_status"]
+          status_from?: string | null
+          status_reason?: string | null
+          status_until?: string | null
           surface?: Database["public"]["Enums"]["park_surface"]
+          timezone: string
           updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
           views?: number
           water?: boolean
           wc?: boolean
         }
         Update: {
+          address_line?: string | null
+          admin_area_1?: string | null
+          admin_area_2?: string | null
           age_max?: number
           age_min?: number
+          ages_derived?: boolean
           benches?: boolean
+          boundary?: unknown
+          city?: string | null
           commune_id?: string | null
+          country_code?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -368,19 +1412,34 @@ export type Database = {
           geom?: unknown
           has_open_report?: boolean
           id?: string
+          last_verified_at?: string | null
           lat?: number
+          latitude?: number
           lng?: number
+          location?: unknown
+          longitude?: number
+          max_age?: number | null
+          min_age?: number | null
+          moderation_status?: Database["public"]["Enums"]["park_moderation_status"]
           name?: string
+          operational_status?: Database["public"]["Enums"]["park_operational_status"]
           parking?: boolean
           photos?: string[]
           play_equipment?: string[]
           pmr?: boolean
+          postal_code?: string | null
           rating?: number
           review_count?: number
           shade?: boolean
+          slug?: string | null
           status?: Database["public"]["Enums"]["park_status"]
+          status_from?: string | null
+          status_reason?: string | null
+          status_until?: string | null
           surface?: Database["public"]["Enums"]["park_surface"]
+          timezone?: string
           updated_at?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
           views?: number
           water?: boolean
           wc?: boolean
@@ -442,9 +1501,13 @@ export type Database = {
       }
       reports: {
         Row: {
+          category: Database["public"]["Enums"]["report_category"]
           comment: string | null
           created_at: string
+          description: string | null
           equipment: string | null
+          equipment_id: string | null
+          equipment_label: string | null
           id: string
           park_id: string
           photo: string | null
@@ -454,13 +1517,20 @@ export type Database = {
           resolution_note: string | null
           resolution_photo: string | null
           resolved_at: string | null
+          resolved_by: string | null
+          severity: Database["public"]["Enums"]["report_severity"]
           status: Database["public"]["Enums"]["report_status"]
           user_id: string | null
+          zone_id: string | null
         }
         Insert: {
+          category: Database["public"]["Enums"]["report_category"]
           comment?: string | null
           created_at?: string
+          description?: string | null
           equipment?: string | null
+          equipment_id?: string | null
+          equipment_label?: string | null
           id?: string
           park_id: string
           photo?: string | null
@@ -470,13 +1540,20 @@ export type Database = {
           resolution_note?: string | null
           resolution_photo?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["report_severity"]
           status?: Database["public"]["Enums"]["report_status"]
           user_id?: string | null
+          zone_id?: string | null
         }
         Update: {
+          category?: Database["public"]["Enums"]["report_category"]
           comment?: string | null
           created_at?: string
+          description?: string | null
           equipment?: string | null
+          equipment_id?: string | null
+          equipment_label?: string | null
           id?: string
           park_id?: string
           photo?: string | null
@@ -486,15 +1563,39 @@ export type Database = {
           resolution_note?: string | null
           resolution_photo?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["report_severity"]
           status?: Database["public"]["Enums"]["report_status"]
           user_id?: string | null
+          zone_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "reports_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "park_equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reports_park_id_fkey"
             columns: ["park_id"]
             isOneToOne: false
             referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reports_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "park_zones"
             referencedColumns: ["id"]
           },
         ]
@@ -503,52 +1604,86 @@ export type Database = {
         Row: {
           age_band: Database["public"]["Enums"]["age_band"] | null
           author_name: string
+          cleanliness: number | null
+          comfort: number | null
           comment: string | null
           created_at: string
+          equipment: number | null
           flagged: boolean
           id: string
           park_id: string
           photo: string | null
+          rating: number
+          recommended_max_age: number | null
+          recommended_min_age: number | null
           reply: string | null
           reply_at: string | null
           reply_by: string | null
+          safety: number | null
           stars: number
+          status: Database["public"]["Enums"]["review_status"]
           sub_ratings: Json | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           age_band?: Database["public"]["Enums"]["age_band"] | null
           author_name: string
+          cleanliness?: number | null
+          comfort?: number | null
           comment?: string | null
           created_at?: string
+          equipment?: number | null
           flagged?: boolean
           id?: string
           park_id: string
           photo?: string | null
+          rating: number
+          recommended_max_age?: number | null
+          recommended_min_age?: number | null
           reply?: string | null
           reply_at?: string | null
           reply_by?: string | null
+          safety?: number | null
           stars: number
+          status?: Database["public"]["Enums"]["review_status"]
           sub_ratings?: Json | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           age_band?: Database["public"]["Enums"]["age_band"] | null
           author_name?: string
+          cleanliness?: number | null
+          comfort?: number | null
           comment?: string | null
           created_at?: string
+          equipment?: number | null
           flagged?: boolean
           id?: string
           park_id?: string
           photo?: string | null
+          rating?: number
+          recommended_max_age?: number | null
+          recommended_min_age?: number | null
           reply?: string | null
           reply_at?: string | null
           reply_by?: string | null
+          safety?: number | null
           stars?: number
+          status?: Database["public"]["Enums"]["review_status"]
           sub_ratings?: Json | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "reviews_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "reviews_park_id_fkey"
             columns: ["park_id"]
@@ -590,6 +1725,7 @@ export type Database = {
           id: string
           invited_by: string | null
           name: string
+          organization_id: string | null
           role: Database["public"]["Enums"]["team_role"]
           user_id: string | null
         }
@@ -600,6 +1736,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           name: string
+          organization_id?: string | null
           role: Database["public"]["Enums"]["team_role"]
           user_id?: string | null
         }
@@ -610,6 +1747,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           name?: string
+          organization_id?: string | null
           role?: Database["public"]["Enums"]["team_role"]
           user_id?: string | null
         }
@@ -619,6 +1757,13 @@ export type Database = {
             columns: ["commune_id"]
             isOneToOne: false
             referencedRelation: "communes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_members_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -664,6 +1809,198 @@ export type Database = {
           f_table_schema?: unknown
           srid?: number | null
           type?: string | null
+        }
+        Relationships: []
+      }
+      park_public: {
+        Row: {
+          address_line: string | null
+          admin_area_1: string | null
+          admin_area_2: string | null
+          age_max: number | null
+          age_min: number | null
+          ages_derived: boolean | null
+          benches: boolean | null
+          boundary: unknown
+          city: string | null
+          commune_id: string | null
+          country_code: string | null
+          cover_photo: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          features: Json | null
+          fenced: boolean | null
+          formatted_address: string | null
+          has_open_report: boolean | null
+          has_score: boolean | null
+          id: string | null
+          last_verified_at: string | null
+          lat: number | null
+          latitude: number | null
+          lng: number | null
+          location: unknown
+          longitude: number | null
+          max_age: number | null
+          min_age: number | null
+          moderation_status:
+            | Database["public"]["Enums"]["park_moderation_status"]
+            | null
+          name: string | null
+          operational_status:
+            | Database["public"]["Enums"]["park_operational_status"]
+            | null
+          organization_id: string | null
+          parking: boolean | null
+          photos: string[] | null
+          play_equipment: string[] | null
+          pmr: boolean | null
+          postal_code: string | null
+          rating: number | null
+          review_count: number | null
+          score: number | null
+          shade: boolean | null
+          slug: string | null
+          status: Database["public"]["Enums"]["park_moderation_status"] | null
+          status_from: string | null
+          status_reason: string | null
+          status_until: string | null
+          surface: string | null
+          timezone: string | null
+          translated_names: string[] | null
+          updated_at: string | null
+          verification_status:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          views: number | null
+          water: boolean | null
+          wc: boolean | null
+        }
+        Insert: {
+          address_line?: string | null
+          admin_area_1?: string | null
+          admin_area_2?: string | null
+          age_max?: number | null
+          age_min?: number | null
+          ages_derived?: boolean | null
+          benches?: never
+          boundary?: unknown
+          city?: string | null
+          commune_id?: never
+          country_code?: string | null
+          cover_photo?: never
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          features?: never
+          fenced?: never
+          formatted_address?: never
+          has_open_report?: boolean | null
+          has_score?: never
+          id?: string | null
+          last_verified_at?: string | null
+          lat?: number | null
+          latitude?: number | null
+          lng?: number | null
+          location?: unknown
+          longitude?: number | null
+          max_age?: number | null
+          min_age?: number | null
+          moderation_status?:
+            | Database["public"]["Enums"]["park_moderation_status"]
+            | null
+          name?: string | null
+          operational_status?:
+            | Database["public"]["Enums"]["park_operational_status"]
+            | null
+          organization_id?: never
+          parking?: never
+          photos?: never
+          play_equipment?: never
+          pmr?: never
+          postal_code?: string | null
+          rating?: number | null
+          review_count?: number | null
+          score?: never
+          shade?: never
+          slug?: string | null
+          status?: Database["public"]["Enums"]["park_moderation_status"] | null
+          status_from?: string | null
+          status_reason?: string | null
+          status_until?: string | null
+          surface?: never
+          timezone?: string | null
+          translated_names?: never
+          updated_at?: string | null
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          views?: number | null
+          water?: never
+          wc?: never
+        }
+        Update: {
+          address_line?: string | null
+          admin_area_1?: string | null
+          admin_area_2?: string | null
+          age_max?: number | null
+          age_min?: number | null
+          ages_derived?: boolean | null
+          benches?: never
+          boundary?: unknown
+          city?: string | null
+          commune_id?: never
+          country_code?: string | null
+          cover_photo?: never
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          features?: never
+          fenced?: never
+          formatted_address?: never
+          has_open_report?: boolean | null
+          has_score?: never
+          id?: string | null
+          last_verified_at?: string | null
+          lat?: number | null
+          latitude?: number | null
+          lng?: number | null
+          location?: unknown
+          longitude?: number | null
+          max_age?: number | null
+          min_age?: number | null
+          moderation_status?:
+            | Database["public"]["Enums"]["park_moderation_status"]
+            | null
+          name?: string | null
+          operational_status?:
+            | Database["public"]["Enums"]["park_operational_status"]
+            | null
+          organization_id?: never
+          parking?: never
+          photos?: never
+          play_equipment?: never
+          pmr?: never
+          postal_code?: string | null
+          rating?: number | null
+          review_count?: number | null
+          score?: never
+          shade?: never
+          slug?: string | null
+          status?: Database["public"]["Enums"]["park_moderation_status"] | null
+          status_from?: string | null
+          status_reason?: string | null
+          status_until?: string | null
+          surface?: never
+          timezone?: string | null
+          translated_names?: never
+          updated_at?: string | null
+          verification_status?:
+            | Database["public"]["Enums"]["verification_status"]
+            | null
+          views?: number | null
+          water?: never
+          wc?: never
         }
         Relationships: []
       }
@@ -796,6 +2133,10 @@ export type Database = {
             }
             Returns: string
           }
+      can_edit_park: {
+        Args: { p_park_id: string; p_uid: string }
+        Returns: boolean
+      }
       commune_role: {
         Args: { p_commune_id: string; p_uid: string }
         Returns: Database["public"]["Enums"]["team_role"]
@@ -834,6 +2175,24 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      find_duplicate_parks: {
+        Args: {
+          p_exclude?: string
+          p_lat: number
+          p_lng: number
+          p_name: string
+          p_radius_m?: number
+        }
+        Returns: {
+          distance_m: number
+          name: string
+          name_similarity: number
+          park_id: string
+          score: number
+        }[]
+      }
+      fstatus: { Args: { p_code: string; p_park_id: string }; Returns: string }
+      fvalue: { Args: { p_code: string; p_park_id: string }; Returns: string }
       geometry: { Args: { "": string }; Returns: unknown }
       geometry_above: {
         Args: { geom1: unknown; geom2: unknown }
@@ -942,42 +2301,74 @@ export type Database = {
         Args: { p_commune_id: string; p_uid: string }
         Returns: boolean
       }
+      is_org_gestionnaire: {
+        Args: { p_org_id: string; p_uid: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { p_org_id: string; p_uid: string }
+        Returns: boolean
+      }
       is_toboggo_admin: { Args: { p_uid: string }; Returns: boolean }
       is_toboggo_staff: { Args: { p_uid: string }; Returns: boolean }
       longtransactionsenabled: { Args: never; Returns: boolean }
+      manages_park: {
+        Args: { p_park_id: string; p_uid: string }
+        Returns: boolean
+      }
       nearby_parks: {
         Args: { p_lat: number; p_lng: number; p_radius_m?: number }
         Returns: {
+          address_line: string
           age_max: number
           age_min: number
           benches: boolean
+          city: string
           commune_id: string
+          country_code: string
+          cover_photo: string
           created_at: string
           created_by: string
           description: string
           distance_m: number
+          features: Json
           fenced: boolean
           formatted_address: string
           has_open_report: boolean
           id: string
           lat: number
+          latitude: number
           lng: number
+          longitude: number
+          max_age: number
+          min_age: number
+          moderation_status: Database["public"]["Enums"]["park_moderation_status"]
           name: string
+          operational_status: Database["public"]["Enums"]["park_operational_status"]
+          organization_id: string
           parking: boolean
           photos: string[]
           play_equipment: string[]
           pmr: boolean
           rating: number
           review_count: number
+          score: number
           shade: boolean
-          status: Database["public"]["Enums"]["park_status"]
-          surface: Database["public"]["Enums"]["park_surface"]
+          status: Database["public"]["Enums"]["park_moderation_status"]
+          surface: string
+          timezone: string
           updated_at: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
           views: number
           water: boolean
           wc: boolean
         }[]
       }
+      org_role: {
+        Args: { p_org_id: string; p_uid: string }
+        Returns: Database["public"]["Enums"]["team_role"]
+      }
+      park_is_visible: { Args: { p_park_id: string }; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
@@ -1018,6 +2409,9 @@ export type Database = {
       }
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
+      recalculate_park_score: { Args: { p_park_id: string }; Returns: string }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
@@ -1612,16 +3006,83 @@ export type Database = {
       }
     }
     Enums: {
+      access_level: "yes" | "limited" | "no" | "unknown"
       age_band: "all" | "under3" | "3-6" | "6-12"
+      edit_status: "pending" | "approved" | "rejected" | "auto_approved"
+      entrance_type: "main" | "secondary" | "pmr" | "parking" | "service"
+      equipment_condition:
+        | "new"
+        | "good"
+        | "fair"
+        | "poor"
+        | "out_of_service"
+        | "unknown"
+      equipment_status: "installed" | "removed" | "planned" | "unknown"
+      feature_category:
+        | "play"
+        | "service"
+        | "environment"
+        | "accessibility"
+        | "safety"
+      feature_status:
+        | "available"
+        | "unavailable"
+        | "unknown"
+        | "temporarily_unavailable"
       maintenance_recur: "none" | "monthly" | "yearly"
+      media_category:
+        | "cover"
+        | "play_area"
+        | "entrance"
+        | "equipment"
+        | "surroundings"
+        | "accessibility"
+        | "other"
+      media_status: "pending" | "approved" | "rejected"
       notification_type:
         | "resolved"
         | "newPark"
         | "thanks"
         | "confirm"
         | "recommend"
+      organization_park_role:
+        | "owner"
+        | "manager"
+        | "operator"
+        | "maintainer"
+        | "contributor"
+      organization_type:
+        | "municipality"
+        | "intercommunality"
+        | "department"
+        | "region"
+        | "state"
+        | "private_operator"
+        | "association"
+        | "other"
+      park_moderation_status:
+        | "draft"
+        | "pending"
+        | "published"
+        | "blocked"
+        | "rejected"
+      park_operational_status:
+        | "active"
+        | "temporarily_closed"
+        | "partially_closed"
+        | "under_construction"
+        | "permanently_closed"
+        | "unknown"
       park_status: "draft" | "pending" | "published" | "blocked" | "rejected"
       park_surface: "sable" | "gazon" | "sol_souple" | "non_precise"
+      report_category:
+        | "broken_equipment"
+        | "safety"
+        | "cleanliness"
+        | "vegetation"
+        | "accessibility"
+        | "wrong_info"
+        | "other"
       report_reason:
         | "broken_equipment"
         | "safety"
@@ -1630,13 +3091,28 @@ export type Database = {
         | "accessibility"
         | "wrong_info"
         | "other"
-      report_status: "open" | "resolved" | "dismissed"
+      report_severity: "low" | "medium" | "high" | "critical"
+      report_status: "open" | "in_progress" | "resolved" | "dismissed"
+      review_status: "published" | "flagged" | "hidden" | "pending"
+      source_type:
+        | "osm"
+        | "open_data"
+        | "municipality"
+        | "partner"
+        | "user"
+        | "toboggo"
+        | "other"
       team_role:
         | "super_admin"
         | "moderation"
         | "support"
         | "gestionnaire"
         | "contributeur"
+      verification_status:
+        | "unverified"
+        | "community_verified"
+        | "organization_verified"
+        | "toboggo_verified"
     }
     CompositeTypes: {
       geometry_dump: {
@@ -1772,8 +3248,43 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_level: ["yes", "limited", "no", "unknown"],
       age_band: ["all", "under3", "3-6", "6-12"],
+      edit_status: ["pending", "approved", "rejected", "auto_approved"],
+      entrance_type: ["main", "secondary", "pmr", "parking", "service"],
+      equipment_condition: [
+        "new",
+        "good",
+        "fair",
+        "poor",
+        "out_of_service",
+        "unknown",
+      ],
+      equipment_status: ["installed", "removed", "planned", "unknown"],
+      feature_category: [
+        "play",
+        "service",
+        "environment",
+        "accessibility",
+        "safety",
+      ],
+      feature_status: [
+        "available",
+        "unavailable",
+        "unknown",
+        "temporarily_unavailable",
+      ],
       maintenance_recur: ["none", "monthly", "yearly"],
+      media_category: [
+        "cover",
+        "play_area",
+        "entrance",
+        "equipment",
+        "surroundings",
+        "accessibility",
+        "other",
+      ],
+      media_status: ["pending", "approved", "rejected"],
       notification_type: [
         "resolved",
         "newPark",
@@ -1781,8 +3292,49 @@ export const Constants = {
         "confirm",
         "recommend",
       ],
+      organization_park_role: [
+        "owner",
+        "manager",
+        "operator",
+        "maintainer",
+        "contributor",
+      ],
+      organization_type: [
+        "municipality",
+        "intercommunality",
+        "department",
+        "region",
+        "state",
+        "private_operator",
+        "association",
+        "other",
+      ],
+      park_moderation_status: [
+        "draft",
+        "pending",
+        "published",
+        "blocked",
+        "rejected",
+      ],
+      park_operational_status: [
+        "active",
+        "temporarily_closed",
+        "partially_closed",
+        "under_construction",
+        "permanently_closed",
+        "unknown",
+      ],
       park_status: ["draft", "pending", "published", "blocked", "rejected"],
       park_surface: ["sable", "gazon", "sol_souple", "non_precise"],
+      report_category: [
+        "broken_equipment",
+        "safety",
+        "cleanliness",
+        "vegetation",
+        "accessibility",
+        "wrong_info",
+        "other",
+      ],
       report_reason: [
         "broken_equipment",
         "safety",
@@ -1792,7 +3344,18 @@ export const Constants = {
         "wrong_info",
         "other",
       ],
-      report_status: ["open", "resolved", "dismissed"],
+      report_severity: ["low", "medium", "high", "critical"],
+      report_status: ["open", "in_progress", "resolved", "dismissed"],
+      review_status: ["published", "flagged", "hidden", "pending"],
+      source_type: [
+        "osm",
+        "open_data",
+        "municipality",
+        "partner",
+        "user",
+        "toboggo",
+        "other",
+      ],
       team_role: [
         "super_admin",
         "moderation",
@@ -1800,6 +3363,13 @@ export const Constants = {
         "gestionnaire",
         "contributeur",
       ],
+      verification_status: [
+        "unverified",
+        "community_verified",
+        "organization_verified",
+        "toboggo_verified",
+      ],
     },
   },
 } as const
+

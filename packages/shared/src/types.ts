@@ -11,6 +11,10 @@
  * `*_compat` fields on `Park`) so UI code can migrate incrementally.
  */
 
+import type { Json } from "./types/database.types";
+
+export type { Json };
+
 // ── Enums ──────────────────────────────────────────────────────────────────
 export type ParkModerationStatus = "draft" | "pending" | "published" | "blocked" | "rejected";
 /** Alias kept for existing UI code that reads `park.status`. */
@@ -328,7 +332,8 @@ export interface ParkEdit {
   park_id: string | null;
   user_id: string | null;
   organization_id: string | null;
-  changes: Record<string, unknown>;
+  /** Free-form proposed field changes — stored as a `jsonb` column. */
+  changes: Json;
   status: EditStatus;
   reviewed_by: string | null;
   review_note: string | null;

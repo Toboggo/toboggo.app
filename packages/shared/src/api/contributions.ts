@@ -1,5 +1,5 @@
 import { getSupabase } from "../supabaseClient";
-import type { ParkEdit } from "../types";
+import type { Json, ParkEdit } from "../types";
 
 /**
  * §13 — Contributions / change-requests. Parents propose; canonical `parks`
@@ -8,7 +8,7 @@ import type { ParkEdit } from "../types";
 export async function submitParkEdit(input: {
   parkId: string | null;
   userId: string;
-  changes: Record<string, unknown>;
+  changes: Json;
   organizationId?: string | null;
 }): Promise<ParkEdit> {
   const supabase = getSupabase();
@@ -80,7 +80,9 @@ export async function findDuplicateParks(
     p_lng: lng,
     p_name: name,
     p_radius_m: radiusM,
-    p_exclude: excludeId ?? null,
+    // `p_exclude` is an optional arg (defaults to NULL server-side); omit it
+    // rather than passing an explicit null the generated Args type rejects.
+    ...(excludeId ? { p_exclude: excludeId } : {}),
   });
   if (error) throw error;
   return (data ?? []) as DuplicateCandidate[];

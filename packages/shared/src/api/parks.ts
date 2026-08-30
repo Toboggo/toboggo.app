@@ -1,5 +1,13 @@
 import { getSupabase } from "../supabaseClient";
-import type { Park, ParkEditHistoryEntry, ParkStatus } from "../types";
+import type {
+  FeatureCategory,
+  FeatureStatus,
+  Park,
+  ParkEditHistoryEntry,
+  ParkFeatureView,
+  ParkStatus,
+} from "../types";
+import type { Database, Json, TablesInsert, TablesUpdate } from "../types/database.types";
 
 // Columns to pull from the `park_public` view — everything except the PostGIS
 // geography blobs (`location`, `boundary`) which the app never reads.
@@ -22,6 +30,52 @@ export interface NearbyParksParams {
   amenities?: Partial<Record<"wc" | "shade" | "fenced" | "pmr" | "benches" | "water" | "parking", boolean>>;
 }
 
+/** One row of the PostGIS `nearby_parks` RPC — a flat projection, narrower than `Park`. */
+type NearbyParkRow = Database["public"]["Functions"]["nearby_parks"]["Returns"][number];
+
+const AMENITY_KEYS = ["wc", "shade", "fenced", "pmr", "benches", "water", "parking"] as const;
+
+/** The RPC/view `features` column is `jsonb`; read it entry-by-entry into the
+ * typed `ParkFeatureView` shape (no blanket cast — every field is validated). */
+function asFeatureMap(value: NearbyParkRow["features"]): Record<string, ParkFeatureView> {
+  const out: Record<string, ParkFeatureView> = {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) return out;
+  for (const [code, raw] of Object.entries(value)) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) continue;
+    const f: { [k: string]: Json | undefined } = raw;
+    out[code] = {
+      status: (f.status as FeatureStatus | undefined) ?? "unknown",
+      value: typeof f.value === "string" ? f.value : null,
+      quantity: typeof f.quantity === "number" ? f.quantity : null,
+      category: (f.category as FeatureCategory | undefined) ?? "service",
+      verified_at: typeof f.verified_at === "string" ? f.verified_at : null,
+    };
+  }
+  return out;
+}
+
+/** Map the RPC projection onto the full `Park` shape. Fields the RPC does not
+ * return are absent at runtime too, so they take their canonical empty value. */
+function nearbyRowToPark(row: NearbyParkRow): Park & { distance_m: number } {
+  return {
+    ...row,
+    surface: row.surface as Park["surface"],
+    features: asFeatureMap(row.features),
+    slug: null,
+    boundary: null,
+    postal_code: null,
+    admin_area_1: null,
+    admin_area_2: null,
+    ages_derived: false,
+    status_reason: null,
+    status_from: null,
+    status_until: null,
+    last_verified_at: null,
+    translated_names: [],
+    has_score: row.score != null,
+  };
+}
+
 /** PostGIS `nearby_parks` RPC — real geospatial "near me". Returns the flat
  * compatibility shape plus the normalised `features` map. */
 export async function fetchNearbyParks(params: NearbyParksParams): Promise<(Park & { distance_m: number })[]> {
@@ -32,12 +86,12 @@ export async function fetchNearbyParks(params: NearbyParksParams): Promise<(Park
     p_radius_m: params.radiusMeters ?? 20000,
   });
   if (error) throw error;
-  let rows = (data ?? []) as (Park & { distance_m: number })[];
+  let rows = (data ?? []).map(nearbyRowToPark);
   if (params.ageMin != null) rows = rows.filter((p) => (p.age_max ?? p.max_age ?? 99) >= params.ageMin!);
   if (params.ageMax != null) rows = rows.filter((p) => (p.age_min ?? p.min_age ?? 0) <= params.ageMax!);
   if (params.amenities) {
-    for (const [key, wanted] of Object.entries(params.amenities)) {
-      if (wanted) rows = rows.filter((p) => (p as unknown as Record<string, boolean>)[key]);
+    for (const key of AMENITY_KEYS) {
+      if (params.amenities[key]) rows = rows.filter((p) => p[key]);
     }
   }
   return rows;
@@ -107,48 +161,68 @@ const PLAY_CODE_MAP: Record<string, string> = {
   waterplay: "water_play",
   motorcourse: "motor_course",
 };
-const AMENITY_TO_FEATURE: Record<string, string> = {
+const AMENITY_TO_FEATURE = {
   wc: "toilets",
   pmr: "wheelchair_access",
   benches: "benches",
   parking: "parking",
   water: "drinking_water",
-};
+} as const;
+
+/**
+ * `parks` keeps its V1 columns during coexistence. Callers still pass the old
+ * flat shape (`lat`/`lng`/`formatted_address`/`age_min`/`status`…); we map it to
+ * the canonical V2 columns. The V1 columns `lat`, `lng`, `formatted_address`
+ * are then re-derived by the `parks_v1_compat` BEFORE INSERT/UPDATE trigger
+ * (supabase/migrations/0009_v2_parks_columns.sql — see database-migration.md §9),
+ * so the repository never writes them and never invents placeholder coordinates.
+ */
+type ParkWriteRow = Omit<TablesUpdate<"parks">, "lat" | "lng" | "formatted_address">;
+type ParkInsertRow = Omit<TablesInsert<"parks">, "lat" | "lng" | "formatted_address">;
+
+function requireField<T>(value: T | null | undefined, field: string): T {
+  if (value == null) throw new Error(`createPark : champ obligatoire manquant : ${field}`);
+  return value;
+}
 
 function splitParkInput(input: Partial<Park>) {
   const {
     age_min, age_max, status, formatted_address, commune_id, organization_id,
     surface, play_equipment, wc, shade, fenced, pmr, benches, water, parking,
     features, cover_photo, photos, translated_names, score, has_score,
-    rating, review_count, has_open_report, views, ...rest
-  } = input as Record<string, unknown>;
+    rating, review_count, has_open_report, views,
+    lat, lng,
+    ...rest
+  } = input;
 
-  const parkRow: Record<string, unknown> = { ...rest };
+  const parkRow: ParkWriteRow = { ...rest };
   if (age_min != null) parkRow.min_age = age_min;
   if (age_max != null) parkRow.max_age = age_max;
   if (age_min != null || age_max != null) parkRow.ages_derived = false;
   if (status != null) parkRow.moderation_status = status;
+  if (lat != null && parkRow.latitude == null) parkRow.latitude = lat;
+  if (lng != null && parkRow.longitude == null) parkRow.longitude = lng;
   if (formatted_address != null && parkRow.address_line == null) parkRow.address_line = formatted_address;
 
-  const featureRows: { code: string; status: string; value?: string | null; quantity?: number | null }[] = [];
-  if (surface != null) featureRows.push({ code: "surface_type", status: "available", value: SURFACE_TO_FEATURE[surface as string] ?? "unknown" });
+  const featureRows: { code: string; status: FeatureStatus; value?: string | null; quantity?: number | null }[] = [];
+  if (surface != null) featureRows.push({ code: "surface_type", status: "available", value: SURFACE_TO_FEATURE[surface] ?? "unknown" });
   if (fenced != null) featureRows.push({ code: "fence_status", status: "available", value: fenced ? "fully_fenced" : "not_fenced" });
   if (shade != null) featureRows.push({ code: "shade_level", status: "available", value: shade ? "partial" : "none" });
-  for (const [amenity, code] of Object.entries(AMENITY_TO_FEATURE)) {
-    const v = (input as Record<string, unknown>)[amenity];
-    if (v != null) featureRows.push({ code, status: v ? "available" : "unavailable" });
+  for (const amenity of Object.keys(AMENITY_TO_FEATURE) as (keyof typeof AMENITY_TO_FEATURE)[]) {
+    const v = input[amenity];
+    if (v != null) featureRows.push({ code: AMENITY_TO_FEATURE[amenity], status: v ? "available" : "unavailable" });
   }
   if (Array.isArray(play_equipment)) {
-    for (const raw of play_equipment as string[]) {
+    for (const raw of play_equipment) {
       featureRows.push({ code: PLAY_CODE_MAP[raw] ?? raw, status: "available" });
     }
   }
 
-  const orgId = (organization_id ?? commune_id) as string | null | undefined;
+  const orgId = organization_id ?? commune_id ?? null;
   return { parkRow, featureRows, orgId };
 }
 
-async function applyFeatures(parkId: string, rows: { code: string; status: string; value?: string | null; quantity?: number | null }[]) {
+async function applyFeatures(parkId: string, rows: { code: string; status: FeatureStatus; value?: string | null; quantity?: number | null }[]) {
   if (!rows.length) return;
   const supabase = getSupabase();
   const { data: catalogue } = await supabase.from("features").select("id,code");
@@ -171,11 +245,24 @@ async function applyFeatures(parkId: string, rows: { code: string; status: strin
 export async function createPark(input: Partial<Park>): Promise<Park> {
   const supabase = getSupabase();
   const { parkRow, featureRows, orgId } = splitParkInput(input);
-  if (parkRow.country_code == null) parkRow.country_code = "FR";
-  if (parkRow.timezone == null) parkRow.timezone = "Europe/Paris";
-  const { data, error } = await supabase.from("parks").insert(parkRow).select("id").single();
+  const insertRow: ParkInsertRow = {
+    ...parkRow,
+    name: requireField(parkRow.name, "name"),
+    latitude: requireField(parkRow.latitude, "latitude"),
+    longitude: requireField(parkRow.longitude, "longitude"),
+    // France-only product for now; a worldwide caller must pass these explicitly
+    // — the DB has no column default / trigger for them (database-migration.md §5).
+    country_code: parkRow.country_code ?? "FR",
+    timezone: parkRow.timezone ?? "Europe/Paris",
+  };
+  const { data, error } = await supabase
+    .from("parks")
+    // `lat`/`lng`/`formatted_address` are re-derived by parks_v1_compat (see splitParkInput).
+    .insert(insertRow as TablesInsert<"parks">)
+    .select("id")
+    .single();
   if (error) throw error;
-  const parkId = data.id as string;
+  const parkId = data.id;
   await applyFeatures(parkId, featureRows);
   if (orgId) {
     await supabase.from("organization_parks").upsert(

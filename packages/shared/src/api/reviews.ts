@@ -1,5 +1,15 @@
 import { getSupabase } from "../supabaseClient";
 import type { AgeBand, Review } from "../types";
+import type { TablesInsert } from "../types/database.types";
+
+/**
+ * `reviews.stars` is a V1-coexistence column: NOT NULL, no DEFAULT, mirrored
+ * from `rating` by the `reviews_v1_compat` BEFORE INSERT trigger
+ * (supabase/migrations/0013_v2_reviews.sql — see database-migration.md §9).
+ * The generated types still mark it required, so we build the canonical V2 row
+ * (`rating` only) and make one narrow adaptation at the `.insert()` call site.
+ */
+type ReviewInsertV2 = Omit<TablesInsert<"reviews">, "stars">;
 
 /** Fill the deprecated compatibility fields on a review row read from the DB. */
 function hydrate(row: Record<string, unknown>): Review {
@@ -92,7 +102,7 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
   const rating = input.rating ?? input.stars ?? 0;
   const sub = input.sub_ratings;
   const [rMin, rMax] = input.age_band ? AGE_BAND_RANGE[input.age_band] : [input.recommended_min_age ?? null, input.recommended_max_age ?? null];
-  const row = {
+  const row: ReviewInsertV2 = {
     park_id: input.park_id,
     user_id: input.user_id,
     author_name: input.author_name,
@@ -105,7 +115,12 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
     recommended_max_age: rMax,
     comment: input.comment ?? null,
   };
-  const { data, error } = await supabase.from("reviews").insert(row).select().single();
+  // `stars` is filled by the reviews_v1_compat trigger (see ReviewInsertV2).
+  const { data, error } = await supabase
+    .from("reviews")
+    .insert(row as TablesInsert<"reviews">)
+    .select()
+    .single();
   if (error) throw error;
   return hydrate(data);
 }

@@ -1,5 +1,15 @@
 import { getSupabase } from "../supabaseClient";
 import type { Report, ReportStatus } from "../types";
+import type { TablesInsert } from "../types/database.types";
+
+/**
+ * `reports.reason` is a V1-coexistence column: NOT NULL, no DEFAULT, mirrored
+ * from `category` by the `reports_v1_compat` BEFORE INSERT trigger
+ * (supabase/migrations/0014_v2_reports.sql — see database-migration.md §9).
+ * The generated types still mark it required, so we build the canonical V2 row
+ * (`category` only) and make one narrow adaptation at the `.insert()` call site.
+ */
+type ReportInsertV2 = Omit<TablesInsert<"reports">, "reason">;
 
 function hydrate(row: Record<string, unknown>): Report {
   const r = row as unknown as Report;
@@ -57,7 +67,7 @@ type CreateReportInput = Partial<Report> & { park_id: string; reported_by_name: 
 
 export async function createReport(input: CreateReportInput): Promise<Report> {
   const supabase = getSupabase();
-  const row = {
+  const row: ReportInsertV2 = {
     park_id: input.park_id,
     zone_id: input.zone_id ?? null,
     equipment_id: input.equipment_id ?? null,
@@ -68,9 +78,14 @@ export async function createReport(input: CreateReportInput): Promise<Report> {
     equipment_label: input.equipment_label ?? input.equipment ?? null,
     description: input.description ?? input.comment ?? null,
     photo: input.photo ?? null,
-    status: "open" as const,
+    status: "open",
   };
-  const { data, error } = await supabase.from("reports").insert(row).select().single();
+  // `reason` is filled by the reports_v1_compat trigger (see ReportInsertV2).
+  const { data, error } = await supabase
+    .from("reports")
+    .insert(row as TablesInsert<"reports">)
+    .select()
+    .single();
   if (error) throw error;
   return hydrate(data);
 }

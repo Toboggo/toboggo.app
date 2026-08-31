@@ -2,11 +2,12 @@
 
 > **SOURCE DE VÉRITÉ du chantier.** À mettre à jour à la fin de chaque phase.
 > Aucun secret / token / mot de passe ici.
-> Dernière mise à jour : **2026-08-30** — **🚀 PRODUCTION MIGRÉE V1 → V2.** `supabase db push --linked` exécuté (Phase 6B) : **`0007 → 0021` appliquées à la prod `dfzrsygetbhnjzfssgub`** — 15 migrations, 0 erreur, 0 assertion `RAISE` échouée. **Prod `remote` = `0001 → 0021`.** Coexistence V1/V2 **active** (colonnes + tables V1 conservées, 6 triggers `*_v1_compat`). Backfill prod : `organizations=2`, `organization_parks=6`, `park_features=182` (available 133 / unknown **49** / **unavailable 0**), `parks=17` conservés, 0 perte, 0 orphelin. Phase 6A (backup final `20260830T205152Z` + GO/NO-GO) = PASS ; Phase 6C (smoke tests applicatifs prod : anon, Auth réel, RLS multi-org, reports/reviews) = **PASS** (données de test TEST-6C créées puis **supprimées** → baseline `reviews/reports/maintenance/audit_log = 0` restaurée). `TYPECHECK` / `build:mobile` / `build:backoffice` = PASS. `CUTOVER_V2_CONFIRMED = YES`.
+> Dernière mise à jour : **2026-08-31** — **🚀 FRONT V2 DÉPLOYÉ EN PRODUCTION (Phase 7A).** Migration prod faite en Phase 6B (`0007 → 0021` appliquées à `dfzrsygetbhnjzfssgub`, `remote = 0001 → 0021`, 0 erreur). Coexistence V1/V2 **active** (colonnes + tables V1 conservées, 6 triggers `*_v1_compat`). Backfill prod : `organizations=2`, `organization_parks=6`, `park_features=182` (available 133 / unknown **49** / **unavailable 0**), `parks=17` conservés, 0 perte, 0 orphelin. Phases 6A (backup final `20260830T205152Z` + GO/NO-GO) et 6C (smoke REST/RPC prod) = **PASS**.
+> **Phase 7A (2026-08-31)** : front V2 déployé sur Vercel (`toboggo-app.vercel.app` parents · `toboggo-admin-ashen.vercel.app` backoffice · `toboggo-website.vercel.app` vitrine) — bundles servis == build local de `HEAD 4e8ecce`, `VITE_SUPABASE_URL = https://dfzrsygetbhnjzfssgub.supabase.co`, clé anon = clé prod, **0 référence `localhost` / `127.0.0.1` / staging**. Aucun redéploiement nécessaire (déployé == HEAD). **Smoke tests browser réels = PASS** : fondateur (backoffice) → login gestionnaire, dashboard, liste des parcs, ouverture des fiches parc ; écrans Avis + Signalements ouverts mais **vides** (reviews/reports = 0 en prod) → parcours métier non testé, reporté. Claude (app parents anon) → home, `/map` (16 published, pending masqué), recherche, détail, features, login UI, `nearby_parks`, écriture anon refusée (401), 0 erreur console. `TYPECHECK` / `build:mobile` / `build:backoffice` rejoués = PASS. `gen types --linked` == fichier suivi (diff = metadata `__InternalSupabase.PostgrestVersion` seul). Aucune écriture prod, aucune modif DB/code. `CUTOVER_V2_CONFIRMED = YES` · `FRONT_DEPLOYED = YES` · `FRONT_CUTOVER_CONFIRMED = NO` (front V2 + V1-compat coexistent encore).
 >
 > **⚠️ `0022+` legacy cleanup destructif TOUJOURS INTERDIT** — conditionné à une période de coexistence + déploiement front V2 confirmé. `migration repair` sur prod INTERDIT. Modification rétroactive `0001→0021` INTERDITE. Suppression colonnes/tables V1 INTERDITE. Suppression du **staging** (`Toboggo Staging`, ref ≠ prod, conservé actif) INTERDITE.
 >
-> Staging Phase 5E (§18) = PASS. Phase 5D préparation (§15 rollback / §16 staging / §17 audit) = PASS. Dettes non bloquantes ouvertes : **D4** (`ADDPARK_TRI_STATE_DECISION = OPEN`), **M1–M5** (voir §11). Observations non bloquantes (identiques avant/après migration) : `spatial_ref_sys` RLS off (PostGIS) ; helpers V1 `SECURITY DEFINER` sans `search_path` ; `park_features` unknown = **49** (et non « ~46 » : l'ancienne estimation était approximative — voir §2). **Prochaine phase : coexistence + smoke tests browser réels côté fondateur ; puis, seulement après confirmation, `0022+`.**
+> Staging Phase 5E (§18) = PASS — **projet « Toboggo Staging » conservé actif** (ref ≠ prod). Phase 5D préparation (§15 rollback / §16 staging / §17 audit) = PASS. Dettes non bloquantes ouvertes : **D4** (`ADDPARK_TRI_STATE_DECISION = OPEN`), **M1–M5** (voir §11). Observations non bloquantes (identiques avant/après migration) : `spatial_ref_sys` RLS off (PostGIS) ; helpers V1 `SECURITY DEFINER` sans `search_path` ; `park_features` unknown = **49** ; app parents affiche des `review_count`/`rating` V1 dénormalisés alors que `reviews = 0` (cosmétique — voir §19.D) ; vitrine `toboggo-website.vercel.app` sert encore `config.js` avec placeholders (formulaire contact non câblé — hors périmètre). **Prochaine phase : coexistence en cours (front V2 déployé) ; parcours métier Avis/Signalements + signup réel à couvrir quand il y aura des données ; puis, seulement après confirmation explicite du cutover front par le fondateur, `0022+`.**
 
 Ce document permet à une nouvelle session Claude Code (sans accès à l'historique
 de conversation) de reprendre le chantier sans reperdre une décision ni refaire
@@ -333,8 +334,30 @@ GRANT ré-attribué en 0019 (le DROP l'avait supprimé).
 
 ```
 DERNIÈRE PHASE :
-  Phase 6C = PASS — smoke tests applicatifs PRODUCTION (la prod est en V2).
-  Voir §19.
+  Phase 7A = PASS (volet métier PARTIAL) — front V2 DÉPLOYÉ + smoke tests
+  browser réels production. Voir §19.D.
+    - Front déployé (Vercel, aucun redéploiement fait — déployé == HEAD 4e8ecce) :
+        toboggo-app.vercel.app         (app parents / mobile web)
+        toboggo-admin-ashen.vercel.app (backoffice admin + collectivités)
+        toboggo-website.vercel.app     (vitrine — hors périmètre smoke)
+      Bundles servis == build local de 4e8ecce (hash JS+CSS identiques une fois
+      les variables prod injectées). VITE_SUPABASE_URL = prod, clé anon = prod,
+      0 ref localhost / 127.0.0.1 / staging dans les bundles + le trafic réseau.
+    - Fondateur (navigateur réel, backoffice, compte gestionnaire) : login,
+      dashboard, liste des parcs, ouverture des fiches parc = PASS.
+      Écrans Avis + Signalements : s'ouvrent correctement mais VIDES
+      (reviews/reports = 0 en prod) → PAS de test métier complet dessus.
+    - Claude (navigateur réel, app parents, anon) : home, /map (16 published,
+      pending masqué), recherche, détail parc, features, login UI = PASS ;
+      nearby_parks + park_public 200 ; écriture anon reports = 401 ;
+      lecture anon audit_log = 401 ; 0 erreur console ; 100 % du trafic
+      Supabase → dfzrsygetbhnjzfssgub.
+    - Pré-flight : TYPECHECK + build:mobile + build:backoffice rejoués = PASS.
+    - gen types --linked == packages/shared/src/types/database.types.ts
+      (seule diff = metadata __InternalSupabase.PostgrestVersion "14.5").
+    - AUCUNE écriture prod. AUCUNE modif DB/code. Staging conservé.
+
+  Phase 6C = PASS — smoke tests applicatifs PRODUCTION (REST/RPC). Voir §19.C.
 
   🚀 PHASE 6B — MIGRATION PRODUCTION FAITE (2026-08-30) :
     supabase db push --linked --skip-vault --yes  →  0007→0021 appliquées à
@@ -547,17 +570,32 @@ VERDICT DB :
   BACKFILL_READY_FOR_PROD = YES  →  BACKFILL_PROD_DONE = YES (Phase 6B)
 
 ÉTAT APPLICATION :
-  TYPECHECK_V2     = PASS   (rejoué Phase 6A + 6C)
-  MOBILE_BUILD     = PASS
-  BACKOFFICE_BUILD = PASS
-  FRONT à déployer : build ≥ e0712f8 (fix P5C-1) + types V2, compatible via
-    park_public. Déploiement browser réel = période de coexistence (fondateur).
+  TYPECHECK_V2     = PASS   (rejoué Phase 6A + 6C + 7A)
+  MOBILE_BUILD     = PASS   (rejoué 7A)
+  BACKOFFICE_BUILD = PASS   (rejoué 7A)
+  FRONT = DÉPLOYÉ EN PRODUCTION (Phase 7A). 3 projets Vercel, branche main,
+    commit déployé = 4e8ecce (== HEAD au moment de 7A). Bundles vérifiés :
+    VITE_SUPABASE_URL = https://dfzrsygetbhnjzfssgub.supabase.co ; clé anon =
+    clé prod ; 0 ref localhost/staging. Compatible coexistence via park_public.
+    ⚠️ .env.local de la machine fondateur pointe sur 127.0.0.1:54321 — ne doit
+    JAMAIS servir à un build de prod. Gitignored + absent du repo GitHub → les
+    builds Vercel ne le voient pas (OK). Ne pas l'exporter dans un shell de build.
 
 PRODUCTION :
   V2 — remote 0001→0021 (local == remote pour les 21).
   0007→0021 appliquées le 2026-08-30 (Phase 6B). Coexistence V1 active.
   Smoke tests prod (Phase 6C) = PASS. Baseline data restaurée après tests
     (reviews/reports/maintenance/audit_log = 0 ; team_members 3 ; profiles 4).
+  Phase 7A (2026-08-31) — re-vérif anon via le front déployé + REST prod,
+    lecture seule, 0 écriture :
+      park_features unavailable = 0 (invariant §5 #1 tenu) ;
+      organization_parks = 6, tous role=owner, 0 multi-owner (6 park_id distincts) ;
+      organizations = 2 (Mairie de Lyon / Mairie de Bordeaux) ;
+      communes = 2 (table V1 conservée — coexistence) ;
+      park_public = 16 published visibles anon (17e pending masqué) ;
+      reviews / reports anon-visibles = 0 ; audit_log anon = 401 (append-only).
+    Total exact 17 parks / 182 features / 0 orphelin : confirmés Phase 6B/6C
+    (non re-sondés en 7A — nécessite une session staff ; aucune écriture depuis).
   0022+ legacy cleanup = INTERDIT (coexistence en cours).
 
 DETTE NON BLOQUANTE / OUVERTE :
@@ -590,32 +628,42 @@ DETTE NON BLOQUANTE / OUVERTE :
   NE PAS corriger D4 ni M1–M5 maintenant.
 
 PROCHAINE PHASE :
-  Période de COEXISTENCE.
-  1. Déployer le front V2 (build ≥ e0712f8, types V2) — fondateur.
-  2. Smoke tests browser réels prod (mobile + backoffice) — fondateur.
-  3. Surveiller erreurs / RLS / signup pendant N jours.
-  4. Régénérer database.types.ts via `gen types --linked` (prod = V2).
-  5. SEULEMENT après confirmation explicite du cutover front → écrire 0022+
-     (legacy cleanup destructif). Interdit avant.
+  Période de COEXISTENCE — EN COURS (front V2 déployé depuis Phase 7A).
+  1. [FAIT 7A] Front V2 déployé (Vercel, commit 4e8ecce).
+  2. [FAIT 7A — PARTIEL] Smoke browser : anon app parents + backoffice
+     gestionnaire (login / dashboard / liste parcs / fiches parc) = PASS.
+     RESTE À COUVRIR quand il y aura des données réelles en prod :
+       - parcours métier Avis (réponse gestionnaire, modération) ;
+       - parcours métier Signalements (lecture, passage in_progress, résolution) ;
+       - entretien, invitation équipe, écran audit rempli ;
+       - signup réel via le front déployé (vérifier 0 × 500 — D1) ;
+       - matrice RLS multi-org UI (gestA vs gestB, cross-org).
+  3. Surveiller erreurs console / 4xx-5xx / RLS / signup / logs Vercel.
+  4. Régénérer database.types.ts via `gen types --linked` quand utile
+     (diff actuel = metadata seul → non urgent).
+  5. SEULEMENT après confirmation explicite du cutover front par le fondateur
+     → écrire 0022+ (legacy cleanup destructif). Interdit avant.
   Si un écran front casse → §15.C (hotfix front d'abord ; la DB est saine).
   Si incohérence DB → §15.D (restauration depuis backups/20260830T205152Z).
 
 ÉTAT GIT :
-  DÉJÀ COMMITÉ ET POUSSÉ sur origin/main (HEAD == origin/main == 6cedef3) :
+  HEAD == origin/main == commit de checkpoint Phase 7A
+    (docs(db): checkpoint phase 7a front deploy — ce commit ; hash reporté au
+     prochain checkpoint). Commits du chantier (récent → ancien) :
+  - <ce commit> docs(db): checkpoint phase 7a front deploy      (Phase 7A)
+  - 4e8ecce docs(db): checkpoint phase 6 production cutover     (Phases 6A/6B/6C)
   - 6cedef3 docs(db): checkpoint staging validation            (Phase 5E.1)
   - 2b7bf5c docs(db): checkpoint phase 5d cutover prep          (Phase 5D)
   - e0712f8 fix(backoffice): resolve v2 parks and rls issues    (Phase 5C.1 —
       0021_fix_remaining_v2_rls.sql + ParkModal.tsx + Parks.tsx + doc)
   - b530265 fix(db): resolve v2 runtime compatibility issues    (Phase 5B.1)
-  - f270275 docs(db): checkpoint phase 4
   - ca18c71 fix(shared): align APIs with Supabase v2 types      (Phase 4B)
   - 1f0510e chore(types): switch Supabase types to v2 schema    (Phase 4A)
   - 9b13047 fix(db): validate v1 to v2 backfill                 (Phases 3B→3E)
 
-  NON COMMITÉ — produit par Phase 6C (checkpoint post-migration), à commiter
-  sur instruction du fondateur :
-  - docs/architecture/database-migration.md   (Phases 6A/6B/6C : §1, §2, §5,
-      §10, §11, §12, §19, historique)
+  Phase 7A ne commite QUE docs/architecture/database-migration.md.
+  Aucun code, aucune migration, aucun fichier DB. Le front est déployé tel quel
+  depuis HEAD (aucun changement de code fait pour déployer).
 
   NON COMMITÉ, hors Git (aucun changement de fichier suivi) :
   - backups/*.sql + backups/*.txt  (dumps prod + inventaires + smoke 6C ;
@@ -697,8 +745,9 @@ COMMANDES INTERDITES (voir §10) :
 - [x] **Phase 6A — backup FINAL de production + GO/NO-GO** : `db reset` local + typecheck + builds PASS ; 3 dumps `supabase db dump --linked` (READ-ONLY) `20260830T205152Z` dans `backups/` ; backup plateforme indisponible (Free → `PASS_WITH_FREE_PLAN_LIMITATION`) ; inventaire pré-cutover = 0 diff baseline §2 ; checklist §15.E : `TECHNICAL_GO = YES`. Voir **§19**.
 - [x] **Phase 6B — migration production** : `supabase db push --linked --skip-vault --yes` → `0007→0021` appliquées, 15 migrations, 0 erreur, 0 assertion échouée. `remote 0001→0021`. Backfill : organizations 2 / organization_parks 6 / park_features 182 (unavailable 0) / parks 17 conservés / 0 orphelin. Coexistence V1 active. Voir **§19**.
 - [x] **Phase 6C — smoke tests applicatifs production** : anon (park_public 16 published, nearby_parks, write 401) ; Auth réel (`/auth/v1/signup` HTTP 200, 0 × 500 ; profile + team link par trigger) ; RLS multi-org (reports/reviews owner OK, cross-org rows=0, super_admin global) ; typecheck + builds PASS. Données TEST-6C créées puis **supprimées** ; baseline restaurée. `PHASE_6C = PASS` · `CUTOVER_V2_CONFIRMED = YES` · `LEGACY_CLEANUP_0022_ALLOWED = NO`. Voir **§19**.
-- [ ] **Période de COEXISTENCE** : déployer le front V2 (build ≥ `e0712f8`, types V2) ; smoke tests browser réels (fondateur) ; surveiller erreurs/RLS/signup ; régénérer `database.types.ts` via `gen types --linked`.
-- [ ] cutover front (front V2 = seul en prod) — **confirmation explicite du fondateur requise**
+- [x] **Phase 7A — déploiement front V2 + smoke browser production** (2026-08-31) : pré-flight `typecheck` + `build:mobile` + `build:backoffice` = PASS ; `gen types --linked` == fichier suivi (diff metadata `__InternalSupabase` seul → `PROD_TYPES_MATCH_REPO = PASS`) ; 3 projets Vercel identifiés (`toboggo-app` / `toboggo-admin-ashen` / `toboggo-website`), bundles servis == build local de `HEAD 4e8ecce` (hash JS+CSS identiques), `VITE_SUPABASE_URL` + clé anon = **prod**, **0 ref localhost/staging** → aucun redéploiement nécessaire ; smoke anon app parents (home / `/map` 16 published / recherche / détail / features / login UI / `nearby_parks` / write anon 401 / audit_log anon 401 / 0 erreur console) = PASS ; smoke backoffice fondateur (login gestionnaire, dashboard, liste parcs, fiches parc) = PASS ; écrans Avis + Signalements ouverts mais **vides** (reviews/reports = 0) → métier non testé, reporté ; re-vérif DB anon (`unavailable = 0`, `organization_parks = 6` / 0 multi-owner, `communes` conservée, coexistence active) = PASS ; **0 écriture prod, 0 modif DB/code**. `PHASE_7A = PASS` (volet métier PARTIAL) · `FRONT_DEPLOYED = YES` · `FRONT_CUTOVER_CONFIRMED = NO` · `LEGACY_CLEANUP_0022_ALLOWED = NO`. Voir **§19.D**. Commité + poussé : `docs(db): checkpoint phase 7a front deploy` (ce doc seul).
+- [~] **Période de COEXISTENCE — EN COURS** : front V2 déployé (fait 7A) ; smoke browser anon + backoffice gestionnaire = PASS (fait 7A) ; **reste** : parcours métier Avis + Signalements (écrans vides aujourd'hui), signup réel via front déployé, matrice RLS multi-org UI, surveillance erreurs/RLS/signup/logs Vercel ; régénérer `database.types.ts` via `gen types --linked` si besoin (diff = metadata seul).
+- [ ] cutover front (front V2 = seul en prod, V1-compat retiré côté usage) — **confirmation explicite du fondateur requise**
 - [ ] **seulement ensuite** : migration **`0022+`** — legacy cleanup destructif (DROP colonnes/tables/policies V1 — `communes` + `park_edit_history` incluses, DROP triggers `*_v1_compat`, retour `park_public` à `p.*`, DROP enums V1 obsolètes). ⚠️ `0020`/`0021` sont pris par des migrations non destructives → le cleanup est `0022+`.
 
 ---
@@ -1313,6 +1362,102 @@ Testé au niveau REST/RPC (couche appelée par `packages/shared/src/api/*`). Fro
 
 ---
 
+## 19.D — Phase 7A : déploiement du front V2 + smoke tests browser production  (2026-08-31)  → **PASS** (volet métier PARTIAL)
+
+Objectif : valider le front réellement déployé (navigateur réel) contre la production V2, sans toucher DB / code / migrations / staging.
+
+### Pré-flight (local, `HEAD = 4e8ecce`)
+
+| Contrôle | Résultat |
+|---|---|
+| `git status` / `git log` | working tree propre hors 3× `icons-sprite.svg` + `Toboggo-Brand-Guidelines.pdf` (branding hors chantier, non touchés) ; `HEAD == origin/main == 4e8ecce` |
+| `npm run typecheck` | **PASS** (design-system + shared + mobile + backoffice, 0 erreur) |
+| `npm run build:mobile` | **PASS** (`✓ built`, PWA générée) |
+| `npm run build:backoffice` | **PASS** (`✓ built`) |
+| `supabase gen types typescript --linked --schema public` vs `packages/shared/src/types/database.types.ts` | **`PROD_TYPES_MATCH_REPO = PASS`** — corps du schéma **byte-identique** ; seule diff = bloc metadata `__InternalSupabase: { PostgrestVersion: "14.5" }` ajouté par le CLI récent + newline final. 0 table / colonne / enum / fonction / vue différente. Fichier suivi **non modifié** (généré dans `/tmp`). |
+
+### Front production identifié (Vercel)
+
+| Surface | URL | Bundle servi |
+|---|---|---|
+| App parents / mobile web | `toboggo-app.vercel.app` | `index-CKOnO9H0.js` + `index-hdPpHWUx.css` |
+| Backoffice admin + collectivités | `toboggo-admin-ashen.vercel.app` | `index-BmkjA541.js` + `index-C-RQmEC4.css` |
+| Vitrine (hors périmètre smoke) | `toboggo-website.vercel.app` | statique |
+
+- **Accès dashboard Vercel indisponible** pour Claude (CLI non authentifié, pas de MCP) → config vérifiée **empiriquement** par inspection des bundles servis + trafic réseau réel.
+- **Commit déployé identifié formellement** : rebuild local de `4e8ecce` **en injectant les variables prod dans le shell** (priorité Vite sur `.env.local` ; `.env.local` **jamais modifié**, sauvegarde scratchpad) → produit **exactement** `index-CKOnO9H0.js` / `index-hdPpHWUx.css` (mobile) et `index-BmkjA541.js` / `index-C-RQmEC4.css` (backoffice) = les bundles déployés. → **fronts déployés = `HEAD` = `4e8ecce`** (≥ `e0712f8`, inclut le fix P5C-1 ParkModal). **Aucun redéploiement nécessaire.**
+- **`PROD_FRONT_ENV = PASS`** : les 2 bundles contiennent `https://dfzrsygetbhnjzfssgub.supabase.co` + une clé `role:anon` / `ref:dfzrsygetbhnjzfssgub` de longueur 208 (== fingerprint de la clé anon prod de `.env`). **0** occurrence de `127.0.0.1` / `54321` / ref staging. (`http://localhost:9999` présent = constante interne de `@supabase/gotrue-js`, pas de la config app.)
+- ⚠️ **Hazard confirmé et contourné** : `vite build` charge `.env.local` **aussi en mode production** ; un `npm run build` lancé sur la machine du fondateur produit un bundle qui tape `127.0.0.1:54321`. Sur Vercel, `.env.local` est gitignored + absent du repo → les builds Vercel utilisent bien les variables du dashboard. **Ne jamais déployer un `dist/` buildé localement sans neutraliser `.env.local`.**
+
+### Garde-fou réseau
+
+| Front | Trafic Supabase observé | localhost / staging |
+|---|---|---|
+| App parents `/map` (anon) | `dfzrsygetbhnjzfssgub.supabase.co/rest/v1/rpc/nearby_parks` (+ `api.open-meteo.com` météo) | **aucun** |
+| Backoffice (page login, anon) | *aucun appel au chargement* | **aucun** |
+
+`MOBILE_PROD_TARGET = PASS` · `BACKOFFICE_PROD_TARGET = PASS`.
+
+### Smoke app parents — navigateur réel, anonyme (Claude)
+
+| Test | Résultat |
+|---|---|
+| Home `/` | PASS |
+| `/map` liste/carte | PASS — 16 parcs published, distances, météo |
+| Recherche / tris (Proximité / Mieux notés / Récents) | PASS |
+| Détail parc (`park_public?id=eq…`) | PASS — forme plate V1 (wc, shade, surface, play_equipment) |
+| Features / équipements (`nearby_parks`) | PASS — superset V2+V1 (features, distance_m, …) |
+| Login UI + endpoint | PASS — page rendue ; `POST /auth/v1/token` mauvais identifiants → **400 `invalid_credentials`** (pas de 500) ; `/auth/v1/settings` → 200 (`email:true`, `google:true`, `disable_signup:false`, `mailer_autoconfirm:true`) |
+| RLS anon | `park_public` = 16 published (pending masqué) ; `POST /reports` anon → **401** RLS ; `audit_log` anon → **401** ; `nearby_parks` anon → **200** |
+| Console / réseau | 0 erreur console ; 100 % du trafic Supabase → prod |
+
+`MOBILE_HOME` / `MOBILE_PARK_LIST` / `MOBILE_SEARCH` / `MOBILE_PARK_DETAIL` / `MOBILE_FEATURES` / `MOBILE_AUTH` (UI + endpoint) / `MOBILE_CONSOLE` / `MOBILE_NETWORK` = **PASS**. Favoris / logout non testés (compte requis).
+
+### Smoke backoffice — navigateur réel (fondateur, compte gestionnaire)
+
+| Test | Résultat |
+|---|---|
+| Login gestionnaire | **PASS** |
+| Dashboard | **PASS** |
+| Liste des parcs | **PASS** |
+| Ouverture des fiches parc (ParkModal) | **PASS** — fix P5C-1 confirmé en prod (pas d'écran blanc) |
+| Écran Avis | s'ouvre correctement, mais **VIDE** (`reviews = 0` en prod) → pas de test métier |
+| Écran Signalements | s'ouvre correctement, mais **VIDE** (`reports = 0` en prod) → pas de test métier |
+
+`BO_LOGIN` / `BO_DASHBOARD` / `BO_PARKS` / `BO_PARK_MODAL` = **PASS**. `BO_REPORTS` / `BO_REVIEWS` = **écrans OK, métier non testé (0 donnée)**. `BO_MAINTENANCE` / `BO_TEAM` / `BO_AUDIT` = non rapportés en détail (dépendent aussi des données). `BO_CONSOLE` / `BO_NETWORK` = PASS.
+
+### Écritures prod
+
+**AUCUNE.** Test signup live + report/review TEST non exécutés (déjà couverts Phase 6C ; le nettoyage exige `service_role` indispo à Claude). `PROD_MINIMAL_WRITES = NOT_NEEDED` · `PROD_TEST_DATA_CLEANED = NOT_NEEDED`.
+
+### DB post-smoke (lecture seule, anon + `migration list --linked`)
+
+| Attendu | Obtenu |
+|---|---|
+| remote migrations `0001→0021`, `local == remote` | ✅ |
+| `park_features` `unavailable` = 0 | ✅ (invariant §5 #1 tenu) |
+| `organization_parks` = 6, 0 multi-owner | ✅ (6 `park_id` distincts, tous `role='owner'`, Lyon 4 / Bordeaux 2) |
+| `organizations` = 2 · `communes` = 2 (coexistence) | ✅ |
+| `park_public` = 16 published (anon), 17e pending masqué | ✅ |
+| `reviews` / `reports` anon-visibles = 0 | ✅ |
+| coexistence V1 active (`communes`, forme plate `park_public`, `parks.commune_id` peuplé) | ✅ |
+| total 17 parks / 182 features / 0 orphelin | non re-sondé en 7A (session staff requise) — confirmés Phase 6B/6C, 0 écriture depuis |
+
+`PROD_DB_BASELINE_AFTER_FRONT_SMOKE = PASS`.
+
+### Observations non bloquantes
+
+- **OBS-7A-1** (LOW, cosmétique, pré-existant) : l'app parents affiche des compteurs d'avis / notes (`parks.review_count` / `rating` V1 dénormalisés) alors que la table `reviews = 0`. Se corrigera au premier avis réel. Aucun impact RLS / intégrité.
+- **OBS-7A-2** (LOW, hors périmètre) : `toboggo-website.vercel.app` sert `config.js` avec les placeholders (`YOUR-PROJECT.supabase.co`) → formulaire de contact de la vitrine non fonctionnel. `apps/landing/config.js` tracké avec placeholders depuis `5cb0260`.
+
+### Verdict Phase 7A
+
+`PROD_TYPES_MATCH_REPO = PASS` · `PROD_FRONT_ENV = PASS` · `PROD_MOBILE_FRONT = PASS` (anon) · `PROD_BACKOFFICE_FRONT = PASS` (login → fiches ; métier Avis/Signalements PARTIAL — écrans vides) · `PROD_FRONT_AUTH = PARTIAL` (endpoint sain ; signup live via front non rejoué) · `PROD_FRONT_NETWORK = PASS` · `PROD_DB_BASELINE_AFTER_FRONT_SMOKE = PASS`.
+
+**`PHASE_7A = PASS`** (volet métier PARTIAL) · **`FRONT_DEPLOYED = YES`** · **`FRONT_CUTOVER_CONFIRMED = NO`** · **`PROD_DB_CHANGED_BY_SCHEMA = NO`** · **`STAGING_DELETED = NO`** · **`LEGACY_CLEANUP_0022_ALLOWED = NO`**.
+
+---
+
 ## Historique des mises à jour
 
 | Date | Phase | Résumé |
@@ -1335,3 +1480,4 @@ Testé au niveau REST/RPC (couche appelée par `packages/shared/src/api/*`). Fro
 | 2026-08-30 | 6A | **PASS — backup final + GO/NO-GO.** `db reset` LOCAL `0001→0021`+seed = PASS ; `typecheck`+`build` = PASS. 3 dumps `supabase db dump --linked` READ-ONLY (`20260830T205152Z` + intermédiaire `20260830T191853Z`) dans `backups/` (gitignored) : schema pur V1 (13 tables, 8 enums, 0 objet v2), data (parks 17 / communes 2 / profiles 4 / team_members 3 + `auth.*`+`storage.*`), roles cohérent. Backup plateforme indisponible (Free : `pitr=false`, `backups=[]`) → `G8 = PASS_WITH_FREE_PLAN_LIMITATION`. Inventaire pré-cutover = **0 diff** baseline §2. Checklist §15.E : G1–G10 + G13–G15 PASS ; G11+G12 validés fondateur. `TECHNICAL_GO = YES`. Ajout §19.A. |
 | 2026-08-30 | 6B | **🚀 PASS — MIGRATION PRODUCTION.** `supabase db push --linked --skip-vault --yes` → **`0007→0021` appliquées à `dfzrsygetbhnjzfssgub`** (dry-run préalable = exactement ces 15). 15 migrations, **0 erreur, 0 assertion `RAISE` échouée**. `migration list --linked` : **`remote 0001→0021`**, `local == remote`. Backfill : organizations 2 / organization_parks 6 / park_features **182** (available 133 / unknown **49** / **unavailable 0**) / parks 17 conservés / communes 2 conservées / profiles 4 / team_members 3 / 0 orphelin / 0 multi-owner / 0 mismatch. Runtime prod D1/D2/D3/P5C-2/P5C-3/fix-3E = PASS ; RLS 17/17 ; grants anon lecture seule. **Coexistence V1 active** (colonnes/table V1 conservées, 6 triggers `*_v1_compat`). `CUTOVER_V2_CONFIRMED = YES`. Ajout §19.B. Correction doc : `park_features unknown` = **49** exact (et non « ~46 », estimation approximative) — §2/§5 corrigés. |
 | 2026-08-30 | 6C | **PASS — smoke tests applicatifs production.** REST/RPC (couche `packages/shared/src/api/*`). Anon : `park_public` 16 published / `nearby_parks` 4 / write 401. `AUTH_RUNTIME_PROD` : vrai `/auth/v1/signup` = HTTP 200, **0 × 500** (D1) ; profile + team link par trigger. `RLS_PROD` / `REPORTS_PROD` / `REVIEWS_PROD` : owner OK (rows=1), cross-org **rows=0**, super_admin global (rows=1), auteur sur son avis rows=0. `PARKS_PROD` : gestA 17 / parent 16 / cross-org PATCH rows=0. `typecheck`+`builds` = PASS. Données `TEST-6C` (4 users + 4 profiles + 3 team_members + 1 report + 1 review + 4 audit) **créées puis SUPPRIMÉES** ; baseline restaurée (`reviews/reports/maintenance/audit_log = 0`, `team_members 3`, `profiles 4`, park recompute reset). Archivé `backups/prod_smoke_6C_*.txt`. `PHASE_6C = PASS` · `CUTOVER_V2_CONFIRMED = YES` · **`LEGACY_CLEANUP_0022_ALLOWED = NO`**. Ajout §19.C ; §1/§10/§11/§12 mis à jour (prod = V2). |
+| 2026-08-31 | 7A | **PASS (volet métier PARTIAL) — DÉPLOIEMENT FRONT V2 + SMOKE BROWSER PRODUCTION.** Pré-flight : `typecheck` + `build:mobile` + `build:backoffice` rejoués = PASS. `gen types --linked` vs fichier suivi = **`PROD_TYPES_MATCH_REPO = PASS`** (seule diff = metadata `__InternalSupabase.PostgrestVersion "14.5"` ; schéma byte-identique ; fichier suivi non modifié). Fronts Vercel identifiés (`toboggo-app` parents / `toboggo-admin-ashen` backoffice / `toboggo-website` vitrine). Dashboard Vercel inaccessible à Claude → config vérifiée **empiriquement** : rebuild local de `4e8ecce` + variables prod injectées dans le shell (`.env.local` **jamais modifié**) → **hash JS+CSS identiques aux bundles déployés** → **fronts déployés = `HEAD` = `4e8ecce`**, **aucun redéploiement fait**. `PROD_FRONT_ENV = PASS` : bundles → `VITE_SUPABASE_URL` prod + clé anon prod (len 208), **0 ref `localhost`/`127.0.0.1`/`54321`/staging** ; trafic réseau 100 % → `dfzrsygetbhnjzfssgub`. Smoke app parents anon (Claude, navigateur réel) : home / `/map` 16 published (pending masqué) / recherche / détail / features / login UI (`token` bad creds → 400 pas 500) / `nearby_parks` 200 / write anon `reports` 401 / `audit_log` anon 401 / 0 erreur console = **PASS**. Smoke backoffice (fondateur, navigateur réel, compte gestionnaire) : login / dashboard / liste des parcs / ouverture des fiches parc = **PASS** ; écrans Avis + Signalements **s'ouvrent mais vides** (`reviews`/`reports` = 0 en prod) → parcours métier **non testé, reporté**. DB re-vérif anon : `park_features unavailable = 0` · `organization_parks = 6` / 0 multi-owner · `organizations` 2 · `communes` 2 (coexistence) · `park_public` 16 = **`PROD_DB_BASELINE_AFTER_FRONT_SMOKE = PASS`**. **AUCUNE écriture prod, AUCUNE modif DB/code, staging conservé.** Observations non bloquantes : OBS-7A-1 (`review_count`/`rating` V1 dénormalisés affichés alors que `reviews=0` — cosmétique) ; OBS-7A-2 (vitrine `config.js` = placeholders — hors périmètre). `PHASE_7A = PASS` (métier PARTIAL) · `FRONT_DEPLOYED = YES` · `FRONT_CUTOVER_CONFIRMED = NO` · `PROD_DB_CHANGED_BY_SCHEMA = NO` · `STAGING_DELETED = NO` · **`LEGACY_CLEANUP_0022_ALLOWED = NO`**. Ajout §19.D ; en-tête + §11 + §12 mis à jour. Commité + poussé : `docs(db): checkpoint phase 7a front deploy` (ce doc seul). |

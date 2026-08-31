@@ -1,11 +1,13 @@
 import { useEffect, useRef } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
+import { mapStyleUrl } from "@toboggo/shared";
 import type { Park } from "@toboggo/shared";
 import { FakeMap } from "./FakeMap";
 
-const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
-if (TOKEN) mapboxgl.accessToken = TOKEN;
+// Fond de carte : URL de style MapLibre configurée via VITE_MAP_STYLE_URL
+// (OpenFreeMap au démarrage, cf. packages/shared/src/map.ts). Absente ⇒ FakeMap.
+const STYLE_URL = mapStyleUrl();
 
 export function MapCanvas({
   lat,
@@ -23,20 +25,21 @@ export function MapCanvas({
   recenterSignal: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<Record<string, mapboxgl.Marker>>({});
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<Record<string, maplibregl.Marker>>({});
 
   useEffect(() => {
-    if (!containerRef.current || mapRef.current || !TOKEN) return;
-    mapRef.current = new mapboxgl.Map({
+    if (!containerRef.current || mapRef.current || !STYLE_URL) return;
+    const map = new maplibregl.Map({
       container: containerRef.current,
-      style: "mapbox://styles/mapbox/streets-v12",
+      style: STYLE_URL,
       center: [lng, lat],
       zoom: 13,
     });
-    mapRef.current.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+    mapRef.current = map;
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     return () => {
-      mapRef.current?.remove();
+      map.remove();
       mapRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,7 +74,7 @@ export function MapCanvas({
         el.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
         el.style.cursor = "pointer";
         el.onclick = () => onSelect(park.id);
-        marker = new mapboxgl.Marker({ element: el }).setLngLat([park.lng, park.lat]).addTo(map);
+        marker = new maplibregl.Marker({ element: el }).setLngLat([park.lng, park.lat]).addTo(map);
         markersRef.current[park.id] = marker;
       }
       (marker.getElement() as HTMLElement).style.background = color;
@@ -80,7 +83,7 @@ export function MapCanvas({
     }
   }, [parks, selectedId, onSelect]);
 
-  if (!TOKEN) {
+  if (!STYLE_URL) {
     return <FakeMap parks={parks} selectedId={selectedId} onSelect={onSelect} />;
   }
 

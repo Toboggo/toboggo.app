@@ -4,7 +4,8 @@ import styles from "./FakeMap.module.css";
 /**
  * Stylised map backdrop from the Claude Design prototype — grid, a couple of
  * "roads", soft green park blobs, colour-coded score pins and the user dot.
- * Used whenever a real Mapbox tile layer isn't available (no token).
+ * Used whenever no real map is configured (VITE_MAP_STYLE_URL unset) — the
+ * MapLibre tile layer needs a style URL, this is the offline fallback.
  */
 
 function hashPos(id: string): { left: number; top: number } {

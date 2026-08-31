@@ -23,7 +23,7 @@ supabase/
 
 ```bash
 npm install
-cp .env.example .env   # fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAPBOX_TOKEN
+cp .env.example .env   # fill in VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_MAP_STYLE_URL
 ```
 
 Apply the SQL migrations to a real Supabase project — see `supabase/README.md` for the exact
@@ -51,7 +51,8 @@ npm run build:backoffice
 
 - **Real**: Supabase auth (email/password, password reset, account deletion), Postgres schema with
   PostGIS-backed "nearby parks", RLS-scoped multi-tenant back office (Toboggo staff vs. per-org
-  gestionnaire/contributeur), Mapbox maps, photo upload to Supabase Storage, CSV export/import,
+  gestionnaire/contributeur), MapLibre GL maps (OpenFreeMap tiles, provider-agnostic via
+  `VITE_MAP_STYLE_URL`; stylised offline fallback when unset), photo upload to Supabase Storage, CSV export/import,
   PDF monthly report generation, Open-Meteo weather.
 - **Database**: the schema now implements `toboggo_architecture_bdd_mondiale_v2_technique.pdf` —
   a worldwide, geography-first model (country_code + IANA timezone, PostGIS location/boundary),

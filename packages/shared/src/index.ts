@@ -1,5 +1,6 @@
 export * from "./types";
 export * from "./supabaseClient";
+export * from "./map";
 export * from "./api/auth";
 export * from "./api/parks";
 export * from "./api/reviews";

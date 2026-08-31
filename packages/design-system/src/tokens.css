@@ -1,25 +1,51 @@
 /*
-  Toboggo brand tokens.
+  Toboggo — design tokens (couche foundations).
 
-  Extracted from the actually-used inline styles in the "Parcs de Jeux app.dc.html"
-  prototype (the Modernist _ds bundle shipped alongside it was never linked from
-  any prototype and is not the real brand — see plan notes). Normalized here as
-  the single source of truth shared by the mobile app and the back office, so the
-  three surfaces (which were designed independently, in different chat sessions,
-  with three different ad-hoc palettes) read as one product.
+  SOURCE DE VÉRITÉ : docs/DESIGN-SYSTEM.md
+  Ce fichier est la seule définition des tokens pour l'app mobile et le
+  back-office. La landing (apps/landing/styles.css) en re-déclare un
+  sous-ensemble à la main (site statique sans build) — voir DESIGN-SYSTEM.md
+  §"Landing" pour les divergences connues, à réconcilier en phase DESIGN-9.
 
-  --color-primary / --color-accent / --color-info realigned on 29/08/2026 to the
-  confirmed brand hexes from docs/identite-visuelle-formats.md (#2FA37C green,
-  #FFB020 amber, #4C9EEB blue) — they previously used an unrelated generic
-  green/orange/blue. Dark-mode values are lighter derived tints for contrast on
-  a dark background, not officially validated by the founder yet.
+  Historique : palette extraite des styles inline du prototype "Parcs de Jeux
+  app.dc.html", puis réalignée le 29/08/2026 sur les hex de marque confirmés
+  (#2FA37C vert, #FFB020 amber, #4C9EEB bleu). Le mode sombre est dérivé
+  automatiquement et reste NON validé visuellement par le fondateur : priorité
+  au light mode, on préserve seulement l'architecture (phase design, 31/08/2026).
+
+  DESIGN-1 (31/08/2026) : ajout des groupes typographie / motion / z-index /
+  overlay / --space-7 / --color-success. Additif — aucune valeur existante
+  modifiée, aucun rendu changé (ces tokens ne sont pas encore consommés).
 */
 
 :root {
+  /* ============================================================
+     Typographie
+     ============================================================ */
   --font-heading: "Fredoka", system-ui, sans-serif;
   --font-body: "Nunito", system-ui, sans-serif;
 
-  /* Light (default) */
+  /* Échelle de tailles — reflète les valeurs réellement utilisées dans le
+     code (13 / 15 / 18 / 22 / 26 px). Référence pour la migration à venir
+     (DESIGN-7/8) ; pas encore appliquée écran par écran. */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 18px;
+  --text-xl: 22px;
+  --text-2xl: 26px;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ============================================================
+     Couleurs — mode clair (défaut)
+     ============================================================ */
   --color-bg: #fff8ec;
   --color-bg-alt: #f3efe3;
   --color-surface: #ffffff;
@@ -28,7 +54,7 @@
   --color-text-muted: #8a8578;
   --color-text-faint: #a8a190;
   --color-border: #ece6d8;
-  --color-border-strong: #f1ecE0;
+  --color-border-strong: #f1ece0;
 
   --color-primary: #2fa37c;
   --color-primary-hover: #268f6c;
@@ -48,28 +74,71 @@
   --color-warning-bg: #fff3d6;
   --color-warning-text: #8a5a00;
 
+  /* "Succès" n'avait pas de token dédié — le vert de marque en tient lieu.
+     Alias explicite pour l'usage sémantique (états OK, confirmations). */
+  --color-success: var(--color-primary);
+  --color-success-tint: var(--color-primary-tint);
+
+  /* Voile des modales / bottom sheets (aujourd'hui en dur dans Dialog.module.css). */
+  --color-overlay: rgba(20, 26, 22, 0.5);
+
+  /* ============================================================
+     Rayons
+     ============================================================ */
   --radius-pill: 999px;
   --radius-lg: 26px;
   --radius-md: 18px;
   --radius-sm: 14px;
   --radius-xs: 10px;
 
+  /* ============================================================
+     Espacements — base 4px
+     ============================================================ */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 20px;
   --space-6: 24px;
+  --space-7: 28px;
   --space-8: 32px;
 
+  /* ============================================================
+     Élévation
+     ============================================================ */
   --shadow-sm: 0 1px 3px rgba(36, 48, 58, 0.08);
   --shadow-md: 0 4px 16px rgba(36, 48, 58, 0.12);
   --shadow-lg: 0 12px 32px rgba(36, 48, 58, 0.18);
 
+  /* ============================================================
+     Motion — durées / courbes (référence ; pas encore appliqué)
+     ============================================================ */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-standard: ease;
+  --ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ============================================================
+     Z-index — documente les valeurs déjà en place dans le code
+     ============================================================ */
+  --z-nav: 50;
+  --z-sheet-backdrop: 90;
+  --z-sheet: 95;
+  --z-dialog: 100;
+  --z-toast: 200;
+
+  /* ============================================================
+     Safe area (encoches / barres système)
+     ============================================================ */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/*
+  Mode sombre — opt-in uniquement (via useTheme → [data-theme="dark"]).
+  Pas de bloc @media (prefers-color-scheme) : le dark mode est différé et ne
+  doit pas s'activer tout seul. Valeurs non validées visuellement.
+*/
 :root[data-theme="dark"] {
   --color-bg: #141a16;
   --color-bg-alt: #1b221d;
@@ -98,6 +167,10 @@
 
   --color-warning-bg: #3a3016;
   --color-warning-text: #ffcf6b;
+
+  --color-success: var(--color-primary);
+  --color-success-tint: var(--color-primary-tint);
+  --color-overlay: rgba(0, 0, 0, 0.6);
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);

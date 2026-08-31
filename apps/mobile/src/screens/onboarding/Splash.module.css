@@ -18,15 +18,6 @@
   padding: calc(36px + var(--safe-top)) 24px 0;
 }
 
-.wordmark {
-  display: flex;
-  align-items: baseline;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 38px;
-  letter-spacing: -0.01em;
-}
-
 .headline {
   font-family: var(--font-heading);
   font-weight: 700;

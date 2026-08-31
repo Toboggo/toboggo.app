@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { signIn, signUp, sendPasswordReset, signInWithGoogle } from "@toboggo/shared";
+import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
 import { AppleIcon, ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
@@ -86,10 +87,7 @@ export default function AuthForm() {
       </button>
 
       <div className={styles.hero}>
-        <div className={styles.wordmark}>
-          <span style={{ color: "#059669" }}>tobo</span>
-          <span style={{ color: "#f08a2e" }}>ggo</span>
-        </div>
+        <Logo size={30} variant="brand" />
         <div>
           <h1>{title}</h1>
           <p>{subtitle}</p>

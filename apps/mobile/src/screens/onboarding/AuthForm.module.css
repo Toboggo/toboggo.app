@@ -30,13 +30,6 @@
   text-align: center;
   gap: 14px;
 }
-.wordmark {
-  display: flex;
-  align-items: baseline;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 22px;
-}
 .hero h1 {
   font-family: var(--font-heading);
   font-size: 26px;

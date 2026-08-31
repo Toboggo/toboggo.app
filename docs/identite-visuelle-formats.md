@@ -1,6 +1,16 @@
 
 # Toboggo — Identité visuelle : formats des assets
 
+> **Rôle de ce document.** C'est la référence de l'**identité visuelle validée**
+> de Toboggo : logos et leurs variantes, couleurs de marque, pictogrammes,
+> formats et fichiers d'assets (icône d'app, favicon, splash, Open Graph).
+>
+> Pour savoir **comment utiliser** cette identité dans une interface — tokens,
+> composants, tailles, espacements, boutons, cartes, navigation, règles de
+> placement des logos et des pictogrammes — voir **`docs/DESIGN-SYSTEM.md`**.
+> Pour l'**implémentation exécutable** de ces règles, voir `packages/design-system`.
+> Les trois sont **complémentaires** — aucun ne remplace l'autre.
+
 *Fiche de référence pratique : quels fichiers produire, dans quel format, pour le logo, les couleurs, l'icône d'app, et les icônes UI (équipements de parcs, critères de filtres). Complète la section "Identité de marque" de `contexte-projet.md`.*
 
 ## Fichiers sources réels (29/08/2026)

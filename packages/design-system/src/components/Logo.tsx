@@ -68,19 +68,35 @@ export function LogoMark({
 }
 
 /**
- * Full lockup: the mark plus the "Toboggo" wordmark set in Fredoka, as used in
- * the landing nav/footer and the back-office sidebar.
+ * Full lockup: the mark plus the "Toboggo" wordmark set in Fredoka.
+ *
+ * - `variant="brand"` — official bicolour wordmark: "Tobo" in brand green
+ *   (`--color-primary`), "ggo" in brand amber (`--color-accent`). This is the
+ *   validated identity (see docs/identite-visuelle-formats.md). Use it on
+ *   marketing / onboarding / hero surfaces (Splash, Auth).
+ * - `variant="mono"` (default) — single-colour wordmark that follows the
+ *   current text colour, or forced white with `tone="light"`. Use it in dense
+ *   or functional surfaces and on coloured backgrounds (back-office sidebar,
+ *   landing nav, small sizes).
+ *
+ * `tone` only applies to `variant="mono"`; the bicolour variant keeps its brand
+ * colours on any background. The wordmark's decorative two-tone swoosh (see the
+ * 02-wordmark-toboggo asset) is not reproduced here — this is the lockup, not
+ * the artwork; use the asset file for pixel-perfect print/marketing use.
  */
 export function Logo({
   size = 28,
   wordmark = true,
+  variant = "mono",
   tone = "auto",
   suffix,
 }: {
   /** height of the mark in px; the wordmark scales with it */
   size?: number;
   wordmark?: boolean;
-  /** "auto" follows the current text color; "light" forces white (dark backgrounds) */
+  /** "brand" = official bicolour wordmark; "mono" = single colour (default) */
+  variant?: "brand" | "mono";
+  /** mono only — "auto" follows the current text color; "light" forces white */
   tone?: "auto" | "light";
   /** small muted label after the wordmark, e.g. "Admin" */
   suffix?: string;
@@ -105,7 +121,14 @@ export function Logo({
             letterSpacing: "-0.01em",
           }}
         >
-          Toboggo
+          {variant === "brand" ? (
+            <>
+              <span style={{ color: "var(--color-primary)" }}>Tobo</span>
+              <span style={{ color: "var(--color-accent)" }}>ggo</span>
+            </>
+          ) : (
+            "Toboggo"
+          )}
           {suffix && (
             <span style={{ opacity: 0.5, fontWeight: 600, fontSize: "0.7em", marginLeft: "0.4em" }}>
               {suffix}

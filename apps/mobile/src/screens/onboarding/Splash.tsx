@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { signInWithGoogle } from "@toboggo/shared";
+import { Logo } from "@toboggo/design-system";
 import { Illustration } from "../../illustrations";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
@@ -66,10 +67,7 @@ export default function Splash() {
   return (
     <div className={styles.wrap}>
       <div className={styles.header}>
-        <div className={styles.wordmark}>
-          <span style={{ color: "#059669" }}>tobo</span>
-          <span style={{ color: "#f08a2e" }}>ggo</span>
-        </div>
+        <Logo size={44} variant="brand" />
         <h1 className={styles.headline}>
           Trouvez
           <br />

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { ReactNode, TableHTMLAttributes } from "react";
 import clsx from "clsx";
+import { Icon, type IconName } from "../icons/Icon";
 import styles from "./Misc.module.css";
 
 export function StepDots({ total, current }: { total: number; current: number }) {
@@ -26,10 +27,28 @@ export function Toast({ message, onDone, duration = 2200 }: { message: string | 
   return <div className={styles.toastWrap}>{message}</div>;
 }
 
-export function EmptyState({ icon, title, description }: { icon?: string; title: string; description?: string }) {
+export function EmptyState({
+  icon,
+  iconName,
+  title,
+  description,
+}: {
+  /** Sprite icon — preferred. */
+  iconName?: IconName;
+  /** Emoji fallback, for concepts without a validated sprite icon yet. */
+  icon?: string;
+  title: string;
+  description?: string;
+}) {
   return (
     <div className={styles.empty}>
-      {icon && <div className={styles.emptyIcon}>{icon}</div>}
+      {iconName ? (
+        <div className={styles.emptyIcon}>
+          <Icon name={iconName} size={40} />
+        </div>
+      ) : (
+        icon && <div className={styles.emptyIcon}>{icon}</div>
+      )}
       <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 15, color: "var(--color-text)" }}>
         {title}
       </div>

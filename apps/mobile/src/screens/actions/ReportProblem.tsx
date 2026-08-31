@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Select, Textarea } from "@toboggo/design-system";
+import { Button, Select, Textarea, Icon, reportReasonIcon } from "@toboggo/design-system";
 import { createReport, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
@@ -9,14 +9,12 @@ import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
 import { queryClient } from "../../lib/queryClient";
 
-const REASON_ICON: Record<ReportReason, string> = {
-  broken_equipment: "🔧",
-  safety: "⚠️",
-  cleanliness: "🧹",
+// Catégories sans pictogramme validé dans le sprite (docs/DESIGN-SYSTEM.md §7) —
+// emoji conservé en attendant. Les autres passent par reportReasonIcon().
+const REASON_EMOJI: Partial<Record<ReportReason, string>> = {
   vegetation: "🌿",
   accessibility: "♿",
   wrong_info: "✏️",
-  other: "❓",
 };
 
 const EQUIPMENT_CHOICES = ["Toboggan", "Balançoire", "Structure d'escalade", "Bac à sable", "Autre"];
@@ -97,26 +95,31 @@ export default function ReportProblem() {
           <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park.name}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>Quel est le problème ?</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {(Object.keys(REPORT_REASON_LABEL) as ReportReason[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => {
-                  setReason(r);
-                  setStep(2);
-                }}
-                style={{
-                  padding: 16,
-                  borderRadius: 14,
-                  border: reason === r ? "2px solid var(--color-primary)" : "1.5px solid var(--color-border-strong)",
-                  background: "var(--color-surface)",
-                  textAlign: "center",
-                  cursor: "pointer",
-                }}
-              >
-                <div style={{ fontSize: 24 }}>{REASON_ICON[r]}</div>
-                <div style={{ fontSize: 12, marginTop: 6 }}>{REPORT_REASON_LABEL[r]}</div>
-              </button>
-            ))}
+            {(Object.keys(REPORT_REASON_LABEL) as ReportReason[]).map((r) => {
+              const ic = reportReasonIcon(r);
+              return (
+                <button
+                  key={r}
+                  onClick={() => {
+                    setReason(r);
+                    setStep(2);
+                  }}
+                  style={{
+                    padding: 16,
+                    borderRadius: 14,
+                    border: reason === r ? "2px solid var(--color-primary)" : "1.5px solid var(--color-border-strong)",
+                    background: "var(--color-surface)",
+                    textAlign: "center",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div style={{ fontSize: 24, minHeight: 24, display: "flex", justifyContent: "center", alignItems: "center" }}>
+                    {ic ? <Icon name={ic} size={24} /> : REASON_EMOJI[r]}
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 6 }}>{REPORT_REASON_LABEL[r]}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}

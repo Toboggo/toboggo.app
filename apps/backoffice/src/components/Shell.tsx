@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Avatar, Logo } from "@toboggo/design-system";
+import { Avatar, Icon, Logo, type IconName } from "@toboggo/design-system";
 import { listParks, listReports } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
@@ -11,7 +11,10 @@ import styles from "./Shell.module.css";
 interface NavItem {
   to: string;
   label: string;
-  icon: string;
+  /** Sprite icon (préféré). */
+  icon?: IconName;
+  /** Emoji de repli — pour les entrées sans icône validée dans le sprite. */
+  emoji?: string;
   badge?: number;
 }
 
@@ -31,24 +34,26 @@ export function Shell({ children }: { children: ReactNode }) {
   });
 
   const adminItems: NavItem[] = [
-    { to: "/", label: "Tableau de bord", icon: "📊" },
-    { to: "/parks", label: "Parcs", icon: "🛝", badge: pendingParks },
-    { to: "/reports", label: "Signalements", icon: "⚠️", badge: openReports },
-    { to: "/users", label: "Utilisateurs", icon: "👥" },
-    { to: "/reviews", label: "Avis", icon: "⭐" },
-    { to: "/settings", label: "Paramètres", icon: "⚙️" },
+    { to: "/", label: "Tableau de bord", icon: "ic-dashboard" },
+    { to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks },
+    { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
+    { to: "/users", label: "Utilisateurs", icon: "ic-users" },
+    { to: "/reviews", label: "Avis", icon: "ic-review" },
+    { to: "/settings", label: "Paramètres", icon: "ic-settings" },
   ];
 
+  // "Carte", "Entretien", "Journal" n'ont pas d'icône dédiée dans le sprite
+  // (docs/DESIGN-SYSTEM.md §7) — emoji conservé en attendant.
   const communeItems: NavItem[] = [
-    { to: "/", label: "Tableau de bord", icon: "📊" },
-    { to: "/parks", label: "Mes parcs", icon: "🛝", badge: pendingParks },
-    { to: "/map", label: "Carte", icon: "🗺️" },
-    { to: "/maintenance", label: "Entretien", icon: "🔧" },
-    { to: "/journal", label: "Journal", icon: "📓" },
-    { to: "/statistiques", label: "Statistiques", icon: "📈" },
-    { to: "/reports", label: "Signalements", icon: "⚠️", badge: openReports },
-    { to: "/reviews", label: "Avis", icon: "⭐" },
-    { to: "/settings", label: "Paramètres", icon: "⚙️" },
+    { to: "/", label: "Tableau de bord", icon: "ic-dashboard" },
+    { to: "/parks", label: "Mes parcs", icon: "ic-list", badge: pendingParks },
+    { to: "/map", label: "Carte", emoji: "🗺️" },
+    { to: "/maintenance", label: "Entretien", emoji: "🔧" },
+    { to: "/journal", label: "Journal", emoji: "📓" },
+    { to: "/statistiques", label: "Statistiques", icon: "ic-chart" },
+    { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
+    { to: "/reviews", label: "Avis", icon: "ic-review" },
+    { to: "/settings", label: "Paramètres", icon: "ic-settings" },
   ];
 
   const items = isAdmin ? adminItems : communeItems;
@@ -89,8 +94,13 @@ export function Shell({ children }: { children: ReactNode }) {
               className={clsx(styles.navItem, pathname === item.to && styles.active)}
               onClick={() => navigate(item.to)}
             >
-              <span>
-                {item.icon} {item.label}
+              <span className={styles.navLabel}>
+                {item.icon ? (
+                  <Icon name={item.icon} size={18} />
+                ) : (
+                  <span className={styles.navEmoji}>{item.emoji}</span>
+                )}
+                {item.label}
               </span>
               {!!item.badge && <span className={styles.badge}>{item.badge}</span>}
             </button>

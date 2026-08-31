@@ -43,6 +43,8 @@
 .emptyIcon {
   font-size: 40px;
   margin-bottom: var(--space-2);
+  display: flex;
+  justify-content: center;
 }
 
 .avatar {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 // Icon names available in icons-sprite.svg (kept in sync manually — see that
@@ -91,31 +91,38 @@ export function useIconSprite() {
   return ready;
 }
 
+/** Tailles de rendu standard du système (cf. en-tête de icons-sprite.svg). */
+const ICON_SIZES = { sm: 16, md: 24, lg: 32 } as const;
+export type IconSize = keyof typeof ICON_SIZES;
+
 /**
- * Une icône du système Toboggo (voir docs/identite-visuelle-formats.md).
+ * Une icône du système Toboggo (voir docs/DESIGN-SYSTEM.md §7).
  * Hérite `currentColor` — définir la couleur via le CSS du parent
  * (`color: var(--color-primary)`, etc.), pas de prop `color` séparée.
+ *
+ * `size` accepte un nombre de pixels ou un pas nommé (`"sm"` 16 / `"md"` 24 /
+ * `"lg"` 32). Sans `title`, l'icône est décorative (`aria-hidden`) ; avec
+ * `title`, elle est exposée en `role="img"` + `aria-label`.
  *
  * Nécessite que useIconSprite() ait tourné une fois dans l'app (voir App.tsx).
  */
 export function Icon({
   name,
-  size = 24,
+  size = "md",
   style,
   title,
 }: {
   name: IconName;
-  size?: number;
+  size?: number | IconSize;
   style?: CSSProperties;
   title?: string;
 }) {
-  const ref = useRef<SVGSVGElement>(null);
+  const px = typeof size === "number" ? size : ICON_SIZES[size];
   return (
     <svg
-      ref={ref}
-      width={size}
-      height={size}
-      role={title ? "img" : "presentation"}
+      width={px}
+      height={px}
+      role={title ? "img" : undefined}
       aria-label={title}
       aria-hidden={title ? undefined : true}
       style={{ display: "block", flex: "none", ...style }}

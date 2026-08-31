@@ -47,7 +47,7 @@ export default function Favorites() {
       />
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         {parks.length === 0 ? (
-          <EmptyState icon="🤍" title="Aucun parc favori pour le moment." description="Appuyez sur ♥ sur un parc pour l'ajouter ici." />
+          <EmptyState iconName="ic-heart" title="Aucun parc favori pour le moment." description="Appuyez sur le cœur d'un parc pour l'ajouter ici." />
         ) : (
           parks.map((park) =>
             compareMode ? (

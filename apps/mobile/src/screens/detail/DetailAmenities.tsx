@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { PLAY_EQUIPMENT_LABEL } from "@toboggo/shared";
+import { Icon, equipmentIcon, serviceIcon, type IconName } from "@toboggo/design-system";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON, SERVICE_ICON, SERVICE_LABEL } from "../../lib/equipmentIcons";
@@ -13,9 +14,19 @@ export default function DetailAmenities() {
   const equipment = park.play_equipment ?? [];
   const serviceKeys = Object.keys(SERVICE_LABEL) as (keyof typeof SERVICE_LABEL)[];
 
-  const rows: { label: string; icon: string; on: boolean }[] = [
-    ...equipment.map((eq) => ({ label: PLAY_EQUIPMENT_LABEL[eq] ?? eq, icon: EQUIPMENT_ICON[eq] ?? "🧩", on: true })),
-    ...serviceKeys.map((k) => ({ label: SERVICE_LABEL[k], icon: SERVICE_ICON[k], on: Boolean((park as unknown as Record<string, unknown>)[k]) })),
+  const rows: { label: string; iconName?: IconName; emoji?: string; on: boolean }[] = [
+    ...equipment.map((eq) => ({
+      label: PLAY_EQUIPMENT_LABEL[eq] ?? eq,
+      iconName: equipmentIcon(eq),
+      emoji: EQUIPMENT_ICON[eq] ?? "🧩",
+      on: true,
+    })),
+    ...serviceKeys.map((k) => ({
+      label: SERVICE_LABEL[k],
+      iconName: serviceIcon(k),
+      emoji: SERVICE_ICON[k],
+      on: Boolean((park as unknown as Record<string, unknown>)[k]),
+    })),
   ];
 
   return (
@@ -30,13 +41,13 @@ export default function DetailAmenities() {
         {rows.map((r) => (
           <div key={r.label} className={styles.row}>
             <span className={styles.left}>
-              <span className={styles.icon}>{r.icon}</span>
+              <span className={styles.icon}>
+                {r.iconName ? <Icon name={r.iconName} size={18} /> : r.emoji}
+              </span>
               {r.label}
             </span>
             {r.on ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4 12l5 5L20 6" />
-              </svg>
+              <Icon name="ic-check" size={16} style={{ color: "var(--color-primary)" }} />
             ) : (
               <span className={styles.dash}>—</span>
             )}

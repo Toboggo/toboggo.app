@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PLAY_EQUIPMENT_LABEL, incrementParkViews } from "@toboggo/shared";
+import { Icon, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { parkPhotoUrl } from "../../lib/photos";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
@@ -159,9 +160,7 @@ export default function ParkDetail() {
         ) : (
           <div className={styles.ok}>
             <span className={styles.okDot}>
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4 12l5 5L20 6" />
-              </svg>
+              <Icon name="ic-check" size={12} style={{ color: "var(--color-on-primary)" }} />
             </span>
             Aucun problème signalé récemment
           </div>
@@ -185,12 +184,17 @@ export default function ParkDetail() {
             </div>
           ) : (
             <div className={styles.equipRow}>
-              {equip.slice(0, 3).map((eq) => (
-                <div key={eq} className={styles.equip}>
-                  <span className={styles.equipIcon}>{EQUIPMENT_ICON[eq] ?? "🧩"}</span>
-                  <span>{PLAY_EQUIPMENT_LABEL[eq] ?? eq}</span>
-                </div>
-              ))}
+              {equip.slice(0, 3).map((eq) => {
+                const ic = equipmentIcon(eq);
+                return (
+                  <div key={eq} className={styles.equip}>
+                    <span className={styles.equipIcon}>
+                      {ic ? <Icon name={ic} size={24} /> : (EQUIPMENT_ICON[eq] ?? "🧩")}
+                    </span>
+                    <span>{PLAY_EQUIPMENT_LABEL[eq] ?? eq}</span>
+                  </div>
+                );
+              })}
               {equip.length > 3 && (
                 <button type="button" className={styles.equip} onClick={() => navigate(`/park/${park.id}/amenities`)}>
                   <span className={styles.equipMore}>+{equip.length - 3}</span>

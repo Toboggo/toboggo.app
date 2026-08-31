@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { StarRating } from "@toboggo/design-system";
+import { Icon, StarRating } from "@toboggo/design-system";
 import { AGE_BAND_LABEL, formatDistance, type Park } from "@toboggo/shared";
 import { parkPhotoUrl } from "../lib/photos";
 import styles from "./ParkCard.module.css";
@@ -41,9 +41,14 @@ export function ParkCard({
             e.stopPropagation();
             onToggleFavorite();
           }}
-          aria-label="Favori"
+          aria-label={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          aria-pressed={favorite}
         >
-          {favorite ? "❤️" : "🤍"}
+          <Icon
+            name="ic-heart"
+            size={20}
+            style={{ color: favorite ? "var(--color-primary)" : "var(--color-text-faint)" }}
+          />
         </button>
       )}
     </button>

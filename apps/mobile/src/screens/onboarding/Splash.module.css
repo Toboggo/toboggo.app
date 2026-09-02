@@ -5,7 +5,7 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-surface);
   overflow: hidden;
 }
 
@@ -23,14 +23,14 @@
   font-weight: 700;
   font-size: 26px;
   line-height: 1.3;
-  color: #24303a;
+  color: var(--color-text);
   margin: 22px 0 12px;
 }
 
 .tagline {
   margin: 0;
   font-size: 13.5px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   line-height: 1.5;
 }
 
@@ -48,7 +48,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 20px 24px calc(28px + var(--safe-bottom));
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 26px 26px 0 0;
   box-shadow: 0 -10px 30px rgba(36, 48, 58, 0.06);
 }
@@ -56,8 +56,8 @@
 .socialBtn {
   height: 50px;
   border-radius: 999px;
-  border: 1.5px solid #ece6d8;
-  background: #fff;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -65,11 +65,11 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;
-  color: #24303a;
+  color: var(--color-text);
   cursor: pointer;
 }
 .socialBtn:active {
-  background: #f8f5ec;
+  background: var(--color-surface-alt);
 }
 
 .divider {
@@ -81,23 +81,23 @@
 .divider span {
   flex: 1;
   height: 1px;
-  background: #ece6d8;
+  background: var(--color-border);
 }
 .divider em {
   font-size: 12px;
-  color: #a8a190;
+  color: var(--color-text-faint);
   font-style: normal;
 }
 
 .legal {
   font-size: 11px;
-  color: #a8a190;
+  color: var(--color-text-faint);
   line-height: 1.5;
   text-align: center;
   margin: 6px 0 0;
 }
 .legal span {
-  color: #16a34a;
+  color: var(--color-primary);
   font-weight: 700;
   cursor: pointer;
 }
@@ -106,19 +106,19 @@
   text-align: center;
   margin: 4px 0 0;
   font-size: 13px;
-  color: #8a8578;
+  color: var(--color-text-muted);
 }
 .switch button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #16a34a;
+  color: var(--color-primary);
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
   background: none;
-  border: 1.5px solid #16a34a;
+  border: 1.5px solid var(--color-primary);
   border-radius: 999px;
   padding: 4px 12px;
   margin-left: 6px;

@@ -11,13 +11,13 @@ import styles from "./Detail.module.css";
 
 function Stars({ value, size = 15 }: { value: number; size?: number }) {
   return (
-    <>
+    <span style={{ display: "inline-flex", color: "var(--color-accent)" }}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={i < Math.round(value) ? "#FFC107" : "none"} stroke="#FFC107" strokeWidth="1.5" aria-hidden>
+        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={i < Math.round(value) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" aria-hidden>
           <path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" />
         </svg>
       ))}
-    </>
+    </span>
   );
 }
 
@@ -52,7 +52,8 @@ export default function ParkDetail() {
   const photos = park.photos.length ? park.photos : [0, 1, 2].map((i) => parkPhotoUrl(park, i, 800, 500));
   const isFav = favorites.includes(park.id);
   const score = (park.rating * 2).toFixed(1);
-  const tierColor = park.rating * 2 >= 8 ? "#16A34A" : park.rating * 2 >= 6 ? "#F08A2E" : "#EF4444";
+  const tierColor =
+    park.rating * 2 >= 8 ? "var(--color-success)" : park.rating * 2 >= 6 ? "var(--color-accent)" : "var(--color-error)";
   const equip = park.play_equipment ?? [];
 
   function toggleFavorite() {
@@ -72,20 +73,14 @@ export default function ParkDetail() {
       <div className={styles.hero} style={{ backgroundImage: `url(${photos[photoIndex]})` }}>
         <div className={styles.heroTop}>
           <CircleBtn label="Retour" onClick={() => navigate(-1)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24303A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
+            <Icon name="ic-back" size={18} style={{ color: "var(--color-text)" }} />
           </CircleBtn>
           <div className={styles.heroTopRight}>
             <CircleBtn label="Partager" onClick={() => setShareOpen(true)}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#24303A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M12 3v12" />
-                <path d="M8 7l4-4 4 4" />
-                <rect x="4" y="12" width="16" height="9" rx="2" />
-              </svg>
+              <Icon name="ic-share" size={18} style={{ color: "var(--color-text)" }} />
             </CircleBtn>
             <CircleBtn label="Favori" on={isFav} onClick={toggleFavorite}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill={isFav ? "#EF4444" : "none"} stroke="#EF4444" strokeWidth="2" aria-hidden>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-error)" }} aria-hidden>
                 <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
               </svg>
             </CircleBtn>
@@ -128,7 +123,7 @@ export default function ParkDetail() {
 
         <button type="button" className={styles.scoreCard} onClick={() => navigate(`/park/${park.id}/score`)}>
           <span className={styles.scoreIcon}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
               <circle cx="12" cy="8" r="6" />
               <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
             </svg>
@@ -144,14 +139,14 @@ export default function ParkDetail() {
               Adapté aux enfants {park.age_min}–{park.age_max} ans
             </span>
           </span>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#8A8578" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>
             <path d="M9 6l6 6-6 6" />
           </svg>
         </button>
 
         {park.has_open_report ? (
           <div className={styles.issue}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A5A00" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-warning-text)" }} aria-hidden>
               <path d="M12 9v4M12 17h.01" />
               <path d="M10.3 3.9 2.5 17a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0z" />
             </svg>
@@ -250,12 +245,12 @@ export default function ParkDetail() {
 
       <div className={styles.footer}>
         <button type="button" className={styles.footFav} data-on={isFav ? "1" : undefined} onClick={toggleFavorite} aria-label="Favori">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav ? "#EF4444" : "none"} stroke="#EF4444" strokeWidth="2" aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-error)" }} aria-hidden>
             <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
           </svg>
         </button>
         <button type="button" className={styles.footGo} onClick={() => navigate(`/park/${park.id}/directions`)}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ color: "var(--color-on-primary)" }} aria-hidden>
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
           Itinéraire

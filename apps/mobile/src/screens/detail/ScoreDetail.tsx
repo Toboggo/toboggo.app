@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { Icon } from "@toboggo/design-system";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
 import styles from "./ScoreDetail.module.css";
@@ -19,7 +20,8 @@ export default function ScoreDetail() {
 
   const score = park.rating * 2;
   const tier = score >= 8 ? "Excellent" : score >= 6 ? "Bon" : "À améliorer";
-  const tierColor = score >= 8 ? "#16A34A" : score >= 6 ? "#F08A2E" : "#EF4444";
+  const tierColor =
+    score >= 8 ? "var(--color-success)" : score >= 6 ? "var(--color-accent)" : "var(--color-error)";
   const breakdown = [
     { label: "Propreté", pct: Math.min(100, Math.round(park.rating * 18)) },
     { label: "Sécurité", pct: park.has_open_report ? 55 : Math.min(100, Math.round(park.rating * 20)) },
@@ -58,37 +60,28 @@ export default function ScoreDetail() {
 
         <div className={styles.card}>
           <div className={styles.cardRow}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M4 12l5 5L20 6" />
-            </svg>
+            <Icon name="ic-check" size={16} style={{ color: "var(--color-primary)" }} />
             <span>Informations vérifiées <em>par la communauté</em></span>
           </div>
           <div className={styles.cardRow}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <circle cx="9" cy="8" r="3" />
-              <circle cx="17" cy="9" r="2.6" />
-              <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
-              <path d="M15 14.5c2.5.3 4.5 2.3 5 5.5" />
-            </svg>
+            <Icon name="ic-users" size={16} style={{ color: "var(--color-primary)" }} />
             <span>{park.review_count} avis pris en compte</span>
           </div>
           <div className={styles.cardRow}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={park.has_open_report ? "#EF4444" : "#16A34A"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z" />
-            </svg>
+            <Icon
+              name="ic-shield"
+              size={16}
+              style={{ color: park.has_open_report ? "var(--color-error)" : "var(--color-primary)" }}
+            />
             <span>{park.has_open_report ? "1 signalement en cours" : "Aucun signalement en cours"}</span>
           </div>
         </div>
 
         <div className={styles.infoCard}>
           <button type="button" className={styles.infoToggle} onClick={() => setOpen((o) => !o)}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8578" strokeWidth="2" aria-hidden>
-              <circle cx="12" cy="12" r="9" />
-              <line x1="12" y1="16" x2="12" y2="11" />
-              <circle cx="12" cy="8" r="0.6" fill="#8A8578" stroke="none" />
-            </svg>
+            <Icon name="ic-question" size={16} style={{ color: "var(--color-text-muted)" }} />
             <span>Comment est calculé le score ?</span>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8A8578" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} aria-hidden>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)", transform: open ? "rotate(90deg)" : "none", transition: "transform .15s" }} aria-hidden>
               <path d="M9 6l6 6-6 6" />
             </svg>
           </button>

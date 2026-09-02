@@ -1,0 +1,25 @@
+SURFACE_MAPPING = {
+    # Directs fiables
+    "rubber": "rubber",
+    "sand": "sand",
+    "grass": "grass",
+    "concrete": "concrete",
+
+    # Revêtements souples assimilables au rubber
+    "rubbercrumb": "rubber",
+    "rubber_crumb": "rubber",
+    "tartan": "rubber",
+
+    # Copeaux de bois
+    "woodchips": "wood_chips",
+    "wood_chips": "wood_chips",
+    "woodchip": "wood_chips",
+
+    # Minéraux assimilables au gravier
+    "gravel": "gravel",
+    "fine_gravel": "gravel",
+    "pebblestone": "gravel",
+
+    # Déjà compatible avec le catalogue Toboggo
+    "mixed": "mixed",
+}

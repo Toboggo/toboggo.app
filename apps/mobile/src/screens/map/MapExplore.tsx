@@ -86,7 +86,7 @@ export default function MapExplore() {
       />
 
       <div className={styles.searchBar}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8578" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>
           <circle cx="11" cy="11" r="7" />
           <path d="M21 21l-4.3-4.3" />
         </svg>
@@ -146,7 +146,7 @@ export default function MapExplore() {
           </svg>
         </button>
         <button type="button" className={styles.fabRecenter} onClick={() => void handleRecenter()} aria-label="Recentrer">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#24303A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text)" }} aria-hidden>
             <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
             <circle cx="12" cy="12" r="5" />
           </svg>

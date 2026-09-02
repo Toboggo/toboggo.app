@@ -21,7 +21,8 @@ export default function LoginMethod() {
   const methods = [
     {
       key: "email",
-      tile: "#e7f6ec",
+      tile: "var(--color-primary-tint)",
+      tint: "var(--color-primary)",
       icon: <MailIcon />,
       title: "Avec votre e-mail",
       subtitle: "Rapide et sécurisé",
@@ -29,7 +30,8 @@ export default function LoginMethod() {
     },
     {
       key: "phone",
-      tile: "#e7f6ec",
+      tile: "var(--color-primary-tint)",
+      tint: "var(--color-primary)",
       icon: <PhoneIcon />,
       title: "Avec votre numéro de téléphone",
       subtitle: "Recevez un code par SMS",
@@ -37,7 +39,8 @@ export default function LoginMethod() {
     },
     {
       key: "apple",
-      tile: "#f1f0ec",
+      tile: "var(--color-surface-alt)",
+      tint: "var(--color-text)",
       icon: <AppleIcon />,
       title: "Avec Apple",
       subtitle: "Connexion en un seul geste",
@@ -45,7 +48,8 @@ export default function LoginMethod() {
     },
     {
       key: "google",
-      tile: "#f1f0ec",
+      tile: "var(--color-surface-alt)",
+      tint: "var(--color-text)",
       icon: <GoogleIcon />,
       title: "Avec Google",
       subtitle: "Connexion en un seul geste",
@@ -73,7 +77,7 @@ export default function LoginMethod() {
       <div className={styles.list}>
         {methods.map((m) => (
           <button key={m.key} type="button" className={styles.card} onClick={m.onClick}>
-            <span className={styles.tile} style={{ background: m.tile }}>
+            <span className={styles.tile} style={{ background: m.tile, color: m.tint }}>
               {m.icon}
             </span>
             <span className={styles.body}>

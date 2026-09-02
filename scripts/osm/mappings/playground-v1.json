@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "description": "Mapping OpenStreetMap playground=* vers le catalogue Toboggo",
+
+  "direct": {
+    "slide": "slide",
+    "swing": "swing",
+    "climbing": "climbing"
+  },
+
+  "normalized": {
+    "springy": "springer",
+    "climbingframe": "climbing",
+    "climbingwall": "climbing",
+    "sandpit": "sandbox",
+    "roundabout": "carousel",
+    "zipwire": "zipline",
+    "splash_pad": "water_play",
+    "basketswing": "swing",
+    "rope_traverse": "climbing",
+    "structure": "play_structure",
+    "structure": "play_structure",
+    "seesaw": "seesaw",
+    "playhouse": "playhouse",
+    "trampoline": "trampoline",
+    "balancebeam": "balance_beam",
+    "agility_trail": "agility_trail",
+    "horizontal_bar": "horizontal_bar",
+    "hopscotch": "hopscotch"
+  },
+
+  "pending": {},
+
+  "ignored": {
+    "teenshelter": "Not mapped as playground equipment for now",
+    "cushion": "Ambiguous OSM value; preserve raw source only"
+  }
+}

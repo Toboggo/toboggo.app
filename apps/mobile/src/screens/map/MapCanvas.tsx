@@ -61,7 +61,8 @@ export function MapCanvas({
     }
     for (const park of parks) {
       const score = park.rating * 2;
-      const color = score >= 8 ? "#16a34a" : score >= 6 ? "#f08a2e" : "#ef4444";
+      const color =
+        score >= 8 ? "var(--color-success)" : score >= 6 ? "var(--color-accent)" : "var(--color-error)";
       let marker = markersRef.current[park.id];
       if (!marker) {
         const el = document.createElement("button");
@@ -70,7 +71,7 @@ export function MapCanvas({
         el.style.height = "30px";
         el.style.borderRadius = "50% 50% 50% 0";
         el.style.transform = "rotate(-45deg)";
-        el.style.border = "3px solid white";
+        el.style.border = "3px solid var(--color-surface)";
         el.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
         el.style.cursor = "pointer";
         el.onclick = () => onSelect(park.id);

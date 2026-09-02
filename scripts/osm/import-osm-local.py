@@ -1,0 +1,1253 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+import subprocess
+import tempfile
+import urllib.parse
+from collections import Counter
+from pathlib import Path
+
+import psycopg
+
+
+DB_DSN = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
+
+# Sécurité absolue : cet importeur est LOCAL uniquement.
+if "127.0.0.1:54322" not in DB_DSN:
+    raise RuntimeError(
+        "SECURITY: import OSM autorisé uniquement sur Supabase local"
+    )
+
+
+# ---------------------------------------------------------------------------
+# MAPPINGS OSM -> TOBOGGO
+# ---------------------------------------------------------------------------
+
+SURFACE_MAPPING = {
+    # Directs fiables
+    "rubber": "rubber",
+    "sand": "sand",
+    "grass": "grass",
+    "concrete": "concrete",
+
+    # Revêtements souples assimilables au rubber
+    "rubbercrumb": "rubber",
+    "rubber_crumb": "rubber",
+    "tartan": "rubber",
+
+    # Copeaux de bois
+    "woodchips": "wood_chips",
+    "wood_chips": "wood_chips",
+    "woodchip": "wood_chips",
+
+    # Minéraux assimilables au gravier
+    "gravel": "gravel",
+    "fine_gravel": "gravel",
+    "pebblestone": "gravel",
+
+    # Déjà compatible avec le catalogue Toboggo
+    "mixed": "mixed",
+}
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Import OSM Toboggo LOCAL"
+    )
+
+    parser.add_argument(
+        "pbf",
+        help="Fichier .osm.pbf",
+    )
+
+    parser.add_argument(
+        "--commit",
+        action="store_true",
+        help=(
+            "Écrit réellement dans Supabase local. "
+            "Sans cette option = DRY RUN."
+        ),
+    )
+
+    return parser.parse_args()
+
+
+def decode_osm_value(value):
+    if value is None:
+        return None
+
+    value = urllib.parse.unquote(str(value))
+    value = value.replace("%20%", " ")
+    value = value.replace("%20", " ")
+    value = value.replace("%", " ")
+
+    return value.strip()
+
+
+def normalize_osm_value(value):
+    if value is None:
+        return None
+
+    return decode_osm_value(value).strip().lower()
+
+
+def get_osm_ref(feature):
+    props = feature.get("properties", {})
+
+    osm_id = props.get("@id") or props.get("id")
+    osm_type = props.get("@type") or props.get("type")
+
+    if osm_id is None:
+        return None, None
+
+    if osm_type:
+        return str(osm_type), str(osm_id)
+
+    return None, str(osm_id)
+
+
+def representative_point(geometry):
+    if not geometry:
+        return None
+
+    geom_type = geometry.get("type")
+    coords = geometry.get("coordinates")
+
+    if not coords:
+        return None
+
+    if geom_type == "Point":
+        return float(coords[0]), float(coords[1])
+
+    points = []
+
+    def collect(value):
+        if (
+            isinstance(value, list)
+            and len(value) >= 2
+            and isinstance(value[0], (int, float))
+            and isinstance(value[1], (int, float))
+        ):
+            points.append(
+                (
+                    float(value[0]),
+                    float(value[1]),
+                )
+            )
+            return
+
+        if isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    collect(coords)
+
+    if not points:
+        return None
+
+    lng = sum(point[0] for point in points) / len(points)
+    lat = sum(point[1] for point in points) / len(points)
+
+    return lng, lat
+
+
+def parse_age(value):
+    if value is None:
+        return None
+
+    try:
+        value = str(value).strip()
+
+        if not value:
+            return None
+
+        number = float(value)
+
+        if number < 0 or number > 30:
+            return None
+
+        return int(round(number))
+
+    except (TypeError, ValueError):
+        return None
+
+
+def load_mapping():
+    mapping_path = Path(
+        "scripts/osm/mappings/playground-v1.json"
+    )
+
+    with mapping_path.open(
+        "r",
+        encoding="utf-8",
+    ) as file:
+        return json.load(file)
+
+
+def map_playground_features(raw, mapping):
+    if not raw:
+        return []
+
+    decoded = decode_osm_value(str(raw))
+
+    values = [
+        value.strip()
+        for value in decoded.split(";")
+        if value.strip()
+    ]
+
+    result = []
+
+    for value in values:
+        if value in mapping.get("direct", {}):
+            result.append(
+                mapping["direct"][value]
+            )
+
+        elif value in mapping.get("normalized", {}):
+            result.append(
+                mapping["normalized"][value]
+            )
+
+    return list(dict.fromkeys(result))
+
+
+def map_surface(raw):
+    """
+    Retourne une valeur Toboggo autorisée pour surface_type.
+
+    Valeurs Toboggo :
+    rubber, sand, grass, wood_chips, gravel,
+    concrete, mixed, unknown
+    """
+    if not raw:
+        return None
+
+    decoded = normalize_osm_value(raw)
+
+    if not decoded:
+        return None
+
+    values = [
+        value.strip()
+        for value in decoded.split(";")
+        if value.strip()
+    ]
+
+    mapped = []
+
+    for value in values:
+        result = SURFACE_MAPPING.get(value)
+
+        if result:
+            mapped.append(result)
+
+    mapped = list(dict.fromkeys(mapped))
+
+    if not mapped:
+        return None
+
+    if len(mapped) > 1:
+        return "mixed"
+
+    return mapped[0]
+
+
+def map_wheelchair(raw):
+    """
+    yes     -> available
+    no      -> unavailable
+    limited -> available + value='limited'
+    """
+    if not raw:
+        return None
+
+    value = normalize_osm_value(raw)
+
+    if value == "yes":
+        return {
+            "status": "available",
+            "value": None,
+        }
+
+    if value == "no":
+        return {
+            "status": "unavailable",
+            "value": None,
+        }
+
+    if value == "limited":
+        return {
+            "status": "available",
+            "value": "limited",
+        }
+
+    return None
+
+
+def map_fence(props):
+    """
+    fenced=yes -> fully_fenced
+    fenced=no  -> not_fenced
+
+    barrier=fence est également utilisé comme preuve
+    de présence d'une clôture.
+    """
+    fenced = normalize_osm_value(
+        props.get("fenced")
+    )
+
+    if fenced == "yes":
+        return "fully_fenced"
+
+    if fenced == "no":
+        return "not_fenced"
+
+    barrier = normalize_osm_value(
+        props.get("barrier")
+    )
+
+    if barrier == "fence":
+        return "fully_fenced"
+
+    return None
+
+
+def classify_access(props):
+    access = props.get("access")
+
+    if access is None:
+        return "eligible"
+
+    access = decode_osm_value(
+        str(access)
+    ).lower()
+
+    if access == "private":
+        return "private"
+
+    if access == "customers":
+        return "customers"
+
+    return "eligible"
+
+
+def build_attribute_features(props):
+    result = []
+
+    surface = map_surface(
+        props.get("surface")
+    )
+
+    if surface:
+        result.append(
+            {
+                "code": "surface_type",
+                "status": "available",
+                "value": surface,
+            }
+        )
+
+    wheelchair = map_wheelchair(
+        props.get("wheelchair")
+    )
+
+    if wheelchair:
+        result.append(
+            {
+                "code": "wheelchair_access",
+                "status": wheelchair["status"],
+                "value": wheelchair["value"],
+            }
+        )
+
+    fence = map_fence(props)
+
+    if fence:
+        result.append(
+            {
+                "code": "fence_status",
+                "status": "available",
+                "value": fence,
+            }
+        )
+
+    return result
+
+
+def upsert_park_feature(
+    cur,
+    park_id,
+    feature_id,
+    source_id,
+    status,
+    value=None,
+):
+    cur.execute(
+        """
+        insert into park_features (
+            park_id,
+            feature_id,
+            status,
+            value,
+            source_id,
+            updated_at
+        )
+        values (
+            %s,
+            %s,
+            %s,
+            %s,
+            %s,
+            now()
+        )
+        on conflict (
+            park_id,
+            feature_id
+        )
+        do update set
+            status = excluded.status,
+            value = excluded.value,
+            source_id = excluded.source_id,
+            updated_at = now()
+        """,
+        (
+            park_id,
+            feature_id,
+            status,
+            value,
+            source_id,
+        ),
+    )
+
+
+def main():
+    args = parse_args()
+    pbf = Path(args.pbf)
+
+    if not pbf.exists():
+        raise SystemExit(
+            f"Fichier introuvable : {pbf}"
+        )
+
+    mapping = load_mapping()
+
+    print()
+    print("TOBOGGO OSM LOCAL IMPORT")
+    print("========================")
+    print()
+    print("Database : Supabase LOCAL")
+    print("Host     : 127.0.0.1")
+    print("Port     : 54322")
+    print(
+        "Mode     :",
+        "COMMIT LOCAL"
+        if args.commit
+        else "DRY RUN",
+    )
+    print()
+
+    with tempfile.TemporaryDirectory(
+        prefix="toboggo-osm-"
+    ) as tmp:
+        tmp = Path(tmp)
+
+        filtered = tmp / "playgrounds.osm.pbf"
+        geojson = tmp / "playgrounds.geojsonseq"
+
+        print(
+            "1. Extraction des playgrounds..."
+        )
+
+        subprocess.run(
+            [
+                "osmium",
+                "tags-filter",
+                str(pbf),
+                "nwr/leisure=playground",
+                "-o",
+                str(filtered),
+                "--overwrite",
+            ],
+            check=True,
+        )
+
+        print(
+            "2. Conversion des géométries..."
+        )
+
+        subprocess.run(
+            [
+                "osmium",
+                "export",
+                str(filtered),
+                "-f",
+                "geojsonseq",
+                "--attributes",
+                "type,id",
+                "-o",
+                str(geojson),
+                "--overwrite",
+            ],
+            check=True,
+        )
+
+        candidates = []
+        seen_osm_refs = set()
+        skipped = Counter()
+        enrichment_stats = Counter()
+
+        print(
+            "3. Normalisation Toboggo..."
+        )
+
+        with geojson.open(
+            "r",
+            encoding="utf-8",
+        ) as file:
+            for line in file:
+                line = line.lstrip("\x1e\ufeff").strip()
+
+                if not line:
+                    continue
+
+                feature = json.loads(line)
+
+                props = feature.get(
+                    "properties",
+                    {},
+                )
+
+                if (
+                    props.get("leisure")
+                    != "playground"
+                ):
+                    continue
+
+                osm_type, osm_id = (
+                    get_osm_ref(feature)
+                )
+
+                if not osm_id:
+                    skipped[
+                        "missing_osm_id"
+                    ] += 1
+                    continue
+
+                external_id = (
+                    f"{osm_type or 'unknown'}"
+                    f"/{osm_id}"
+                )
+
+                if (
+                    external_id
+                    in seen_osm_refs
+                ):
+                    skipped[
+                        "duplicate_osm_geometry"
+                    ] += 1
+                    continue
+
+                seen_osm_refs.add(
+                    external_id
+                )
+
+                point = representative_point(
+                    feature.get(
+                        "geometry"
+                    )
+                )
+
+                if not point:
+                    skipped[
+                        "invalid_geometry"
+                    ] += 1
+                    continue
+
+                access_state = (
+                    classify_access(props)
+                )
+
+                if (
+                    access_state
+                    == "private"
+                ):
+                    skipped[
+                        "access_private"
+                    ] += 1
+                    continue
+
+                if (
+                    access_state
+                    == "customers"
+                ):
+                    skipped[
+                        "access_customers"
+                    ] += 1
+                    continue
+
+                lng, lat = point
+
+                if not (
+                    -180 <= lng <= 180
+                    and -90 <= lat <= 90
+                ):
+                    skipped[
+                        "invalid_coordinates"
+                    ] += 1
+                    continue
+
+                name = props.get(
+                    "name"
+                )
+
+                if name:
+                    name = (
+                        decode_osm_value(
+                            str(name)
+                        )
+                    )
+                else:
+                    name = "Aire de jeux"
+
+                mapped_features = (
+                    map_playground_features(
+                        props.get(
+                            "playground"
+                        ),
+                        mapping,
+                    )
+                )
+
+                attribute_features = (
+                    build_attribute_features(
+                        props
+                    )
+                )
+
+                for attribute in (
+                    attribute_features
+                ):
+                    enrichment_stats[
+                        attribute["code"]
+                    ] += 1
+
+                candidates.append(
+                    {
+                        "osm_type":
+                            osm_type
+                            or "unknown",
+
+                        "osm_id":
+                            str(osm_id),
+
+                        "external_id":
+                            external_id,
+
+                        "name":
+                            name,
+
+                        "has_osm_name":
+                            bool(props.get("name")),
+
+                        "latitude":
+                            lat,
+
+                        "longitude":
+                            lng,
+
+                        "min_age":
+                            parse_age(
+                                props.get(
+                                    "min_age"
+                                )
+                            ),
+
+                        "max_age":
+                            parse_age(
+                                props.get(
+                                    "max_age"
+                                )
+                            ),
+
+                        "features":
+                            mapped_features,
+
+                        "attribute_features":
+                            attribute_features,
+                    }
+                )
+
+        print()
+        print(
+            "DRY-RUN REPORT"
+            if not args.commit
+            else "IMPORT REPORT"
+        )
+        print(
+            "--------------"
+        )
+
+        print(
+            f"Candidats Toboggo : "
+            f"{len(candidates)}"
+        )
+
+        print(
+            f"Écartés           : "
+            f"{sum(skipped.values())}"
+        )
+
+        if skipped:
+            print()
+            print(
+                "Écartés :"
+            )
+
+            for (
+                reason,
+                count,
+            ) in skipped.most_common():
+                print(
+                    f"  {reason:<24} "
+                    f"{count}"
+                )
+
+        print()
+        print(
+            "Enrichissements OSM :"
+        )
+
+        for code in [
+            "surface_type",
+            "wheelchair_access",
+            "fence_status",
+        ]:
+            print(
+                f"  {code:<22} "
+                f"{enrichment_stats.get(code, 0)}"
+            )
+
+        print()
+        print(
+            "Exemples :"
+        )
+
+        for park in candidates[:10]:
+            print()
+
+            print(
+                f"OSM      : "
+                f"{park['external_id']}"
+            )
+
+            print(
+                f"Nom      : "
+                f"{park['name']}"
+            )
+
+            print(
+                f"Position : "
+                f"{park['latitude']:.6f}, "
+                f"{park['longitude']:.6f}"
+            )
+
+            print(
+                f"Âges     : "
+                f"{park['min_age']} "
+                f"→ "
+                f"{park['max_age']}"
+            )
+
+            print(
+                "Équipements : "
+                + (
+                    ", ".join(
+                        park["features"]
+                    )
+                    if park["features"]
+                    else "—"
+                )
+            )
+
+            attributes_display = []
+
+            for attribute in (
+                park[
+                    "attribute_features"
+                ]
+            ):
+                text = (
+                    f"{attribute['code']}"
+                    f"={attribute['status']}"
+                )
+
+                if (
+                    attribute["value"]
+                    is not None
+                ):
+                    text += (
+                        f":"
+                        f"{attribute['value']}"
+                    )
+
+                attributes_display.append(
+                    text
+                )
+
+            print(
+                "Attributs   : "
+                + (
+                    ", ".join(
+                        attributes_display
+                    )
+                    if attributes_display
+                    else "—"
+                )
+            )
+
+        if not args.commit:
+            print()
+
+            print(
+                "AUCUNE DONNÉE ÉCRITE "
+                "DANS SUPABASE."
+            )
+
+            print()
+
+            print(
+                "Quand le rapport sera "
+                "validé : relancer avec "
+                "--commit pour écrire "
+                "uniquement dans Supabase "
+                "local."
+            )
+
+            return
+
+        print()
+        print(
+            "4. Connexion à Supabase local..."
+        )
+
+        with psycopg.connect(
+            DB_DSN
+        ) as conn:
+
+            with conn.cursor() as cur:
+
+                cur.execute(
+                    """
+                    select id, code
+                    from features
+                    """
+                )
+
+                feature_ids = {
+                    code: feature_id
+                    for (
+                        feature_id,
+                        code,
+                    ) in cur.fetchall()
+                }
+
+                created = 0
+                updated = 0
+                equipment_written = 0
+                attributes_written = 0
+
+                for park in candidates:
+
+                    cur.execute(
+                        """
+                        select park_id
+                        from external_ids
+                        where provider = 'osm'
+                          and external_id = %s
+                        """,
+                        (
+                            park[
+                                "external_id"
+                            ],
+                        ),
+                    )
+
+                    existing = (
+                        cur.fetchone()
+                    )
+
+                    if existing:
+                        park_id = existing[0]
+
+                        cur.execute(
+                            """
+                            select
+                                can_source_replace_attribute(%s, 'name', 'osm'),
+                                can_source_replace_attribute(%s, 'min_age', 'osm'),
+                                can_source_replace_attribute(%s, 'max_age', 'osm')
+                            """,
+                            (park_id, park_id, park_id),
+                        )
+
+                        allow_name, allow_min_age, allow_max_age = cur.fetchone()
+
+                        allow_name = bool(
+                            allow_name and park["has_osm_name"]
+                        )
+                        allow_min_age = bool(
+                            allow_min_age and park["min_age"] is not None
+                        )
+                        allow_max_age = bool(
+                            allow_max_age and park["max_age"] is not None
+                        )
+
+                        cur.execute(
+                            """
+                            update parks
+                            set
+                                name = case when %s then %s else name end,
+                                latitude = %s,
+                                longitude = %s,
+                                min_age = case when %s then %s else min_age end,
+                                max_age = case when %s then %s else max_age end,
+                                ages_derived = case
+                                    when %s or %s then false
+                                    else ages_derived
+                                end,
+                                updated_at = now()
+                            where id = %s
+                            """,
+                            (
+                                allow_name,
+                                park["name"],
+                                park["latitude"],
+                                park["longitude"],
+                                allow_min_age,
+                                park["min_age"],
+                                allow_max_age,
+                                park["max_age"],
+                                allow_min_age,
+                                allow_max_age,
+                                park_id,
+                            ),
+                        )
+
+                        updated += 1
+
+                    else:
+                        cur.execute(
+                            """
+                            insert into parks (
+                                name,
+                                latitude,
+                                longitude,
+                                country_code,
+                                timezone,
+                                min_age,
+                                max_age,
+                                ages_derived,
+                                moderation_status,
+                                verification_status
+                            )
+                            values (
+                                %s,
+                                %s,
+                                %s,
+                                'FR',
+                                'Europe/Paris',
+                                %s,
+                                %s,
+                                false,
+                                'pending',
+                                'unverified'
+                            )
+                            returning id
+                            """,
+                            (
+                                park["name"],
+                                park["latitude"],
+                                park["longitude"],
+                                park["min_age"],
+                                park["max_age"],
+                            ),
+                        )
+
+                        park_id = cur.fetchone()[0]
+
+                        cur.execute(
+                            """
+                            insert into external_ids (
+                                park_id,
+                                provider,
+                                external_id
+                            )
+                            values (
+                                %s,
+                                'osm',
+                                %s
+                            )
+                            on conflict (
+                                provider,
+                                external_id
+                            )
+                            do nothing
+                            """,
+                            (
+                                park_id,
+                                park["external_id"],
+                            ),
+                        )
+
+                        allow_name = bool(park["has_osm_name"])
+                        allow_min_age = park["min_age"] is not None
+                        allow_max_age = park["max_age"] is not None
+
+                        created += 1
+
+                    source_url = (
+                        "https://www.openstreetmap.org/"
+                        f"{park['osm_type']}/"
+                        f"{park['osm_id']}"
+                    )
+
+                    cur.execute(
+                        """
+                        select id
+                        from park_sources
+                        where park_id = %s
+                          and source_type = 'osm'
+                        limit 1
+                        """,
+                        (park_id,),
+                    )
+
+                    source = (
+                        cur.fetchone()
+                    )
+
+                    if source:
+                        source_id = (
+                            source[0]
+                        )
+
+                        cur.execute(
+                            """
+                            update park_sources
+                            set
+                                source_name =
+                                    'OpenStreetMap',
+                                source_url = %s,
+                                license = 'ODbL',
+                                last_synced_at =
+                                    now()
+                            where id = %s
+                            """,
+                            (
+                                source_url,
+                                source_id,
+                            ),
+                        )
+
+                    else:
+                        cur.execute(
+                            """
+                            insert into park_sources (
+                                park_id,
+                                source_type,
+                                source_name,
+                                source_url,
+                                license,
+                                last_synced_at
+                            )
+                            values (
+                                %s,
+                                'osm',
+                                'OpenStreetMap',
+                                %s,
+                                'ODbL',
+                                now()
+                            )
+                            returning id
+                            """,
+                            (
+                                park_id,
+                                source_url,
+                            ),
+                        )
+
+                        source_id = (
+                            cur.fetchone()[0]
+                        )
+
+                    # ------------------------------------------------------
+                    # PROVENANCE DES ATTRIBUTS CANONIQUES
+                    # ------------------------------------------------------
+                    def record_osm_attribute(attribute_key, value):
+                        cur.execute(
+                            """
+                            select exists (
+                                select 1
+                                from park_attribute_sources pas
+                                join park_sources ps
+                                  on ps.id = pas.source_id
+                                where pas.park_id = %s
+                                  and pas.attribute_key = %s
+                                  and pas.is_current = true
+                                  and ps.source_type = 'osm'
+                                  and pas.value_json = %s::jsonb
+                            )
+                            """,
+                            (
+                                park_id,
+                                attribute_key,
+                                json.dumps(value),
+                            ),
+                        )
+
+                        already_current = cur.fetchone()[0]
+
+                        if not already_current:
+                            cur.execute(
+                                """
+                                select set_park_attribute_source(
+                                    %s,
+                                    %s,
+                                    %s::jsonb,
+                                    %s,
+                                    0.700,
+                                    null
+                                )
+                                """,
+                                (
+                                    park_id,
+                                    attribute_key,
+                                    json.dumps(value),
+                                    source_id,
+                                ),
+                            )
+
+                    if allow_name:
+                        record_osm_attribute("name", park["name"])
+
+                    if allow_min_age:
+                        record_osm_attribute("min_age", park["min_age"])
+
+                    if allow_max_age:
+                        record_osm_attribute("max_age", park["max_age"])
+
+                    # ------------------------------------------------------
+                    # ÉQUIPEMENTS
+                    # ------------------------------------------------------
+
+                    for code in park[
+                        "features"
+                    ]:
+
+                        feature_id = (
+                            feature_ids.get(
+                                code
+                            )
+                        )
+
+                        if not feature_id:
+                            print(
+                                "WARNING: feature "
+                                "Toboggo absente : "
+                                f"{code}"
+                            )
+                            continue
+
+                        upsert_park_feature(
+                            cur=cur,
+                            park_id=park_id,
+                            feature_id=feature_id,
+                            source_id=source_id,
+                            status="available",
+                            value=None,
+                        )
+
+                        equipment_written += 1
+
+                    # ------------------------------------------------------
+                    # ATTRIBUTS OSM
+                    # surface / wheelchair / fence
+                    # ------------------------------------------------------
+
+                    for attribute in park[
+                        "attribute_features"
+                    ]:
+
+                        code = (
+                            attribute["code"]
+                        )
+
+                        feature_id = (
+                            feature_ids.get(
+                                code
+                            )
+                        )
+
+                        if not feature_id:
+                            print(
+                                "WARNING: feature "
+                                "Toboggo absente : "
+                                f"{code}"
+                            )
+                            continue
+
+                        upsert_park_feature(
+                            cur=cur,
+                            park_id=park_id,
+                            feature_id=feature_id,
+                            source_id=source_id,
+                            status=attribute[
+                                "status"
+                            ],
+                            value=attribute[
+                                "value"
+                            ],
+                        )
+
+                        attributes_written += 1
+
+                conn.commit()
+
+        print()
+        print(
+            "IMPORT LOCAL TERMINÉ"
+        )
+        print(
+            "--------------------"
+        )
+
+        print(
+            f"Créés              : "
+            f"{created}"
+        )
+
+        print(
+            f"Mis à jour         : "
+            f"{updated}"
+        )
+
+        print(
+            f"Équipements écrits : "
+            f"{equipment_written}"
+        )
+
+        print(
+            f"Attributs écrits   : "
+            f"{attributes_written}"
+        )
+
+        print()
+        print(
+            "Aucune donnée "
+            "staging/prod touchée."
+        )
+
+
+if __name__ == "__main__":
+    main()

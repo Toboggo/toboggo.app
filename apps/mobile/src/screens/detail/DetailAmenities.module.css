@@ -37,5 +37,5 @@
 }
 .dash {
   font-size: 13px;
-  color: #b3ac9c;
+  color: var(--color-text-faint);
 }

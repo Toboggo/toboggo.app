@@ -22,7 +22,7 @@ function hashPos(id: string): { left: number; top: number } {
 
 function pinColor(rating: number): string {
   const score = rating * 2;
-  return score >= 8 ? "#16A34A" : score >= 6 ? "#F08A2E" : "#EF4444";
+  return score >= 8 ? "var(--color-success)" : score >= 6 ? "var(--color-accent)" : "var(--color-error)";
 }
 
 export function FakeMap({
@@ -60,7 +60,7 @@ export function FakeMap({
               left: `${left}%`,
               top: `${top}%`,
               background: pinColor(p.rating),
-              outline: active ? "3px solid rgba(22,163,74,0.35)" : "none",
+              outline: active ? "3px solid var(--color-primary-tint)" : "none",
               zIndex: active ? 4 : 2,
             }}
             onClick={() => onSelect(p.id)}

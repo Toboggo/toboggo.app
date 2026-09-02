@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Chip, Input, Textarea, DualRangeSlider, Tag } from "@toboggo/design-system";
+import { Button, Chip, Icon, Input, Textarea, DualRangeSlider, Tag, equipmentIcon } from "@toboggo/design-system";
 import { createPark, logActivity, uploadPhoto, type Park } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
@@ -140,7 +140,8 @@ export default function AddPark() {
           </div>
           <Input label="Adresse" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="12 rue des Tilleuls, 69000 Lyon" />
           <Button variant="secondary" block style={{ marginTop: 16 }} onClick={() => setCoords({ lat, lng })}>
-            📍 Utiliser ma position actuelle
+            <Icon name="ic-explore" size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "-2px" }} />
+            Utiliser ma position actuelle
           </Button>
           <Button block style={{ marginTop: 24 }} disabled={!address} onClick={() => setStep(2)}>
             Continuer
@@ -165,11 +166,19 @@ export default function AddPark() {
           </div>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Jeux disponibles</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 20 }}>
-            {EQUIPMENT_OPTIONS.map((e) => (
-              <Chip key={e} active={equipment.has(e)} onClick={() => toggle(equipment, setEquipment, e)}>
-                {EQUIPMENT_ICON[e]} {e}
-              </Chip>
-            ))}
+            {EQUIPMENT_OPTIONS.map((e) => {
+              const ic = equipmentIcon(e);
+              return (
+                <Chip key={e} active={equipment.has(e)} onClick={() => toggle(equipment, setEquipment, e)}>
+                  {ic ? (
+                    <Icon name={ic} size={15} style={{ marginRight: 4, display: "inline-block", verticalAlign: "-2px" }} />
+                  ) : (
+                    `${EQUIPMENT_ICON[e]} `
+                  )}
+                  {e}
+                </Chip>
+              );
+            })}
           </div>
           <Textarea label="Description (facultatif)" value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
           <Button block style={{ marginTop: 20 }} disabled={!name} onClick={() => setStep(3)}>

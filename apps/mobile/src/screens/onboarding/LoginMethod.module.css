@@ -5,7 +5,7 @@
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background: #fff8ec;
+  background: var(--color-bg);
   overflow: hidden;
 }
 
@@ -16,7 +16,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #5b5648;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   cursor: pointer;
@@ -31,12 +31,12 @@
   font-size: 26px;
   font-weight: 700;
   margin: 0 0 8px;
-  color: #24303a;
+  color: var(--color-text);
 }
 .header p {
   margin: 0;
   font-size: 14px;
-  color: #8a8578;
+  color: var(--color-text-muted);
 }
 
 .list {
@@ -50,7 +50,7 @@
   height: 64px;
   border-radius: 18px;
   border: none;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 4px 14px rgba(36, 48, 58, 0.06);
   display: flex;
   align-items: center;
@@ -58,9 +58,10 @@
   padding: 0 16px;
   cursor: pointer;
   text-align: left;
+  color: var(--color-text-faint);
 }
 .card:active {
-  background: #fdfbf5;
+  background: var(--color-surface-alt);
 }
 
 .tile {
@@ -82,12 +83,12 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;
-  color: #24303a;
+  color: var(--color-text);
 }
 .cardSub {
   display: block;
   font-size: 12.5px;
-  color: #8a8578;
+  color: var(--color-text-muted);
 }
 
 .illo {

@@ -14,8 +14,8 @@
   flex: 1;
   border: none;
   border-radius: 999px;
-  background: #f1ece0;
-  color: #8a8578;
+  background: var(--color-border-strong);
+  color: var(--color-text-muted);
   padding: 9px 0;
   font-size: 12.5px;
   font-weight: 700;
@@ -23,8 +23,8 @@
   cursor: pointer;
 }
 .tab[data-on="1"] {
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .body {
@@ -36,7 +36,7 @@
   text-align: center;
   padding: 40px 10px;
   font-size: 13px;
-  color: #8a8578;
+  color: var(--color-text-muted);
 }
 
 .parkRow {
@@ -55,7 +55,7 @@
   height: 48px;
   flex: none;
   border-radius: 14px;
-  background: #ece6d8 center / cover no-repeat;
+  background: var(--color-border) center / cover no-repeat;
 }
 .rowBody {
   flex: 1;
@@ -69,12 +69,12 @@
 }
 .rowSub {
   font-size: 12px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 .pending {
-  background: #fff3d6;
-  color: #8a5a00;
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
   font-size: 10.5px;
   font-weight: 700;
   padding: 5px 10px;
@@ -102,7 +102,7 @@
 }
 .cardDate {
   font-size: 11px;
-  color: #a8a190;
+  color: var(--color-text-faint);
 }
 .cardStars {
   display: flex;
@@ -112,7 +112,7 @@
 .card p {
   margin: 0;
   font-size: 13px;
-  color: #5b5648;
+  color: var(--color-text-muted);
 }
 
 .reportRow {

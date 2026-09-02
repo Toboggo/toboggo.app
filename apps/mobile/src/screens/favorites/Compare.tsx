@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { listParksByIds, formatDistance, haversineMeters } from "@toboggo/shared";
+import { Icon } from "@toboggo/design-system";
 import { TopBar } from "../../components/TopBar";
 import { useGeo } from "../../lib/geo";
 import { SERVICE_LABEL } from "../../lib/equipmentIcons";
@@ -36,7 +37,10 @@ export default function Compare() {
               <td style={{ fontSize: 12.5, color: "var(--color-text-muted)", padding: 8 }}>Note</td>
               {parks.map((p) => (
                 <td key={p.id} style={{ padding: 8, fontSize: 13 }}>
-                  ⭐ {p.rating.toFixed(1)}
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    <Icon name="ic-star" size={14} style={{ color: "var(--color-accent)" }} />
+                    {p.rating.toFixed(1)}
+                  </span>
                 </td>
               ))}
             </tr>
@@ -69,7 +73,11 @@ export default function Compare() {
                 <td style={{ fontSize: 12.5, color: "var(--color-text-muted)", padding: 8 }}>{row.label}</td>
                 {parks.map((p) => (
                   <td key={p.id} style={{ padding: 8, fontSize: 15 }}>
-                    {(p as any)[row.key] ? "✓" : "—"}
+                    {(p as any)[row.key] ? (
+                      <Icon name="ic-check" size={15} style={{ color: "var(--color-primary)" }} />
+                    ) : (
+                      <span style={{ color: "var(--color-text-faint)" }}>—</span>
+                    )}
                   </td>
                 ))}
               </tr>

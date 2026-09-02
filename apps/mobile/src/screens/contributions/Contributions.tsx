@@ -14,7 +14,7 @@ function Stars({ value }: { value: number }) {
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i < Math.round(value) ? "#FFC107" : "none"} stroke="#FFC107" strokeWidth="1.5" aria-hidden>
+        <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i < Math.round(value) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--color-accent)" }} aria-hidden>
           <path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" />
         </svg>
       ))}

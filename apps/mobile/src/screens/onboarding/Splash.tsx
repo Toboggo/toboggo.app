@@ -28,7 +28,7 @@ function GoogleIcon() {
 
 function MailIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-primary)" }} aria-hidden>
       <rect x="2" y="4" width="20" height="16" rx="2" />
       <path d="M2 6l10 7 10-7" />
     </svg>
@@ -37,7 +37,7 @@ function MailIcon() {
 
 function PhoneIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" aria-hidden>
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-primary)" }} aria-hidden>
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <path d="M11 18h2" strokeLinecap="round" />
     </svg>
@@ -121,7 +121,7 @@ export default function Splash() {
           Vous avez déjà un compte ?
           <button type="button" onClick={() => navigate("/login-method")}>
             Se connecter
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
               <path d="M9 6l6 6-6 6" />
             </svg>
           </button>

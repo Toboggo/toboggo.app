@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { searchParks } from "@toboggo/shared";
 import { CITIES } from "../../lib/geo";
-import { EmptyState } from "@toboggo/design-system";
+import { EmptyState, Icon } from "@toboggo/design-system";
 import styles from "./SearchOverlay.module.css";
 
 const RECENT_KEY = "toboggo-recent-searches";
@@ -69,7 +69,7 @@ export function SearchOverlay({
             <div className={styles.sectionTitle}>À proximité</div>
             {CITIES.slice(0, 3).map((c) => (
               <button key={c.name} className={styles.row} onClick={() => onSelectCity(c)}>
-                <span className={styles.rowIcon}>📍</span>
+                <span className={styles.rowIcon}><Icon name="ic-explore" size={16} /></span>
                 {c.name}
                 <span className={styles.rowSub}>{c.region}</span>
               </button>
@@ -110,7 +110,7 @@ export function SearchOverlay({
                       onSelectPark(p.id);
                     }}
                   >
-                    <span className={styles.rowIcon}>🛝</span>
+                    <span className={styles.rowIcon}><Icon name="ic-slide" size={16} /></span>
                     {p.name}
                     <span className={styles.rowSub}>{p.formatted_address}</span>
                   </button>

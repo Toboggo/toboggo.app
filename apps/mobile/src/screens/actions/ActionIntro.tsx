@@ -1,24 +1,27 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, StepDots } from "@toboggo/design-system";
+import { Button, Icon, StepDots, type IconName } from "@toboggo/design-system";
 import { IconButton } from "@toboggo/design-system";
 
-const CONTENT: Record<string, { icon: string; title: string; subtitle: string; steps: string[]; to: string }> = {
+const CONTENT: Record<
+  string,
+  { iconName: IconName; title: string; subtitle: string; steps: string[]; to: string }
+> = {
   add: {
-    icon: "➕",
+    iconName: "ic-plus",
     title: "Ajouter un parc",
     subtitle: "Aidez d'autres familles en référençant un nouveau parc.",
     steps: ["Localisez le parc sur la carte", "Renseignez ses équipements", "Ajoutez une photo (facultatif)"],
     to: "/add",
   },
   rate: {
-    icon: "⭐",
+    iconName: "ic-review",
     title: "Donner mon avis",
     subtitle: "Votre avis aide d'autres parents à choisir le bon parc.",
     steps: ["Notez le parc de 1 à 5 étoiles", "Évaluez propreté, sécurité, équipements", "Ajoutez un commentaire"],
     to: "/rate",
   },
   report: {
-    icon: "⚠️",
+    iconName: "ic-flag",
     title: "Signaler un problème",
     subtitle: "Prévenez la communauté et notre équipe d'un souci sur ce parc.",
     steps: ["Choisissez le type de problème", "Décrivez la situation", "Ajoutez une photo si possible"],
@@ -36,11 +39,25 @@ export default function ActionIntro() {
     <div className="screen" style={{ display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "calc(14px + var(--safe-top)) 16px" }}>
         <IconButton aria-label="Fermer" onClick={() => navigate(-1)}>
-          ✕
+          <Icon name="ic-close" size={18} />
         </IconButton>
       </div>
       <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div style={{ fontSize: 64, marginBottom: 16 }}>{content.icon}</div>
+        <div
+          style={{
+            width: 76,
+            height: 76,
+            marginBottom: 16,
+            borderRadius: "50%",
+            background: "var(--color-primary-tint)",
+            color: "var(--color-primary)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name={content.iconName} size={36} />
+        </div>
         <h1 style={{ fontSize: 22 }}>{content.title}</h1>
         <p style={{ color: "var(--color-text-muted)", fontSize: 14, marginTop: 8, maxWidth: 280 }}>{content.subtitle}</p>
 

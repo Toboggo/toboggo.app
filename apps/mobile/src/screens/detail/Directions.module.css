@@ -23,16 +23,16 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 16px;
-  color: #24303a;
+  color: var(--color-text);
 }
 .parkAddr {
   font-size: 12.5px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   margin-top: 2px;
 }
 
 .mini {
-  background: #eaf7f0;
+  background: var(--color-primary-tint);
   border-radius: 18px;
   position: relative;
   height: 130px;
@@ -45,8 +45,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #4c9eeb;
-  border: 3px solid #fff;
+  background: var(--color-info);
+  border: 3px solid var(--color-surface);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   z-index: 2;
 }
@@ -56,7 +56,7 @@
   bottom: 24px;
   width: 2px;
   height: 78px;
-  background: repeating-linear-gradient(to top, #8a8578 0 6px, transparent 6px 12px);
+  background: repeating-linear-gradient(to top, var(--color-text-muted) 0 6px, transparent 6px 12px);
   transform-origin: bottom left;
   transform: rotate(35deg);
 }
@@ -64,13 +64,13 @@
   position: absolute;
   right: 22px;
   top: 18px;
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-size: 11px;
   font-weight: 800;
   padding: 5px 9px;
   border-radius: 14px 14px 14px 4px;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-surface);
   box-shadow: 0 4px 10px rgba(36, 48, 58, 0.2);
 }
 
@@ -79,7 +79,7 @@
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 8px;
-  color: #5b5648;
+  color: var(--color-text-muted);
 }
 
 .modes {
@@ -109,8 +109,8 @@
   font-style: normal;
 }
 .mode[data-on="1"] {
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .stops {
@@ -129,16 +129,16 @@
   cursor: pointer;
 }
 .stop[data-on="1"] {
-  background: #e7f6ec;
-  color: #16a34a;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
 }
 
 .cta {
   height: 52px;
   border-radius: 999px;
   border: none;
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15.5px;
@@ -151,7 +151,7 @@
 .ghost {
   background: none;
   border: none;
-  color: #16a34a;
+  color: var(--color-primary);
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 14px;

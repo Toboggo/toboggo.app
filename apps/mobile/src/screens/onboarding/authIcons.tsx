@@ -1,4 +1,11 @@
-/** Shared inline icons for the onboarding / auth screens (ported from the proto). */
+/**
+ * Shared inline icons for the onboarding / auth screens (ported from the proto).
+ *
+ * These are onboarding-specific glyphs (mail, phone, map-pin, eye) plus the
+ * third-party Apple / Google brand marks. They inherit `currentColor` — set the
+ * colour with a token on the parent (`color: var(--color-primary)`, …), never a
+ * hardcoded hex. The Apple / Google marks keep their official brand fills.
+ */
 
 export function ChevronLeft({ size = 20 }: { size?: number }) {
   return (
@@ -8,26 +15,26 @@ export function ChevronLeft({ size = 20 }: { size?: number }) {
   );
 }
 
-export function ChevronRight({ size = 16, color = "#A8A190" }: { size?: number; color?: string }) {
+export function ChevronRight({ size = 16 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M9 6l6 6-6 6" />
     </svg>
   );
 }
 
-export function MailIcon({ size = 18, color = "#16A34A" }: { size?: number; color?: string }) {
+export function MailIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <rect x="2" y="4" width="20" height="16" rx="2" />
       <path d="M2 6l10 7 10-7" />
     </svg>
   );
 }
 
-export function PhoneIcon({ size = 17, color = "#16A34A" }: { size?: number; color?: string }) {
+export function PhoneIcon({ size = 17 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <path d="M11 18h2" strokeLinecap="round" />
     </svg>
@@ -53,9 +60,9 @@ export function GoogleIcon({ size = 18 }: { size?: number }) {
   );
 }
 
-export function PinIcon({ size = 18, color = "#16A34A" }: { size?: number; color?: string }) {
+export function PinIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z" />
       <circle cx="12" cy="9" r="2.5" />
     </svg>

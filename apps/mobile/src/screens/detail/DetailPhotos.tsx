@@ -22,7 +22,7 @@ export default function DetailPhotos() {
             {photos.map((p, i) => (
               <div
                 key={i}
-                style={{ width: "100%", height: 140, borderRadius: 16, background: `#ece6d8 url(${p}) center/cover no-repeat` }}
+                style={{ width: "100%", height: 140, borderRadius: 16, background: `var(--color-border) url(${p}) center/cover no-repeat` }}
               />
             ))}
           </div>

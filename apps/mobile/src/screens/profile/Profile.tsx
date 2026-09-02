@@ -68,7 +68,7 @@ export default function Profile() {
             </svg>
           </span>
           <span className={styles.notifLabel}>Notifications</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B3AC9C" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-faint)" }} aria-hidden>
             <path d="M9 6l6 6-6 6" />
           </svg>
         </div>
@@ -100,15 +100,15 @@ export default function Profile() {
 
         <div className={styles.stats}>
           <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "#16a34a" }}>{stats.parks}</span>
+            <span style={{ color: "var(--color-primary)" }}>{stats.parks}</span>
             Parcs ajoutés
           </button>
           <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "#ffc107" }}>{stats.reviews}</span>
+            <span style={{ color: "var(--color-accent)" }}>{stats.reviews}</span>
             Avis
           </button>
           <button type="button" className={styles.stat} onClick={() => navigate("/favorites")}>
-            <span style={{ color: "#ef4444" }}>{stats.favorites}</span>
+            <span style={{ color: "var(--color-error)" }}>{stats.favorites}</span>
             Favoris
           </button>
         </div>
@@ -167,7 +167,7 @@ export default function Profile() {
 
 function Chevron() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B3AC9C" strokeWidth="2" aria-hidden>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-text-faint)" }} aria-hidden>
       <path d="M9 6l6 6-6 6" />
     </svg>
   );

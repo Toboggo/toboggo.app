@@ -5,14 +5,14 @@
   font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #8a8578;
+  color: var(--color-text-muted);
   margin: 0 0 6px;
 }
 .ageLabel {
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;
-  color: #24303a;
+  color: var(--color-text);
   margin-bottom: 6px;
 }
 
@@ -26,14 +26,14 @@
   right: 0;
   top: 18px;
   height: 4px;
-  background: #ece6d8;
+  background: var(--color-border);
   border-radius: 2px;
 }
 .trackFill {
   position: absolute;
   top: 18px;
   height: 4px;
-  background: #16a34a;
+  background: var(--color-primary);
   border-radius: 2px;
 }
 .slider input[type="range"] {
@@ -55,8 +55,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #16a34a;
-  border: 3px solid #fff;
+  background: var(--color-primary);
+  border: 3px solid var(--color-surface);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   cursor: pointer;
   margin-top: -9px;
@@ -66,8 +66,8 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #16a34a;
-  border: 3px solid #fff;
+  background: var(--color-primary);
+  border: 3px solid var(--color-surface);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   cursor: pointer;
 }
@@ -77,7 +77,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 13px 4px;
-  border-bottom: 1px solid #f1ece0;
+  border-bottom: 1px solid var(--color-border-strong);
 }
 .toggleRow span {
   font-size: 14.5px;
@@ -89,13 +89,13 @@
   height: 27px;
   border-radius: 999px;
   border: none;
-  background: #d9d2c2;
+  background: var(--color-border);
   position: relative;
   cursor: pointer;
   flex: none;
 }
 .switch[data-on="1"] {
-  background: #16a34a;
+  background: var(--color-primary);
 }
 .knob {
   position: absolute;
@@ -104,7 +104,7 @@
   width: 21px;
   height: 21px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--color-surface);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: left 0.15s;
 }
@@ -131,8 +131,8 @@
   font-weight: 700;
 }
 .crit[data-on="1"] {
-  background: #e7f6ec;
-  color: #16a34a;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
 }
 
 .footer {
@@ -157,8 +157,8 @@
   height: 50px;
   border-radius: 999px;
   border: none;
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 14.5px;

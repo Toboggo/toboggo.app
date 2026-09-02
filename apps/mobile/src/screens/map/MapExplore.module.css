@@ -5,7 +5,7 @@
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  background: #eaf7f0;
+  background: var(--color-primary-tint);
 }
 
 .searchBar {
@@ -40,7 +40,7 @@
   align-items: center;
   gap: 5px;
   border: none;
-  background: #f7f4ec;
+  background: var(--color-surface-alt);
   border-radius: 999px;
   padding: 8px 11px;
   cursor: pointer;
@@ -59,7 +59,7 @@
   height: 40px;
   border-radius: 12px;
   border: none;
-  background: #f7f4ec;
+  background: var(--color-surface-alt);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -69,14 +69,14 @@
 }
 .iconBtn[data-on="1"] {
   background: var(--color-primary);
-  color: #fff;
+  color: var(--color-on-primary);
 }
 .badge {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #ef4444;
-  color: #fff;
+  background: var(--color-error);
+  color: var(--color-on-primary);
   font-size: 10px;
   font-weight: 800;
   min-width: 17px;
@@ -94,7 +94,7 @@
   right: 14px;
   top: calc(78px + var(--safe-top));
   z-index: 20;
-  background: #fff3d6;
+  background: var(--color-warning-bg);
   border-radius: 16px;
   padding: 12px 14px;
   box-shadow: 0 8px 20px rgba(36, 48, 58, 0.12);
@@ -113,7 +113,7 @@
 }
 .waText {
   font-size: 12.5px;
-  color: #8a5a00;
+  color: var(--color-warning-text);
   font-weight: 700;
   line-height: 1.35;
 }
@@ -122,7 +122,7 @@
   background: none;
   border: none;
   padding: 0;
-  color: #059669;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
@@ -132,7 +132,7 @@
   background: none;
   border: none;
   flex: none;
-  color: #8a5a00;
+  color: var(--color-warning-text);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -159,8 +159,8 @@
   cursor: pointer;
 }
 .fabAdd {
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   box-shadow: 0 10px 22px rgba(22, 163, 74, 0.4);
 }
 .fabRecenter {

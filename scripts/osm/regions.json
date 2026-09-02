@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "data_dir": "~/Documents/Toboggo full folder/OSM",
+  "regions": {
+    "midi-pyrenees": {
+      "label": "Midi-Pyrénées",
+      "patterns": [
+        "midi-pyrenees-*.osm.pbf"
+      ],
+      "country_code": "FR",
+      "timezone": "Europe/Paris"
+    },
+    "france": {
+      "label": "France",
+      "patterns": [
+        "france-*.osm.pbf"
+      ],
+      "country_code": "FR",
+      "timezone": "Europe/Paris"
+    }
+  }
+}

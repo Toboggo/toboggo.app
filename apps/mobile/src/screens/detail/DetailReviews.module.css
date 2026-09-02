@@ -28,7 +28,7 @@
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 34px;
-  color: #16a34a;
+  color: var(--color-primary);
 }
 .summaryStars {
   display: flex;
@@ -37,7 +37,7 @@
 }
 .summaryCount {
   font-size: 11px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 .breakdown {
@@ -53,25 +53,25 @@
 }
 .brow > span:first-child {
   font-size: 10.5px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   width: 9px;
 }
 .brow > span:last-child {
   font-size: 10.5px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   width: 18px;
   text-align: right;
 }
 .btrack {
   flex: 1;
   height: 6px;
-  background: #ece6d8;
+  background: var(--color-border);
   border-radius: 3px;
   overflow: hidden;
 }
 .btrack > div {
   height: 100%;
-  background: #ffc107;
+  background: var(--color-accent);
 }
 
 .card {
@@ -90,8 +90,8 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #16a34a, #ffc107);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  color: var(--color-on-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -116,7 +116,7 @@
 }
 .date {
   font-size: 11px;
-  color: #a8a190;
+  color: var(--color-text-faint);
 }
 .cardStars {
   display: flex;
@@ -126,14 +126,14 @@
 .comment {
   margin: 10px 0 0;
   font-size: 13px;
-  color: #5b5648;
+  color: var(--color-text-muted);
 }
 .flag {
   margin-top: 10px;
   background: none;
   border: none;
   padding: 0;
-  color: #a8a190;
+  color: var(--color-text-faint);
   font-size: 11.5px;
   font-weight: 700;
   display: flex;
@@ -146,8 +146,8 @@
   height: 50px;
   border-radius: 999px;
   border: none;
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;

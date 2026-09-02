@@ -22,7 +22,7 @@ function Stars({ value }: { value: number }) {
   return (
     <>
       {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i < Math.round(value) ? "#FFC107" : "none"} stroke="#FFC107" strokeWidth="1.5" aria-hidden>
+        <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i < Math.round(value) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--color-accent)" }} aria-hidden>
           <path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" />
         </svg>
       ))}
@@ -58,7 +58,7 @@ export function ParkList({
         <span>Parcs à proximité</span>
         {hasChildren && (
           <button type="button" className={styles.childChip} data-on={forChildren ? "1" : undefined} onClick={() => setForChildren(!forChildren)}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2" aria-hidden>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-primary)" }} aria-hidden>
               <path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" />
             </svg>
             Pour mes enfants
@@ -104,7 +104,7 @@ export function ParkList({
                 onClick={() => onToggleFavorite(p.id)}
                 aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill={isFav ? "#EF4444" : "none"} stroke="#EF4444" strokeWidth="2" aria-hidden>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-error)" }} aria-hidden>
                   <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
                 </svg>
               </button>

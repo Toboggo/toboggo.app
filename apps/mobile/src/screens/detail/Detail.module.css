@@ -9,7 +9,7 @@
 .hero {
   position: relative;
   height: 220px;
-  background: #ece6d8 center / cover no-repeat;
+  background: var(--color-border) center / cover no-repeat;
 }
 .heroTop {
   position: absolute;
@@ -37,7 +37,7 @@
   box-shadow: 0 4px 10px rgba(36, 48, 58, 0.15);
 }
 .heroBtn[data-on="1"] {
-  background: #fff;
+  background: var(--color-surface);
 }
 .heroTapL,
 .heroTapR {
@@ -72,14 +72,14 @@
 }
 .dot[data-on="1"] {
   width: 18px;
-  background: #fff;
+  background: var(--color-surface);
 }
 .counter {
   position: absolute;
   bottom: 14px;
   right: 16px;
   background: rgba(0, 0, 0, 0.45);
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 11px;
   font-weight: 700;
   padding: 3px 9px;
@@ -94,11 +94,11 @@
   font-weight: 600;
   font-size: 22px;
   margin: 0;
-  color: #24303a;
+  color: var(--color-text);
 }
 .sub {
   font-size: 13px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   margin-top: 4px;
 }
 
@@ -111,7 +111,7 @@
 }
 .ratingRow span {
   font-size: 12px;
-  color: #5b5648;
+  color: var(--color-text-muted);
   margin-left: 5px;
   text-decoration: underline;
 }
@@ -124,8 +124,8 @@
   margin-top: 16px;
 }
 .chip {
-  background: #e7f6ec;
-  color: #16a34a;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
   font-size: 11.5px;
   font-weight: 700;
   padding: 6px 12px;
@@ -151,7 +151,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #e7f6ec;
+  background: var(--color-primary-tint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -171,7 +171,7 @@
   color: var(--color-text);
 }
 .scorePill {
-  color: #fff;
+  color: var(--color-on-primary);
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 13px;
@@ -181,7 +181,7 @@
 .scoreSub {
   display: block;
   font-size: 12px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   margin-top: 3px;
 }
 
@@ -190,12 +190,12 @@
   align-items: center;
   gap: 8px;
   margin-top: 16px;
-  background: #fff3d6;
+  background: var(--color-warning-bg);
   border-radius: 12px;
   padding: 10px 14px;
   font-size: 12.5px;
   font-weight: 700;
-  color: #8a5a00;
+  color: var(--color-warning-text);
 }
 .issue svg {
   flex: none;
@@ -207,13 +207,13 @@
   margin-top: 16px;
   font-size: 12.5px;
   font-weight: 700;
-  color: #5b5648;
+  color: var(--color-text-muted);
 }
 .okDot {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: #16a34a;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -224,7 +224,7 @@
   margin-top: 16px;
   font-size: 14px;
   line-height: 1.5;
-  color: #5b5648;
+  color: var(--color-text-muted);
 }
 
 .section {
@@ -241,12 +241,12 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #8a8578;
+  color: var(--color-text-muted);
 }
 .seeAll {
   background: none;
   border: none;
-  color: #8a8578;
+  color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 700;
   text-decoration: underline;
@@ -258,7 +258,7 @@
   font-weight: 600;
   font-size: 17px;
   margin: 0;
-  color: #24303a;
+  color: var(--color-text);
 }
 
 .emptyCard {
@@ -271,14 +271,14 @@
 }
 .emptyCard span {
   font-size: 13px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   font-weight: 600;
 }
 .emptyCard button {
   align-self: flex-start;
   background: none;
   border: none;
-  color: #16a34a;
+  color: var(--color-primary);
   font-weight: 700;
   font-size: 12.5px;
   text-decoration: underline;
@@ -310,7 +310,7 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #e7f6ec;
+  background: var(--color-primary-tint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -321,13 +321,13 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #f1ece0;
+  background: var(--color-border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
   font-size: 14px;
-  color: #5b5648;
+  color: var(--color-text-muted);
 }
 
 .photoStrip {
@@ -340,7 +340,7 @@
   width: 84px;
   height: 84px;
   border-radius: 14px;
-  background: #ece6d8 center / cover no-repeat;
+  background: var(--color-border) center / cover no-repeat;
 }
 
 .reportLink {
@@ -350,7 +350,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #8a8578;
+  color: var(--color-text-muted);
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
@@ -372,7 +372,7 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 14px;
-  color: #24303a;
+  color: var(--color-text);
 }
 .reviewStars {
   display: flex;
@@ -382,7 +382,7 @@
 .review p {
   font-size: 13.5px;
   margin: 4px 0 0;
-  color: #5b5648;
+  color: var(--color-text-muted);
 }
 
 .giveReview {
@@ -392,7 +392,7 @@
   border-radius: 999px;
   border: 1.5px solid var(--color-border);
   background: var(--color-surface);
-  color: #24303a;
+  color: var(--color-text);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;
@@ -425,15 +425,15 @@
   cursor: pointer;
 }
 .footFav[data-on="1"] {
-  background: #fde8e8;
+  background: var(--color-error-tint);
 }
 .footGo {
   flex: 1;
   height: 52px;
   border-radius: 999px;
   border: none;
-  background: #16a34a;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 15px;

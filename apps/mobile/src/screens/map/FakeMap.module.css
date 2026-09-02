@@ -4,7 +4,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  background: #eaf7f0;
+  background: var(--color-primary-tint);
 }
 
 .grid {
@@ -51,7 +51,7 @@
   position: absolute;
   width: 60px;
   height: 48px;
-  background: #bfe8ce;
+  background: var(--color-primary-tint);
   border-radius: 60% 40% 55% 45% / 45% 55% 40% 60%;
 }
 
@@ -62,8 +62,8 @@
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #4c9eeb;
-  border: 3px solid #fff;
+  background: var(--color-info);
+  border: 3px solid var(--color-surface);
   transform: translate(-50%, -50%);
   box-shadow: 0 0 0 9px rgba(76, 158, 235, 0.22), 0 2px 6px rgba(0, 0, 0, 0.2);
 }
@@ -71,13 +71,13 @@
 .pin {
   position: absolute;
   transform: translate(-50%, -100%);
-  color: #fff;
+  color: var(--color-on-primary);
   font-size: 12px;
   font-weight: 800;
   font-family: var(--font-body);
   padding: 5px 9px;
   border-radius: 16px 16px 16px 4px;
-  border: 2.5px solid #fff;
+  border: 2.5px solid var(--color-surface);
   box-shadow: 0 4px 10px rgba(36, 48, 58, 0.22);
   cursor: pointer;
 }

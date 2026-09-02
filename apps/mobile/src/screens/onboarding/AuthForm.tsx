@@ -78,7 +78,7 @@ export default function AuthForm() {
     }
   };
 
-  const inputStyle = { borderColor: error ? "#E8746A" : "#ECE6D8" };
+  const inputStyle = { borderColor: error ? "var(--color-error)" : "var(--color-border)" };
 
   return (
     <div className={styles.wrap}>

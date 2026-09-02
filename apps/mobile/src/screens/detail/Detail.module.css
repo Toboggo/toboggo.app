@@ -11,6 +11,25 @@
   height: 220px;
   background: var(--color-border) center / cover no-repeat;
 }
+.hero[data-empty="1"] {
+  background: var(--color-primary-tint);
+}
+.heroEmpty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+}
 .heroTop {
   position: absolute;
   top: calc(16px + var(--safe-top));

@@ -199,6 +199,29 @@ Toutes en `supabase/migrations/`. État `0007→0019` : **DRAFT → AUDITED (2C)
 
 **`migrations-v2-draft/`** aussi corrigé en Phase 2D (cohérence du schéma cible) : `0002_functions.sql` (`search_path` sur 6 SECDEF + `delete_own_account` ; `recalculate_park_score` INVOKER ; `has_score` coalesce) et `0003_rls.sql` (faille `organization_parks` + `search_path` sur 8 helpers). **Phase 3E** : `0002_functions.sql` reçoit aussi le fix `park_public.water` (`drinking_water` seul).
 
+### 6bis. Migrations 0022 → 0025 — enrichissement additif post-cutover
+
+> ⚠️ **Divergence à surveiller.** Ces migrations existent sur le disque (et, pour
+> 0022→0024, sont appliquées en prod avec l'import OSM des 2201 parcs — cf.
+> `docs/operations/OSM.md`) mais **le §11 CHECKPOINT n'a pas été remis à jour**
+> (il indique encore `remote 0001→0021`). À réconcilier lors du prochain
+> checkpoint DB.
+
+Toutes **strictement additives et NON DESTRUCTIVES** (0 `DROP TABLE/COLUMN`, 0
+`DELETE`/`TRUNCATE`, 0 modification des colonnes/tables V1). Ce ne sont **pas** le
+legacy cleanup destructif `0022+` du plan (§5 #6, §10) — celui-ci reste **INTERDIT**.
+
+| # | Fichier | Objectif |
+|---|---|---|
+| 0022 | `0022_add_play_structure_feature.sql` | +1 feature catalogue (`play_structure`) |
+| 0023 | `0023_add_osm_playground_features.sql` | +7 features catalogue (mapping OSM `playground=*`) |
+| 0024 | `0024_source_priority.sql` | fonctions de priorité des sources (`source_priority`, `can_source_replace_attribute`, `set_park_attribute_source`) — protège une donnée Toboggo/collectivité contre un écrasement OSM |
+| 0025 | `0025_park_media_provenance.sql` | **provenance des photos** : `park_media` += `source` (`source_type`), `source_url`, `author`, `license`, `attribution` (toutes nullables). `park_media` vide partout → 0 rétro-remplissage. Règle : OSM ne crée aucune ligne `park_media` ; le placeholder Toboggo est un état d'UI, jamais une ligne en base. Détail : `docs/operations/OSM.md` §Photos. |
+
+Application : LOCAL (`supabase db reset` / `db push --db-url` local) et STAGING
+(`--db-url` séparé) uniquement pour Claude. Application prod = décision fondateur
+(`db push --linked` interdit à Claude).
+
 ---
 
 ## 7. Audits effectués

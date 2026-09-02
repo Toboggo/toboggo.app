@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Icon, StarRating } from "@toboggo/design-system";
 import { AGE_BAND_LABEL, formatDistance, type Park } from "@toboggo/shared";
-import { parkPhotoUrl } from "../lib/photos";
+import { ParkPhoto } from "./ParkPhoto";
 import styles from "./ParkCard.module.css";
 
 function ageLabel(park: Park) {
@@ -25,7 +25,7 @@ export function ParkCard({
   const navigate = useNavigate();
   return (
     <button className={styles.row} onClick={() => navigate(`/park/${park.id}`)}>
-      <div className={styles.thumb} style={{ backgroundImage: `url(${parkPhotoUrl(park, 0, 140, 140)})` }} />
+      <ParkPhoto park={park} className={styles.thumb} markSize={22} />
       <div className={styles.body}>
         <div className={styles.name}>{park.name}</div>
         <div className={styles.meta}>

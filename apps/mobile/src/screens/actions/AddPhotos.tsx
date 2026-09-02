@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@toboggo/design-system";
-import { updatePark, uploadPhoto } from "@toboggo/shared";
+import { addParkPhotos, uploadPhoto } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -29,10 +29,12 @@ export default function AddPhotos() {
   }
 
   async function submit() {
-    if (!parkId || !park) return;
+    if (!parkId || !park || !photos.length) return;
     setSaving(true);
     try {
-      await updatePark(parkId, { photos: [...park.photos, ...photos] }, `${photos.length} photo(s) ajoutée(s)`);
+      // Contributor photos: stored as park_media rows with recorded provenance
+      // (source = "user"). They must be real photos of this park.
+      await addParkPhotos(parkId, photos, { source: "user", userId });
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
       setDone(true);
     } finally {

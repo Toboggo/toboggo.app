@@ -1,6 +1,6 @@
 import { BottomSheet } from "@toboggo/design-system";
 import type { Park } from "@toboggo/shared";
-import { parkPhotoUrl } from "../lib/photos";
+import { ParkPhoto } from "./ParkPhoto";
 import { useToastStore } from "../lib/toast";
 
 export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: () => void; park: Park }) {
@@ -18,12 +18,13 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
     <BottomSheet open={open} onClose={onClose} snapPoints={[320]} initialSnap={0} showBackdrop>
       <div style={{ padding: "8px 20px 28px" }}>
         <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-          <div
+          <ParkPhoto
+            park={park}
+            markSize={20}
             style={{
               width: 56,
               height: 56,
               borderRadius: 12,
-              backgroundImage: `url(${parkPhotoUrl(park)})`,
               backgroundSize: "cover",
               flexShrink: 0,
             }}

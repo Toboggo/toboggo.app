@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@toboggo/design-system";
 import { formatDistance, walkMinutes, type Park } from "@toboggo/shared";
-import { parkPhotoUrl } from "../../lib/photos";
+import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
 import styles from "./ParkPreview.module.css";
 
@@ -39,7 +39,6 @@ export function ParkPreview({
   if (park.wc) criteria.push("WC");
 
   const gallery = (park.photos ?? []).slice(0, 6);
-  const photoCount = Math.max(gallery.length, 3);
 
   return (
     <div className={styles.wrap}>
@@ -51,7 +50,7 @@ export function ParkPreview({
       )}
 
       <div className={styles.headRow}>
-        <div className={styles.photo} style={{ backgroundImage: `url(${parkPhotoUrl(park, 0, 260, 260)})` }} />
+        <ParkPhoto park={park} className={styles.photo} markSize={30} />
         <div className={styles.headBody}>
           <div className={styles.titleRow}>
             <div className={styles.name}>{park.name}</div>
@@ -113,8 +112,8 @@ export function ParkPreview({
         <div className={styles.section}>
           <div className={styles.kicker}>Photos</div>
           <div className={styles.photoStrip}>
-            {Array.from({ length: photoCount }).map((_, i) => (
-              <div key={i} className={styles.stripThumb} style={{ backgroundImage: `url(${parkPhotoUrl(park, i, 160, 160)})` }} />
+            {gallery.map((url, i) => (
+              <div key={i} className={styles.stripThumb} style={{ backgroundImage: `url(${url})` }} />
             ))}
           </div>
         </div>

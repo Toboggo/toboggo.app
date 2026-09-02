@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Chip, StarInput, Textarea } from "@toboggo/design-system";
-import { createReview, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
+import { addMedia, createReview, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -56,9 +56,12 @@ export default function RatePark() {
         stars,
         sub_ratings: subRatings,
         comment: comment || null,
-        photo,
         age_band: ageBand,
       });
+      if (photo) {
+        // A photo attached to a review is a real contributor photo of the park.
+        await addMedia({ park_id: parkId, url: photo, source: "user", user_id: userId });
+      }
       void queryClient.invalidateQueries({ queryKey: ["park-reviews", parkId] });
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
       setDone(true);

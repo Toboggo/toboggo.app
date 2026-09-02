@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listMyParks, listMyReviews, listMyReports } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { BottomTabs } from "../../components/BottomTabs";
-import { parkPhotoUrl } from "../../lib/photos";
+import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
 import styles from "./Contributions.module.css";
 
@@ -62,7 +62,7 @@ export default function Contributions() {
           ) : (
             parks.map((p) => (
               <div key={p.id} className={styles.parkRow} onClick={() => navigate(`/park/${p.id}`)}>
-                <div className={styles.thumb} style={{ backgroundImage: `url(${parkPhotoUrl(p, 0, 120, 120)})` }} />
+                <ParkPhoto park={p} className={styles.thumb} markSize={18} />
                 <div className={styles.rowBody}>
                   <div className={styles.rowName}>{p.name}</div>
                   <div className={styles.rowSub}>{p.formatted_address}</div>

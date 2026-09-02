@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { formatDistance, type Park } from "@toboggo/shared";
-import { parkPhotoUrl } from "../../lib/photos";
+import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
 import { useFilters, type SortMode } from "../../lib/filters";
 import styles from "./ParkList.module.css";
@@ -88,7 +88,7 @@ export function ParkList({
           const bits = [formatDistance(p.distance_m), `${p.age_min}–${p.age_max} ans`, SURFACE_LABEL[p.surface] ?? ""].filter(Boolean);
           return (
             <div key={p.id} className={styles.row}>
-              <div className={styles.thumb} style={{ backgroundImage: `url(${parkPhotoUrl(p, 0, 120, 120)})` }} />
+              <ParkPhoto park={p} className={styles.thumb} markSize={22} />
               <div className={styles.rowBody} onClick={() => navigate(`/park/${p.id}`)}>
                 <div className={styles.rowName}>{p.name}</div>
                 <div className={styles.rowMeta}>{bits.join(" · ")}</div>

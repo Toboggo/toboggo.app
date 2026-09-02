@@ -267,3 +267,15 @@ Issu de l'audit du 31/08/2026. Progressif, sans refonte.
   sprites ont des modifs non commitées : on n'y touche pas maintenant.
 - `apps/mobile/src/components/Logo.tsx` : ré-export sans importeur — nettoyage
   possible en DESIGN-6.
+
+## 13. Photos de parc & placeholder
+
+- Une fiche parc n'affiche **que de vraies photos du lieu** (`park.photos`, issu
+  des lignes `park_media` approuvées). Aucune image générée / illustrative /
+  stock n'est jamais affichée ni enregistrée.
+- **Placeholder = état d'UI uniquement** : quand `park.photos.length === 0`, le
+  front rend `<ParkPhoto>` (`apps/mobile/src/components/ParkPhoto.tsx`) →
+  `<LogoMark>` sur fond `--color-primary-tint` + CTA « Ajouter une photo ». Ce
+  placeholder n'est jamais persisté.
+- Provenance et licences des photos : `docs/operations/OSM.md` §Photos +
+  migration `0025_park_media_provenance.sql`.

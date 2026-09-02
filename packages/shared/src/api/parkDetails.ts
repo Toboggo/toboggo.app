@@ -87,13 +87,32 @@ export async function listMedia(parkId: string): Promise<ParkMedia[]> {
   return (data ?? []) as ParkMedia[];
 }
 
+/**
+ * Add a real photo of a park as a `park_media` row.
+ *
+ * A park photo MUST represent the place and have an identifiable origin, so
+ * `source` is required (0025):
+ *   - `"user"`         — parent / contributor upload
+ *   - `"municipality"` — collectivité back-office upload
+ *   - `"toboggo"`      — Toboggo staff
+ *   - `"open_data"` / `"partner"` — explicitly reusable open sources
+ *
+ * Never insert a generated, illustrative or generic image here — the empty
+ * state is a UI concern (Toboggo placeholder), never a database row.
+ */
 export async function addMedia(input: {
   park_id: string;
   url: string;
+  source: NonNullable<ParkMedia["source"]>;
   user_id?: string | null;
   category?: ParkMedia["category"];
   caption?: string | null;
   is_cover?: boolean;
+  source_url?: string | null;
+  author?: string | null;
+  license?: string | null;
+  attribution?: string | null;
+  status?: ParkMedia["status"];
 }): Promise<ParkMedia> {
   const supabase = getSupabase();
   const { data, error } = await supabase
@@ -105,7 +124,12 @@ export async function addMedia(input: {
       category: input.category ?? "other",
       caption: input.caption ?? null,
       is_cover: input.is_cover ?? false,
-      status: "approved",
+      status: input.status ?? "approved",
+      source: input.source,
+      source_url: input.source_url ?? null,
+      author: input.author ?? null,
+      license: input.license ?? null,
+      attribution: input.attribution ?? null,
     })
     .select()
     .single();
@@ -113,14 +137,42 @@ export async function addMedia(input: {
   return data as ParkMedia;
 }
 
-/** Legacy helper: the old model kept `parks.photos` as a text[]. Now each photo
- * is a `park_media` row. */
-export async function addParkPhotos(parkId: string, urls: string[], userId?: string | null): Promise<void> {
+/** Add several photos coming from the same source (e.g. a contributor upload
+ * batch). Each becomes a `park_media` row with recorded provenance. */
+export async function addParkPhotos(
+  parkId: string,
+  urls: string[],
+  opts: {
+    source: NonNullable<ParkMedia["source"]>;
+    userId?: string | null;
+    license?: string | null;
+    author?: string | null;
+    attribution?: string | null;
+  },
+): Promise<void> {
   if (!urls.length) return;
   const supabase = getSupabase();
   const { error } = await supabase.from("park_media").insert(
-    urls.map((url) => ({ park_id: parkId, url, user_id: userId ?? null, category: "other", status: "approved" })),
+    urls.map((url) => ({
+      park_id: parkId,
+      url,
+      user_id: opts.userId ?? null,
+      category: "other" as const,
+      status: "approved" as const,
+      source: opts.source,
+      license: opts.license ?? null,
+      author: opts.author ?? null,
+      attribution: opts.attribution ?? null,
+    })),
   );
+  if (error) throw error;
+}
+
+/** Remove a park photo by its URL (back-office photo management works from the
+ * flat `park.photos` URL list rather than media ids). */
+export async function deleteMediaByUrl(parkId: string, url: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase.from("park_media").delete().eq("park_id", parkId).eq("url", url);
   if (error) throw error;
 }
 

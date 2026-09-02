@@ -1,13 +1,20 @@
 import type { Park } from "@toboggo/shared";
 
 /**
- * Returns a real uploaded photo when the park has one, otherwise a stable
- * placeholder (picsum.photos, seeded by park id) so cards never show a blank
- * box — same fallback the prototype used, kept only as a placeholder for
- * parks nobody has photographed yet.
+ * Real park photos only.
+ *
+ * `park.photos` is built by the `park_public` view from **approved `park_media`
+ * rows** — i.e. photos with an identifiable origin (contributor, collectivité,
+ * reusable open source). The OSM import never creates a photo.
+ *
+ * This helper returns `null` when the park has no real photo at that index. It
+ * NEVER fabricates a generic / illustrative / stock image. The empty state is a
+ * UI concern — render <ParkPhoto>, which shows the Toboggo placeholder.
  */
-export function parkPhotoUrl(park: Park, index = 0, w = 400, h = 400): string {
-  const real = park.photos?.[index];
-  if (real) return real;
-  return `https://picsum.photos/seed/toboggo-${park.id}-${index}/${w}/${h}`;
+export function parkPhotoUrl(park: Pick<Park, "photos">, index = 0): string | null {
+  return park.photos?.[index] ?? null;
+}
+
+export function parkHasPhotos(park: Pick<Park, "photos">): boolean {
+  return (park.photos?.length ?? 0) > 0;
 }

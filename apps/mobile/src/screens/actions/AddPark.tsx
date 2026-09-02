@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button, Chip, Icon, Input, Textarea, DualRangeSlider, Tag, equipmentIcon } from "@toboggo/design-system";
-import { createPark, logActivity, uploadPhoto, type Park } from "@toboggo/shared";
+import { addParkPhotos, createPark, logActivity, uploadPhoto, type Park } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -82,11 +82,13 @@ export default function AddPark() {
         water: services.has("water"),
         parking: services.has("parking"),
         play_equipment: Array.from(equipment),
-        photos,
         description: description || null,
         status: "pending",
         created_by: userId,
       } as Partial<Park>);
+      if (photos.length) {
+        await addParkPhotos(park.id, photos, { source: "user", userId });
+      }
       await logActivity(park.commune_id, "Vous", `Parc ajouté : ${park.name}`, "primary");
       setCreatedId(park.id);
       setStep(TOTAL_STEPS);

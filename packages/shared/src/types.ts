@@ -417,6 +417,18 @@ export interface ParkMedia {
   is_cover: boolean;
   status: MediaStatus;
   created_at: string;
+  // ── provenance (0025) — a park photo must have an identifiable origin ──
+  /** Where the photo comes from. `null` = unknown (legacy rows). OSM never
+   * creates park_media rows. */
+  source: SourceType | null;
+  /** Original page/URL of the photo at the source. */
+  source_url: string | null;
+  /** Declared author / photographer. */
+  author: string | null;
+  /** Usage licence (e.g. `CC-BY-SA-4.0`, `© Ville de X`). */
+  license: string | null;
+  /** Ready-to-display credit line. */
+  attribution: string | null;
 }
 
 // ── §15 Reports ──────────────────────────────────────────────────────────

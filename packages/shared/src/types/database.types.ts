@@ -953,36 +953,51 @@ export type Database = {
       }
       park_media: {
         Row: {
+          attribution: string | null
+          author: string | null
           caption: string | null
           category: Database["public"]["Enums"]["media_category"]
           created_at: string
           id: string
           is_cover: boolean
+          license: string | null
           park_id: string
+          source: Database["public"]["Enums"]["source_type"] | null
+          source_url: string | null
           status: Database["public"]["Enums"]["media_status"]
           url: string
           user_id: string | null
           zone_id: string | null
         }
         Insert: {
+          attribution?: string | null
+          author?: string | null
           caption?: string | null
           category?: Database["public"]["Enums"]["media_category"]
           created_at?: string
           id?: string
           is_cover?: boolean
+          license?: string | null
           park_id: string
+          source?: Database["public"]["Enums"]["source_type"] | null
+          source_url?: string | null
           status?: Database["public"]["Enums"]["media_status"]
           url: string
           user_id?: string | null
           zone_id?: string | null
         }
         Update: {
+          attribution?: string | null
+          author?: string | null
           caption?: string | null
           category?: Database["public"]["Enums"]["media_category"]
           created_at?: string
           id?: string
           is_cover?: boolean
+          license?: string | null
           park_id?: string
+          source?: Database["public"]["Enums"]["source_type"] | null
+          source_url?: string | null
           status?: Database["public"]["Enums"]["media_status"]
           url?: string
           user_id?: string | null

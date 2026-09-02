@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Chip, Dialog, Input, Textarea } from "@toboggo/design-system";
 import {
+  addParkPhotos,
   createPark,
+  deleteMediaByUrl,
   deletePark,
   getParkHistory,
   logActivity,
@@ -82,13 +84,21 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
         parking: services.has("parking"),
         play_equipment: Array.from(equipment),
         description: description || null,
-        photos,
       };
+      // Back-office photos are stored as park_media rows with recorded
+      // provenance: a collectivité upload -> "municipality", Toboggo staff -> "toboggo".
+      const photoSource = communeId ? ("municipality" as const) : ("toboggo" as const);
       if (isNew) {
         const created = await createPark({ ...payload, commune_id: communeId ?? null, lat: 45.75, lng: 4.85, status: "published", surface: "non_precise" } as Partial<Park>);
+        if (photos.length) await addParkPhotos(created.id, photos, { source: photoSource });
         await logActivity(communeId ?? null, userName, `Parc ajouté : ${created.name}`);
       } else if (existing) {
         await updatePark(existing.id, payload, "Modifié depuis le back office");
+        const before = existing.photos ?? [];
+        const added = photos.filter((p) => !before.includes(p));
+        const removed = before.filter((p) => !photos.includes(p));
+        if (added.length) await addParkPhotos(existing.id, added, { source: photoSource });
+        for (const url of removed) await deleteMediaByUrl(existing.id, url);
         await logActivity(communeId ?? null, userName, `Parc modifié : ${name}`);
       }
       void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });

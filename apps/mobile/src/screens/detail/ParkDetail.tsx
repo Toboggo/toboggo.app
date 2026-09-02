@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { PLAY_EQUIPMENT_LABEL, incrementParkViews } from "@toboggo/shared";
-import { Icon, equipmentIcon } from "@toboggo/design-system";
+import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
-import { parkPhotoUrl } from "../../lib/photos";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
 import { useSession } from "../../lib/session";
 import { ShareSheet } from "../../components/ShareSheet";
@@ -49,7 +48,8 @@ export default function ParkDetail() {
     return <div className="screen" style={{ padding: 40, textAlign: "center" }}>Chargement…</div>;
   }
 
-  const photos = park.photos.length ? park.photos : [0, 1, 2].map((i) => parkPhotoUrl(park, i, 800, 500));
+  const photos = park.photos;
+  const hasPhotos = photos.length > 0;
   const isFav = favorites.includes(park.id);
   const score = (park.rating * 2).toFixed(1);
   const tierColor =
@@ -70,7 +70,22 @@ export default function ParkDetail() {
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.hero} style={{ backgroundImage: `url(${photos[photoIndex]})` }}>
+      <div
+        className={styles.hero}
+        data-empty={hasPhotos ? undefined : "1"}
+        style={hasPhotos ? { backgroundImage: `url(${photos[photoIndex]})` } : undefined}
+      >
+        {!hasPhotos && (
+          <button
+            type="button"
+            className={styles.heroEmpty}
+            onClick={() => navigate(`/photo-add?park=${park.id}`)}
+            aria-label="Ajouter une photo de ce parc"
+          >
+            <LogoMark size={40} rounded={false} />
+            <span>Ajouter une photo</span>
+          </button>
+        )}
         <div className={styles.heroTop}>
           <CircleBtn label="Retour" onClick={() => navigate(-1)}>
             <Icon name="ic-back" size={18} style={{ color: "var(--color-text)" }} />
@@ -203,15 +218,26 @@ export default function ParkDetail() {
         <div className={styles.section}>
           <div className={styles.kickerRow}>
             <span className={styles.kicker}>Photos de la communauté</span>
-            <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/photos`)}>
-              Voir tout
-            </button>
+            {hasPhotos && (
+              <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/photos`)}>
+                Voir tout
+              </button>
+            )}
           </div>
-          <div className={styles.photoStrip}>
-            {photos.map((p, i) => (
-              <div key={i} className={styles.photoThumb} style={{ backgroundImage: `url(${p})` }} />
-            ))}
-          </div>
+          {hasPhotos ? (
+            <div className={styles.photoStrip}>
+              {photos.map((p, i) => (
+                <div key={i} className={styles.photoThumb} style={{ backgroundImage: `url(${p})` }} />
+              ))}
+            </div>
+          ) : (
+            <div className={styles.emptyCard}>
+              <span>Aucune photo pour ce parc pour le moment.</span>
+              <button type="button" onClick={() => navigate(`/photo-add?park=${park.id}`)}>
+                Ajouter une photo
+              </button>
+            </div>
+          )}
         </div>
 
         <button type="button" className={styles.reportLink} onClick={() => navigate(`/action-intro/report?park=${park.id}`)}>

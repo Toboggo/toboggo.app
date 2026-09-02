@@ -9,7 +9,7 @@ import { ParkPreview } from "./ParkPreview";
 import { ParkList } from "./ParkList";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
-import { useGeo } from "../../lib/geo";
+import { useGeo, requestBrowserLocation } from "../../lib/geo";
 import { useFilters } from "../../lib/filters";
 import { useNearbyParks } from "../../lib/parksQuery";
 import { useWeather } from "../../lib/weather";
@@ -55,6 +55,18 @@ export default function MapExplore() {
     }
     const next = favorites.includes(parkId) ? favorites.filter((f) => f !== parkId) : [...favorites, parkId];
     void patchProfile({ favorites: next });
+  }
+
+  async function handleRecenter() {
+    try {
+      const pos = await requestBrowserLocation();
+      const { setLocation, setPermission } = useGeo.getState();
+      setLocation(pos.lat, pos.lng, "Autour de vous");
+      setPermission("granted");
+      setRecenterSignal((n) => n + 1);
+    } catch {
+      useGeo.getState().setPermission("denied");
+    }
   }
 
   const alertCopy =
@@ -133,7 +145,7 @@ export default function MapExplore() {
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>
         </button>
-        <button type="button" className={styles.fabRecenter} onClick={() => setRecenterSignal((n) => n + 1)} aria-label="Recentrer">
+        <button type="button" className={styles.fabRecenter} onClick={() => void handleRecenter()} aria-label="Recentrer">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#24303A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
             <circle cx="12" cy="12" r="5" />

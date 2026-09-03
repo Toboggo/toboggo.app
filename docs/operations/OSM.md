@@ -133,15 +133,49 @@ OSM
 ```
 
 ## Photos
-Ne pas aspirer des photos sans licence compatible.
 
-Priorité :
+**Règle d'or : OSM ne crée aucune photo par défaut.**
+Une photo de parc doit représenter réellement le lieu et avoir une provenance
+identifiable. Aucune image générée, illustrative, générique ou placeholder n'est
+enregistrée en base comme photo d'un parc.
+
+### Ce que fait l'import OSM aujourd'hui
+- Il ne lit, ne récupère et n'écrit **aucune** image / URL de photo.
+- `scripts/osm/import-osm-local.py` et `import-osm-remote.py` n'insèrent jamais
+  de ligne `park_media`. (Ils créent `parks`, `external_ids`, `park_sources`,
+  `park_features`, `park_attribute_sources` — jamais `park_media`.)
+- Le tag OSM `image=` / `wikimedia_commons=` n'est **pas** importé pour l'instant
+  (option future, seulement si licence explicitement réutilisable + crédit).
+
+### Modèle de données — `park_media` (migration `0025`)
+Une photo = une ligne `park_media` avec sa provenance :
+
+| colonne | rôle |
+|---|---|
+| `source` (`source_type`) | `user` (parent/contributeur) · `municipality` (collectivité) · `toboggo` (staff) · `open_data` / `partner` (sources ouvertes réutilisables). `NULL` = inconnue (lignes historiques). |
+| `source_url` | page/URL d'origine chez la source |
+| `author` | auteur / photographe déclaré |
+| `license` | licence d'exploitation (`CC-BY-SA-4.0`, `© Ville de X`, …) |
+| `attribution` | mention de crédit prête à afficher |
+| `status` (`media_status`) | `approved` par défaut ; `pending` / `rejected` pour la modération |
+
+`park_public.photos` / `park_public.cover_photo` n'exposent que les lignes
+`status = 'approved'`.
+
+### Placeholder Toboggo = état d'UI uniquement
+Quand un parc n'a **aucune** photo (`park.photos.length === 0`), le front affiche
+le marqueur Toboggo (`<LogoMark>`) + un CTA « Ajouter une photo ». Ce placeholder
+n'est **jamais** écrit dans Supabase.
+
+### Apports futurs — priorité des sources
 ```text
 Open data compatible
 → collectivités
 → utilisateurs Toboggo
 → autres sources explicitement réutilisables
 ```
+Chaque apport renseigne `source` (+ `license` / `author` / `attribution` si
+connus) via `addMedia` / `addParkPhotos` (`packages/shared/src/api/parkDetails.ts`).
 
 ## Prochaines priorités
 1. priorité des sources / protection contre écrasement OSM

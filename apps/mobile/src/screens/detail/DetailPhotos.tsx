@@ -28,7 +28,7 @@ export default function DetailPhotos() {
           >
             <LogoMark size={44} rounded={false} />
             <p style={{ fontSize: 13, maxWidth: 260 }}>
-              Aucune photo pour ce parc pour le moment. Aidez la communauté en ajoutant la première.
+              Aucune photo pour l'instant. Soyez le premier à en ajouter une !
             </p>
             <button
               type="button"

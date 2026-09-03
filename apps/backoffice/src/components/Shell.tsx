@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Avatar, Icon, Logo, type IconName } from "@toboggo/design-system";
-import { listParks, listReports } from "@toboggo/shared";
+import { listParks, listPendingMedia, listReports } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
 import styles from "./Shell.module.css";
@@ -32,11 +32,16 @@ export function Shell({ children }: { children: ReactNode }) {
     queryKey: ["shell-open-reports", communeId, isAdmin],
     queryFn: async () => (await listReports({ communeId, status: ["open"] })).length,
   });
+  const { data: pendingMedia = 0 } = useQuery({
+    queryKey: ["shell-pending-media", communeId, isAdmin],
+    queryFn: async () => (await listPendingMedia({ communeId })).length,
+  });
 
   const adminItems: NavItem[] = [
     { to: "/", label: "Tableau de bord", icon: "ic-dashboard" },
     { to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks },
     { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
+    { to: "/photos", label: "Photos", emoji: "📷", badge: pendingMedia },
     { to: "/users", label: "Utilisateurs", icon: "ic-users" },
     { to: "/reviews", label: "Avis", icon: "ic-review" },
     { to: "/settings", label: "Paramètres", icon: "ic-settings" },
@@ -52,6 +57,7 @@ export function Shell({ children }: { children: ReactNode }) {
     { to: "/journal", label: "Journal", emoji: "📓" },
     { to: "/statistiques", label: "Statistiques", icon: "ic-chart" },
     { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
+    { to: "/photos", label: "Photos", emoji: "📷", badge: pendingMedia },
     { to: "/reviews", label: "Avis", icon: "ic-review" },
     { to: "/settings", label: "Paramètres", icon: "ic-settings" },
   ];

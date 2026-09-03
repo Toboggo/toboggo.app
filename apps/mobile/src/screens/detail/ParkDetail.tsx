@@ -232,7 +232,7 @@ export default function ParkDetail() {
             </div>
           ) : (
             <div className={styles.emptyCard}>
-              <span>Aucune photo pour ce parc pour le moment.</span>
+              <span>Aucune photo pour l'instant. Soyez le premier à en ajouter une !</span>
               <button type="button" onClick={() => navigate(`/photo-add?park=${park.id}`)}>
                 Ajouter une photo
               </button>

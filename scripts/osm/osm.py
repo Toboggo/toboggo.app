@@ -64,6 +64,7 @@ def main():
     if args.cmd == "import-local":
         cmd = [sys.executable, ROOT/"scripts/osm/import-osm-local.py", pbf]
         if args.commit: cmd.append("--commit")
+        if args.publish: cmd.append("--publish")
         run(cmd)
         return
 

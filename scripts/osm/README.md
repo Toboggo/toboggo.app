@@ -48,12 +48,44 @@ Commit vers Supabase LOCAL uniquement :
 npm run osm:import:local -- midi-pyrenees --commit
 ```
 
+Publier les parcs OSM en LOCAL (pour tester l'app parents en anon — sinon les
+parcs importés restent `pending` et invisibles) :
+
+```bash
+npm run osm:import:local -- midi-pyrenees --commit --publish
+```
+
+- sans `--publish` : nouveaux parcs en `moderation_status='pending'`, parcs
+  existants non re-statués (comportement inchangé) ;
+- avec `--publish`, pour les parcs rencontrés dans **ce run** :
+  - nouveaux parcs → `moderation_status='published'` ;
+  - parcs existants `pending` → `published` (par parc, `where id = …`) ;
+  - `published` / `blocked` / `rejected` / `draft` : laissés tels quels ;
+  - aucun parc n'est jamais dé-publié, aucun `UPDATE` global ;
+- `verification_status` reste `'unverified'` dans les deux cas ;
+- triggers actifs (jamais de `session_replication_role=replica`) ; le trigger
+  `parks_v1_compat_biu` resynchronise le champ legacy `status` ;
+- compteur `Publiés pendant ce run : N` ;
+- avant `commit`, le script vérifie : parcs créés au statut attendu, aucun parc
+  du run resté `pending` sous `--publish`, `status == moderation_status` sur tous
+  les parcs du run — tout écart annule l'import (rollback).
+
+Le `--publish` de `import-osm-remote.py` (staging/prod) ne concerne, lui, que les
+parcs **créés**. Décisions de publication par environnement :
+
+| Env | défaut | `--publish` |
+|---|---|---|
+| **Local** | `pending` | autorisé — nouveaux **et** promotion des `pending` existants (dev / test anon) |
+| **Staging** | `pending` | autorisé — tests end-to-end (nouveaux parcs uniquement) |
+| **Production** | `pending` | action volontaire explicite uniquement ; voie normale cible = import `pending` → validation Admin → `published` |
+
 France :
 
 ```bash
 npm run osm:analyze -- france
 npm run osm:import:local -- france
 npm run osm:import:local -- france --commit
+npm run osm:import:local -- france --commit --publish
 ```
 
 Le runner sélectionne automatiquement le fichier le plus récent qui correspond au pattern de la zone.

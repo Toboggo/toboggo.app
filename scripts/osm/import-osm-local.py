@@ -70,6 +70,24 @@ def parse_args():
         ),
     )
 
+    parser.add_argument(
+        "--publish",
+        action="store_true",
+        help=(
+            "Publie les parcs OSM rencontrés dans "
+            "CE run : nouveaux -> "
+            "moderation_status='published' ; "
+            "existants 'pending' -> 'published'. "
+            "'blocked' / 'rejected' / 'draft' / "
+            "'published' sont laissés tels quels ; "
+            "aucun parc n'est jamais dé-publié. "
+            "Sans cette option, les nouveaux parcs "
+            "sont 'pending' et les existants ne "
+            "sont pas re-statués. Réservé au LOCAL "
+            "(tester l'app parents en anon)."
+        ),
+    )
+
     return parser.parse_args()
 
 
@@ -426,6 +444,15 @@ def main():
     args = parse_args()
     pbf = Path(args.pbf)
 
+    # Statut des parcs CRÉÉS par cet import : 'published'
+    # seulement si --publish, 'pending' sinon (aligné sur
+    # import-osm-remote.py). La promotion des parcs EXISTANTS
+    # 'pending' -> 'published' sous --publish est gérée à part,
+    # dans la branche UPDATE plus bas.
+    new_park_status = (
+        "published" if args.publish else "pending"
+    )
+
     if not pbf.exists():
         raise SystemExit(
             f"Fichier introuvable : {pbf}"
@@ -445,6 +472,15 @@ def main():
         "COMMIT LOCAL"
         if args.commit
         else "DRY RUN",
+    )
+    print(
+        "Nouveaux :",
+        f"moderation_status='{new_park_status}'"
+        + (
+            "  (--publish)"
+            if args.publish
+            else "  (défaut)"
+        ),
     )
     print()
 
@@ -695,6 +731,11 @@ def main():
         )
 
         print(
+            f"Nouveaux parcs    : "
+            f"moderation_status='{new_park_status}'"
+        )
+
+        print(
             f"Écartés           : "
             f"{sum(skipped.values())}"
         )
@@ -857,6 +898,9 @@ def main():
                 updated = 0
                 equipment_written = 0
                 attributes_written = 0
+                created_ids = []
+                updated_ids = []
+                published_in_run = 0
 
                 for park in candidates:
 
@@ -903,8 +947,20 @@ def main():
                             allow_max_age and park["max_age"] is not None
                         )
 
+                        # `moderation_status` : promotion UNIQUEMENT si
+                        # --publish ET statut courant = 'pending'. Les états
+                        # 'published' / 'blocked' / 'rejected' / 'draft' sont
+                        # laissés tels quels. Scope = ce parc (where id = %s).
+                        # Le trigger parks_v1_compat_biu resynchronise `status`
+                        # legacy quand moderation_status change. RETURNING
+                        # `promoted` = ce parc vient d'être publié par ce run.
                         cur.execute(
                             """
+                            with before as (
+                                select moderation_status as old_ms
+                                from parks
+                                where id = %s
+                            )
                             update parks
                             set
                                 name = case when %s then %s else name end,
@@ -916,10 +972,24 @@ def main():
                                     when %s or %s then false
                                     else ages_derived
                                 end,
+                                moderation_status = case
+                                    when %s
+                                        and before.old_ms = 'pending'
+                                        then 'published'
+                                            ::park_moderation_status
+                                    else parks.moderation_status
+                                end,
                                 updated_at = now()
-                            where id = %s
+                            from before
+                            where parks.id = %s
+                            returning (
+                                before.old_ms = 'pending'
+                                and parks.moderation_status
+                                    = 'published'
+                            ) as promoted
                             """,
                             (
+                                park_id,
                                 allow_name,
                                 park["name"],
                                 park["latitude"],
@@ -930,11 +1000,16 @@ def main():
                                 park["max_age"],
                                 allow_min_age,
                                 allow_max_age,
+                                args.publish,
                                 park_id,
                             ),
                         )
 
+                        if cur.fetchone()[0]:
+                            published_in_run += 1
+
                         updated += 1
+                        updated_ids.append(park_id)
 
                     else:
                         cur.execute(
@@ -960,7 +1035,7 @@ def main():
                                 %s,
                                 %s,
                                 false,
-                                'pending',
+                                %s,
                                 'unverified'
                             )
                             returning id
@@ -971,6 +1046,7 @@ def main():
                                 park["longitude"],
                                 park["min_age"],
                                 park["max_age"],
+                                new_park_status,
                             ),
                         )
 
@@ -1005,6 +1081,9 @@ def main():
                         allow_max_age = park["max_age"] is not None
 
                         created += 1
+                        created_ids.append(park_id)
+                        if args.publish:
+                            published_in_run += 1
 
                     source_url = (
                         "https://www.openstreetmap.org/"
@@ -1212,6 +1291,85 @@ def main():
 
                         attributes_written += 1
 
+                # ── Vérification du statut, scope = CE run ──
+                # Un écart -> SystemExit -> rollback (le bloc
+                # `with psycopg.connect()` ne committe pas en
+                # cas d'exception).
+                #   A. parcs CRÉÉS : moderation_status ==
+                #      new_park_status exactement.
+                #   B. si --publish : aucun parc touché par ce
+                #      run ne reste 'pending' (pending -> published ;
+                #      blocked/rejected/draft/published inchangés).
+                #   C. sur tous les parcs touchés : le trigger
+                #      parks_v1_compat_biu a resynchronisé le
+                #      champ legacy `status` (status == moderation_status).
+                run_ids = created_ids + updated_ids
+                if created_ids:
+                    cur.execute(
+                        """
+                        select count(*)
+                        from parks
+                        where id = any(%s)
+                          and moderation_status::text <> %s
+                        """,
+                        (created_ids, new_park_status),
+                    )
+                    wrong_created = cur.fetchone()[0]
+                    if wrong_created:
+                        raise SystemExit(
+                            "ABANDON (rollback) — "
+                            f"{wrong_created} parc(s) créés hors "
+                            f"moderation_status='{new_park_status}'."
+                        )
+
+                if run_ids:
+                    cur.execute(
+                        """
+                        select
+                            count(*) filter (
+                                where %s
+                                  and moderation_status = 'pending'
+                            ) as still_pending,
+                            count(*) filter (
+                                where status::text
+                                    is distinct from
+                                    moderation_status::text
+                            ) as incoherents
+                        from parks
+                        where id = any(%s)
+                        """,
+                        (args.publish, run_ids),
+                    )
+                    still_pending, incoherents = (
+                        cur.fetchone()
+                    )
+                    if still_pending or incoherents:
+                        raise SystemExit(
+                            "ABANDON (rollback) — "
+                            f"{still_pending} parc(s) du run "
+                            "encore 'pending' malgré --publish, "
+                            f"{incoherents} incohérent(s) "
+                            "status != moderation_status."
+                        )
+
+                    print()
+                    print(
+                        "Vérif statut       : "
+                        f"{len(run_ids)} parc(s) du run, "
+                        "status legacy cohérent"
+                        + (
+                            ", aucun 'pending' résiduel"
+                            if args.publish
+                            else ""
+                        )
+                        + " — OK"
+                    )
+
+                print(
+                    "Publiés pendant ce run : "
+                    f"{published_in_run}"
+                )
+
                 conn.commit()
 
         print()
@@ -1230,6 +1388,11 @@ def main():
         print(
             f"Mis à jour         : "
             f"{updated}"
+        )
+
+        print(
+            f"Publiés ce run     : "
+            f"{published_in_run}"
         )
 
         print(

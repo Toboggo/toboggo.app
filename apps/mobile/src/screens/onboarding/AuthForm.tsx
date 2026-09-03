@@ -30,8 +30,8 @@ export default function AuthForm() {
       ? "Création..."
       : "Connexion..."
     : isSignup
-      ? "CRÉER UN COMPTE"
-      : "SE CONNECTER";
+      ? "Créer un compte"
+      : "Se connecter";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

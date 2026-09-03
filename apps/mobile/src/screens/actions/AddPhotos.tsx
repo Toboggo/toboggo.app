@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button } from "@toboggo/design-system";
+import { Button, Icon } from "@toboggo/design-system";
 import { addParkPhotos, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
@@ -135,9 +135,9 @@ export default function AddPhotos() {
                       type="button"
                       aria-label="Retirer cette photo"
                       onClick={() => removePick(i)}
-                      style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 14, cursor: "pointer" }}
+                      style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}
                     >
-                      ✕
+                      <Icon name="ic-close" size={14} />
                     </button>
                   </div>
                 ) : (

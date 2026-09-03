@@ -5,44 +5,11 @@ import { Logo } from "@toboggo/design-system";
 import { Illustration } from "../../illustrations";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
+import { AppleIcon, GoogleIcon, MailIcon, PhoneIcon } from "./authIcons";
 import styles from "./Splash.module.css";
 
-function AppleIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="#000" aria-hidden>
-      <path d="M16.365 1.43c0 1.14-.417 2.06-1.25 2.87-.937.92-2.06 1.44-3.11 1.35-.104-1.06.4-2.16 1.24-2.97.84-.83 2.15-1.42 3.12-1.25zm3.03 17.05c-.55 1.24-1.22 2.45-2.11 3.55-.9 1.1-2 2.28-3.36 2.29-1.2.01-1.56-.78-3.15-.78-1.6 0-2.02.76-3.16.79-1.35.04-2.4-1.09-3.32-2.19-2.02-2.43-3.55-6.88-1.5-9.87 1.03-1.5 2.65-2.46 4.4-2.49 1.24-.02 2.02.79 3.15.79 1.13 0 1.7-.79 3.16-.79 1.5 0 3.07.9 4.13 2.44-3.64 2.02-3.06 6.6.76 6.25z" />
-    </svg>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden>
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-      <path fill="#FBBC05" d="M5.84 14.09A6.93 6.93 0 0 1 5.5 12c0-.73.13-1.44.34-2.09V7.07H2.18A11.93 11.93 0 0 0 1 12c0 1.93.46 3.75 1.18 5.34l3.66-2.84z" />
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
-    </svg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-primary)" }} aria-hidden>
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <path d="M2 6l10 7 10-7" />
-    </svg>
-  );
-}
-
-function PhoneIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-primary)" }} aria-hidden>
-      <rect x="7" y="2" width="10" height="20" rx="2" />
-      <path d="M11 18h2" strokeLinecap="round" />
-    </svg>
-  );
-}
+/** Mail / Phone follow the brand green here (Apple / Google keep their own marks). */
+const brandTint = { display: "inline-flex", color: "var(--color-primary)" } as const;
 
 export default function Splash() {
   const navigate = useNavigate();
@@ -88,15 +55,17 @@ export default function Splash() {
 
       <div className={styles.sheet}>
         <button type="button" className={styles.socialBtn} onClick={comingSoon}>
-          <AppleIcon />
+          <AppleIcon size={17} />
           <span>Continuer avec Apple</span>
         </button>
         <button type="button" className={styles.socialBtn} onClick={continueWithGoogle}>
-          <GoogleIcon />
+          <GoogleIcon size={17} />
           <span>Continuer avec Google</span>
         </button>
         <button type="button" className={styles.socialBtn} onClick={() => navigate("/login?mode=signup")}>
-          <MailIcon />
+          <span style={brandTint}>
+            <MailIcon size={18} />
+          </span>
           <span>Continuer avec un e-mail</span>
         </button>
 
@@ -107,7 +76,9 @@ export default function Splash() {
         </div>
 
         <button type="button" className={styles.socialBtn} onClick={comingSoon}>
-          <PhoneIcon />
+          <span style={brandTint}>
+            <PhoneIcon size={17} />
+          </span>
           <span>Continuer avec un numéro de téléphone</span>
         </button>
 

@@ -1,7 +1,7 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(20, 26, 22, 0.5);
+  background: var(--color-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -31,7 +31,7 @@
 .sheetBackdrop {
   position: fixed;
   inset: 0;
-  background: rgba(20, 26, 22, 0.45);
+  background: var(--color-overlay);
   z-index: 90;
 }
 .sheet {

@@ -7,7 +7,9 @@ import {
   deleteMediaByUrl,
   deletePark,
   getParkHistory,
+  listMedia,
   logActivity,
+  setParkCover,
   setParkStatus,
   updatePark,
   uploadPhoto,
@@ -24,6 +26,7 @@ const SERVICE_KEYS = Object.keys(SERVICE_LABEL) as (keyof typeof SERVICE_LABEL)[
 export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | null; onClose: () => void; canManage: boolean }) {
   const { communeId } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
+  const userId = useOrgSession((s) => s.userId);
   const isNew = park === "new";
   const existing = isNew ? null : park;
 
@@ -54,6 +57,20 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
     enabled: !!existing,
   });
 
+  const { data: media = [] } = useQuery({
+    queryKey: ["park-media", existing?.id],
+    queryFn: () => listMedia(existing!.id),
+    enabled: !!existing,
+  });
+
+  async function makeCover(url: string) {
+    const row = media.find((m) => m.url === url);
+    if (!row || !existing) return;
+    await setParkCover(existing.id, row.id);
+    void queryClient.invalidateQueries({ queryKey: ["park-media", existing.id] });
+    void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
+  }
+
   function toggle(set: Set<string>, setSet: (s: Set<string>) => void, key: string) {
     const next = new Set(set);
     next.has(key) ? next.delete(key) : next.add(key);
@@ -62,8 +79,11 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const url = await uploadPhoto("parkPhotos", file, communeId ?? "admin");
+    e.target.value = "";
+    if (!file || !userId) return;
+    // Storage RLS (0027) requires the object path to start with the uploader's
+    // uid — the back-office user's own id, not the commune id.
+    const url = await uploadPhoto("parkPhotos", file, userId);
     setPhotos((p) => [...p, url]);
   }
 
@@ -102,6 +122,7 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
         await logActivity(communeId ?? null, userName, `Parc modifié : ${name}`);
       }
       void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
+      if (existing) void queryClient.invalidateQueries({ queryKey: ["park-media", existing.id] });
       onClose();
     } finally {
       setSaving(false);
@@ -160,19 +181,38 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
 
         <div>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Photos</div>
+          <p style={{ fontSize: 11.5, color: "var(--color-text-muted)", marginTop: -2, marginBottom: 8 }}>
+            Les photos ajoutées ici sont publiées directement. Cliquez ★ pour définir la couverture.
+          </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {photos.map((p, i) => (
-              <div key={i} style={{ width: 60, height: 60, borderRadius: 10, backgroundImage: `url(${p})`, backgroundSize: "cover", position: "relative" }}>
-                {canManage && (
-                  <button
-                    onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
-                    style={{ position: "absolute", top: -6, right: -6, background: "var(--color-error)", color: "white", border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer" }}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
+            {photos.map((p, i) => {
+              const row = media.find((m) => m.url === p);
+              const isCover = row?.is_cover ?? false;
+              return (
+                <div
+                  key={i}
+                  style={{ width: 60, height: 60, borderRadius: 10, backgroundImage: `url(${p})`, backgroundSize: "cover", position: "relative", outline: isCover ? "2px solid var(--color-primary)" : undefined }}
+                >
+                  {canManage && (
+                    <button
+                      onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
+                      style={{ position: "absolute", top: -6, right: -6, background: "var(--color-error)", color: "white", border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer" }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                  {canManage && row && (
+                    <button
+                      title={isCover ? "Photo de couverture" : "Définir comme couverture"}
+                      onClick={() => void makeCover(p)}
+                      style={{ position: "absolute", bottom: -6, left: -6, background: isCover ? "var(--color-primary)" : "var(--color-surface)", color: isCover ? "white" : "var(--color-text-muted)", border: "1px solid var(--color-border)", borderRadius: "50%", width: 18, height: 18, fontSize: 10, cursor: "pointer", lineHeight: "16px" }}
+                    >
+                      ★
+                    </button>
+                  )}
+                </div>
+              );
+            })}
             {canManage && (
               <label style={{ width: 60, height: 60, borderRadius: 10, border: "2px dashed var(--color-border-strong)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                 +<input type="file" accept="image/*" hidden onChange={onPickFile} />

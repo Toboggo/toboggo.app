@@ -7,7 +7,7 @@ import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
 import { EQUIPMENT_ICON, SERVICE_LABEL } from "../../lib/equipmentIcons";
 import { useGeo } from "../../lib/geo";
-import { useSession } from "../../lib/session";
+import { requireAccount, useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 
 const EQUIPMENT_OPTIONS = Object.keys(EQUIPMENT_ICON);
@@ -62,9 +62,23 @@ export default function AddPark() {
     }
   }
 
-  async function publish() {
-    if (!userId) return;
-    setSaving(true);
+  function publish() {
+    const uid = useSession.getState().userId;
+    if (uid) {
+      setSaving(true);
+      void doPublish(uid, true);
+      return;
+    }
+    // Guest: just-in-time login, then resume. This screen unmounts during the
+    // login detour, so the resumed run reports via toast + navigation.
+    requireAccount(navigate, () => {
+      const newUid = useSession.getState().userId;
+      if (newUid) void doPublish(newUid, false);
+    });
+  }
+
+  async function doPublish(uid: string, inline: boolean) {
+    const toast = inline ? showToast : useToastStore.getState().show;
     try {
       const park: Park = await createPark({
         name,
@@ -84,18 +98,23 @@ export default function AddPark() {
         play_equipment: Array.from(equipment),
         description: description || null,
         status: "pending",
-        created_by: userId,
+        created_by: uid,
       } as Partial<Park>);
       if (photos.length) {
-        await addParkPhotos(park.id, photos, { source: "user", userId });
+        await addParkPhotos(park.id, photos, { source: "user", userId: uid });
       }
       await logActivity(park.commune_id, "Vous", `Parc ajouté : ${park.name}`, "primary");
-      setCreatedId(park.id);
-      setStep(TOTAL_STEPS);
+      if (inline) {
+        setCreatedId(park.id);
+        setStep(TOTAL_STEPS);
+      } else {
+        toast("Parc ajouté — en cours de vérification.");
+        navigate(`/park/${park.id}`);
+      }
     } catch (err: any) {
-      showToast(err.message ?? "Une erreur est survenue");
+      toast(err.message ?? "Une erreur est survenue");
     } finally {
-      setSaving(false);
+      if (inline) setSaving(false);
     }
   }
 

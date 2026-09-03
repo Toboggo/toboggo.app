@@ -272,6 +272,25 @@
   cursor: pointer;
   padding: 0;
 }
+.kickerActions {
+  display: flex;
+  gap: 14px;
+}
+.photoAdd {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  border-radius: 14px;
+  border: 2px dashed var(--color-border-strong);
+  background: none;
+  color: var(--color-text-faint);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .avisTitle {
   font-family: var(--font-heading);
   font-weight: 600;

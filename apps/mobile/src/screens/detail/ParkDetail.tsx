@@ -219,9 +219,14 @@ export default function ParkDetail() {
           <div className={styles.kickerRow}>
             <span className={styles.kicker}>Photos de la communauté</span>
             {hasPhotos && (
-              <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/photos`)}>
-                Voir tout
-              </button>
+              <div className={styles.kickerActions}>
+                <button type="button" className={styles.seeAll} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
+                  Ajouter
+                </button>
+                <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/photos`)}>
+                  Voir tout
+                </button>
+              </div>
             )}
           </div>
           {hasPhotos ? (
@@ -229,10 +234,18 @@ export default function ParkDetail() {
               {photos.map((p, i) => (
                 <div key={i} className={styles.photoThumb} style={{ backgroundImage: `url(${p})` }} />
               ))}
+              <button
+                type="button"
+                className={styles.photoAdd}
+                onClick={() => navigate(`/photo-add?park=${park.id}`)}
+                aria-label="Ajouter une photo"
+              >
+                +
+              </button>
             </div>
           ) : (
             <div className={styles.emptyCard}>
-              <span>Aucune photo pour ce parc pour le moment.</span>
+              <span>Aucune photo pour l'instant. Soyez le premier à en ajouter une !</span>
               <button type="button" onClick={() => navigate(`/photo-add?park=${park.id}`)}>
                 Ajouter une photo
               </button>

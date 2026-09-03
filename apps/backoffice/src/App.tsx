@@ -9,6 +9,7 @@ import Dashboard from "./screens/Dashboard";
 import Parks from "./screens/Parks";
 import Reports from "./screens/Reports";
 import Reviews from "./screens/Reviews";
+import Photos from "./screens/Photos";
 import Users from "./screens/Users";
 import MapScreen from "./screens/MapScreen";
 import Maintenance from "./screens/Maintenance";
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/parks" element={<Parks />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/reviews" element={<Reviews />} />
+        <Route path="/photos" element={<Photos />} />
         <Route path="/users" element={<Users />} />
         <Route path="/map" element={<MapScreen />} />
         <Route path="/maintenance" element={<Maintenance />} />

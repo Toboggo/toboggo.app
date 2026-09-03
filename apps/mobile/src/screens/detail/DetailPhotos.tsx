@@ -28,7 +28,7 @@ export default function DetailPhotos() {
           >
             <LogoMark size={44} rounded={false} />
             <p style={{ fontSize: 13, maxWidth: 260 }}>
-              Aucune photo pour ce parc pour le moment. Aidez la communauté en ajoutant la première.
+              Aucune photo pour l'instant. Soyez le premier à en ajouter une !
             </p>
             <button
               type="button"
@@ -56,6 +56,24 @@ export default function DetailPhotos() {
                 style={{ width: "100%", height: 140, borderRadius: 16, background: `var(--color-border) url(${p}) center/cover no-repeat` }}
               />
             ))}
+            <button
+              type="button"
+              onClick={() => navigate(`/photo-add?park=${park.id}`)}
+              aria-label="Ajouter une photo"
+              style={{
+                width: "100%",
+                height: 140,
+                borderRadius: 16,
+                border: "2px dashed var(--color-border-strong)",
+                background: "none",
+                color: "var(--color-text-faint)",
+                fontSize: 30,
+                lineHeight: 1,
+                cursor: "pointer",
+              }}
+            >
+              +
+            </button>
           </div>
         )}
       </div>

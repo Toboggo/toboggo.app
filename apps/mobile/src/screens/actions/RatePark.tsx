@@ -6,7 +6,8 @@ import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
 import { usePark } from "../../lib/parksQuery";
-import { useSession } from "../../lib/session";
+import { requireAccount, useSession } from "../../lib/session";
+import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
 
 const CRITERIA: { key: keyof ReviewSubRatings; label: string }[] = [
@@ -45,13 +46,28 @@ export default function RatePark() {
     setPhoto(await uploadPhoto("parkPhotos", file, userId));
   }
 
-  async function submit() {
-    if (!userId || !parkId) return;
-    setSaving(true);
+  function submit() {
+    if (!parkId) return;
+    const uid = useSession.getState().userId;
+    if (uid) {
+      setSaving(true);
+      void doSubmit(uid, true);
+      return;
+    }
+    // Guest: just-in-time login, then resume (this screen unmounts meanwhile).
+    requireAccount(navigate, () => {
+      const newUid = useSession.getState().userId;
+      if (newUid) void doSubmit(newUid, false);
+    });
+  }
+
+  async function doSubmit(uid: string, inline: boolean) {
+    const toast = useToastStore.getState().show;
+    if (!parkId) return;
     try {
       await createReview({
         park_id: parkId,
-        user_id: userId,
+        user_id: uid,
         author_name: profile?.name ?? "Vous",
         stars,
         sub_ratings: subRatings,
@@ -59,14 +75,22 @@ export default function RatePark() {
         age_band: ageBand,
       });
       if (photo) {
-        // A photo attached to a review is a real contributor photo of the park.
-        await addMedia({ park_id: parkId, url: photo, source: "user", user_id: userId });
+        // A photo attached to a review is a real contributor photo of the park
+        // and enters the moderation queue (source = "user" → status pending).
+        await addMedia({ park_id: parkId, url: photo, source: "user", user_id: uid });
       }
       void queryClient.invalidateQueries({ queryKey: ["park-reviews", parkId] });
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
-      setDone(true);
+      if (inline) {
+        setDone(true);
+      } else {
+        toast("Avis publié. Merci !");
+        navigate(`/park/${parkId}`);
+      }
+    } catch (err: any) {
+      toast(err?.message ?? "Une erreur est survenue");
     } finally {
-      setSaving(false);
+      if (inline) setSaving(false);
     }
   }
 

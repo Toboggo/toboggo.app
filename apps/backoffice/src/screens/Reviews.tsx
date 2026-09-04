@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Segmented, StarRating } from "@toboggo/design-system";
+import { Button, Input, Segmented, StarRating, useConfirm } from "@toboggo/design-system";
 import { deleteReview, listReviews, replyToReview, toCsv, downloadCsv } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
+import { usePermissions } from "../lib/permissions";
+import { useAsyncAction } from "../lib/useAsyncAction";
 import { queryClient } from "../lib/queryClient";
 
 type RatingFilter = "all" | "5" | "4" | "low";
 
 export default function Reviews() {
   const { isAdmin, communeId } = useOrgScope();
+  const { canReplyToReview, canDeleteReview } = usePermissions();
   const userName = useOrgSession((s) => s.userName);
+  const confirm = useConfirm();
   const [query, setQuery] = useState("");
   const [rating, setRating] = useState<RatingFilter>("all");
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
@@ -35,18 +39,31 @@ export default function Reviews() {
     downloadCsv("toboggo-avis.csv", csv);
   }
 
-  async function onDelete(id: string) {
-    if (!confirm("Supprimer cet avis ?")) return;
-    await deleteReview(id);
-    void queryClient.invalidateQueries({ queryKey: ["bo-reviews"] });
-  }
+  const { run: onDelete, pending: deleting } = useAsyncAction(
+    async (id: string) => {
+      const ok = await confirm({
+        title: "Supprimer cet avis",
+        message: "Supprimer définitivement cet avis ? Cette action ne peut pas être annulée.",
+        confirmLabel: "Supprimer",
+        danger: true,
+      });
+      if (!ok) return;
+      await deleteReview(id);
+      void queryClient.invalidateQueries({ queryKey: ["bo-reviews"] });
+    },
+    { successMessage: "Avis supprimé." },
+  );
 
-  async function onReply(id: string) {
-    const text = replyDrafts[id];
-    if (!text) return;
-    await replyToReview(id, text, userName);
-    void queryClient.invalidateQueries({ queryKey: ["bo-reviews"] });
-  }
+  const { run: onReply, pending: replying } = useAsyncAction(
+    async (id: string) => {
+      const text = replyDrafts[id];
+      if (!text) return;
+      await replyToReview(id, text, userName);
+      setReplyDrafts((d) => ({ ...d, [id]: "" }));
+      void queryClient.invalidateQueries({ queryKey: ["bo-reviews"] });
+    },
+    { successMessage: "Réponse envoyée." },
+  );
 
   return (
     <div>
@@ -84,8 +101,12 @@ export default function Reviews() {
                 <div>
                   <strong>{r.author_name}</strong> sur {r.parks?.name}
                 </div>
-                {isAdmin && (
-                  <button onClick={() => onDelete(r.id)} style={{ background: "none", border: "none", color: "var(--color-error)", cursor: "pointer", fontSize: 12.5 }}>
+                {canDeleteReview && (
+                  <button
+                    disabled={deleting}
+                    onClick={() => onDelete(r.id)}
+                    style={{ background: "none", border: "none", color: "var(--color-error)", cursor: "pointer", fontSize: 12.5 }}
+                  >
                     Supprimer
                   </button>
                 )}
@@ -99,18 +120,18 @@ export default function Reviews() {
                     <div style={{ background: "var(--color-bg-alt)", borderRadius: 10, padding: 10, fontSize: 12.5 }}>
                       <strong>Réponse :</strong> {r.reply}
                     </div>
-                  ) : (
+                  ) : canReplyToReview ? (
                     <div style={{ display: "flex", gap: 8 }}>
                       <Input
                         placeholder="Répondre à cet avis…"
                         value={replyDrafts[r.id] ?? ""}
                         onChange={(e) => setReplyDrafts((d) => ({ ...d, [r.id]: e.target.value }))}
                       />
-                      <Button size="sm" onClick={() => onReply(r.id)}>
+                      <Button size="sm" disabled={replying} onClick={() => onReply(r.id)}>
                         Répondre
                       </Button>
                     </div>
-                  )}
+                  ) : null}
                 </div>
               )}
             </div>

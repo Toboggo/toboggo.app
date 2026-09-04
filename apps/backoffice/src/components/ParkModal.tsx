@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Chip, Dialog, Input, Textarea } from "@toboggo/design-system";
+import { Button, Chip, Dialog, Input, Textarea, useConfirm, useToast } from "@toboggo/design-system";
 import {
   addParkPhotos,
   createPark,
   deleteMediaByUrl,
   deletePark,
   getParkHistory,
+  isValidCoordinate,
   listMedia,
   logActivity,
   setParkCover,
@@ -19,6 +20,7 @@ import { SERVICE_LABEL } from "../lib/equipmentLabels";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { queryClient } from "../lib/queryClient";
+import { useAsyncAction } from "../lib/useAsyncAction";
 
 const EQUIPMENT = ["toboggan", "swing", "climbing", "waterplay", "sandbox", "springs", "zipline", "carousel", "motorcourse", "multisport"];
 const SERVICE_KEYS = Object.keys(SERVICE_LABEL) as (keyof typeof SERVICE_LABEL)[];
@@ -27,11 +29,19 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
   const { communeId } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
   const userId = useOrgSession((s) => s.userId);
+  const isGestionnaireOrAbove = useOrgSession((s) => s.isGestionnaireOrAbove());
+  const confirm = useConfirm();
+  const toast = useToast();
   const isNew = park === "new";
   const existing = isNew ? null : park;
 
   const [name, setName] = useState(existing?.name ?? "");
   const [address, setAddress] = useState(existing?.formatted_address ?? "");
+  // Real GPS position, required to create a park (bug B1 — no placeholder
+  // coordinates are ever injected; see assertValidCoordinates in
+  // @toboggo/shared). Not editable for an existing park in this lot.
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [ageMin, setAgeMin] = useState(existing?.age_min ?? 0);
   const [ageMax, setAgeMax] = useState(existing?.age_max ?? 12);
   const [services, setServices] = useState<Set<string>>(new Set(SERVICE_KEYS.filter((k) => existing && (existing as any)[k])));
@@ -43,6 +53,8 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
   useEffect(() => {
     setName(existing?.name ?? "");
     setAddress(existing?.formatted_address ?? "");
+    setLatitude("");
+    setLongitude("");
     setAgeMin(existing?.age_min ?? 0);
     setAgeMax(existing?.age_max ?? 12);
     setServices(new Set(SERVICE_KEYS.filter((k) => existing && (existing as any)[k])));
@@ -50,6 +62,10 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
     setDescription(existing?.description ?? "");
     setPhotos(existing?.photos ?? []);
   }, [park]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const latNum = latitude.trim() === "" ? NaN : Number(latitude);
+  const lngNum = longitude.trim() === "" ? NaN : Number(longitude);
+  const hasValidCoordinates = isValidCoordinate(latNum, lngNum);
 
   const { data: history = [] } = useQuery({
     queryKey: ["park-history", existing?.id],
@@ -88,6 +104,7 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
   }
 
   async function save() {
+    if (isNew && !hasValidCoordinates) return; // guarded again server-side by assertValidCoordinates
     setSaving(true);
     try {
       const payload = {
@@ -109,7 +126,18 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
       // provenance: a collectivité upload -> "municipality", Toboggo staff -> "toboggo".
       const photoSource = communeId ? ("municipality" as const) : ("toboggo" as const);
       if (isNew) {
-        const created = await createPark({ ...payload, commune_id: communeId ?? null, lat: 45.75, lng: 4.85, status: "published", surface: "non_precise" } as Partial<Park>);
+        // A collectivité's own creation is published directly; anything
+        // reachable by a lower-privileged role goes through the pending
+        // queue instead (defense in depth — matches the CSV import, bug B4).
+        const moderationStatus: Park["status"] = isGestionnaireOrAbove ? "published" : "pending";
+        const created = await createPark({
+          ...payload,
+          commune_id: communeId ?? null,
+          latitude: latNum,
+          longitude: lngNum,
+          status: moderationStatus,
+          surface: "non_precise",
+        } as Partial<Park>);
         if (photos.length) await addParkPhotos(created.id, photos, { source: photoSource });
         await logActivity(communeId ?? null, userName, `Parc ajouté : ${created.name}`);
       } else if (existing) {
@@ -123,33 +151,81 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
       }
       void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
       if (existing) void queryClient.invalidateQueries({ queryKey: ["park-media", existing.id] });
+      toast.success(isNew ? "Parc créé." : "Parc mis à jour.");
       onClose();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Impossible d'enregistrer ce parc.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function setStatus(status: Park["status"], label: string) {
-    if (!existing) return;
-    await setParkStatus(existing.id, status, label);
-    await logActivity(communeId ?? null, userName, `${label} : ${existing.name}`);
-    void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
-    onClose();
-  }
+  const { run: runSetStatus, pending: statusPending } = useAsyncAction(
+    async (status: Park["status"], label: string) => {
+      if (!existing) return;
+      await setParkStatus(existing.id, status, label);
+      await logActivity(communeId ?? null, userName, `${label} : ${existing.name}`);
+      void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
+      onClose();
+    },
+    { successMessage: "Statut du parc mis à jour." },
+  );
 
-  async function onDelete() {
-    if (!existing || !confirm(`Retirer définitivement "${existing.name}" ?`)) return;
+  // No `successMessage` here: the wrapped action returns early (no-op) when
+  // the user cancels the confirmation, and useAsyncAction cannot tell that
+  // apart from an actual deletion — the toast is fired manually instead, only
+  // on the path that really deletes the park.
+  const { run: runDelete, pending: deletePending } = useAsyncAction(async () => {
+    if (!existing) return;
+    const ok = await confirm({
+      title: "Retirer ce parc",
+      message: `Retirer définitivement "${existing.name}" ? Cette action ne peut pas être annulée depuis cet écran.`,
+      confirmLabel: "Retirer",
+      danger: true,
+    });
+    if (!ok) return;
     await deletePark(existing.id);
     await logActivity(communeId ?? null, userName, `Parc retiré : ${existing.name}`);
     void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
+    toast.success("Parc retiré.");
     onClose();
-  }
+  });
 
   return (
     <Dialog open={!!park} onClose={onClose} title={isNew ? "Ajouter un parc" : "Fiche du parc"}>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <Input label="Nom" value={name} onChange={(e) => setName(e.target.value)} disabled={!canManage} />
         <Input label="Adresse" value={address} onChange={(e) => setAddress(e.target.value)} disabled={!canManage} />
+        {isNew && (
+          <div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Input
+                label="Latitude"
+                type="number"
+                step="0.000001"
+                placeholder="ex. 45.764043"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                disabled={!canManage}
+                error={latitude !== "" && !hasValidCoordinates ? "Invalide" : undefined}
+              />
+              <Input
+                label="Longitude"
+                type="number"
+                step="0.000001"
+                placeholder="ex. 4.835659"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                disabled={!canManage}
+                error={longitude !== "" && !hasValidCoordinates ? "Invalide" : undefined}
+              />
+            </div>
+            <p style={{ fontSize: 11.5, color: "var(--color-text-muted)", marginTop: 6 }}>
+              Coordonnées GPS réelles, obligatoires (ex. clic droit sur Google Maps → « Copier les
+              coordonnées »). Aucune position par défaut n'est utilisée.
+            </p>
+          </div>
+        )}
         <div style={{ display: "flex", gap: 10 }}>
           <Input label="Âge min" type="number" min={0} max={18} value={ageMin} onChange={(e) => setAgeMin(Number(e.target.value))} disabled={!canManage} />
           <Input label="Âge max" type="number" min={0} max={18} value={ageMax} onChange={(e) => setAgeMax(Number(e.target.value))} disabled={!canManage} />
@@ -237,32 +313,42 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {existing.status === "pending" && (
               <>
-                <Button size="sm" onClick={() => setStatus("published", "Validé")}>
+                <Button size="sm" disabled={statusPending} onClick={() => runSetStatus("published", "Validé")}>
                   Valider
                 </Button>
-                <Button size="sm" variant="secondary" onClick={() => setStatus("rejected", "Refusé")}>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={statusPending}
+                  onClick={() => runSetStatus("rejected", "Refusé")}
+                >
                   Refuser
                 </Button>
               </>
             )}
             {existing.status === "published" && (
-              <Button size="sm" variant="secondary" onClick={() => setStatus("blocked", "Bloqué")}>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={statusPending}
+                onClick={() => runSetStatus("blocked", "Bloqué")}
+              >
                 Bloquer
               </Button>
             )}
             {existing.status === "blocked" && (
-              <Button size="sm" onClick={() => setStatus("published", "Débloqué")}>
+              <Button size="sm" disabled={statusPending} onClick={() => runSetStatus("published", "Débloqué")}>
                 Débloquer
               </Button>
             )}
-            <Button size="sm" variant="danger" onClick={onDelete}>
+            <Button size="sm" variant="danger" loading={deletePending} onClick={runDelete}>
               Retirer ce parc
             </Button>
           </div>
         )}
 
         {canManage && (
-          <Button block loading={saving} onClick={save}>
+          <Button block loading={saving} disabled={isNew && !hasValidCoordinates} onClick={save}>
             Enregistrer
           </Button>
         )}

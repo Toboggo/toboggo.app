@@ -1,7 +1,8 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useOrgSession } from "./lib/orgSession";
 import { useIconSprite } from "@toboggo/design-system";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Login from "./screens/Login";
 import AccessDenied from "./screens/AccessDenied";
 import { Shell } from "./components/Shell";
@@ -17,23 +18,13 @@ import Journal from "./screens/Journal";
 import Statistiques from "./screens/Statistiques";
 import Settings from "./screens/Settings";
 
-export default function App() {
-  const init = useOrgSession((s) => s.init);
-  const loading = useOrgSession((s) => s.loading);
-  const userId = useOrgSession((s) => s.userId);
-  const accessDenied = useOrgSession((s) => s.accessDenied);
-  useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
-
-  useEffect(() => {
-    init();
-  }, [init]);
-
-  if (loading) return null;
-  if (!userId) return <Login />;
-  if (accessDenied) return <AccessDenied />;
-
+/** Wrapped separately so a screen-level render error is caught without
+ * taking down the sidebar/shell around it — resets automatically when the
+ * user navigates to a different route. */
+function RoutedContent() {
+  const { pathname } = useLocation();
   return (
-    <Shell>
+    <ErrorBoundary resetKey={pathname}>
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/parks" element={<Parks />} />
@@ -48,6 +39,45 @@ export default function App() {
         <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Shell>
+    </ErrorBoundary>
+  );
+}
+
+export default function App() {
+  const init = useOrgSession((s) => s.init);
+  const loading = useOrgSession((s) => s.loading);
+  const userId = useOrgSession((s) => s.userId);
+  const accessDenied = useOrgSession((s) => s.accessDenied);
+  useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
+
+  useEffect(() => {
+    init();
+  }, [init]);
+
+  return (
+    <ErrorBoundary>
+      {loading ? (
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--color-text-muted)",
+            fontSize: 13.5,
+          }}
+        >
+          Chargement…
+        </div>
+      ) : !userId ? (
+        <Login />
+      ) : accessDenied ? (
+        <AccessDenied />
+      ) : (
+        <Shell>
+          <RoutedContent />
+        </Shell>
+      )}
+    </ErrorBoundary>
   );
 }

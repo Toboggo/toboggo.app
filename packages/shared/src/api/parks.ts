@@ -135,10 +135,58 @@ export async function getPark(id: string): Promise<Park> {
   return data as unknown as Park;
 }
 
+/**
+ * Park ids linked to an organisation via `organization_parks` — the canonical
+ * V2 rattachement. `listReports` / `listReviews` already resolved this inline;
+ * centralised here so every commune-scoped read (parks / reports / reviews /
+ * pending media) uses the same source of truth instead of the legacy V1
+ * `parks.commune_id` column, which `createPark` never populates.
+ *
+ * Screens routinely call several of `listParks`/`listReports`/`listReviews`/
+ * `listPendingMedia` in parallel for the same organisation (e.g. the
+ * dashboard, or the sidebar badge counts) — each would otherwise re-run this
+ * same lookup. In-flight calls for the same `organizationId` are coalesced
+ * into a single request; the cache entry is cleared as soon as it settles
+ * (success or failure), so this never serves stale data across renders or
+ * after a mutation invalidates a query — only truly concurrent callers share
+ * a request.
+ */
+const inFlightOrgParkIds = new Map<string, Promise<string[]>>();
+
+export function listOrgParkIds(organizationId: string): Promise<string[]> {
+  const inFlight = inFlightOrgParkIds.get(organizationId);
+  if (inFlight) return inFlight;
+
+  const promise = (async () => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("organization_parks")
+      .select("park_id")
+      .eq("organization_id", organizationId);
+    if (error) throw error;
+    return (data ?? []).map((r: { park_id: string }) => r.park_id);
+  })();
+
+  const tracked = promise.finally(() => {
+    if (inFlightOrgParkIds.get(organizationId) === tracked) inFlightOrgParkIds.delete(organizationId);
+  });
+  inFlightOrgParkIds.set(organizationId, tracked);
+  return tracked;
+}
+
+/** `.in("id", ids)` with an empty list matches every row (Postgres/PostgREST
+ * treats `IN ()` as always-false only when at least one value is given) — a
+ * commune with 0 linked parks must see 0 rows, not everything. Callers pass
+ * this sentinel, matching the pattern already used by `listReports`/`listReviews`. */
+const NO_MATCH_SENTINEL = "00000000-0000-0000-0000-000000000000";
+
 export async function listParks(opts: { communeId?: string; status?: ParkStatus[] } = {}): Promise<Park[]> {
   const supabase = getSupabase();
   let query = supabase.from("park_public").select(PARK_COLS).order("created_at", { ascending: false });
-  if (opts.communeId) query = query.eq("commune_id", opts.communeId);
+  if (opts.communeId) {
+    const ids = await listOrgParkIds(opts.communeId);
+    query = query.in("id", ids.length ? ids : [NO_MATCH_SENTINEL]);
+  }
   if (opts.status?.length) query = query.in("moderation_status", opts.status);
   const { data, error } = await query;
   if (error) throw error;
@@ -183,6 +231,36 @@ type ParkInsertRow = Omit<TablesInsert<"parks">, "lat" | "lng" | "formatted_addr
 function requireField<T>(value: T | null | undefined, field: string): T {
   if (value == null) throw new Error(`createPark : champ obligatoire manquant : ${field}`);
   return value;
+}
+
+/**
+ * A park must carry its real GPS position. No caller may substitute a
+ * placeholder (e.g. a city-centre fallback) when the real position is
+ * unknown — refuse the write instead (see database-migration.md §5 and the
+ * back-office audit, bug B1). `(0, 0)` ("Null Island") is rejected too: it is
+ * never a legitimate park location for this France-only product and is the
+ * classic sign of an uninitialised value slipping through.
+ */
+export function isValidCoordinate(lat: unknown, lng: unknown): lat is number {
+  return (
+    typeof lat === "number" &&
+    Number.isFinite(lat) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    typeof lng === "number" &&
+    Number.isFinite(lng) &&
+    lng >= -180 &&
+    lng <= 180 &&
+    !(lat === 0 && lng === 0)
+  );
+}
+
+export function assertValidCoordinates(lat: unknown, lng: unknown): void {
+  if (!isValidCoordinate(lat, lng)) {
+    throw new Error(
+      "Coordonnées GPS invalides ou manquantes : impossible de créer un parc sans sa position réelle.",
+    );
+  }
 }
 
 function splitParkInput(input: Partial<Park>) {
@@ -255,6 +333,8 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
     country_code: parkRow.country_code ?? "FR",
     timezone: parkRow.timezone ?? "Europe/Paris",
   };
+  // No placeholder coordinates, ever (bug B1) — see assertValidCoordinates doc comment.
+  assertValidCoordinates(insertRow.latitude, insertRow.longitude);
   const { data, error } = await supabase
     .from("parks")
     // `lat`/`lng`/`formatted_address` are re-derived by parks_v1_compat (see splitParkInput).
@@ -265,10 +345,14 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
   const parkId = data.id;
   await applyFeatures(parkId, featureRows);
   if (orgId) {
-    await supabase.from("organization_parks").upsert(
+    // Links the park to its owning organisation (bug B2 depends on this
+    // succeeding — a failure here must not be swallowed, or the park is
+    // created but invisible to its own collectivité).
+    const { error: orgLinkError } = await supabase.from("organization_parks").upsert(
       { organization_id: orgId, park_id: parkId, role: "owner" },
       { onConflict: "organization_id,park_id" },
     );
+    if (orgLinkError) throw orgLinkError;
   }
   return getPark(parkId);
 }
@@ -282,10 +366,11 @@ export async function updatePark(id: string, patch: Partial<Park>, _historyNote?
   }
   await applyFeatures(id, featureRows);
   if (orgId) {
-    await supabase.from("organization_parks").upsert(
+    const { error: orgLinkError } = await supabase.from("organization_parks").upsert(
       { organization_id: orgId, park_id: id, role: "owner" },
       { onConflict: "organization_id,park_id" },
     );
+    if (orgLinkError) throw orgLinkError;
   }
   return getPark(id);
 }

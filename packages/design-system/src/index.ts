@@ -13,4 +13,6 @@ export * from "./components/BottomSheet";
 export * from "./components/StarRating";
 export * from "./components/RangeSlider";
 export * from "./components/Misc";
+export * from "./components/ToastProvider";
+export * from "./components/ConfirmDialog";
 export * from "./useTheme";

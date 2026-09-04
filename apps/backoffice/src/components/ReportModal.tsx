@@ -4,6 +4,7 @@ import { dismissReport, reopenReport, resolveReport, uploadPhoto, createMaintena
 import { ReportStatusTag } from "./StatusTag";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
+import { useAsyncAction } from "../lib/useAsyncAction";
 import { queryClient } from "../lib/queryClient";
 import { useNavigate } from "react-router-dom";
 
@@ -20,68 +21,75 @@ export function ReportModal({
 }) {
   const { communeId, isAdmin } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
+  const userId = useOrgSession((s) => s.userId);
   const navigate = useNavigate();
   const [note, setNote] = useState(report?.resolution_note ?? "");
-  const [saving, setSaving] = useState(false);
   const [afterPhoto, setAfterPhoto] = useState<string | null>(null);
-
-  if (!report) return null;
-
-  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAfterPhoto(await uploadPhoto("reportPhotos", file, communeId ?? "admin"));
-  }
-
-  async function resolve() {
-    setSaving(true);
-    try {
-      await resolveReport(report!.id, note, afterPhoto ?? undefined);
-      await logActivity(communeId ?? null, userName, `Signalement résolu : ${report!.parks?.name ?? parkName}`);
-      invalidate();
-      onClose();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function dismiss() {
-    setSaving(true);
-    try {
-      await dismissReport(report!.id, note);
-      await logActivity(communeId ?? null, userName, `Signalement ignoré : ${report!.parks?.name ?? parkName}`);
-      invalidate();
-      onClose();
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function reopen() {
-    await reopenReport(report!.id);
-    invalidate();
-    onClose();
-  }
-
-  async function scheduleFollowUp() {
-    if (!communeId) return;
-    await createMaintenance({
-      park_id: report!.park_id,
-      commune_id: communeId,
-      date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
-      note: "Contrôle de suivi après signalement",
-      assignee: null,
-      recur: "none",
-    });
-    await logActivity(communeId, userName, `Contrôle de suivi programmé : ${report!.parks?.name ?? parkName}`);
-    onClose();
-    navigate("/maintenance");
-  }
 
   function invalidate() {
     void queryClient.invalidateQueries({ queryKey: ["bo-reports"] });
     void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
   }
+
+  async function onPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    // The uploaded object's owning folder must be the actual uploader — not
+    // the collectivité id. (Verified: the `report-photos` Storage bucket has
+    // no folder-prefix RLS constraint today, so `communeId`/"admin" also
+    // worked, but aligning on auth.uid() matches the `park-photos`
+    // convention and stays correct if that bucket is hardened later.)
+    setAfterPhoto(await uploadPhoto("reportPhotos", file, userId));
+  }
+
+  const { run: resolve, pending: resolving } = useAsyncAction(
+    async () => {
+      await resolveReport(report!.id, note, afterPhoto ?? undefined);
+      await logActivity(communeId ?? null, userName, `Signalement résolu : ${report!.parks?.name ?? parkName}`);
+      invalidate();
+      onClose();
+    },
+    { successMessage: "Signalement résolu." },
+  );
+
+  const { run: dismiss, pending: dismissing } = useAsyncAction(
+    async () => {
+      await dismissReport(report!.id, note);
+      await logActivity(communeId ?? null, userName, `Signalement ignoré : ${report!.parks?.name ?? parkName}`);
+      invalidate();
+      onClose();
+    },
+    { successMessage: "Signalement ignoré." },
+  );
+
+  const { run: reopen, pending: reopening } = useAsyncAction(
+    async () => {
+      await reopenReport(report!.id);
+      invalidate();
+      onClose();
+    },
+    { successMessage: "Signalement réouvert." },
+  );
+
+  const { run: scheduleFollowUp, pending: schedulingFollowUp } = useAsyncAction(
+    async () => {
+      if (!communeId) return;
+      await createMaintenance({
+        park_id: report!.park_id,
+        commune_id: communeId,
+        date: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+        note: "Contrôle de suivi après signalement",
+        assignee: null,
+        recur: "none",
+      });
+      await logActivity(communeId, userName, `Contrôle de suivi programmé : ${report!.parks?.name ?? parkName}`);
+      onClose();
+      navigate("/maintenance");
+    },
+    { successMessage: "Contrôle de suivi programmé." },
+  );
+
+  if (!report) return null;
 
   return (
     <Dialog open onClose={onClose} title="Signalement">
@@ -120,15 +128,15 @@ export function ReportModal({
                 </label>
               )}
               <div style={{ display: "flex", gap: 8 }}>
-                <Button block disabled={!note} loading={saving} onClick={resolve}>
+                <Button block disabled={!note || dismissing} loading={resolving} onClick={resolve}>
                   Résoudre
                 </Button>
-                <Button block variant="secondary" disabled={!note} onClick={dismiss}>
+                <Button block variant="secondary" disabled={!note || resolving} loading={dismissing} onClick={dismiss}>
                   Ignorer
                 </Button>
               </div>
               {!isAdmin && (
-                <Button variant="ghost" block onClick={scheduleFollowUp}>
+                <Button variant="ghost" block loading={schedulingFollowUp} onClick={scheduleFollowUp}>
                   Programmer un contrôle de suivi
                 </Button>
               )}
@@ -144,7 +152,7 @@ export function ReportModal({
               </div>
             )}
             {canManage && (
-              <Button variant="secondary" block onClick={reopen}>
+              <Button variant="secondary" block loading={reopening} onClick={reopen}>
                 Réouvrir le signalement
               </Button>
             )}

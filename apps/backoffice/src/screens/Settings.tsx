@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import jsPDF from "jspdf";
-import { Avatar, Button, Card, Input, Toggle } from "@toboggo/design-system";
+import { Avatar, Button, Card, Input, Toggle, useConfirm } from "@toboggo/design-system";
 import { listTeam, listCommunes, updateCommune, removeTeamMember, listParks, listReports, listReviews, type Commune } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { InviteModal } from "../components/InviteModal";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
+import { usePermissions } from "../lib/permissions";
+import { useAsyncAction } from "../lib/useAsyncAction";
 import { queryClient } from "../lib/queryClient";
 
 export default function Settings() {
   const { isAdmin, communeId } = useOrgScope();
-  const { userName, userEmail, currentRole, isGestionnaireOrAbove } = useOrgSession();
-  const canManageTeam = isAdmin || isGestionnaireOrAbove();
+  const { userName, userEmail, currentRole } = useOrgSession();
+  const { canManageTeam, canEditCommuneSettings } = usePermissions();
+  const confirm = useConfirm();
   const [inviteOpen, setInviteOpen] = useState(false);
 
   const { data: team = [] } = useQuery({ queryKey: ["bo-team", communeId, isAdmin], queryFn: () => listTeam(isAdmin ? null : communeId!) });
@@ -34,11 +37,20 @@ export default function Settings() {
     void queryClient.invalidateQueries({ queryKey: ["bo-communes"] });
   }
 
-  async function onRemove(id: string, name: string) {
-    if (!confirm(`Retirer "${name}" de l'équipe ?`)) return;
-    await removeTeamMember(id);
-    void queryClient.invalidateQueries({ queryKey: ["bo-team"] });
-  }
+  const { run: onRemove, pending: removingMember } = useAsyncAction(
+    async (id: string, name: string) => {
+      const ok = await confirm({
+        title: "Retirer ce membre",
+        message: `Retirer "${name}" de l'équipe ? Cette personne perdra l'accès au back office.`,
+        confirmLabel: "Retirer",
+        danger: true,
+      });
+      if (!ok) return;
+      await removeTeamMember(id);
+      void queryClient.invalidateQueries({ queryKey: ["bo-team"] });
+    },
+    { successMessage: "Membre retiré." },
+  );
 
   async function generateReport() {
     if (!communeId || !commune) return;
@@ -92,9 +104,9 @@ export default function Settings() {
           <Card>
             <h2 style={{ fontSize: 15, marginBottom: 12 }}>Fiche collectivité</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <Input label="Nom de la collectivité" value={draft.name} onChange={(e) => setCommuneDraft((d) => ({ ...d, name: e.target.value }))} disabled={!isGestionnaireOrAbove()} />
-              <Input label="Contact référent" type="email" value={draft.contact_email} onChange={(e) => setCommuneDraft((d) => ({ ...d, contact_email: e.target.value }))} disabled={!isGestionnaireOrAbove()} />
-              {isGestionnaireOrAbove() && (
+              <Input label="Nom de la collectivité" value={draft.name} onChange={(e) => setCommuneDraft((d) => ({ ...d, name: e.target.value }))} disabled={!canEditCommuneSettings} />
+              <Input label="Contact référent" type="email" value={draft.contact_email} onChange={(e) => setCommuneDraft((d) => ({ ...d, contact_email: e.target.value }))} disabled={!canEditCommuneSettings} />
+              {canEditCommuneSettings && (
                 <Button onClick={saveCommune} style={{ alignSelf: "flex-start" }}>
                   Enregistrer
                 </Button>
@@ -139,7 +151,11 @@ export default function Settings() {
               </div>
               <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{m.role}</span>
               {canManageTeam && (
-                <button onClick={() => onRemove(m.id, m.name)} style={{ background: "none", border: "none", color: "var(--color-error)", fontSize: 12, cursor: "pointer" }}>
+                <button
+                  disabled={removingMember}
+                  onClick={() => onRemove(m.id, m.name)}
+                  style={{ background: "none", border: "none", color: "var(--color-error)", fontSize: 12, cursor: "pointer" }}
+                >
                   Retirer
                 </button>
               )}

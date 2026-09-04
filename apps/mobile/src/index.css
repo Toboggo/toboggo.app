@@ -1,5 +1,13 @@
 @import "@toboggo/design-system/tokens.css";
 
+:root {
+  /* Width of the centred mobile shell. Not a design-system token: it only
+     describes how the PWA is framed inside a desktop browser during dev/preview
+     (mobile devices are full-bleed). Consumed by #root, BottomTabs and the
+     portalled BottomSheet so they all line up. */
+  --app-shell-width: 560px;
+}
+
 html,
 body,
 #root {
@@ -7,7 +15,7 @@ body,
 }
 
 #root {
-  max-width: 560px;
+  max-width: var(--app-shell-width);
   margin: 0 auto;
   position: relative;
   overflow-x: hidden;

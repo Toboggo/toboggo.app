@@ -6,7 +6,7 @@
   transform: translateX(-50%);
   bottom: 0;
   width: 100%;
-  max-width: 560px;
+  max-width: var(--app-shell-width, 560px);
   display: flex;
   background: var(--color-surface);
   padding: 10px 8px calc(26px + var(--safe-bottom));

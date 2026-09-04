@@ -1,6 +1,5 @@
 import { useNavigate } from "react-router-dom";
 import { BottomSheet, Icon, type IconName } from "@toboggo/design-system";
-import { requireAccount } from "../lib/session";
 import { useToastStore } from "../lib/toast";
 import styles from "./QuickMenu.module.css";
 
@@ -29,7 +28,9 @@ export function QuickMenu({ open, onClose }: { open: boolean; onClose: () => voi
             className={styles.item}
             onClick={() => {
               onClose();
-              requireAccount(navigate, () => navigate(item.to));
+              // No auth gate here: a contribution can be started signed out and
+              // asks for an account only at send time.
+              navigate(item.to);
             }}
           >
             <span className={styles.icon}>

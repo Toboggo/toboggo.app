@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button, Select, Textarea, Icon, reportReasonIcon } from "@toboggo/design-system";
 import { createReport, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
@@ -7,7 +7,15 @@ import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
+import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
+import { clearDraft, loadDraft, saveDraft, setResumeRoute } from "../../lib/contributionDraft";
+
+interface ReportDraft {
+  reason: ReportReason | null;
+  equipment: string;
+  comment: string;
+}
 
 // Catégories sans pictogramme validé dans le sprite (docs/DESIGN-SYSTEM.md §7) —
 // emoji conservé en attendant. Les autres passent par reportReasonIcon().
@@ -26,14 +34,20 @@ export default function ReportProblem() {
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
+  const showToast = useToastStore((s) => s.show);
+  const preselected = useRef(Boolean(params.get("park"))).current;
+  const wantsResume = params.get("resume") === "1";
+  const draftKey = `report:${parkId ?? "none"}`;
 
-  const [step, setStep] = useState(parkId ? 1 : 0);
-  const [reason, setReason] = useState<ReportReason | null>(null);
-  const [equipment, setEquipment] = useState(EQUIPMENT_CHOICES[0]);
-  const [comment, setComment] = useState("");
+  const initial = useRef<ReportDraft | null>(loadDraft<ReportDraft>(draftKey)).current;
+  const [step, setStep] = useState(parkId ? (initial?.reason ? 2 : 1) : 0);
+  const [reason, setReason] = useState<ReportReason | null>(initial?.reason ?? null);
+  const [equipment, setEquipment] = useState(initial?.equipment ?? EQUIPMENT_CHOICES[0]);
+  const [comment, setComment] = useState(initial?.comment ?? "");
   const [photo, setPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const autoSubmitted = useRef(false);
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -41,25 +55,50 @@ export default function ReportProblem() {
     setPhoto(await uploadPhoto("reportPhotos", file, userId));
   }
 
-  async function submit() {
-    if (!userId || !parkId || !reason) return;
+  async function doSubmit(uid: string) {
+    if (!parkId || !reason) return;
     setSaving(true);
     try {
       await createReport({
         park_id: parkId,
-        user_id: userId,
+        user_id: uid,
         reported_by_name: profile?.name ?? "Vous",
         reason,
         equipment,
         comment: comment || null,
         photo,
       });
+      clearDraft(draftKey);
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
       setDone(true);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Envoi impossible");
     } finally {
       setSaving(false);
     }
   }
+
+  function submit() {
+    if (!parkId || !reason) return;
+    const uid = useSession.getState().userId;
+    if (uid) {
+      void doSubmit(uid);
+      return;
+    }
+    // Guest: keep what was filled in, come back here after sign-in.
+    saveDraft<ReportDraft>(draftKey, { reason, equipment, comment });
+    setResumeRoute(`/report?park=${parkId}&resume=1`);
+    navigate("/login");
+  }
+
+  // Back from sign-in with the report intact: send it once.
+  useEffect(() => {
+    if (!wantsResume || autoSubmitted.current) return;
+    if (!userId || !parkId || !reason || !initial) return;
+    autoSubmitted.current = true;
+    void doSubmit(userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsResume, userId, parkId, reason]);
 
   if (done) {
     return (
@@ -78,7 +117,13 @@ export default function ReportProblem() {
 
   return (
     <div className="screen">
-      <WizardHeader step={step} total={4} onBack={() => (step === 0 ? navigate(-1) : setStep(step - 1))} />
+      <WizardHeader
+        step={step}
+        total={4}
+        onBack={() =>
+          step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
+        }
+      />
 
       {step === 0 && (
         <ParkPicker

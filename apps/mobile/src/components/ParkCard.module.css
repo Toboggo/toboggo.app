@@ -1,13 +1,14 @@
+/* ── row variant (default) — used in lists, favorites, notifications ── */
 .row {
   display: flex;
   gap: var(--space-3);
   padding: var(--space-3);
   background: var(--color-surface);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   cursor: pointer;
   align-items: center;
   text-align: left;
-  border: none;
   width: 100%;
 }
 .thumb {
@@ -28,6 +29,7 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 15px;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -40,9 +42,149 @@
 .favBtn {
   background: none;
   border: none;
-  font-size: 20px;
   cursor: pointer;
   flex-shrink: 0;
   display: flex;
   align-items: center;
+  justify-content: center;
+  padding: var(--space-1);
+}
+
+/* ── list variant — richer horizontal item for the Explore results ── */
+.listCard {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.listPhoto {
+  width: 76px;
+  height: 76px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background-size: cover;
+  background-position: center;
+  background-color: var(--color-bg-alt);
+}
+.listBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.listTop {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.listTop .name {
+  flex: 1;
+}
+.listTop .favBtn {
+  margin: -4px -4px 0 0;
+}
+.listDist {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+.listChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.chip {
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-heading);
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.compactRating {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+.compactRating strong {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+/* ── carousel variant — vertical, photo-first ── */
+.card {
+  flex: none;
+  width: 168px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+.media {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+}
+.cardPhoto {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--color-bg-alt);
+}
+.ageTag {
+  position: absolute;
+  left: var(--space-2);
+  bottom: var(--space-2);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-sm);
+}
+.favFloat {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+}
+.favFloat .favBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+.cardBody {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cardMeta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  min-height: 15px;
 }

@@ -5,6 +5,8 @@ export interface GeoState {
   lng: number;
   label: string;
   permission: "unknown" | "granted" | "denied";
+  /** True once a real position (GPS or an explicit city pick) has replaced the default centre. */
+  hasFix: boolean;
   setLocation: (lat: number, lng: number, label: string) => void;
   setPermission: (p: GeoState["permission"]) => void;
 }
@@ -15,7 +17,8 @@ export const useGeo = create<GeoState>((set) => ({
   lng: 4.8357,
   label: "Autour de vous",
   permission: "unknown",
-  setLocation: (lat, lng, label) => set({ lat, lng, label }),
+  hasFix: false,
+  setLocation: (lat, lng, label) => set({ lat, lng, label, hasFix: true }),
   setPermission: (permission) => set({ permission }),
 }));
 

@@ -4,6 +4,7 @@ import { PLAY_EQUIPMENT_LABEL, formatAgeClause, formatAgeRange, incrementParkVie
 import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
+import { hasRating } from "../../lib/parkDisplay";
 import { useSession } from "../../lib/session";
 import { ShareSheet } from "../../components/ShareSheet";
 import styles from "./Detail.module.css";
@@ -63,7 +64,9 @@ export default function ParkDetail() {
   }
 
   const ageClause = formatAgeClause(park.age_min, park.age_max);
+  const rated = hasRating(park);
   const chips: string[] = [formatAgeRange(park.age_min, park.age_max)];
+
   if (park.fenced) chips.push("Clôturé");
   if (park.shade) chips.push("Ombragé");
   if (park.wc) chips.push("WC");
@@ -120,45 +123,55 @@ export default function ParkDetail() {
 
       <div className={styles.body}>
         <h1 className={styles.name}>{park.name}</h1>
-        <div className={styles.sub}>{park.formatted_address}</div>
+        {park.formatted_address && <div className={styles.sub}>{park.formatted_address}</div>}
 
         <div className={styles.ratingRow} onClick={() => navigate(`/park/${park.id}/reviews`)}>
-          <Stars value={park.rating} />
-          <span>
-            {park.rating.toFixed(1)} ({park.review_count} avis)
-          </span>
+          {rated ? (
+            <>
+              <Stars value={park.rating} />
+              <span>
+                {park.rating.toFixed(1)} ({park.review_count} avis)
+              </span>
+            </>
+          ) : (
+            <span>Aucun avis pour l’instant</span>
+          )}
         </div>
 
-        <div className={styles.chips}>
-          {chips.map((c) => (
-            <span key={c} className={styles.chip}>
-              {c}
+        {chips.length > 0 && (
+          <div className={styles.chips}>
+            {chips.map((c) => (
+              <span key={c} className={styles.chip}>
+                {c}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {park.has_score && (
+          <button type="button" className={styles.scoreCard} onClick={() => navigate(`/park/${park.id}/score`)}>
+            <span className={styles.scoreIcon}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
+                <circle cx="12" cy="8" r="6" />
+                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+              </svg>
             </span>
-          ))}
-        </div>
-
-        <button type="button" className={styles.scoreCard} onClick={() => navigate(`/park/${park.id}/score`)}>
-          <span className={styles.scoreIcon}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
-              <circle cx="12" cy="8" r="6" />
-              <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-            </svg>
-          </span>
-          <span className={styles.scoreBody}>
-            <span className={styles.scoreTitle}>
-              Toboggo Score
-              <span className={styles.scorePill} style={{ background: tierColor }}>
-                {score}
+            <span className={styles.scoreBody}>
+              <span className={styles.scoreTitle}>
+                Toboggo Score
+                <span className={styles.scorePill} style={{ background: tierColor }}>
+                  {score}
+                </span>
+              </span>
+              <span className={styles.scoreSub}>
+                {ageClause ? `Adapté aux enfants ${ageClause}` : "Tranche d'âge non précisée"}
               </span>
             </span>
-            <span className={styles.scoreSub}>
-              {ageClause ? `Adapté aux enfants ${ageClause}` : "Tranche d'âge non précisée"}
-            </span>
-          </span>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </button>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
+        )}
 
         {park.has_open_report ? (
           <div className={styles.issue}>

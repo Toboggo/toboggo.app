@@ -240,7 +240,7 @@ export default function ParkDetail() {
                 onClick={() => navigate(`/photo-add?park=${park.id}`)}
                 aria-label="Ajouter une photo"
               >
-                +
+                <Icon name="ic-plus" size={24} />
               </button>
             </div>
           ) : (

@@ -22,7 +22,7 @@
   top: 30%;
   width: 130%;
   height: 9px;
-  background: #f4efd9;
+  background: var(--color-bg-alt);
   border-radius: 5px;
   transform: rotate(-4deg);
 }
@@ -32,7 +32,7 @@
   top: -10%;
   width: 9px;
   height: 130%;
-  background: #f4efd9;
+  background: var(--color-bg-alt);
   border-radius: 5px;
   transform: rotate(7deg);
 }
@@ -42,7 +42,7 @@
   top: 74%;
   width: 130%;
   height: 6px;
-  background: #f4efd9;
+  background: var(--color-bg-alt);
   border-radius: 4px;
   transform: rotate(2deg);
 }

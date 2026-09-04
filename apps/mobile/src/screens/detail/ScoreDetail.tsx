@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
+import { formatAgeClause } from "@toboggo/shared";
 import { Icon } from "@toboggo/design-system";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
@@ -19,6 +20,7 @@ export default function ScoreDetail() {
   if (!park) return null;
 
   const score = park.rating * 2;
+  const ageClause = formatAgeClause(park.age_min, park.age_max);
   const tier = score >= 8 ? "Excellent" : score >= 6 ? "Bon" : "À améliorer";
   const tierColor =
     score >= 8 ? "var(--color-success)" : score >= 6 ? "var(--color-accent)" : "var(--color-error)";
@@ -42,7 +44,7 @@ export default function ScoreDetail() {
             {tier}
           </span>
           <div className={styles.heroSub}>
-            Très adapté aux enfants {park.age_min}–{park.age_max} ans
+            {ageClause ? `Très adapté aux enfants ${ageClause}` : "Tranche d'âge non précisée"}
           </div>
         </div>
 

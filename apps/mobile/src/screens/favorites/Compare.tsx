@@ -1,6 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { listParksByIds, formatDistance, haversineMeters } from "@toboggo/shared";
+import { listParksByIds, formatAgeRange, formatDistance, haversineMeters } from "@toboggo/shared";
 import { Icon } from "@toboggo/design-system";
 import { TopBar } from "../../components/TopBar";
 import { useGeo } from "../../lib/geo";
@@ -48,7 +48,7 @@ export default function Compare() {
               <td style={{ fontSize: 12.5, color: "var(--color-text-muted)", padding: 8 }}>Âge conseillé</td>
               {parks.map((p) => (
                 <td key={p.id} style={{ padding: 8, fontSize: 13 }}>
-                  {p.age_min}-{p.age_max} ans
+                  {formatAgeRange(p.age_min, p.age_max)}
                 </td>
               ))}
             </tr>

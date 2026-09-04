@@ -1,15 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { Icon, StarRating } from "@toboggo/design-system";
-import { AGE_BAND_LABEL, formatDistance, type Park } from "@toboggo/shared";
+import { formatAgeRange, formatDistance, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import styles from "./ParkCard.module.css";
-
-function ageLabel(park: Park) {
-  if (park.age_min === 0 && park.age_max >= 12) return AGE_BAND_LABEL.all;
-  if (park.age_max <= 3) return AGE_BAND_LABEL.under3;
-  if (park.age_min >= 6) return AGE_BAND_LABEL["6-12"];
-  return AGE_BAND_LABEL["3-6"];
-}
 
 export function ParkCard({
   park,
@@ -30,7 +23,7 @@ export function ParkCard({
         <div className={styles.name}>{park.name}</div>
         <div className={styles.meta}>
           {distanceM != null ? `${formatDistance(distanceM)} · ` : ""}
-          {ageLabel(park)}
+          {formatAgeRange(park.age_min, park.age_max)}
         </div>
         <StarRating value={park.rating} count={park.review_count} size="sm" />
       </div>

@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@toboggo/design-system";
-import { formatDistance, walkMinutes, type Park } from "@toboggo/shared";
+import { formatAgeRange, formatDistance, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
 import styles from "./ParkPreview.module.css";
@@ -33,7 +33,7 @@ export function ParkPreview({
   const isFav = favorites.includes(park.id);
   const dist = distanceM ?? park.distance_m ?? 0;
 
-  const criteria: string[] = [`${park.age_min}–${park.age_max} ans`];
+  const criteria: string[] = [formatAgeRange(park.age_min, park.age_max)];
   if (park.fenced) criteria.push("Clôturé");
   if (park.shade) criteria.push("Ombragé");
   if (park.wc) criteria.push("WC");

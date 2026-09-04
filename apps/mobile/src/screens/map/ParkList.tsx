@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { formatDistance, type Park } from "@toboggo/shared";
+import { formatAgeRange, formatDistance, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
 import { useFilters, type SortMode } from "../../lib/filters";
@@ -85,7 +85,7 @@ export function ParkList({
         {sorted.length === 0 && <div className={styles.empty}>Aucun parc ne correspond à ces filtres.</div>}
         {sorted.map((p) => {
           const isFav = favorites.includes(p.id);
-          const bits = [formatDistance(p.distance_m), `${p.age_min}–${p.age_max} ans`, SURFACE_LABEL[p.surface] ?? ""].filter(Boolean);
+          const bits = [formatDistance(p.distance_m), formatAgeRange(p.age_min, p.age_max), SURFACE_LABEL[p.surface] ?? ""].filter(Boolean);
           return (
             <div key={p.id} className={styles.row}>
               <ParkPhoto park={p} className={styles.thumb} markSize={22} />

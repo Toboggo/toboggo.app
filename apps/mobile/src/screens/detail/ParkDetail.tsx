@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { PLAY_EQUIPMENT_LABEL, incrementParkViews } from "@toboggo/shared";
+import { PLAY_EQUIPMENT_LABEL, formatAgeClause, formatAgeRange, incrementParkViews } from "@toboggo/shared";
 import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
@@ -62,7 +62,8 @@ export default function ParkDetail() {
     void patchProfile({ favorites: next });
   }
 
-  const chips: string[] = [`${park.age_min}–${park.age_max} ans`];
+  const ageClause = formatAgeClause(park.age_min, park.age_max);
+  const chips: string[] = [formatAgeRange(park.age_min, park.age_max)];
   if (park.fenced) chips.push("Clôturé");
   if (park.shade) chips.push("Ombragé");
   if (park.wc) chips.push("WC");
@@ -151,7 +152,7 @@ export default function ParkDetail() {
               </span>
             </span>
             <span className={styles.scoreSub}>
-              Adapté aux enfants {park.age_min}–{park.age_max} ans
+              {ageClause ? `Adapté aux enfants ${ageClause}` : "Tranche d'âge non précisée"}
             </span>
           </span>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>

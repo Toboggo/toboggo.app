@@ -3,12 +3,16 @@
 import argparse
 import json
 import subprocess
+import sys
 import tempfile
 import urllib.parse
 from collections import Counter
 from pathlib import Path
 
 import psycopg
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import address as address_lib  # noqa: E402  (après sys.path bootstrap)
 
 
 DB_DSN = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
@@ -707,6 +711,11 @@ def main():
                                 )
                             ),
 
+                        "address":
+                            address_lib.extract_address_from_tags(
+                                props
+                            ),
+
                         "features":
                             mapped_features,
 
@@ -799,6 +808,14 @@ def main():
                 f"{park['min_age']} "
                 f"→ "
                 f"{park['max_age']}"
+            )
+
+            print(
+                "Adresse  : "
+                + (
+                    address_lib.build_formatted_address(park["address"])
+                    or "—"
+                )
             )
 
             print(
@@ -930,12 +947,13 @@ def main():
                             select
                                 can_source_replace_attribute(%s, 'name', 'osm'),
                                 can_source_replace_attribute(%s, 'min_age', 'osm'),
-                                can_source_replace_attribute(%s, 'max_age', 'osm')
+                                can_source_replace_attribute(%s, 'max_age', 'osm'),
+                                can_source_replace_attribute(%s, 'address', 'osm')
                             """,
-                            (park_id, park_id, park_id),
+                            (park_id, park_id, park_id, park_id),
                         )
 
-                        allow_name, allow_min_age, allow_max_age = cur.fetchone()
+                        allow_name, allow_min_age, allow_max_age, allow_address_priority = cur.fetchone()
 
                         allow_name = bool(
                             allow_name and park["has_osm_name"]
@@ -945,6 +963,14 @@ def main():
                         )
                         allow_max_age = bool(
                             allow_max_age and park["max_age"] is not None
+                        )
+                        # `address` : jamais touché si l'objet OSM n'apporte
+                        # aucun tag addr:* (park["address"] is None) — même
+                        # quand la priorité l'autoriserait, on ne blanchit
+                        # jamais une adresse existante faute de mieux.
+                        allow_address = bool(
+                            allow_address_priority
+                            and address_lib.has_usable_address(park["address"])
                         )
 
                         # `moderation_status` : promotion UNIQUEMENT si
@@ -972,6 +998,9 @@ def main():
                                     when %s or %s then false
                                     else ages_derived
                                 end,
+                                address_line = case when %s then %s else address_line end,
+                                postal_code = case when %s then %s else postal_code end,
+                                city = case when %s then %s else city end,
                                 moderation_status = case
                                     when %s
                                         and before.old_ms = 'pending'
@@ -1000,6 +1029,12 @@ def main():
                                 park["max_age"],
                                 allow_min_age,
                                 allow_max_age,
+                                allow_address,
+                                (park["address"] or {}).get("address_line"),
+                                allow_address,
+                                (park["address"] or {}).get("postal_code"),
+                                allow_address,
+                                (park["address"] or {}).get("city"),
                                 args.publish,
                                 park_id,
                             ),
@@ -1023,6 +1058,9 @@ def main():
                                 min_age,
                                 max_age,
                                 ages_derived,
+                                address_line,
+                                postal_code,
+                                city,
                                 moderation_status,
                                 verification_status
                             )
@@ -1036,6 +1074,9 @@ def main():
                                 %s,
                                 false,
                                 %s,
+                                %s,
+                                %s,
+                                %s,
                                 'unverified'
                             )
                             returning id
@@ -1046,11 +1087,15 @@ def main():
                                 park["longitude"],
                                 park["min_age"],
                                 park["max_age"],
+                                (park["address"] or {}).get("address_line"),
+                                (park["address"] or {}).get("postal_code"),
+                                (park["address"] or {}).get("city"),
                                 new_park_status,
                             ),
                         )
 
                         park_id = cur.fetchone()[0]
+                        allow_address = address_lib.has_usable_address(park["address"])
 
                         cur.execute(
                             """
@@ -1215,6 +1260,9 @@ def main():
 
                     if allow_max_age:
                         record_osm_attribute("max_age", park["max_age"])
+
+                    if allow_address:
+                        record_osm_attribute("address", park["address"])
 
                     # ------------------------------------------------------
                     # ÉQUIPEMENTS

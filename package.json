@@ -18,7 +18,10 @@
     "osm:analyze": "python3 scripts/osm/osm.py analyze",
     "osm:import:local": "python3 scripts/osm/osm.py import-local",
     "osm:import:staging": "python3 scripts/osm/osm.py import-staging",
-    "osm:import:prod": "python3 scripts/osm/osm.py import-prod"
+    "osm:import:prod": "python3 scripts/osm/osm.py import-prod",
+    "osm:backfill:local": "python3 scripts/osm/backfill-addresses.py --env local",
+    "osm:backfill:staging": "python3 scripts/osm/backfill-addresses.py --env staging",
+    "osm:test": "python3 -m unittest discover -s scripts/osm/tests -p \"test_*.py\""
   },
   "devDependencies": {
     "typescript": "^5.6.3"

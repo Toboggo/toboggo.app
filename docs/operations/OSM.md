@@ -177,9 +177,35 @@ Open data compatible
 Chaque apport renseigne `source` (+ `license` / `author` / `attribution` si
 connus) via `addMedia` / `addParkPhotos` (`packages/shared/src/api/parkDetails.ts`).
 
+## Adresses (chantier `feature/osm-address-priority`)
+
+Diagnostic : sur les 2201 parcs Midi-Pyrénées, seuls 11 (~0,5%) portent un tag
+OSM `addr:*` exploitable (`addr:housenumber`, `addr:street`, `addr:postcode`,
+`addr:city` — les seuls 4 tags addr:* présents dans tout le jeu de données ;
+aucun `addr:place`/`is_in`/`place`). Le reste dépend du reverse geocoding.
+
+- L'import (`import-osm-local.py` et `import-osm-remote.py`) lit désormais ces
+  4 tags via `scripts/osm/address.py` et écrit `address_line`/`postal_code`/
+  `city` — toujours protégé par `can_source_replace_attribute(id,'address','osm')`
+  (jamais d'écrasement d'une adresse Toboggo/collectivité vérifiée, jamais de
+  blanchiment d'une adresse existante quand l'objet OSM n'apporte rien).
+- `scripts/osm/geoapify.py` : client de reverse geocoding (clé via
+  `GEOAPIFY_API_KEY` uniquement, jamais committée, jamais côté frontend).
+- `scripts/osm/backfill-addresses.py --env {local,staging} [--commit] [--limit N]` :
+  backfill dédié. `--env prod` n'est même pas une option du script (garde-fou
+  technique, pas seulement une discipline). Dry-run par défaut. Idempotent et
+  reprenable : un parc déjà traité (source `reverse_geocode` enregistrée)
+  n'est plus jamais resélectionné tant qu'aucune source supérieure n'a pris le
+  relais — le mécanisme de priorité sert lui-même de point de reprise, pas de
+  fichier d'état séparé.
+- Priorité (migrations `0028`/`0029`) :
+  `toboggo (100) > municipality (90) > open_data (80) > partner (70) > osm (50)
+  > reverse_geocode (45) > user (40) > other (10)`.
+- Tests : `python3 -m unittest discover -s scripts/osm/tests -p "test_*.py"`.
+
 ## Prochaines priorités
-1. priorité des sources / protection contre écrasement OSM
-2. ville / adresse / région
+1. ~~priorité des sources / protection contre écrasement OSM~~ — fait (`0024`, `0028`, `0029`)
+2. ~~ville / adresse / région~~ — fait pour OSM + reverse geocoding (voir ci-dessus) ; open data collectivités reste à faire (#5)
 3. `parks.boundary`
 4. `opening_hours`, `operator`, `fee`
 5. enrichissement open data collectivités

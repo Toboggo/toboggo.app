@@ -209,6 +209,23 @@ export default function MapExplore() {
           />
         );
       }
+      // Une destination recherchée est active (ville/lieu géocodé) — "Aucun parc
+      // autour de vous" serait trompeur puisque l'utilisateur ne regarde plus sa
+      // propre position. La carte reste sur la destination, sans retour forcé au GPS.
+      if (placeLabel) {
+        return (
+          <SheetState
+            iconName="ic-slide"
+            title="Aucun parc ici"
+            description="Aucun parc référencé dans cette zone pour le moment."
+            action={
+              <button type="button" className={styles.stateBtn} onClick={() => setSearchOpen(true)}>
+                Chercher un autre lieu
+              </button>
+            }
+          />
+        );
+      }
       return (
         <SheetState
           iconName="ic-slide"
@@ -377,9 +394,9 @@ export default function MapExplore() {
             setSearchOpen(false);
             setSelectedId(id);
           }}
-          onSelectCity={(city) => {
+          onSelectPlace={(place) => {
             setSearchOpen(false);
-            useGeo.getState().setLocation(city.lat, city.lng, city.name);
+            useGeo.getState().setLocation(place.lat, place.lng, place.name);
             setRecenterSignal((n) => n + 1);
           }}
         />

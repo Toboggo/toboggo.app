@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input, Segmented, useToast } from "@toboggo/design-system";
 import {
@@ -30,13 +31,29 @@ function parseCoordinateCell(raw: string | undefined): number {
   return Number(raw);
 }
 
+const VALID_TAB_VALUES = new Set(["all", "draft", "pending", "published", "blocked", "rejected"]);
+
+/** Validates the `?status=` query param (e.g. from a Dashboard "État des
+ * parcs" card) against real tab values instead of trusting an arbitrary URL —
+ * an unrecognised value falls back to `undefined` rather than corrupting the
+ * screen's filter state. */
+function parseStatusParam(raw: string | null): ("all" | ParkStatus) | undefined {
+  return raw != null && VALID_TAB_VALUES.has(raw) ? (raw as "all" | ParkStatus) : undefined;
+}
+
 export default function Parks() {
   const { isAdmin, communeId } = useOrgScope();
   const { userName, isGestionnaireOrAbove } = useOrgSession();
   const { canCreatePark, canImportParksCsv, canEditPark } = usePermissions();
   const toast = useToast();
-  const [tab, setTab] = useState<"all" | ParkStatus>(isAdmin ? "pending" : "all");
-  const [query, setQuery] = useState("");
+  const [searchParams] = useSearchParams();
+  // Read once on mount (from a Dashboard/header link) — the URL is not kept
+  // in sync afterwards as the user changes filters, matching the minimal
+  // scope of this lot (no full router-driven filter state).
+  const [tab, setTab] = useState<"all" | ParkStatus>(
+    () => parseStatusParam(searchParams.get("status")) ?? (isAdmin ? "pending" : "all"),
+  );
+  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [modalPark, setModalPark] = useState<Park | "new" | null>(null);
 
   const { data: parks = [], isLoading } = useQuery({ queryKey: ["bo-parks", communeId, isAdmin], queryFn: () => listParks({ communeId }) });

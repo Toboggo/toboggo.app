@@ -1,4 +1,5 @@
 import { getSupabase } from "../supabaseClient";
+import { listOrgParkIds } from "./parks";
 import type { Json, ParkEdit } from "../types";
 
 /**
@@ -35,6 +36,21 @@ export async function listParkEdits(opts: { parkId?: string; status?: ParkEdit["
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []) as ParkEdit[];
+}
+
+/**
+ * Pending change-request proposals ("infos à vérifier") for a collectivité's
+ * own parks. `park_edits` has no `organization_id`-scoped read policy of its
+ * own to rely on client-side, so this cross-references `listOrgParkIds` (the
+ * same organisation → park-id resolution used for parks/reports/reviews/
+ * pending media since Lot 1) rather than trusting `park_edits.organization_id`,
+ * which is optional and not always set at submission time.
+ */
+export async function listPendingParkEditsForOrg(organizationId: string): Promise<ParkEdit[]> {
+  const parkIds = await listOrgParkIds(organizationId);
+  if (!parkIds.length) return [];
+  const pending = await listParkEdits({ status: ["pending"] });
+  return pending.filter((edit) => edit.park_id != null && parkIds.includes(edit.park_id));
 }
 
 export async function reviewParkEdit(

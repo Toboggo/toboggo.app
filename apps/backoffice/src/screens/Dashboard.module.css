@@ -1,0 +1,167 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* ── « À traiter » ──────────────────────────────────────────────────────── */
+.actionList {
+  display: flex;
+  flex-direction: column;
+}
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 0;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13.5px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.actionRow:last-child {
+  border-bottom: none;
+}
+.actionRow.static {
+  cursor: default;
+}
+.actionRow:hover:not(.static) {
+  color: var(--color-primary-hover);
+}
+.actionLabel {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+.actionHint {
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+}
+.countBadge {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 12px;
+  border-radius: var(--radius-pill);
+}
+
+/* Empty state compact — pas une grande carte vide */
+.empty {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+.emptyIcon {
+  color: var(--color-primary);
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* ── Bandeau compteurs de parcs (secondaire) ───────────────────────────── */
+.statStripLabel {
+  font-family: var(--font-heading);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 10px;
+}
+.statStrip {
+  display: flex;
+  align-items: stretch;
+}
+.stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 2px 14px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-left: 1px solid var(--color-border);
+  cursor: pointer;
+}
+.stat:first-child {
+  border-left: none;
+  padding-left: 2px;
+}
+.stat:hover .statValue {
+  color: var(--color-primary-hover);
+}
+.statValue {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.15;
+}
+.statLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ── Activité récente ──────────────────────────────────────────────────── */
+.activityRow {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.activityRow:last-child {
+  border-bottom: none;
+}
+.activityDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.activityText {
+  font-size: 13px;
+}
+.activityMeta {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+}
+.activityEmpty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+@media (max-width: 720px) {
+  .statStrip {
+    flex-wrap: wrap;
+  }
+  .stat {
+    flex: 1 0 40%;
+    border-left: none;
+    padding-left: 2px;
+  }
+}

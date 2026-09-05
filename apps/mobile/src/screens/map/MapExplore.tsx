@@ -352,6 +352,11 @@ export default function MapExplore() {
       )}
 
       <BottomSheet
+        // Remount on mode change: forces the sheet's internal drag/height state
+        // (in particular `liveH`, which only clears on a deferred rAF) to reset
+        // in lockstep with the new snapPoints ladder and content, instead of
+        // momentarily rendering the new (shorter) content at a stale height.
+        key={mode}
         open
         dismissible={mode === "preview"}
         onClose={() => setSelectedId(null)}

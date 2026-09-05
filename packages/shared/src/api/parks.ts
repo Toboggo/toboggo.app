@@ -6,6 +6,7 @@ import type {
   ParkEditHistoryEntry,
   ParkFeatureView,
   ParkStatus,
+  VerificationStatus,
 } from "../types";
 import type { Database, Json, TablesInsert, TablesUpdate } from "../types/database.types";
 
@@ -191,6 +192,80 @@ export async function listParks(opts: { communeId?: string; status?: ParkStatus[
   const { data, error } = await query;
   if (error) throw error;
   return data as unknown as Park[];
+}
+
+// ── Server-paginated management list (BO Lot 3A) ──────────────────────────
+// Separate from `listParks` (which stays an unpaginated array, still used by
+// the dashboard / map / sidebar counts) — this one adds page/sort/search/
+// verification filtering server-side so `/parks` scales past a few hundred
+// rows. `park_public.photos` is already the aggregated list of *approved*
+// media URLs, so the photo count is `row.photos.length` — no extra query.
+
+export const PARKS_PAGE_SIZE = 25;
+
+/** Columns the list can sort on server-side. `name`/`created_at`/`updated_at`
+ * are real `parks` columns; computed cells (photo count, open-report flag)
+ * are intentionally not sortable. */
+export type ParksSortKey = "name" | "created_at" | "updated_at";
+
+export interface ListParksPageOpts {
+  communeId?: string;
+  /** Case-insensitive substring match on the park name. */
+  q?: string;
+  status?: ParkStatus[];
+  verification?: VerificationStatus[];
+  sort?: ParksSortKey;
+  order?: "asc" | "desc";
+  /** 1-based. */
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ParksPage {
+  rows: Park[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}
+
+export async function listParksPage(opts: ListParksPageOpts = {}): Promise<ParksPage> {
+  const supabase = getSupabase();
+  const page = Math.max(1, Math.trunc(opts.page ?? 1));
+  const pageSize = Math.max(1, Math.trunc(opts.pageSize ?? PARKS_PAGE_SIZE));
+  const sort: ParksSortKey = opts.sort ?? "updated_at";
+  const ascending = (opts.order ?? "desc") === "asc";
+
+  let query = supabase
+    .from("park_public")
+    .select(PARK_COLS, { count: "exact" })
+    .order(sort, { ascending })
+    // Stable tiebreaker so a row never straddles two pages when the sort
+    // column has duplicate values (e.g. a bulk import sharing a timestamp).
+    .order("id", { ascending: true });
+
+  if (opts.communeId) {
+    const ids = await listOrgParkIds(opts.communeId);
+    query = query.in("id", ids.length ? ids : [NO_MATCH_SENTINEL]);
+  }
+  if (opts.status?.length) query = query.in("moderation_status", opts.status);
+  if (opts.verification?.length) query = query.in("verification_status", opts.verification);
+  const q = opts.q?.trim();
+  if (q) query = query.ilike("name", `%${q}%`);
+
+  const from = (page - 1) * pageSize;
+  query = query.range(from, from + pageSize - 1);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  const total = count ?? 0;
+  return {
+    rows: (data ?? []) as unknown as Park[],
+    total,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }
 
 // ── Write path ────────────────────────────────────────────────────────────

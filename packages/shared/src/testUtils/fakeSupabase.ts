@@ -6,9 +6,9 @@
  * awaiting the object (it implements `then`) resolves to the configured
  * `{ data, error }`, exactly like the real PostgrestFilterBuilder.
  */
-export class FakeQuery implements PromiseLike<{ data: unknown; error: unknown }> {
+export class FakeQuery implements PromiseLike<{ data: unknown; error: unknown; count?: unknown }> {
   calls: { method: string; args: unknown[] }[] = [];
-  constructor(private result: { data: unknown; error: unknown }) {}
+  constructor(private result: { data: unknown; error: unknown; count?: unknown }) {}
   private record(method: string, args: unknown[]) {
     this.calls.push({ method, args });
     return this;
@@ -21,6 +21,15 @@ export class FakeQuery implements PromiseLike<{ data: unknown; error: unknown }>
   }
   in(...args: unknown[]) {
     return this.record("in", args);
+  }
+  or(...args: unknown[]) {
+    return this.record("or", args);
+  }
+  ilike(...args: unknown[]) {
+    return this.record("ilike", args);
+  }
+  range(...args: unknown[]) {
+    return this.record("range", args);
   }
   order(...args: unknown[]) {
     return this.record("order", args);
@@ -44,16 +53,18 @@ export class FakeQuery implements PromiseLike<{ data: unknown; error: unknown }>
     return this.record("maybeSingle", []);
   }
   then<TResult1, TResult2 = never>(
-    onfulfilled?: ((value: { data: unknown; error: unknown }) => TResult1 | PromiseLike<TResult1>) | null,
+    onfulfilled?:
+      | ((value: { data: unknown; error: unknown; count?: unknown }) => TResult1 | PromiseLike<TResult1>)
+      | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ): PromiseLike<TResult1 | TResult2> {
     return Promise.resolve(this.result).then(onfulfilled, onrejected);
   }
 }
 
-/** Table -> canned `{ data, error }` response, plus every `FakeQuery` created
- * (keyed by table) so a test can inspect exactly what was sent. */
-export function makeFakeSupabase(responses: Record<string, { data: unknown; error: unknown }>) {
+/** Table -> canned `{ data, error, count? }` response, plus every `FakeQuery`
+ * created (keyed by table) so a test can inspect exactly what was sent. */
+export function makeFakeSupabase(responses: Record<string, { data: unknown; error: unknown; count?: unknown }>) {
   const queriesByTable: Record<string, FakeQuery[]> = {};
   const client = {
     from(table: string) {

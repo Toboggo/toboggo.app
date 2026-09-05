@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSupabase } from "../supabaseClient";
-import { createPark, isValidCoordinate, listOrgParkIds, listParks } from "./parks";
+import { createPark, isValidCoordinate, listOrgParkIds, listParks, listParksPage } from "./parks";
 import { makeFakeSupabase } from "../testUtils/fakeSupabase";
 
 vi.mock("../supabaseClient", () => ({ getSupabase: vi.fn() }));
@@ -152,6 +152,112 @@ describe("listParks — bug B2 (collectivité scoping via organization_parks)", 
     await listOrgParkIds("org-1");
 
     expect(queriesByTable["organization_parks"]).toHaveLength(2);
+  });
+});
+
+describe("listParksPage — server pagination / sort / search (Lot 3A)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  function calls(q: { calls: { method: string; args: unknown[] }[] }, method: string) {
+    return q.calls.filter((c) => c.method === method).map((c) => c.args);
+  }
+
+  it("requests the right page window and returns the exact total + page count", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [{ id: "p1" }, { id: "p2" }], error: null, count: 57 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const res = await listParksPage({ page: 3, pageSize: 25 });
+
+    expect(res.total).toBe(57);
+    expect(res.page).toBe(3);
+    expect(res.pageCount).toBe(3);
+    expect(res.rows).toHaveLength(2);
+    // page 3, size 25 -> rows 50..74
+    expect(calls(queriesByTable["park_public"][0], "range")[0]).toEqual([50, 74]);
+  });
+
+  it("asks PostgREST for an exact count", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage();
+
+    const selectArgs = calls(queriesByTable["park_public"][0], "select")[0];
+    expect(selectArgs[1]).toEqual({ count: "exact" });
+  });
+
+  it("filters by name server-side (ilike) only when a non-empty query is given", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage({ q: "  gourg  " });
+    expect(calls(queriesByTable["park_public"][0], "ilike")[0]).toEqual(["name", "%gourg%"]);
+
+    await listParksPage({ q: "   " });
+    expect(calls(queriesByTable["park_public"][1], "ilike")).toHaveLength(0);
+  });
+
+  it("orders by the requested sort key plus a stable id tiebreaker", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage({ sort: "name", order: "asc" });
+
+    const orderArgs = calls(queriesByTable["park_public"][0], "order");
+    expect(orderArgs[0]).toEqual(["name", { ascending: true }]);
+    expect(orderArgs[1]).toEqual(["id", { ascending: true }]);
+  });
+
+  it("defaults to updated_at desc", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage();
+
+    expect(calls(queriesByTable["park_public"][0], "order")[0]).toEqual(["updated_at", { ascending: false }]);
+  });
+
+  it("scopes to a commune via organization_parks and applies status + verification filters", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      organization_parks: { data: [{ park_id: "park-1" }, { park_id: "park-2" }], error: null },
+      park_public: { data: [{ id: "park-1" }], error: null, count: 1 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage({
+      communeId: "org-1",
+      status: ["published"],
+      verification: ["organization_verified"],
+    });
+
+    const inArgs = calls(queriesByTable["park_public"][0], "in");
+    expect(inArgs).toContainEqual(["id", ["park-1", "park-2"]]);
+    expect(inArgs).toContainEqual(["moderation_status", ["published"]]);
+    expect(inArgs).toContainEqual(["verification_status", ["organization_verified"]]);
+  });
+
+  it("a commune with zero linked parks sees zero rows (sentinel), never everything", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      organization_parks: { data: [], error: null },
+      park_public: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const res = await listParksPage({ communeId: "org-empty" });
+
+    expect(res.total).toBe(0);
+    const inArgs = calls(queriesByTable["park_public"][0], "in");
+    expect(inArgs[0]).toEqual(["id", ["00000000-0000-0000-0000-000000000000"]]);
   });
 });
 

@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button, Icon, StepDots, type IconName } from "@toboggo/design-system";
 import { IconButton } from "@toboggo/design-system";
 
@@ -31,9 +31,15 @@ const CONTENT: Record<
 
 export default function ActionIntro() {
   const { type } = useParams();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
   const content = CONTENT[type ?? "add"];
   if (!content) return null;
+
+  // Keep the park context (if any) when entering the flow, so the sub-flow
+  // doesn't ask the user to pick the park again.
+  const parkId = params.get("park");
+  const target = parkId ? `${content.to}?park=${parkId}` : content.to;
 
   return (
     <div className="screen" style={{ display: "flex", flexDirection: "column" }}>
@@ -89,7 +95,7 @@ export default function ActionIntro() {
         <StepDots total={3} current={0} />
       </div>
       <div style={{ padding: 24 }}>
-        <Button block onClick={() => navigate(content.to)}>
+        <Button block onClick={() => navigate(target)}>
           Commencer
         </Button>
       </div>

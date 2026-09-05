@@ -22,6 +22,7 @@ export default function AddPhotos() {
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
+  const preselected = useRef(Boolean(params.get("park"))).current;
 
   const [step, setStep] = useState(parkId ? 1 : 0);
   const [picks, setPicks] = useState<PhotoPick[]>([]);
@@ -110,7 +111,13 @@ export default function AddPhotos() {
 
   return (
     <div className="screen">
-      <WizardHeader step={step} total={2} onBack={() => (step === 0 ? navigate(-1) : setStep(step - 1))} />
+      <WizardHeader
+        step={step}
+        total={2}
+        onBack={() =>
+          step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
+        }
+      />
 
       {step === 0 && (
         <ParkPicker

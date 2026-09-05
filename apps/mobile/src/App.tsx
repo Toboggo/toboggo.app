@@ -1,8 +1,9 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useSession } from "./lib/session";
 import { useTheme, useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
+import { takeResumeRoute } from "./lib/contributionDraft";
 
 import Splash from "./screens/onboarding/Splash";
 import LoginMethod from "./screens/onboarding/LoginMethod";
@@ -22,6 +23,7 @@ import AddPark from "./screens/actions/AddPark";
 import RatePark from "./screens/actions/RatePark";
 import ReportProblem from "./screens/actions/ReportProblem";
 import AddPhotos from "./screens/actions/AddPhotos";
+import EditInfo from "./screens/actions/EditInfo";
 import MoreActions from "./screens/actions/MoreActions";
 
 import Favorites from "./screens/favorites/Favorites";
@@ -46,6 +48,8 @@ export default function App() {
   const init = useSession((s) => s.init);
   const loading = useSession((s) => s.loading);
   const profile = useSession((s) => s.profile);
+  const userId = useSession((s) => s.userId);
+  const navigate = useNavigate();
   const [, setTheme] = useTheme();
   useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
 
@@ -56,6 +60,15 @@ export default function App() {
   useEffect(() => {
     if (profile) setTheme(profile.dark_mode ? "dark" : "light");
   }, [profile, setTheme]);
+
+  // A contribution started while signed out stashes a resume route before the
+  // just-in-time auth flow (which, for Google OAuth, is a full-page redirect).
+  // Once authenticated, return to that flow to finish the send.
+  useEffect(() => {
+    if (!userId) return;
+    const route = takeResumeRoute();
+    if (route) navigate(route, { replace: true });
+  }, [userId, navigate]);
 
   if (loading) return null;
 
@@ -81,6 +94,7 @@ export default function App() {
       <Route path="/rate" element={<RatePark />} />
       <Route path="/report" element={<ReportProblem />} />
       <Route path="/photo-add" element={<AddPhotos />} />
+      <Route path="/contribute/edit" element={<EditInfo />} />
       <Route path="/more-actions" element={<MoreActions />} />
 
       <Route path="/favorites" element={<Favorites />} />

@@ -7,6 +7,7 @@ import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
 import { hasRating } from "../../lib/parkDisplay";
 import { useSession } from "../../lib/session";
 import { ShareSheet } from "../../components/ShareSheet";
+import { ContributeSheet } from "../../components/ContributeSheet";
 import styles from "./Detail.module.css";
 
 function Stars({ value, size = 15 }: { value: number; size?: number }) {
@@ -37,6 +38,7 @@ export default function ParkDetail() {
   const { data: reviews = [] } = useParkReviews(id);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [shareOpen, setShareOpen] = useState(params.get("share") === "1");
+  const [contribOpen, setContribOpen] = useState(false);
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const patchProfile = useSession((s) => s.patchProfile);
@@ -202,7 +204,7 @@ export default function ParkDetail() {
           {equip.length === 0 ? (
             <div className={styles.emptyCard}>
               <span>Informations sur les jeux indisponibles</span>
-              <button type="button" onClick={() => navigate(`/action-intro/report?park=${park.id}`)}>
+              <button type="button" onClick={() => navigate(`/contribute/edit?park=${park.id}`)}>
                 Compléter les informations
               </button>
             </div>
@@ -267,11 +269,11 @@ export default function ParkDetail() {
           )}
         </div>
 
-        <button type="button" className={styles.reportLink} onClick={() => navigate(`/action-intro/report?park=${park.id}`)}>
+        <button type="button" className={styles.reportLink} onClick={() => setContribOpen(true)}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <path d="M4 21V4h14l-3 4 3 4H4" />
           </svg>
-          Signaler un problème avec ce parc
+          Contribuer à ce parc
         </button>
 
         <div className={styles.hr} />
@@ -311,6 +313,7 @@ export default function ParkDetail() {
       </div>
 
       <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} park={park} />
+      <ContributeSheet open={contribOpen} onClose={() => setContribOpen(false)} parkId={park.id} />
     </div>
   );
 }

@@ -662,6 +662,17 @@ export const FEATURE_LABEL: Record<string, string> = {
   accessible_toilets: "Toilettes accessibles",
   accessible_parking: "Parking accessible",
   inclusive_play: "Jeux inclusifs",
+  // OSM playground import (0022/0023_add_osm_playground_features) — sans ces
+  // entrées, featureLabel() retombe sur le code technique brut (ex. "play
+  // structure") au lieu d'un libellé français.
+  play_structure: "Structure de jeux",
+  seesaw: "Bascule",
+  playhouse: "Maisonnette",
+  trampoline: "Trampoline",
+  balance_beam: "Poutre d'équilibre",
+  agility_trail: "Parcours d'agilité",
+  horizontal_bar: "Barre de traction",
+  hopscotch: "Marelle",
 };
 
 /** Legacy map — the old prototype's play-equipment codes. */
@@ -681,3 +692,7 @@ export const PLAY_EQUIPMENT_LABEL: Record<string, string> = {
 export function featureLabel(code: string): string {
   return FEATURE_LABEL[code] ?? PLAY_EQUIPMENT_LABEL[code] ?? code.replace(/_/g, " ");
 }
+
+// Age-range formatting (`formatAgeRange` / `formatAgeClause`) lives in
+// `./utils/age` — single source of truth, avoids the duplicate-export
+// ambiguity of having two same-named helpers re-exported from this package.

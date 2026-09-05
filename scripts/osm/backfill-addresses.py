@@ -203,6 +203,51 @@ def parse_args():
     return ap.parse_args()
 
 
+class RemoteSQLError(RuntimeError):
+    """Échec d'exécution ou de lecture d'une requête `supabase db query`."""
+
+
+def _extract_result_object(stdout: str) -> dict:
+    """Extrait l'objet résultat JSON de la sortie de `supabase db query`.
+
+    `supabase db query` encadre son résultat dans un objet
+    ``{"boundary": ..., "rows": [...], "warning": ...}``. Mais selon la
+    version de la CLI, la détection d'un TTY, une notice « nouvelle version
+    disponible », un résumé de fin d'exécution ou le mode `stream-json`
+    (NDJSON, résultat niché sous ``data``), cet objet peut être **précédé
+    ET/OU suivi** de texte non-JSON ou d'autres objets JSON sur stdout.
+
+    On ne fait donc plus ``json.loads(out[out.index('{'):])`` — un simple
+    suffixe suffit à le faire échouer avec « Extra data ». On parcourt
+    stdout, on décode le premier objet JSON *complet* qui porte une liste
+    ``rows`` (ou ``data.rows``), et on ignore tout ce qui l'entoure.
+    """
+    decoder = json.JSONDecoder()
+    i, n = 0, len(stdout)
+    while i < n:
+        brace = stdout.find("{", i)
+        if brace == -1:
+            break
+        try:
+            obj, end = decoder.raw_decode(stdout, brace)
+        except json.JSONDecodeError:
+            i = brace + 1
+            continue
+        if isinstance(obj, dict):
+            if isinstance(obj.get("rows"), list):
+                return obj
+            inner = obj.get("data")
+            if isinstance(inner, dict) and isinstance(inner.get("rows"), list):
+                return inner
+        i = max(end, brace + 1)  # objet JSON valide mais pas le bon : avancer après lui
+
+    preview = " ".join(stdout.split())[:200] or "(stdout vide)"
+    raise RemoteSQLError(
+        "Réponse `supabase db query` inattendue : aucun objet JSON portant "
+        f"une liste 'rows' trouvé sur stdout. Aperçu : {preview!r}"
+    )
+
+
 def run_remote_sql(sql: str, project_ref: str) -> list[dict]:
     """Exécute du SQL sur un projet Supabase distant (staging ou prod) via
     `supabase db query --linked --project-ref <ref>` (même mécanisme que
@@ -223,12 +268,14 @@ def run_remote_sql(sql: str, project_ref: str) -> list[dict]:
             ],
             check=True, capture_output=True, text=True,
         )
+    except subprocess.CalledProcessError as e:
+        stderr = " ".join((e.stderr or "").split())[:300]
+        raise RemoteSQLError(
+            f"`supabase db query` a échoué (code {e.returncode}). stderr : {stderr!r}"
+        ) from e
     finally:
         path.unlink(missing_ok=True)
-    out = result.stdout
-    start = out.index("{")
-    data = json.loads(out[start:])
-    return data.get("rows", [])
+    return _extract_result_object(result.stdout).get("rows", [])
 
 
 class LocalConn:

@@ -207,44 +207,61 @@ class RemoteSQLError(RuntimeError):
     """Échec d'exécution ou de lecture d'une requête `supabase db query`."""
 
 
-def _extract_result_object(stdout: str) -> dict:
-    """Extrait l'objet résultat JSON de la sortie de `supabase db query`.
+def _rows_from_json_value(value):
+    """Renvoie la liste de lignes si `value` est l'un des formats de sortie
+    connus de `supabase db query`, sinon None (pour continuer à scanner) :
 
-    `supabase db query` encadre son résultat dans un objet
-    ``{"boundary": ..., "rows": [...], "warning": ...}``. Mais selon la
-    version de la CLI, la détection d'un TTY, une notice « nouvelle version
-    disponible », un résumé de fin d'exécution ou le mode `stream-json`
-    (NDJSON, résultat niché sous ``data``), cet objet peut être **précédé
-    ET/OU suivi** de texte non-JSON ou d'autres objets JSON sur stdout.
+      - tableau JSON racine :   [ {...}, {...} ]      -> la liste elle-même
+      - objet enveloppe :       { "rows": [...] }     -> value["rows"]
+      - objet stream-json :     { "data": { "rows": [...] } } -> value["data"]["rows"]
+    """
+    if isinstance(value, list):
+        return value
+    if isinstance(value, dict):
+        if isinstance(value.get("rows"), list):
+            return value["rows"]
+        inner = value.get("data")
+        if isinstance(inner, dict) and isinstance(inner.get("rows"), list):
+            return inner["rows"]
+    return None
 
-    On ne fait donc plus ``json.loads(out[out.index('{'):])`` — un simple
-    suffixe suffit à le faire échouer avec « Extra data ». On parcourt
-    stdout, on décode le premier objet JSON *complet* qui porte une liste
-    ``rows`` (ou ``data.rows``), et on ignore tout ce qui l'entoure.
+
+def _extract_rows(stdout: str) -> list:
+    """Extrait la liste de lignes de la sortie de `supabase db query`.
+
+    La forme de cette sortie varie selon la version de la CLI, la détection
+    d'un TTY, une notice « nouvelle version disponible », un résumé de fin
+    ou le mode d'affichage : tantôt un objet ``{"boundary", "rows", "warning"}``,
+    tantôt un **tableau JSON racine** ``[{...}, ...]``, tantôt niché sous
+    ``data`` (stream-json) — et parfois entouré de texte non-JSON.
+
+    On ne fait donc PAS ``json.loads`` sur toute la queue de stdout (fragile :
+    « Extra data » au moindre suffixe). On parcourt stdout, on décode la
+    première valeur JSON *complète* (`[` ou `{`) qui matche un des formats
+    connus (cf. `_rows_from_json_value`), en ignorant tout préambule/suffixe.
     """
     decoder = json.JSONDecoder()
     i, n = 0, len(stdout)
     while i < n:
-        brace = stdout.find("{", i)
-        if brace == -1:
+        starts = [p for p in (stdout.find("{", i), stdout.find("[", i)) if p != -1]
+        if not starts:
             break
+        pos = min(starts)
         try:
-            obj, end = decoder.raw_decode(stdout, brace)
+            value, end = decoder.raw_decode(stdout, pos)
         except json.JSONDecodeError:
-            i = brace + 1
+            i = pos + 1
             continue
-        if isinstance(obj, dict):
-            if isinstance(obj.get("rows"), list):
-                return obj
-            inner = obj.get("data")
-            if isinstance(inner, dict) and isinstance(inner.get("rows"), list):
-                return inner
-        i = max(end, brace + 1)  # objet JSON valide mais pas le bon : avancer après lui
+        rows = _rows_from_json_value(value)
+        if rows is not None:
+            return rows
+        i = max(end, pos + 1)  # valeur JSON valide mais pas le bon format : avancer
 
     preview = " ".join(stdout.split())[:200] or "(stdout vide)"
     raise RemoteSQLError(
-        "Réponse `supabase db query` inattendue : aucun objet JSON portant "
-        f"une liste 'rows' trouvé sur stdout. Aperçu : {preview!r}"
+        "Réponse `supabase db query` inattendue : ni tableau JSON racine, ni "
+        "objet {'rows': [...]}, ni {'data': {'rows': [...]}} trouvé sur stdout. "
+        f"Aperçu : {preview!r}"
     )
 
 
@@ -275,7 +292,7 @@ def run_remote_sql(sql: str, project_ref: str) -> list[dict]:
         ) from e
     finally:
         path.unlink(missing_ok=True)
-    return _extract_result_object(result.stdout).get("rows", [])
+    return _extract_rows(result.stdout)
 
 
 class LocalConn:

@@ -54,6 +54,9 @@ interface EditDraft {
   description: string;
   ageLow: number;
   ageHigh: number;
+  /** The age slider seeds to 0–12 for a park with no known age. That default is
+   * NOT a proposal — only a real slider interaction turns it into one. */
+  agesTouched: boolean;
   featureStatus: Record<string, FeatureStatus>;
   lat: number | null;
   lng: number | null;
@@ -69,6 +72,7 @@ const EMPTY: EditDraft = {
   description: "",
   ageLow: 0,
   ageHigh: 12,
+  agesTouched: false,
   featureStatus: {},
   lat: null,
   lng: null,
@@ -151,6 +155,7 @@ export default function EditInfo() {
       description: park.description ?? "",
       ageLow: park.age_min ?? 0,
       ageHigh: park.age_max ?? 12,
+      agesTouched: false,
       featureStatus,
       lat: park.latitude,
       lng: park.longitude,
@@ -176,7 +181,9 @@ export default function EditInfo() {
         });
       }
     } else if (d.target === "ages") {
-      if (d.ageLow !== park.age_min || d.ageHigh !== park.age_max) {
+      // An untouched slider is never a proposal — a park with no known age must
+      // stay "unknown", not silently become the 0–12 default.
+      if (d.agesTouched && (d.ageLow !== park.age_min || d.ageHigh !== park.age_max)) {
         out.push({
           field: "ages",
           label: "Tranche d'âge",
@@ -428,7 +435,12 @@ export default function EditInfo() {
                 max={12}
                 low={d.ageLow}
                 high={d.ageHigh}
-                onChange={(l, h) => patch({ ageLow: l, ageHigh: h })}
+                formatLabel={
+                  !d.agesTouched && park.age_min == null && park.age_max == null
+                    ? () => "Âge non renseigné"
+                    : undefined
+                }
+                onChange={(l, h) => patch({ ageLow: l, ageHigh: h, agesTouched: true })}
               />
             </>
           )}

@@ -8,6 +8,7 @@ import AccessDenied from "./screens/AccessDenied";
 import { Shell } from "./components/Shell";
 import Dashboard from "./screens/Dashboard";
 import Parks from "./screens/Parks";
+import ParkDetail from "./screens/ParkDetail";
 import Reports from "./screens/Reports";
 import Reviews from "./screens/Reviews";
 import Photos from "./screens/Photos";
@@ -28,6 +29,7 @@ function RoutedContent() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/parks" element={<Parks />} />
+        <Route path="/parks/:id" element={<ParkDetail />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/photos" element={<Photos />} />

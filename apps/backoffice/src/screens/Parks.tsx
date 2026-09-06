@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -34,6 +34,7 @@ import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
 import { useAsyncAction } from "../lib/useAsyncAction";
+import { parkStatusTransitions } from "../lib/parkStatus";
 import { queryClient } from "../lib/queryClient";
 import styles from "./Parks.module.css";
 
@@ -97,8 +98,16 @@ export default function Parks() {
   const { userName, isGestionnaireOrAbove } = useOrgSession();
   const { canCreatePark, canImportParksCsv, canEditPark } = usePermissions();
   const toast = useToast();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [modalPark, setModalPark] = useState<Park | "new" | null>(null);
+  // Creation still uses ParkModal in 3B (geocoding on create lands in 3C);
+  // opening an existing park navigates to the /parks/:id page instead.
+  const [creating, setCreating] = useState(false);
+
+  function openPark(park: Park) {
+    const qs = searchParams.toString();
+    navigate(`/parks/${park.id}${qs ? `?${qs}` : ""}`);
+  }
 
   const defaultStatus: ParkStatus | "all" = isAdmin ? "pending" : "all";
   const statusParam = searchParams.get("status");
@@ -263,19 +272,10 @@ export default function Parks() {
 
   function statusActions(park: Park): { label: string; run: () => void }[] {
     if (!canEditPark) return [];
-    switch (park.status) {
-      case "pending":
-        return [
-          { label: "Valider", run: () => runStatus(park, "published", "Validé") },
-          { label: "Refuser", run: () => runStatus(park, "rejected", "Refusé") },
-        ];
-      case "published":
-        return [{ label: "Bloquer", run: () => runStatus(park, "blocked", "Bloqué") }];
-      case "blocked":
-        return [{ label: "Débloquer", run: () => runStatus(park, "published", "Débloqué") }];
-      default:
-        return [];
-    }
+    return parkStatusTransitions(park.status).map((t) => ({
+      label: t.label,
+      run: () => runStatus(park, t.next, t.note),
+    }));
   }
 
   const columns: DataTableColumn<Park>[] = [
@@ -354,7 +354,7 @@ export default function Parks() {
                 </Button>
               }
             >
-              <MenuItem onSelect={() => setModalPark(park)}>Ouvrir la fiche</MenuItem>
+              <MenuItem onSelect={() => openPark(park)}>Ouvrir la fiche</MenuItem>
               {actions.map((a) => (
                 <MenuItem key={a.label} onSelect={a.run}>
                   {a.label}
@@ -374,7 +374,7 @@ export default function Parks() {
         actions={
           <>
             {canCreatePark && (
-              <Button size="sm" onClick={() => setModalPark("new")}>
+              <Button size="sm" onClick={() => setCreating(true)}>
                 Ajouter un parc
               </Button>
             )}
@@ -457,7 +457,7 @@ export default function Parks() {
         columns={columns}
         rows={rows}
         getRowKey={(park) => park.id}
-        onRowClick={(park) => setModalPark(park)}
+        onRowClick={openPark}
         rowLabel={(park) => `Ouvrir la fiche de ${park.name}`}
         sort={{ key: sort.key, order: sort.order }}
         onSortChange={(next) => {
@@ -494,7 +494,7 @@ export default function Parks() {
               </p>
               {canCreatePark && (
                 <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
-                  <Button size="sm" onClick={() => setModalPark("new")}>
+                  <Button size="sm" onClick={() => setCreating(true)}>
                     Ajouter un parc
                   </Button>
                 </div>
@@ -528,7 +528,7 @@ export default function Parks() {
         </div>
       )}
 
-      {modalPark && <ParkModal park={modalPark} onClose={() => setModalPark(null)} canManage={canEditPark} />}
+      {creating && <ParkModal park="new" onClose={() => setCreating(false)} canManage={canEditPark} />}
     </div>
   );
 }

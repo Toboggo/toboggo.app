@@ -191,13 +191,22 @@ aucun `addr:place`/`is_in`/`place`). Le reste dépend du reverse geocoding.
   blanchiment d'une adresse existante quand l'objet OSM n'apporte rien).
 - `scripts/osm/geoapify.py` : client de reverse geocoding (clé via
   `GEOAPIFY_API_KEY` uniquement, jamais committée, jamais côté frontend).
-- `scripts/osm/backfill-addresses.py --env {local,staging} [--commit] [--limit N]` :
-  backfill dédié. `--env prod` n'est même pas une option du script (garde-fou
-  technique, pas seulement une discipline). Dry-run par défaut. Idempotent et
+- `scripts/osm/backfill-addresses.py --env {local,staging,prod} [--commit] [--limit N]` :
+  backfill dédié. Dry-run par défaut. Idempotent et
   reprenable : un parc déjà traité (source `reverse_geocode` enregistrée)
   n'est plus jamais resélectionné tant qu'aucune source supérieure n'a pris le
   relais — le mécanisme de priorité sert lui-même de point de reprise, pas de
   fichier d'état séparé.
+- **`--env prod`** : le dry-run production est libre (`npm run osm:backfill:prod --
+  --limit N`) mais appelle Geoapify pour de vrai (il consomme du quota). Un
+  `--commit` sur `prod` est verrouillé par quatre garde-fous **cumulatifs**
+  (fonction `confirm_prod_commit`) :
+  1. ref réellement ciblée == ref production (`dfzrsygetbhnjzfssgub`) ;
+  2. drapeau `--i-understand-this-writes-to-production` ;
+  3. variable d'environnement `TOBOGGO_ALLOW_PROD_BACKFILL=1` ;
+  4. session interactive + phrase `BACKFILL PROD <N>` retapée (N = nb de candidats).
+  Un job cron/CI, un pipe sur stdin ou un rappel d'historique ne peut satisfaire
+  l'ensemble. La voie normale reste : `local` → `staging` validé → `prod`.
 - Priorité (migrations `0028`/`0029`) :
   `toboggo (100) > municipality (90) > open_data (80) > partner (70) > osm (50)
   > reverse_geocode (45) > user (40) > other (10)`.

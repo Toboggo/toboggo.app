@@ -89,6 +89,12 @@ export default function App() {
       <Route path="/park/:id/reviews" element={<DetailReviews />} />
       <Route path="/park/:id/directions" element={<Directions />} />
 
+      {/* AddPark n'a plus d'écran d'intro : le wizard canonique (Parc →
+          Localisation → …) est auto-porteur. `/action-intro/add` (QuickMenu,
+          "aucun de ceux-ci" de RatePark/AddPhotos) va droit au 1er step.
+          `replace` : le bouton Retour du step "Parc" revient à l'origine, pas
+          à une redirection fantôme. `rate` / `report` gardent leur intro. */}
+      <Route path="/action-intro/add" element={<Navigate to="/add" replace />} />
       <Route path="/action-intro/:type" element={<ActionIntro />} />
       <Route path="/add" element={<AddPark />} />
       <Route path="/rate" element={<RatePark />} />

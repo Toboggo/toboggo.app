@@ -9,12 +9,15 @@
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
 }
 
 #root {
+  /* Shell principal : dvh en priorité (suit le viewport réel, y compris en PWA
+     standalone iOS), vh en fallback pour les navigateurs sans dvh. */
+  min-height: 100vh;
+  min-height: 100dvh;
   max-width: var(--app-shell-width);
   margin: 0 auto;
   position: relative;
@@ -23,10 +26,12 @@ body,
 
 .screen {
   min-height: 100vh;
-  padding-bottom: calc(84px + var(--safe-bottom));
+  min-height: 100dvh;
+  /* Dégagement pour la bottom nav fixe — dérivé de la même source que la nav. */
+  padding-bottom: calc(var(--bottom-nav-h) + 16px);
   background: var(--color-bg);
 }
 
 .screen-with-tabs {
-  padding-bottom: calc(84px + var(--safe-bottom));
+  padding-bottom: calc(var(--bottom-nav-h) + 16px);
 }

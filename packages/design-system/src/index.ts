@@ -14,3 +14,4 @@ export * from "./components/StarRating";
 export * from "./components/RangeSlider";
 export * from "./components/Misc";
 export * from "./useTheme";
+export * from "./useViewport";

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BottomSheet, Icon, type Snap } from "@toboggo/design-system";
+import { BottomSheet, Icon, useBottomNavHeight, type Snap } from "@toboggo/design-system";
 import { WEATHER_ALERT_COPY } from "@toboggo/shared";
 import { MapCanvas } from "./MapCanvas";
 import { SearchOverlay } from "./SearchOverlay";
@@ -18,7 +18,6 @@ import { useWeather } from "../../lib/weather";
 import { useSession } from "../../lib/session";
 import styles from "./MapExplore.module.css";
 
-const TAB_INSET = 78;
 // Snap ladders per sheet mode. "fit" = hug the measured content (no empty panel);
 // 0.9 = near-fullscreen expanded (further clamped so it never covers the header).
 const SNAPS_LIST: Snap[] = ["fit", "fit", 0.9];
@@ -41,6 +40,10 @@ export default function MapExplore() {
   const [weatherDismissed, setWeatherDismissed] = useState(false);
   const [snap, setSnap] = useState(1);
   const [sheetHeight, setSheetHeight] = useState(280);
+  // Real rendered height of the bottom nav (content + iOS home-indicator safe
+  // area), from the shared CSS token. Replaces the old `TAB_INSET = 78` guess so
+  // the sheet, the map camera insets and the nav can't disagree.
+  const navH = useBottomNavHeight();
   const [headerBottom, setHeaderBottom] = useState(72);
   const headerRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -145,12 +148,12 @@ export default function MapExplore() {
   // Deterministic: the floating controls belong to the map browsing states, not
   // to a full-height list or a park preview. No height guessing.
   const showFabs = mode === "preview" ? false : mode === "list" ? snap < 2 : true;
-  const fabBottom = TAB_INSET + sheetHeight + 12;
+  const fabBottom = navH + sheetHeight + 12;
   // The map's usable area is the strip between the floating header and the top
   // of the bottom sheet — MapLibre `padding` keeps the camera centred there.
   const mapInsets = useMemo(
-    () => ({ top: headerBottom + 8, bottom: TAB_INSET + sheetHeight }),
-    [headerBottom, sheetHeight],
+    () => ({ top: headerBottom + 8, bottom: navH + sheetHeight }),
+    [headerBottom, sheetHeight, navH],
   );
 
   function renderSheet() {
@@ -384,7 +387,7 @@ export default function MapExplore() {
         snapIndex={snap}
         onSnapChange={setSnap}
         onHeightChange={setSheetHeight}
-        bottomInset={TAB_INSET}
+        bottomInset={navH}
         topInset={sheetTopInset}
       >
         {renderSheet()}

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
+import { useViewportHeight } from "../useViewport";
 import styles from "./Dialog.module.css";
 
 /** A snap height: px (`> 1`), a fraction of the viewport (`<= 1`), or `"fit"` to hug the content. */
@@ -108,12 +109,9 @@ export function BottomSheet({
   );
 
   // ── viewport ──
-  const [vpH, setVpH] = useState(() => (typeof window !== "undefined" ? window.innerHeight : 800));
-  useEffect(() => {
-    const f = () => setVpH(window.innerHeight);
-    window.addEventListener("resize", f);
-    return () => window.removeEventListener("resize", f);
-  }, []);
+  // Live viewport height (not a value frozen at mount): reliable in an installed
+  // iOS PWA where the first `window.innerHeight` can be stale and no "resize" fires.
+  const vpH = useViewportHeight();
   const maxH = clamp(
     vpH - topInset - bottomInset,
     MIN_H + 40,
@@ -341,6 +339,10 @@ export function BottomSheet({
         style={{
           height,
           bottom: bottomInset || undefined,
+          // When the sheet is lifted above a bottom inset (e.g. the nav, whose
+          // own height already includes the home-indicator safe area), the CSS
+          // `padding-bottom: var(--safe-bottom)` would count that inset twice.
+          paddingBottom: bottomInset ? 0 : undefined,
           borderRadius: bottomInset ? "26px 26px 0 0" : undefined,
         }}
         onPointerDown={onPointerDown}

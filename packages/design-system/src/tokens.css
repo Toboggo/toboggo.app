@@ -132,6 +132,22 @@
      ============================================================ */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* ============================================================
+     Bottom navigation — source de vérité unique
+     ------------------------------------------------------------
+     --bottom-nav-content-h : hauteur de la rangée visible (icônes +
+       libellés + padding vertical propre à la barre). Identique sur
+       toutes les plateformes.
+     --bottom-nav-h : hauteur totale réellement occupée = contenu +
+       safe-area du home indicator. La safe-area est ajoutée ICI et
+       nulle part ailleurs — jamais comptée deux fois.
+     Consommé par : BottomTabs (.wrap min-height + padding), le dégagement
+     bas des écrans à onglets, MapExplore (insets carte) et BottomSheet
+     (bottomInset) via le hook useBottomNavHeight().
+     ============================================================ */
+  --bottom-nav-content-h: 65px;
+  --bottom-nav-h: calc(var(--bottom-nav-content-h) + var(--safe-bottom));
 }
 
 /*

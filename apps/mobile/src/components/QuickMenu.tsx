@@ -10,7 +10,7 @@ type QuickItem = { iconName?: IconName; emoji?: string; label: string; to: strin
 const ITEMS: QuickItem[] = [
   { iconName: "ic-plus", label: "Ajouter un parc", to: "/action-intro/add" },
   { iconName: "ic-review", label: "Donner mon avis", to: "/rate" },
-  { iconName: "ic-flag", label: "Signaler un problème", to: "/action-intro/report" },
+  { iconName: "ic-flag", label: "Signaler un problème", to: "/report" },
   { emoji: "📷", label: "Ajouter une photo", to: "/photo-add" },
   { emoji: "➡️", label: "Plus d'actions", to: "/more-actions" },
 ];

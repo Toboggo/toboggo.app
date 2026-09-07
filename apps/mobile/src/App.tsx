@@ -54,6 +54,18 @@ function RateIntroRedirect() {
   return <Navigate to={qs ? `/rate?${qs}` : "/rate"} replace />;
 }
 
+// Idem "Signaler un problème" : le wizard (Problème → Détails → Confirmation)
+// est auto-porteur, la sélection du parc étant intégrée au flow. `/action-intro/
+// report` redirige vers /report en préservant toute la query string — `?park=`
+// et, pour un lien de reprise après auth, `?resume=1`. `replace` : le Retour du
+// 1er step revient à l'origine, jamais à cette redirection ni à un écran
+// "Commencer" supprimé.
+function ReportIntroRedirect() {
+  const [params] = useSearchParams();
+  const qs = params.toString();
+  return <Navigate to={qs ? `/report?${qs}` : "/report"} replace />;
+}
+
 export default function App() {
   const init = useSession((s) => s.init);
   const loading = useSession((s) => s.loading);
@@ -99,12 +111,14 @@ export default function App() {
       <Route path="/park/:id/reviews" element={<DetailReviews />} />
       <Route path="/park/:id/directions" element={<Directions />} />
 
-      {/* AddPark / RatePark n'ont plus d'écran d'intro : le wizard canonique
-          est auto-porteur. `/action-intro/add` et `/action-intro/rate` vont
-          droit au 1er step (en préservant `?park=` pour rate). `report` garde
-          son intro. */}
+      {/* AddPark / RatePark / ReportProblem n'ont plus d'écran d'intro : le
+          wizard canonique est auto-porteur. `/action-intro/{add,rate,report}`
+          vont droit au 1er step (en préservant la query string — `?park=`, et
+          `?resume=1` pour report). Le fallback `/action-intro/:type` reste pour
+          d'éventuels types legacy. */}
       <Route path="/action-intro/add" element={<Navigate to="/add" replace />} />
       <Route path="/action-intro/rate" element={<RateIntroRedirect />} />
+      <Route path="/action-intro/report" element={<ReportIntroRedirect />} />
       <Route path="/action-intro/:type" element={<ActionIntro />} />
       <Route path="/add" element={<AddPark />} />
       <Route path="/rate" element={<RatePark />} />

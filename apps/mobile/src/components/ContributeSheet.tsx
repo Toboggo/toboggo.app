@@ -27,7 +27,7 @@ export function ContributeSheet({
   };
 
   return (
-    <BottomSheet open={open} onClose={onClose} snapPoints={[280]} initialSnap={0} showBackdrop>
+    <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop>
       <div className={styles.menu}>
         <button className={styles.item} onClick={() => go(`/contribute/edit?park=${parkId}`)}>
           <span className={styles.icon}>

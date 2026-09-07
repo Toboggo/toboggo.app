@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "./lib/session";
 import { useTheme, useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
@@ -43,6 +43,16 @@ import Privacy from "./screens/profile/Privacy";
 import Legal from "./screens/profile/Legal";
 import Help from "./screens/profile/Help";
 import Contact from "./screens/profile/Contact";
+
+// Legacy intro path for "Donner un avis": the wizard canonique (Parc → Avis →
+// Commentaire) est auto-porteur, comme AddPark. Redirige vers /rate en
+// préservant `?park=` pour ne pas reperdre le contexte parc. `replace` : le
+// Retour du 1er step revient à l'origine, pas à cette redirection.
+function RateIntroRedirect() {
+  const [params] = useSearchParams();
+  const qs = params.toString();
+  return <Navigate to={qs ? `/rate?${qs}` : "/rate"} replace />;
+}
 
 export default function App() {
   const init = useSession((s) => s.init);
@@ -89,12 +99,12 @@ export default function App() {
       <Route path="/park/:id/reviews" element={<DetailReviews />} />
       <Route path="/park/:id/directions" element={<Directions />} />
 
-      {/* AddPark n'a plus d'écran d'intro : le wizard canonique (Parc →
-          Localisation → …) est auto-porteur. `/action-intro/add` (QuickMenu,
-          "aucun de ceux-ci" de RatePark/AddPhotos) va droit au 1er step.
-          `replace` : le bouton Retour du step "Parc" revient à l'origine, pas
-          à une redirection fantôme. `rate` / `report` gardent leur intro. */}
+      {/* AddPark / RatePark n'ont plus d'écran d'intro : le wizard canonique
+          est auto-porteur. `/action-intro/add` et `/action-intro/rate` vont
+          droit au 1er step (en préservant `?park=` pour rate). `report` garde
+          son intro. */}
       <Route path="/action-intro/add" element={<Navigate to="/add" replace />} />
+      <Route path="/action-intro/rate" element={<RateIntroRedirect />} />
       <Route path="/action-intro/:type" element={<ActionIntro />} />
       <Route path="/add" element={<AddPark />} />
       <Route path="/rate" element={<RatePark />} />

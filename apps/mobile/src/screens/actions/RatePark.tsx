@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Chip, StarInput, Textarea } from "@toboggo/design-system";
+import { Button, Chip, Icon, StarInput, Textarea } from "@toboggo/design-system";
 import { addMedia, createReview, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
@@ -17,6 +17,11 @@ const CRITERIA: { key: keyof ReviewSubRatings; label: string }[] = [
   { key: "comfort", label: "Confort" },
 ];
 const FACES = ["😞", "😐", "😄"];
+// Named stepper shared with the other contribution wizards (see AddPark /
+// AddPhotos). The three stages are stable across entry points: arriving with
+// `?park=` just starts on "Avis" with "Parc" already checked — the step is
+// never dropped dynamically.
+const STEPPER = ["Parc", "Avis", "Commentaire"];
 const AGE_BANDS: { value: AgeBand; label: string }[] = [
   { value: "under3", label: "-3 ans" },
   { value: "3-6", label: "3-6 ans" },
@@ -30,6 +35,9 @@ export default function RatePark() {
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
+  // Entered with a park already chosen (`?park=`): "Parc" is pre-checked and
+  // Back from "Avis" leaves the flow — the user never saw the picker.
+  const preselected = useRef(Boolean(params.get("park"))).current;
 
   const [step, setStep] = useState(parkId ? 1 : 0);
   const [stars, setStars] = useState(0);
@@ -95,9 +103,25 @@ export default function RatePark() {
   }
 
   if (done) {
+    // Écran terminal autonome, aligné sur AddPark / AddPhotos / EditInfo :
+    // pas de WizardHeader (ni Stepper, ni Retour, ni X), même motif visuel
+    // cercle + ic-check, tokens, pas d'emoji.
     return (
       <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div style={{ fontSize: 64 }}>🎉</div>
+        <div
+          style={{
+            width: 76,
+            height: 76,
+            borderRadius: "50%",
+            background: "var(--color-primary-tint)",
+            color: "var(--color-primary)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name="ic-check" size={36} />
+        </div>
         <h1 style={{ fontSize: 22, marginTop: 12 }}>Merci !</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
           Votre avis a été publié et aide d'autres parents à choisir {park?.name}.
@@ -111,7 +135,14 @@ export default function RatePark() {
 
   return (
     <div className="screen">
-      <WizardHeader step={step} total={3} onBack={() => (step === 0 ? navigate(-1) : setStep(step - 1))} />
+      <WizardHeader
+        step={step}
+        total={STEPPER.length}
+        steps={STEPPER}
+        onBack={() =>
+          step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
+        }
+      />
 
       {step === 0 && (
         <ParkPicker

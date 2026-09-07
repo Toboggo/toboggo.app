@@ -97,7 +97,7 @@ export default function DetailReviews() {
           </p>
         )}
 
-        <button type="button" className={styles.write} onClick={() => navigate(`/action-intro/rate?park=${park.id}`)}>
+        <button type="button" className={styles.write} onClick={() => navigate(`/rate?park=${park.id}`)}>
           Écrire un avis
         </button>
       </div>

@@ -13,13 +13,8 @@ const CONTENT: Record<
     steps: ["Localisez le parc sur la carte", "Renseignez ses équipements", "Ajoutez une photo (facultatif)"],
     to: "/add",
   },
-  rate: {
-    iconName: "ic-review",
-    title: "Donner mon avis",
-    subtitle: "Votre avis aide d'autres parents à choisir le bon parc.",
-    steps: ["Notez le parc de 1 à 5 étoiles", "Évaluez propreté, sécurité, équipements", "Ajoutez un commentaire"],
-    to: "/rate",
-  },
+  // "rate" (Donner un avis) n'a plus d'intro : /action-intro/rate redirige
+  // vers /rate (wizard canonique auto-porteur). Voir App.tsx.
   report: {
     iconName: "ic-flag",
     title: "Signaler un problème",

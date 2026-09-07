@@ -13,15 +13,9 @@ const CONTENT: Record<
     steps: ["Localisez le parc sur la carte", "Renseignez ses équipements", "Ajoutez une photo (facultatif)"],
     to: "/add",
   },
-  // "rate" (Donner un avis) n'a plus d'intro : /action-intro/rate redirige
-  // vers /rate (wizard canonique auto-porteur). Voir App.tsx.
-  report: {
-    iconName: "ic-flag",
-    title: "Signaler un problème",
-    subtitle: "Prévenez la communauté et notre équipe d'un souci sur ce parc.",
-    steps: ["Choisissez le type de problème", "Décrivez la situation", "Ajoutez une photo si possible"],
-    to: "/report",
-  },
+  // "rate" (Donner un avis) et "report" (Signaler un problème) n'ont plus
+  // d'intro : /action-intro/rate et /action-intro/report redirigent vers /rate
+  // et /report (wizards canoniques auto-porteurs). Voir App.tsx.
 };
 
 export default function ActionIntro() {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Select, Textarea, Icon, reportReasonIcon } from "@toboggo/design-system";
+import { Button, Select, Textarea, Icon, IconButton, reportReasonIcon } from "@toboggo/design-system";
 import { createReport, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
@@ -26,6 +26,18 @@ const REASON_EMOJI: Partial<Record<ReportReason, string>> = {
 };
 
 const EQUIPMENT_CHOICES = ["Toboggan", "Balançoire", "Structure d'escalade", "Bac à sable", "Autre"];
+
+// Stepper nommé, partagé avec les autres wizards de contribution via
+// WizardHeader (voir AddPark / AddPhotos / RatePark). Contrairement à ceux-ci,
+// l'étape "Parc" ne fait PAS partie de la chronologie cible : la sélection /
+// présélection du parc est un préambule (step interne 0) qui n'affiche PAS le
+// stepper — il apparaît seulement à partir du choix du problème. Les trois
+// libellés sont stables quel que soit le point d'entrée.
+//   step interne 0 (ParkPicker) → header minimal, pas de stepper
+//   step interne 1 (choix du problème) → stepper, "Problème" courant  (step-1 = 0)
+//   step interne 2 (détails)           → stepper, "Détails" courant   (step-1 = 1)
+//   done → confirmation autonome, "Confirmation" n'est jamais l'étape courante
+const STEPPER = ["Problème", "Détails", "Confirmation"];
 
 export default function ReportProblem() {
   const [params] = useSearchParams();
@@ -101,9 +113,25 @@ export default function ReportProblem() {
   }, [wantsResume, userId, parkId, reason]);
 
   if (done) {
+    // Écran terminal autonome, aligné sur AddPark / AddPhotos / RatePark /
+    // EditInfo : pas de WizardHeader (ni Stepper, ni Retour, ni X), même motif
+    // visuel cercle + ic-check, tokens, pas d'emoji. Message métier conservé.
     return (
       <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div style={{ fontSize: 64 }}>🎊</div>
+        <div
+          style={{
+            width: 76,
+            height: 76,
+            borderRadius: "50%",
+            background: "var(--color-primary-tint)",
+            color: "var(--color-primary)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name="ic-check" size={36} />
+        </div>
         <h1 style={{ fontSize: 22, marginTop: 12 }}>Signalement envoyé !</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
           Merci de contribuer à la sécurité des enfants. Nous vous tiendrons informé de l'avancement.
@@ -117,13 +145,27 @@ export default function ReportProblem() {
 
   return (
     <div className="screen">
-      <WizardHeader
-        step={step}
-        total={4}
-        onBack={() =>
-          step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
-        }
-      />
+      {step === 0 ? (
+        // Choix du parc = préambule hors chronologie : header minimal (Retour +
+        // Fermer, même gabarit que WizardHeader) et titre, sans stepper. Le
+        // stepper n'apparaît qu'à partir de "Problème".
+        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(14px + var(--safe-top)) 16px 14px" }}>
+          <IconButton aria-label="Retour" onClick={() => navigate(-1)}>
+            <Icon name="ic-back" size={18} />
+          </IconButton>
+          <h1 style={{ flex: 1, fontSize: 16, margin: 0 }}>Signaler un problème</h1>
+          <IconButton aria-label="Fermer" onClick={() => navigate("/map")}>
+            <Icon name="ic-close" size={18} />
+          </IconButton>
+        </div>
+      ) : (
+        <WizardHeader
+          step={step - 1}
+          total={STEPPER.length}
+          steps={STEPPER}
+          onBack={() => (step === 1 && preselected ? navigate(-1) : setStep(step - 1))}
+        />
+      )}
 
       {step === 0 && (
         <ParkPicker

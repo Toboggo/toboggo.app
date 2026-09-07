@@ -132,7 +132,7 @@ export function ParkPreview({
         </div>
       )}
 
-      <button type="button" className={styles.report} onClick={() => navigate(`/action-intro/report?park=${park.id}`)}>
+      <button type="button" className={styles.report} onClick={() => navigate(`/report?park=${park.id}`)}>
         <Icon name="ic-flag" size={14} />
         Signaler un problème
       </button>

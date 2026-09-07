@@ -18,6 +18,10 @@ vi.mock("@toboggo/shared", () => ({
   deleteMediaByUrl: vi.fn().mockResolvedValue(undefined),
   setParkCover: vi.fn().mockResolvedValue(undefined),
   uploadPhoto: vi.fn().mockResolvedValue("https://x/y.jpg"),
+  listFeatures: vi.fn().mockResolvedValue([]),
+  listParkFeatures: vi.fn().mockResolvedValue([]),
+  setParkFeature: vi.fn().mockResolvedValue(undefined),
+  removeParkFeature: vi.fn().mockResolvedValue(undefined),
 }));
 
 const perms = vi.hoisted(() => ({ canEditPark: true }));
@@ -80,7 +84,12 @@ describe("ParkDetail — /parks/:id", () => {
     renderDetail();
     expect(await screen.findByRole("heading", { name: "Parc des Sources" })).toBeTruthy();
     expect(screen.getByRole("tablist", { name: "Sections du parc" })).toBeTruthy();
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Informations", "Photos", "Historique"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual([
+      "Informations",
+      "Caractéristiques",
+      "Photos",
+      "Historique",
+    ]);
     // real, present secondary info — never invented (header + Informations dd)
     expect(screen.getAllByText("1 rue du Test, 12100 Millau").length).toBeGreaterThanOrEqual(1);
     // an "unverified" park shows NO verification badge in the header (no bare "—")

@@ -13,13 +13,15 @@ import { useUnsavedChangesGuard } from "../lib/useUnsavedChangesGuard";
 import { parkStatusTransitions } from "../lib/parkStatus";
 import { queryClient } from "../lib/queryClient";
 import { InfoPanel } from "./parkDetail/InfoPanel";
+import { FeaturesPanel } from "./parkDetail/FeaturesPanel";
 import { PhotosPanel } from "./parkDetail/PhotosPanel";
 import { HistoryPanel } from "./parkDetail/HistoryPanel";
 import styles from "./ParkDetail.module.css";
 
-type TabValue = "info" | "photos" | "history";
+type TabValue = "info" | "features" | "photos" | "history";
 const TABS = [
   { value: "info", label: "Informations" },
+  { value: "features", label: "Caractéristiques" },
   { value: "photos", label: "Photos" },
   { value: "history", label: "Historique" },
 ] as const;
@@ -37,7 +39,8 @@ export default function ParkDetail() {
 
   const [tab, setTab] = useState<TabValue>("info");
   const [infoDirty, setInfoDirty] = useState(false);
-  const confirmIfDirty = useUnsavedChangesGuard(infoDirty);
+  const [featuresDirty, setFeaturesDirty] = useState(false);
+  const confirmIfDirty = useUnsavedChangesGuard(infoDirty || featuresDirty);
 
   const { data: park, isLoading, isError } = useQuery({
     queryKey: ["park", id],
@@ -164,6 +167,9 @@ export default function ParkDetail() {
 
       <TabPanel idBase="park" value="info" active={tab === "info"}>
         <InfoPanel park={park} canEdit={canEditPark} onDirtyChange={setInfoDirty} />
+      </TabPanel>
+      <TabPanel idBase="park" value="features" active={tab === "features"}>
+        <FeaturesPanel park={park} canEdit={canEditPark} onDirtyChange={setFeaturesDirty} />
       </TabPanel>
       <TabPanel idBase="park" value="photos" active={tab === "photos"}>
         <PhotosPanel parkId={park.id} canManage={canEditPark} />

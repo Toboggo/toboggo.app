@@ -293,7 +293,7 @@ export default function ParkDetail() {
             {r.comment && <p>{r.comment}</p>}
           </div>
         ))}
-        <button type="button" className={styles.giveReview} onClick={() => navigate(`/action-intro/rate?park=${park.id}`)}>
+        <button type="button" className={styles.giveReview} onClick={() => navigate(`/rate?park=${park.id}`)}>
           Donner mon avis
         </button>
       </div>

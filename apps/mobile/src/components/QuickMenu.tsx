@@ -9,7 +9,7 @@ type QuickItem = { iconName?: IconName; emoji?: string; label: string; to: strin
 // dans le sprite (docs/DESIGN-SYSTEM.md §7) — emoji conservé en attendant.
 const ITEMS: QuickItem[] = [
   { iconName: "ic-plus", label: "Ajouter un parc", to: "/action-intro/add" },
-  { iconName: "ic-review", label: "Donner mon avis", to: "/action-intro/rate" },
+  { iconName: "ic-review", label: "Donner mon avis", to: "/rate" },
   { iconName: "ic-flag", label: "Signaler un problème", to: "/action-intro/report" },
   { emoji: "📷", label: "Ajouter une photo", to: "/photo-add" },
   { emoji: "➡️", label: "Plus d'actions", to: "/more-actions" },

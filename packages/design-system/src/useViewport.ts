@@ -76,3 +76,48 @@ export function useBottomNavHeight(): number {
 
   return height;
 }
+
+const SAFE_BOTTOM_FALLBACK = 0;
+
+function readSafeAreaBottom(): number {
+  if (typeof document === "undefined") return SAFE_BOTTOM_FALLBACK;
+  // `env(safe-area-inset-bottom)` can't be read from a custom property, so
+  // resolve it to concrete pixels through a hidden probe. Non-zero only when the
+  // page opts into `viewport-fit=cover` on a device that actually has an inset
+  // (notch / home-indicator iPhone, some gesture-nav Android); 0 elsewhere.
+  const probe = document.createElement("div");
+  probe.style.cssText =
+    "position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:env(safe-area-inset-bottom, 0px)";
+  document.body.appendChild(probe);
+  const px = probe.getBoundingClientRect().height;
+  probe.remove();
+  return px > 0 ? px : SAFE_BOTTOM_FALLBACK;
+}
+
+/**
+ * Resolved pixel height of the bottom safe area (`env(safe-area-inset-bottom)`),
+ * kept live across launch / rotation / viewport changes like `useViewportHeight`.
+ *
+ * The bottom sheet reserves this inside its own scroll content so the last row
+ * can always be scrolled clear of the iOS home indicator — see `BottomSheet`.
+ */
+export function useSafeAreaBottom(): number {
+  const [px, setPx] = useState(readSafeAreaBottom);
+
+  useEffect(() => {
+    const sync = () => setPx(readSafeAreaBottom());
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", sync);
+    window.addEventListener("pageshow", sync);
+    window.visualViewport?.addEventListener("resize", sync);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", sync);
+      window.removeEventListener("pageshow", sync);
+      window.visualViewport?.removeEventListener("resize", sync);
+    };
+  }, []);
+
+  return px;
+}

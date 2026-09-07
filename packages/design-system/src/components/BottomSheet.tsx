@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { useViewportHeight } from "../useViewport";
+import { useSafeAreaBottom, useViewportHeight } from "../useViewport";
 import styles from "./Dialog.module.css";
 
 /** A snap height: px (`> 1`), a fraction of the viewport (`<= 1`), or `"fit"` to hug the content. */
@@ -118,7 +118,17 @@ export function BottomSheet({
     Math.round(vpH * MAX_VH) - bottomInset,
   );
 
-  // ── content measurement (drives `"fit"`) ──
+  // ── bottom safe area ──
+  // Reserve the home-indicator inset *inside* the sheet's scroll content, so the
+  // last row can always be scrolled fully clear of it. Skipped when the sheet is
+  // lifted above a bottom inset (e.g. the nav): that inset's height already
+  // carries the safe area, and counting it here too would double it.
+  const safeBottom = useSafeAreaBottom();
+  const bottomReserve = bottomInset > 0 ? 0 : safeBottom;
+
+  // ── content measurement (drives `"fit"` and `canScroll`) ──
+  // The measured wrapper carries `bottomReserve` as padding, so `contentH`
+  // already includes the safe-area reserve everywhere it is used below.
   const sheetRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentH, setContentH] = useState(0);
@@ -130,10 +140,12 @@ export function BottomSheet({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [children]);
+  }, [children, bottomReserve]);
 
   const resolve = useCallback(
     (s: Snap): number => {
+      // `"fit"` = measured content (which already includes `bottomReserve`) plus
+      // the grab strip, then clamped to the viewport budget (`maxH`).
       const raw = s === "fit" ? contentH + GRAB_H : s <= 1 ? s * vpH : s;
       return clamp(Math.round(raw), MIN_H, maxH);
     },
@@ -327,7 +339,9 @@ export function BottomSheet({
   // scrolls its own content — every drag on it is a sheet gesture, so the
   // swipe-up can't be stolen by an internal scroll.
   const lockScroll = !!onOverswipeUp && snapPoints.length === 1;
-  const canScroll = !lockScroll && contentH > height - GRAB_H + 4;
+  // `contentH` includes `bottomReserve`; the scrollable box is exactly the
+  // sheet body = `height - GRAB_H`. 1px epsilon absorbs rounding only.
+  const canScroll = !lockScroll && contentH > height - GRAB_H + 1;
 
   return createPortal(
     <>
@@ -339,10 +353,6 @@ export function BottomSheet({
         style={{
           height,
           bottom: bottomInset || undefined,
-          // When the sheet is lifted above a bottom inset (e.g. the nav, whose
-          // own height already includes the home-indicator safe area), the CSS
-          // `padding-bottom: var(--safe-bottom)` would count that inset twice.
-          paddingBottom: bottomInset ? 0 : undefined,
           borderRadius: bottomInset ? "26px 26px 0 0" : undefined,
         }}
         onPointerDown={onPointerDown}
@@ -360,7 +370,9 @@ export function BottomSheet({
             touchAction: lockScroll ? "none" : undefined,
           }}
         >
-          <div ref={contentRef}>{children}</div>
+          <div ref={contentRef} style={{ paddingBottom: bottomReserve || undefined }}>
+            {children}
+          </div>
         </div>
       </div>
     </>,

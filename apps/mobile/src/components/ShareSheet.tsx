@@ -15,7 +15,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   ];
 
   return (
-    <BottomSheet open={open} onClose={onClose} snapPoints={[320]} initialSnap={0} showBackdrop>
+    <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop>
       <div style={{ padding: "8px 20px 28px" }}>
         <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
           <ParkPhoto

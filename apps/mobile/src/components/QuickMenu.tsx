@@ -20,7 +20,7 @@ export function QuickMenu({ open, onClose }: { open: boolean; onClose: () => voi
   const showToast = useToastStore((s) => s.show);
 
   return (
-    <BottomSheet open={open} onClose={onClose} snapPoints={[360]} initialSnap={0} showBackdrop>
+    <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop>
       <div className={styles.menu}>
         {ITEMS.map((item) => (
           <button

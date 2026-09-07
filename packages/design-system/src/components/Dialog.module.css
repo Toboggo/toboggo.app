@@ -47,7 +47,9 @@
   border-radius: 26px 26px 0 0;
   box-shadow: var(--shadow-lg);
   z-index: 95;
-  padding-bottom: var(--safe-bottom);
+  /* The bottom safe-area reserve lives inside the scroll content (see
+     BottomSheet.tsx `bottomReserve`), never as padding on the sheet itself —
+     otherwise `canScroll` / `"fit"` would misjudge the scrollable box. */
   overflow: hidden;
   display: flex;
   flex-direction: column;

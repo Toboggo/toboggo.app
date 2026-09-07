@@ -338,9 +338,22 @@ export function assertValidCoordinates(lat: unknown, lng: unknown): void {
   }
 }
 
+/**
+ * Refuse an inconsistent age range. Only enforced when the caller supplies
+ * *both* bounds as real numbers in the same write — a partial update that
+ * touches one bound is not cross-checked against the stored value (no DB read
+ * here). `null` (explicit clear) is fine on either side.
+ */
+export function assertValidAgeRange(min: unknown, max: unknown): void {
+  if (typeof min === "number" && typeof max === "number" && min > max) {
+    throw new Error("Âge invalide : l'âge minimum ne peut pas dépasser l'âge maximum.");
+  }
+}
+
 function splitParkInput(input: Partial<Park>) {
   const {
-    age_min, age_max, status, formatted_address, commune_id, organization_id,
+    age_min, age_max, status, formatted_address, address_line, postal_code, city,
+    commune_id, organization_id,
     surface, play_equipment, wc, shade, fenced, pmr, benches, water, parking,
     features, cover_photo, photos, translated_names, score, has_score,
     rating, review_count, has_open_report, views,
@@ -349,13 +362,39 @@ function splitParkInput(input: Partial<Park>) {
   } = input;
 
   const parkRow: ParkWriteRow = { ...rest };
-  if (age_min != null) parkRow.min_age = age_min;
-  if (age_max != null) parkRow.max_age = age_max;
-  if (age_min != null || age_max != null) parkRow.ages_derived = false;
+
+  // ── Ages ──────────────────────────────────────────────────────────────
+  // Key absent  → leave untouched.
+  // Key present with a number → set it.
+  // Key present with null     → clear it (write NULL to the canonical V2
+  //   column; `parks_v1_compat` re-derives the NOT NULL V1 `age_min`/`age_max`
+  //   back to their 0 / 12 defaults, so V1 compat is preserved).
+  assertValidAgeRange(age_min, age_max);
+  const hasAgeMin = "age_min" in input;
+  const hasAgeMax = "age_max" in input;
+  if (hasAgeMin) parkRow.min_age = age_min ?? null;
+  if (hasAgeMax) parkRow.max_age = age_max ?? null;
+  if (hasAgeMin || hasAgeMax) parkRow.ages_derived = false;
+
   if (status != null) parkRow.moderation_status = status;
   if (lat != null && parkRow.latitude == null) parkRow.latitude = lat;
   if (lng != null && parkRow.longitude == null) parkRow.longitude = lng;
-  if (formatted_address != null && parkRow.address_line == null) parkRow.address_line = formatted_address;
+
+  // ── Structured address ────────────────────────────────────────────────
+  // The canonical V2 columns are written straight through (same "key present"
+  // semantics as ages: present+null clears, present+string sets). The
+  // `parks_v1_compat` trigger keeps the V1 `formatted_address` column in sync
+  // from `address_line`; `park_public.formatted_address` is recomposed by the
+  // view from address_line + postal_code + city. `admin_area_1/2` are not
+  // touched here (derived later, when geocoding lands — 3C.3+).
+  if ("address_line" in input) parkRow.address_line = address_line ?? null;
+  if ("postal_code" in input) parkRow.postal_code = postal_code ?? null;
+  if ("city" in input) parkRow.city = city ?? null;
+  // Legacy flat callers that only pass `formatted_address`: fall back to
+  // filling `address_line` (unless a structured `address_line` was given).
+  if (formatted_address != null && !("address_line" in input)) {
+    parkRow.address_line = formatted_address || null;
+  }
 
   const featureRows: { code: string; status: FeatureStatus; value?: string | null; quantity?: number | null }[] = [];
   if (surface != null) featureRows.push({ code: "surface_type", status: "available", value: SURFACE_TO_FEATURE[surface] ?? "unknown" });
@@ -435,6 +474,21 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
 export async function updatePark(id: string, patch: Partial<Park>, _historyNote?: string): Promise<Park> {
   const supabase = getSupabase();
   const { parkRow, featureRows, orgId } = splitParkInput(patch);
+
+  // A position edit gets the same range check as `createPark` (bug B1). Both
+  // bounds must move together — a lone latitude/longitude write would leave the
+  // pair inconsistent, and there is no DB read here to fill the missing half.
+  const touchesLat = parkRow.latitude != null;
+  const touchesLng = parkRow.longitude != null;
+  if (touchesLat || touchesLng) {
+    if (!touchesLat || !touchesLng) {
+      throw new Error(
+        "Modification de position : latitude et longitude doivent être fournies ensemble.",
+      );
+    }
+    assertValidCoordinates(parkRow.latitude, parkRow.longitude);
+  }
+
   if (Object.keys(parkRow).length) {
     const { error } = await supabase.from("parks").update(parkRow).eq("id", id);
     if (error) throw error;

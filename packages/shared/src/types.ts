@@ -195,10 +195,10 @@ export interface Park {
   has_score: boolean;
 
   // ── compatibility projection (see park_public) ──
-  /** @deprecated use `min_age` */
-  age_min: number;
-  /** @deprecated use `max_age` */
-  age_max: number;
+  /** @deprecated use `min_age`. `null` = age not recorded (never a default band). */
+  age_min: number | null;
+  /** @deprecated use `max_age`. `null` = age not recorded (never a default band). */
+  age_max: number | null;
   /** @deprecated use `moderation_status` */
   status: ParkModerationStatus;
   formatted_address: string | null;
@@ -209,20 +209,23 @@ export interface Park {
   surface: "sable" | "gazon" | "sol_souple" | "non_precise";
   /** @deprecated use `features` (play category) */
   play_equipment: string[];
+  // Flat amenity projections from `park_public` (`fstatus(...) = 'available'`).
+  // Genuinely tri-state at runtime: `true` = available, `false` = unavailable
+  // (confirmed absent), `null` = unknown / not recorded (no park_features row).
   /** @deprecated use `features.toilets` */
-  wc: boolean;
+  wc: boolean | null;
   /** @deprecated use `features.shade_level` */
-  shade: boolean;
+  shade: boolean | null;
   /** @deprecated use `features.fence_status` */
-  fenced: boolean;
+  fenced: boolean | null;
   /** @deprecated use `features.wheelchair_access` */
-  pmr: boolean;
+  pmr: boolean | null;
   /** @deprecated use `features.benches` */
-  benches: boolean;
+  benches: boolean | null;
   /** @deprecated use `features.drinking_water` / `features.water_play` */
-  water: boolean;
+  water: boolean | null;
   /** @deprecated use `features.parking` */
-  parking: boolean;
+  parking: boolean | null;
 }
 
 // ── §6 Zones ─────────────────────────────────────────────────────────────
@@ -590,6 +593,32 @@ export const AGE_BAND_LABEL: Record<AgeBand, string> = {
   "3-6": "3-6 ans",
   "6-12": "6-12 ans",
 };
+
+/** Shown when a park has no recorded age range. NEVER substitute a default
+ * band ("3-6 ans", "Tout âge", …) — an unknown age is unknown. */
+export const AGE_UNKNOWN_LABEL = "Âge non renseigné";
+
+/**
+ * Human age-range label from the (nullable) `min_age` / `max_age` pair.
+ *
+ * - both absent  → `null` (caller shows `AGE_UNKNOWN_LABEL` or hides the field)
+ * - both present → `"3–10 ans"`
+ * - min only     → `"dès 3 ans"`
+ * - max only     → `"jusqu'à 10 ans"`
+ *
+ * `null` is "we don't know", never "all ages" — no invented band, ever.
+ */
+export function formatAgeRange(
+  min: number | null | undefined,
+  max: number | null | undefined,
+): string | null {
+  const lo = min ?? null;
+  const hi = max ?? null;
+  if (lo == null && hi == null) return null;
+  if (lo != null && hi != null) return `${lo}–${hi} ans`;
+  if (lo != null) return `dès ${lo} an${lo > 1 ? "s" : ""}`;
+  return `jusqu'à ${hi} an${(hi as number) > 1 ? "s" : ""}`;
+}
 
 export const REPORT_REASON_LABEL: Record<ReportCategory, string> = {
   broken_equipment: "Jeu cassé / dangereux",

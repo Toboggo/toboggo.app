@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSupabase } from "../supabaseClient";
-import { createPark, isValidCoordinate, listOrgParkIds, listParks, listParksPage } from "./parks";
+import {
+  assertValidAgeRange,
+  createPark,
+  isValidCoordinate,
+  listOrgParkIds,
+  listParks,
+  listParksPage,
+  updatePark,
+} from "./parks";
+import { formatAgeRange } from "../types";
 import { makeFakeSupabase } from "../testUtils/fakeSupabase";
 
 vi.mock("../supabaseClient", () => ({ getSupabase: vi.fn() }));
@@ -258,6 +267,186 @@ describe("listParksPage — server pagination / sort / search (Lot 3A)", () => {
     expect(res.total).toBe(0);
     const inArgs = calls(queriesByTable["park_public"][0], "in");
     expect(inArgs[0]).toEqual(["id", ["00000000-0000-0000-0000-000000000000"]]);
+  });
+});
+
+describe("updatePark — ages (Lot 3C.1 — clearable NULL)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  function setup() {
+    const { client, queriesByTable } = makeFakeSupabase({
+      parks: { data: null, error: null },
+      park_public: { data: { id: "p1" }, error: null },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    return queriesByTable;
+  }
+  function updateRow(q: ReturnType<typeof setup>) {
+    return q["parks"]?.[0].calls.find((c) => c.method === "update")?.args[0] as Record<string, unknown> | undefined;
+  }
+
+  it("age key absent → the column is not written at all", async () => {
+    const q = setup();
+    await updatePark("p1", { description: "x" });
+    const row = updateRow(q)!;
+    expect("min_age" in row).toBe(false);
+    expect("max_age" in row).toBe(false);
+    expect("ages_derived" in row).toBe(false);
+  });
+
+  it("age present with null → writes NULL (explicit clear) + ages_derived=false", async () => {
+    const q = setup();
+    await updatePark("p1", { age_min: null, age_max: null });
+    const row = updateRow(q)!;
+    expect(row.min_age).toBeNull();
+    expect(row.max_age).toBeNull();
+    expect(row.ages_derived).toBe(false);
+  });
+
+  it("age present with a number → sets it", async () => {
+    const q = setup();
+    await updatePark("p1", { age_min: 2, age_max: 10 });
+    const row = updateRow(q)!;
+    expect(row.min_age).toBe(2);
+    expect(row.max_age).toBe(10);
+    expect(row.ages_derived).toBe(false);
+  });
+
+  it("clears only one bound, leaves the other key untouched", async () => {
+    const q = setup();
+    await updatePark("p1", { age_max: null });
+    const row = updateRow(q)!;
+    expect(row.max_age).toBeNull();
+    expect("min_age" in row).toBe(false);
+  });
+
+  it("min > max (both numbers) → refused before any write", async () => {
+    setup();
+    await expect(updatePark("p1", { age_min: 10, age_max: 3 })).rejects.toThrow(/âge/i);
+  });
+
+  it("min-only / max-only never triggers the range check", async () => {
+    setup();
+    await expect(updatePark("p1", { age_min: 8 })).resolves.toBeDefined();
+    await expect(updatePark("p1", { age_max: 4 })).resolves.toBeDefined();
+  });
+});
+
+describe("assertValidAgeRange", () => {
+  it("throws only when both bounds are numbers and min > max", () => {
+    expect(() => assertValidAgeRange(10, 3)).toThrow();
+    expect(() => assertValidAgeRange(3, 10)).not.toThrow();
+    expect(() => assertValidAgeRange(5, 5)).not.toThrow();
+    expect(() => assertValidAgeRange(10, null)).not.toThrow();
+    expect(() => assertValidAgeRange(null, 3)).not.toThrow();
+    expect(() => assertValidAgeRange(undefined, undefined)).not.toThrow();
+  });
+});
+
+describe("updatePark — structured address (Lot 3C.1)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  function run(patch: Record<string, unknown>) {
+    const { client, queriesByTable } = makeFakeSupabase({
+      parks: { data: null, error: null },
+      park_public: { data: { id: "p1" }, error: null },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    return updatePark("p1", patch as never).then(() => {
+      return queriesByTable["parks"]?.[0].calls.find((c) => c.method === "update")?.args[0] as Record<string, unknown>;
+    });
+  }
+
+  it("writes address_line / postal_code / city straight to the canonical columns", async () => {
+    const row = await run({ address_line: "12 rue des Écoles", postal_code: "12100", city: "Millau" });
+    expect(row.address_line).toBe("12 rue des Écoles");
+    expect(row.postal_code).toBe("12100");
+    expect(row.city).toBe("Millau");
+    // never writes the view-derived / V1-trigger-managed column
+    expect("formatted_address" in row).toBe(false);
+  });
+
+  it("present + null clears a structured field", async () => {
+    const row = await run({ postal_code: null, city: null });
+    expect(row.postal_code).toBeNull();
+    expect(row.city).toBeNull();
+  });
+
+  it("legacy formatted_address still falls back to address_line", async () => {
+    const row = await run({ formatted_address: "1 place du Centre, 12100 Millau" });
+    expect(row.address_line).toBe("1 place du Centre, 12100 Millau");
+  });
+
+  it("a structured address_line wins over a legacy formatted_address in the same patch", async () => {
+    const row = await run({ address_line: "5 rue A", formatted_address: "ignored" });
+    expect(row.address_line).toBe("5 rue A");
+  });
+});
+
+describe("updatePark — coordinate validation (Lot 3C.1)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  function setup() {
+    const { client, queriesByTable } = makeFakeSupabase({
+      parks: { data: null, error: null },
+      park_public: { data: { id: "p1" }, error: null },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    return queriesByTable;
+  }
+
+  it("a valid position update passes and is written", async () => {
+    const q = setup();
+    await updatePark("p1", { latitude: 44.1, longitude: 3.07 });
+    const row = q["parks"]?.[0].calls.find((c) => c.method === "update")?.args[0] as Record<string, unknown>;
+    expect(row.latitude).toBe(44.1);
+    expect(row.longitude).toBe(3.07);
+  });
+
+  it("out-of-range coordinates are refused", async () => {
+    setup();
+    await expect(updatePark("p1", { latitude: 999, longitude: 3.07 })).rejects.toThrow(/coordonn/i);
+  });
+
+  it("(0,0) is refused on update too", async () => {
+    setup();
+    await expect(updatePark("p1", { latitude: 0, longitude: 0 })).rejects.toThrow(/coordonn/i);
+  });
+
+  it("moving only one bound is refused (pair must move together)", async () => {
+    setup();
+    await expect(updatePark("p1", { latitude: 44.1 })).rejects.toThrow(/ensemble/i);
+    await expect(updatePark("p1", { longitude: 3.07 })).rejects.toThrow(/ensemble/i);
+  });
+
+  it("an update that does not touch coordinates is unaffected", async () => {
+    const q = setup();
+    await updatePark("p1", { description: "nouvelle description" });
+    const row = q["parks"]?.[0].calls.find((c) => c.method === "update")?.args[0] as Record<string, unknown>;
+    expect("latitude" in row).toBe(false);
+    expect("longitude" in row).toBe(false);
+    expect(row.description).toBe("nouvelle description");
+  });
+});
+
+describe("formatAgeRange (Lot 3C.1 — never invents a band)", () => {
+  it("both absent → null (caller shows 'non renseigné' or hides)", () => {
+    expect(formatAgeRange(null, null)).toBeNull();
+    expect(formatAgeRange(undefined, undefined)).toBeNull();
+  });
+  it("full range", () => {
+    expect(formatAgeRange(3, 10)).toBe("3–10 ans");
+  });
+  it("min only", () => {
+    expect(formatAgeRange(2, null)).toBe("dès 2 ans");
+    expect(formatAgeRange(1, null)).toBe("dès 1 an");
+  });
+  it("max only", () => {
+    expect(formatAgeRange(null, 6)).toBe("jusqu'à 6 ans");
+    expect(formatAgeRange(null, 1)).toBe("jusqu'à 1 an");
+  });
+  it("min === max renders without inventing a wider band", () => {
+    expect(formatAgeRange(5, 5)).toBe("5–5 ans");
   });
 });
 

@@ -9,7 +9,13 @@
   max-width: var(--app-shell-width, 560px);
   display: flex;
   background: var(--color-surface);
-  padding: 10px 8px calc(26px + var(--safe-bottom));
+  /* Hauteur = contenu (--bottom-nav-content-h) + safe-area, définie une seule
+     fois dans tokens.css. Le padding bas = petit dégagement de base + la
+     safe-area du home indicator (ajoutée ici uniquement, jamais en double).
+     Avant : `calc(26px + var(--safe-bottom))` → en standalone 26 + 34 ≈ 60px
+     de blanc vide sous les libellés. */
+  min-height: var(--bottom-nav-h);
+  padding: 10px 8px calc(10px + var(--safe-bottom));
   border-radius: 24px 24px 0 0;
   box-shadow: 0 -4px 16px rgba(36, 48, 58, 0.08);
   z-index: 50;

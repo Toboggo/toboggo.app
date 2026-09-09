@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Icon } from "@toboggo/design-system";
 import { QuickMenu } from "./QuickMenu";
 import styles from "./BottomTabs.module.css";
@@ -12,11 +13,11 @@ const ContribIcon = (
   </svg>
 );
 
-const TABS: { path: string; icon: ReactNode; label: string }[] = [
-  { path: "/map", icon: <Icon name="ic-explore" size={20} />, label: "Explorer" },
-  { path: "/favorites", icon: <Icon name="ic-heart" size={20} />, label: "Favoris" },
-  { path: "/contributions", icon: ContribIcon, label: "Contributions" },
-  { path: "/profile", icon: <Icon name="ic-user" size={20} />, label: "Profil" },
+const TABS: { path: string; icon: ReactNode; labelKey: string }[] = [
+  { path: "/map", icon: <Icon name="ic-explore" size={20} />, labelKey: "nav.explore" },
+  { path: "/favorites", icon: <Icon name="ic-heart" size={20} />, labelKey: "nav.favorites" },
+  { path: "/contributions", icon: ContribIcon, labelKey: "nav.contributions" },
+  { path: "/profile", icon: <Icon name="ic-user" size={20} />, labelKey: "nav.profile" },
 ];
 
 /**
@@ -27,6 +28,7 @@ const TABS: { path: string; icon: ReactNode; label: string }[] = [
 export function BottomTabs({ centerAdd = true }: { centerAdd?: boolean }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const showAdd = centerAdd && pathname !== "/map";
@@ -44,7 +46,7 @@ export function BottomTabs({ centerAdd = true }: { centerAdd?: boolean }) {
         onClick={() => navigate(tab.path)}
       >
         {tab.icon}
-        <span>{tab.label}</span>
+        <span>{t(tab.labelKey)}</span>
       </button>
     );
   };
@@ -55,7 +57,7 @@ export function BottomTabs({ centerAdd = true }: { centerAdd?: boolean }) {
         {left.map(renderTab)}
         {showAdd && (
           <div className={styles.centerSlot}>
-            <button type="button" className={styles.centerFab} onClick={() => setMenuOpen(true)} aria-label="Ajouter">
+            <button type="button" className={styles.centerFab} onClick={() => setMenuOpen(true)} aria-label={t("action.add")}>
               <Icon name="ic-plus" size={24} />
             </button>
           </div>

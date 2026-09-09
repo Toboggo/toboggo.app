@@ -100,7 +100,13 @@ export default function ReportProblem() {
     // Guest: keep what was filled in, come back here after sign-in.
     saveDraft<ReportDraft>(draftKey, { reason, equipment, comment });
     setResumeRoute(`/report?park=${parkId}&resume=1`);
-    navigate("/login");
+    // `replace` : la sortie vers /login REMPLACE l'entrée de ce wizard. Combiné
+    // au retour d'auth qui remplace /login (AuthForm) puis au CTA de
+    // confirmation qui remplace la resume route, une contribution invité menée
+    // à son terme ne laisse AUCUNE entrée d'historique — un Retour depuis la
+    // fiche parc revient au contexte normal, jamais dans ce wizard soumis ni
+    // sur /login. Le brouillon reste en localStorage (repris au remount).
+    navigate("/login", { replace: true });
   }
 
   // Back from sign-in with the report intact: send it once.
@@ -136,7 +142,11 @@ export default function ReportProblem() {
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
           Merci de contribuer à la sécurité des enfants. Nous vous tiendrons informé de l'avancement.
         </p>
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`)}>
+        {/* Signalement envoyé : on remplace l'entrée d'historique du wizard par
+            la fiche parc. Depuis la fiche, Retour ramène au contexte antérieur
+            (carte / ParkPreview), jamais dans ReportProblem ni sur cette
+            confirmation. Idem AddPark / RatePark / AddPhotos / EditInfo. */}
+        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
           Retour au parc
         </Button>
       </div>

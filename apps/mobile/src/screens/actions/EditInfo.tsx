@@ -270,7 +270,13 @@ export default function EditInfo() {
     // in-page email login and the full-page OAuth redirect).
     saveDraft(draftKey, d);
     setResumeRoute(`/contribute/edit?park=${parkId}&resume=1`);
-    navigate("/login");
+    // `replace` : la sortie vers /login REMPLACE l'entrée de ce wizard (idem
+    // ReportProblem). Avec le retour d'auth qui remplace /login et le CTA de
+    // confirmation qui remplace la resume route, une correction invité menée à
+    // son terme ne laisse aucune entrée d'historique — Retour depuis la fiche
+    // parc revient au contexte normal, jamais dans /contribute/edit ni /login.
+    // Le brouillon reste en localStorage (repris via ?resume=1 / reload).
+    navigate("/login", { replace: true });
   }
 
   // Back from sign-in with the draft intact: finish the send once.
@@ -346,7 +352,12 @@ export default function EditInfo() {
           Votre proposition de correction pour <strong>{park.name}</strong> a bien été reçue.
           Elle sera vérifiée par notre équipe avant d'être appliquée.
         </p>
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`)}>
+        {/* Correction envoyée : on remplace l'entrée d'historique du wizard par
+            la fiche parc. Depuis la fiche, Retour ramène au contexte antérieur,
+            jamais dans EditInfo ni sur cette confirmation. Idem AddPark /
+            RatePark / AddPhotos / ReportProblem. (Ne concerne que l'après-succès :
+            le stepper interne n'est pas touché.) */}
+        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
           Retour au parc
         </Button>
       </div>

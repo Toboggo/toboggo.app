@@ -17,8 +17,12 @@
   min-height: var(--bottom-nav-h);
   padding: 10px 8px calc(10px + var(--safe-bottom));
   border-radius: 24px 24px 0 0;
-  box-shadow: 0 -4px 16px rgba(36, 48, 58, 0.08);
-  z-index: 50;
+  /* La nav se lit comme une surface posée au-dessus du bottom sheet (qui glisse
+     derrière elle) : filet de séparation + ombre portée vers le haut légèrement
+     plus marquée. Reste discret — pas de glassmorphism. */
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -6px 20px rgba(36, 48, 58, 0.1);
+  z-index: var(--z-nav, 50);
 }
 .tab {
   flex: 1;

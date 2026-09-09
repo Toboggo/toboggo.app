@@ -122,6 +122,10 @@
      Z-index — documente les valeurs déjà en place dans le code
      ============================================================ */
   --z-nav: 50;
+  /* Bottom sheet "docked" behind the fixed bottom nav (map surface) : sous la nav
+     pour que celle-ci reste au premier plan, au-dessus des contrôles flottants
+     de la carte (z 20). */
+  --z-sheet-docked: 45;
   --z-sheet-backdrop: 90;
   --z-sheet: 95;
   --z-dialog: 100;

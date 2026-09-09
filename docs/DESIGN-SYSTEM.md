@@ -129,8 +129,10 @@ par écran** — migration DESIGN-7/8) :
 - **Motion** (référence, non appliqué) : `--duration-fast` 120ms ·
   `--duration-base` 200ms · `--ease-standard` ease · `--ease-emphasized`
   `cubic-bezier(0.16, 1, 0.3, 1)`.
-- **Z-index** (documente l'existant) : `--z-nav` 50 · `--z-sheet-backdrop` 90 ·
-  `--z-sheet` 95 · `--z-dialog` 100 · `--z-toast` 200.
+- **Z-index** (documente l'existant) : `--z-sheet-docked` 45 · `--z-nav` 50 ·
+  `--z-sheet-backdrop` 90 · `--z-sheet` 95 · `--z-dialog` 100 · `--z-toast` 200.
+  `--z-sheet-docked` : bottom sheet de la carte, rendu *derrière* la bottom nav
+  (surface continue façon Plans / Google Maps) ; la nav reste au premier plan.
 
 Ne jamais improviser un padding / rayon / ombre en dur : utiliser ces variables.
 

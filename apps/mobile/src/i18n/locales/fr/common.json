@@ -1,0 +1,19 @@
+{
+  "nav": {
+    "explore": "Explorer",
+    "favorites": "Favoris",
+    "contributions": "Contributions",
+    "profile": "Profil"
+  },
+  "action": {
+    "add": "Ajouter"
+  },
+  "settings": {
+    "displayTitle": "Affichage",
+    "darkMode": "Mode sombre",
+    "offlineMode": "Mode hors-ligne",
+    "offlineModeHint": "Carte enregistrée pour une utilisation sans connexion.",
+    "languageLabel": "Langue",
+    "languageHint": "Choisissez la langue de l’application. Indépendante de votre position et de votre pays."
+  }
+}

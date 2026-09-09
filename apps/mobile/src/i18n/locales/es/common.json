@@ -1,0 +1,19 @@
+{
+  "nav": {
+    "explore": "Explorar",
+    "favorites": "Favoritos",
+    "contributions": "Aportaciones",
+    "profile": "Perfil"
+  },
+  "action": {
+    "add": "Añadir"
+  },
+  "settings": {
+    "displayTitle": "Visualización",
+    "darkMode": "Modo oscuro",
+    "offlineMode": "Modo sin conexión",
+    "offlineModeHint": "Mapa guardado para usarlo sin conexión.",
+    "languageLabel": "Idioma",
+    "languageHint": "Elige el idioma de la aplicación. Independiente de tu ubicación y de tu país."
+  }
+}

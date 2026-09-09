@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { signIn, signUp, sendPasswordReset, signInWithGoogle } from "@toboggo/shared";
 import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
+import { takeResumeRoute } from "../../lib/contributionDraft";
 import { AppleIcon, ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 
@@ -43,12 +44,15 @@ export default function AuthForm() {
     setLoading(true);
     try {
       if (isSignup) {
-        await signUp(email, password, email.split("@")[0]);
+        const res = await signUp(email, password, email.split("@")[0]);
         showToast("Compte créé — vérifiez vos e-mails pour confirmer.");
-        navigate("/permissions");
+        // Only jump straight to a pending contribution when a session was issued
+        // right away (email confirmation disabled); otherwise the draft waits.
+        navigate((res.session && takeResumeRoute()) || "/permissions");
       } else {
         await signIn(email, password);
-        navigate("/map");
+        // Resume an in-progress contribution if one was started before login.
+        navigate(takeResumeRoute() ?? "/map");
       }
     } catch (err: any) {
       setError(

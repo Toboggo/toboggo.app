@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Button, Icon, StepDots, type IconName } from "@toboggo/design-system";
 import { IconButton } from "@toboggo/design-system";
 
@@ -13,27 +13,22 @@ const CONTENT: Record<
     steps: ["Localisez le parc sur la carte", "Renseignez ses équipements", "Ajoutez une photo (facultatif)"],
     to: "/add",
   },
-  rate: {
-    iconName: "ic-review",
-    title: "Donner mon avis",
-    subtitle: "Votre avis aide d'autres parents à choisir le bon parc.",
-    steps: ["Notez le parc de 1 à 5 étoiles", "Évaluez propreté, sécurité, équipements", "Ajoutez un commentaire"],
-    to: "/rate",
-  },
-  report: {
-    iconName: "ic-flag",
-    title: "Signaler un problème",
-    subtitle: "Prévenez la communauté et notre équipe d'un souci sur ce parc.",
-    steps: ["Choisissez le type de problème", "Décrivez la situation", "Ajoutez une photo si possible"],
-    to: "/report",
-  },
+  // "rate" (Donner un avis) et "report" (Signaler un problème) n'ont plus
+  // d'intro : /action-intro/rate et /action-intro/report redirigent vers /rate
+  // et /report (wizards canoniques auto-porteurs). Voir App.tsx.
 };
 
 export default function ActionIntro() {
   const { type } = useParams();
+  const [params] = useSearchParams();
   const navigate = useNavigate();
   const content = CONTENT[type ?? "add"];
   if (!content) return null;
+
+  // Keep the park context (if any) when entering the flow, so the sub-flow
+  // doesn't ask the user to pick the park again.
+  const parkId = params.get("park");
+  const target = parkId ? `${content.to}?park=${parkId}` : content.to;
 
   return (
     <div className="screen" style={{ display: "flex", flexDirection: "column" }}>
@@ -89,7 +84,7 @@ export default function ActionIntro() {
         <StepDots total={3} current={0} />
       </div>
       <div style={{ padding: 24 }}>
-        <Button block onClick={() => navigate(content.to)}>
+        <Button block onClick={() => navigate(target)}>
           Commencer
         </Button>
       </div>

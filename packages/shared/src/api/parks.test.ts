@@ -9,7 +9,7 @@ import {
   listParksPage,
   updatePark,
 } from "./parks";
-import { formatAgeRange } from "../types";
+import { formatAgeRange } from "../utils/age";
 import { makeFakeSupabase } from "../testUtils/fakeSupabase";
 
 vi.mock("../supabaseClient", () => ({ getSupabase: vi.fn() }));
@@ -429,24 +429,22 @@ describe("updatePark — coordinate validation (Lot 3C.1)", () => {
   });
 });
 
-describe("formatAgeRange (Lot 3C.1 — never invents a band)", () => {
-  it("both absent → null (caller shows 'non renseigné' or hides)", () => {
-    expect(formatAgeRange(null, null)).toBeNull();
-    expect(formatAgeRange(undefined, undefined)).toBeNull();
+describe("formatAgeRange (canonical helper — ../utils/age — never invents a band)", () => {
+  it("both absent → 'Âge non renseigné' (never a default band / 'Tout âge')", () => {
+    expect(formatAgeRange(null, null)).toBe("Âge non renseigné");
+    expect(formatAgeRange(undefined, undefined)).toBe("Âge non renseigné");
   });
   it("full range", () => {
     expect(formatAgeRange(3, 10)).toBe("3–10 ans");
   });
   it("min only", () => {
-    expect(formatAgeRange(2, null)).toBe("dès 2 ans");
-    expect(formatAgeRange(1, null)).toBe("dès 1 an");
+    expect(formatAgeRange(2, null)).toBe("Dès 2 ans");
   });
   it("max only", () => {
-    expect(formatAgeRange(null, 6)).toBe("jusqu'à 6 ans");
-    expect(formatAgeRange(null, 1)).toBe("jusqu'à 1 an");
+    expect(formatAgeRange(null, 6)).toBe("Jusqu'à 6 ans");
   });
   it("min === max renders without inventing a wider band", () => {
-    expect(formatAgeRange(5, 5)).toBe("5–5 ans");
+    expect(formatAgeRange(5, 5)).toBe("5 ans");
   });
 });
 

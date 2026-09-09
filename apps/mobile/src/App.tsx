@@ -1,8 +1,9 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "./lib/session";
 import { useTheme, useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
+import { takeResumeRoute } from "./lib/contributionDraft";
 
 import Splash from "./screens/onboarding/Splash";
 import LoginMethod from "./screens/onboarding/LoginMethod";
@@ -22,6 +23,7 @@ import AddPark from "./screens/actions/AddPark";
 import RatePark from "./screens/actions/RatePark";
 import ReportProblem from "./screens/actions/ReportProblem";
 import AddPhotos from "./screens/actions/AddPhotos";
+import EditInfo from "./screens/actions/EditInfo";
 import MoreActions from "./screens/actions/MoreActions";
 
 import Favorites from "./screens/favorites/Favorites";
@@ -42,10 +44,34 @@ import Legal from "./screens/profile/Legal";
 import Help from "./screens/profile/Help";
 import Contact from "./screens/profile/Contact";
 
+// Legacy intro path for "Donner un avis": the wizard canonique (Parc → Avis →
+// Commentaire) est auto-porteur, comme AddPark. Redirige vers /rate en
+// préservant `?park=` pour ne pas reperdre le contexte parc. `replace` : le
+// Retour du 1er step revient à l'origine, pas à cette redirection.
+function RateIntroRedirect() {
+  const [params] = useSearchParams();
+  const qs = params.toString();
+  return <Navigate to={qs ? `/rate?${qs}` : "/rate"} replace />;
+}
+
+// Idem "Signaler un problème" : le wizard (Problème → Détails → Confirmation)
+// est auto-porteur, la sélection du parc étant intégrée au flow. `/action-intro/
+// report` redirige vers /report en préservant toute la query string — `?park=`
+// et, pour un lien de reprise après auth, `?resume=1`. `replace` : le Retour du
+// 1er step revient à l'origine, jamais à cette redirection ni à un écran
+// "Commencer" supprimé.
+function ReportIntroRedirect() {
+  const [params] = useSearchParams();
+  const qs = params.toString();
+  return <Navigate to={qs ? `/report?${qs}` : "/report"} replace />;
+}
+
 export default function App() {
   const init = useSession((s) => s.init);
   const loading = useSession((s) => s.loading);
   const profile = useSession((s) => s.profile);
+  const userId = useSession((s) => s.userId);
+  const navigate = useNavigate();
   const [, setTheme] = useTheme();
   useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
 
@@ -56,6 +82,15 @@ export default function App() {
   useEffect(() => {
     if (profile) setTheme(profile.dark_mode ? "dark" : "light");
   }, [profile, setTheme]);
+
+  // A contribution started while signed out stashes a resume route before the
+  // just-in-time auth flow (which, for Google OAuth, is a full-page redirect).
+  // Once authenticated, return to that flow to finish the send.
+  useEffect(() => {
+    if (!userId) return;
+    const route = takeResumeRoute();
+    if (route) navigate(route, { replace: true });
+  }, [userId, navigate]);
 
   if (loading) return null;
 
@@ -76,11 +111,20 @@ export default function App() {
       <Route path="/park/:id/reviews" element={<DetailReviews />} />
       <Route path="/park/:id/directions" element={<Directions />} />
 
+      {/* AddPark / RatePark / ReportProblem n'ont plus d'écran d'intro : le
+          wizard canonique est auto-porteur. `/action-intro/{add,rate,report}`
+          vont droit au 1er step (en préservant la query string — `?park=`, et
+          `?resume=1` pour report). Le fallback `/action-intro/:type` reste pour
+          d'éventuels types legacy. */}
+      <Route path="/action-intro/add" element={<Navigate to="/add" replace />} />
+      <Route path="/action-intro/rate" element={<RateIntroRedirect />} />
+      <Route path="/action-intro/report" element={<ReportIntroRedirect />} />
       <Route path="/action-intro/:type" element={<ActionIntro />} />
       <Route path="/add" element={<AddPark />} />
       <Route path="/rate" element={<RatePark />} />
       <Route path="/report" element={<ReportProblem />} />
       <Route path="/photo-add" element={<AddPhotos />} />
+      <Route path="/contribute/edit" element={<EditInfo />} />
       <Route path="/more-actions" element={<MoreActions />} />
 
       <Route path="/favorites" element={<Favorites />} />

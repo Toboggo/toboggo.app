@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { PLAY_EQUIPMENT_LABEL, formatAgeRange, incrementParkViews } from "@toboggo/shared";
+import { PLAY_EQUIPMENT_LABEL, formatAgeClause, formatAgeRange, incrementParkViews } from "@toboggo/shared";
 import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
+import { hasRating } from "../../lib/parkDisplay";
 import { useSession } from "../../lib/session";
 import { ShareSheet } from "../../components/ShareSheet";
+import { ContributeSheet } from "../../components/ContributeSheet";
 import styles from "./Detail.module.css";
 
 function Stars({ value, size = 15 }: { value: number; size?: number }) {
@@ -36,6 +38,7 @@ export default function ParkDetail() {
   const { data: reviews = [] } = useParkReviews(id);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [shareOpen, setShareOpen] = useState(params.get("share") === "1");
+  const [contribOpen, setContribOpen] = useState(false);
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const patchProfile = useSession((s) => s.patchProfile);
@@ -62,8 +65,10 @@ export default function ParkDetail() {
     void patchProfile({ favorites: next });
   }
 
-  const ageText = formatAgeRange(park.age_min, park.age_max);
-  const chips: string[] = ageText ? [ageText] : [];
+  const ageClause = formatAgeClause(park.age_min, park.age_max);
+  const rated = hasRating(park);
+  const chips: string[] = [formatAgeRange(park.age_min, park.age_max)];
+
   if (park.fenced) chips.push("Clôturé");
   if (park.shade) chips.push("Ombragé");
   if (park.wc) chips.push("WC");
@@ -120,45 +125,55 @@ export default function ParkDetail() {
 
       <div className={styles.body}>
         <h1 className={styles.name}>{park.name}</h1>
-        <div className={styles.sub}>{park.formatted_address}</div>
+        {park.formatted_address && <div className={styles.sub}>{park.formatted_address}</div>}
 
         <div className={styles.ratingRow} onClick={() => navigate(`/park/${park.id}/reviews`)}>
-          <Stars value={park.rating} />
-          <span>
-            {park.rating.toFixed(1)} ({park.review_count} avis)
-          </span>
+          {rated ? (
+            <>
+              <Stars value={park.rating} />
+              <span>
+                {park.rating.toFixed(1)} ({park.review_count} avis)
+              </span>
+            </>
+          ) : (
+            <span>Aucun avis pour l’instant</span>
+          )}
         </div>
 
-        <div className={styles.chips}>
-          {chips.map((c) => (
-            <span key={c} className={styles.chip}>
-              {c}
+        {chips.length > 0 && (
+          <div className={styles.chips}>
+            {chips.map((c) => (
+              <span key={c} className={styles.chip}>
+                {c}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {park.has_score && (
+          <button type="button" className={styles.scoreCard} onClick={() => navigate(`/park/${park.id}/score`)}>
+            <span className={styles.scoreIcon}>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
+                <circle cx="12" cy="8" r="6" />
+                <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+              </svg>
             </span>
-          ))}
-        </div>
-
-        <button type="button" className={styles.scoreCard} onClick={() => navigate(`/park/${park.id}/score`)}>
-          <span className={styles.scoreIcon}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
-              <circle cx="12" cy="8" r="6" />
-              <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-            </svg>
-          </span>
-          <span className={styles.scoreBody}>
-            <span className={styles.scoreTitle}>
-              Toboggo Score
-              <span className={styles.scorePill} style={{ background: tierColor }}>
-                {score}
+            <span className={styles.scoreBody}>
+              <span className={styles.scoreTitle}>
+                Toboggo Score
+                <span className={styles.scorePill} style={{ background: tierColor }}>
+                  {score}
+                </span>
+              </span>
+              <span className={styles.scoreSub}>
+                {ageClause ? `Adapté aux enfants ${ageClause}` : "Tranche d'âge non précisée"}
               </span>
             </span>
-            <span className={styles.scoreSub}>
-              {ageText ? `Adapté aux enfants ${ageText}` : "Tranche d'âge non renseignée"}
-            </span>
-          </span>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </button>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
+        )}
 
         {park.has_open_report ? (
           <div className={styles.issue}>
@@ -189,7 +204,7 @@ export default function ParkDetail() {
           {equip.length === 0 ? (
             <div className={styles.emptyCard}>
               <span>Informations sur les jeux indisponibles</span>
-              <button type="button" onClick={() => navigate(`/action-intro/report?park=${park.id}`)}>
+              <button type="button" onClick={() => navigate(`/contribute/edit?park=${park.id}`)}>
                 Compléter les informations
               </button>
             </div>
@@ -254,11 +269,11 @@ export default function ParkDetail() {
           )}
         </div>
 
-        <button type="button" className={styles.reportLink} onClick={() => navigate(`/action-intro/report?park=${park.id}`)}>
+        <button type="button" className={styles.reportLink} onClick={() => setContribOpen(true)}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <path d="M4 21V4h14l-3 4 3 4H4" />
           </svg>
-          Signaler un problème avec ce parc
+          Contribuer à ce parc
         </button>
 
         <div className={styles.hr} />
@@ -278,7 +293,7 @@ export default function ParkDetail() {
             {r.comment && <p>{r.comment}</p>}
           </div>
         ))}
-        <button type="button" className={styles.giveReview} onClick={() => navigate(`/action-intro/rate?park=${park.id}`)}>
+        <button type="button" className={styles.giveReview} onClick={() => navigate(`/rate?park=${park.id}`)}>
           Donner mon avis
         </button>
       </div>
@@ -298,6 +313,7 @@ export default function ParkDetail() {
       </div>
 
       <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} park={park} />
+      <ContributeSheet open={contribOpen} onClose={() => setContribOpen(false)} parkId={park.id} />
     </div>
   );
 }

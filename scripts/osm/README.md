@@ -106,6 +106,12 @@ Ajouter une entrée dans `scripts/osm/regions.json`, par exemple :
 ## Sécurité
 
 `import-osm-local.py` reste verrouillé sur `127.0.0.1:54322`.
-Le wrapper ne contient aucune clé Supabase et ne sait pas écrire en staging/prod.
+Le wrapper ne contient aucune clé Supabase.
 
-Les commandes staging/prod devront être ajoutées plus tard avec des garde-fous séparés.
+`backfill-addresses.py --env prod` : dry-run libre, `--commit` verrouillé par
+quatre garde-fous cumulatifs (`confirm_prod_commit` — ref cible == prod, drapeau
+`--i-understand-this-writes-to-production`, `TOBOGGO_ALLOW_PROD_BACKFILL=1`,
+phrase interactive `BACKFILL PROD <N>`). Aucune clé n'est versionnée : la clé
+Geoapify vient de `GEOAPIFY_API_KEY`, les clés Supabase du `supabase login`
+global. Les *project refs* (sous-domaines d'URL API publiques, protégées par
+RLS + clés) ne sont pas des secrets.

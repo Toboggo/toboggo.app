@@ -1,11 +1,12 @@
 import type { Park } from "@toboggo/shared";
+import { hasRating } from "../../lib/parkDisplay";
+import { ratingTierColor } from "./markers";
 import styles from "./FakeMap.module.css";
 
 /**
- * Stylised map backdrop from the Claude Design prototype — grid, a couple of
- * "roads", soft green park blobs, colour-coded score pins and the user dot.
- * Used whenever no real map is configured (VITE_MAP_STYLE_URL unset) — the
- * MapLibre tile layer needs a style URL, this is the offline fallback.
+ * Stylised map backdrop — grid, a couple of "roads", soft green park blobs, and
+ * Toboggo score pins matching the real MapLibre markers. Used whenever no real
+ * map style is configured (VITE_MAP_STYLE_URL unset).
  */
 
 function hashPos(id: string): { left: number; top: number } {
@@ -20,19 +21,16 @@ function hashPos(id: string): { left: number; top: number } {
   return { left, top };
 }
 
-function pinColor(rating: number): string {
-  const score = rating * 2;
-  return score >= 8 ? "var(--color-success)" : score >= 6 ? "var(--color-accent)" : "var(--color-error)";
-}
-
 export function FakeMap({
   parks,
   selectedId,
   onSelect,
+  showUser = false,
 }: {
   parks: (Park & { distance_m?: number })[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  showUser?: boolean;
 }) {
   return (
     <div className={styles.map}>
@@ -46,27 +44,32 @@ export function FakeMap({
         return <div key={`blob-${p.id}`} className={styles.blob} style={{ left: `calc(${left}% - 30px)`, top: `calc(${top}% - 58px)` }} />;
       })}
 
-      <div className={styles.userDot} />
+      {showUser && <div className={styles.userDot} aria-label="Votre position" />}
 
       {parks.map((p) => {
         const { left, top } = hashPos(p.id);
         const active = p.id === selectedId;
+        const rated = hasRating(p);
         return (
           <button
             key={`pin-${p.id}`}
             type="button"
             className={styles.pin}
+            data-selected={active ? "1" : undefined}
             style={{
               left: `${left}%`,
               top: `${top}%`,
-              background: pinColor(p.rating),
-              outline: active ? "3px solid var(--color-primary-tint)" : "none",
-              zIndex: active ? 4 : 2,
+              ["--marker-color" as string]: rated ? ratingTierColor(p.rating) : "var(--color-primary)",
             }}
             onClick={() => onSelect(p.id)}
             aria-label={p.name}
           >
-            {(p.rating * 2).toFixed(1)}
+            <span className={styles.dot}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M4 20c3 0 4-2 5-5l7-9M14 4l4 3M9 15l4 1M3 20h4" />
+              </svg>
+            </span>
+            {rated && p.rating.toFixed(1).replace(".", ",")}
           </button>
         );
       })}

@@ -15,6 +15,11 @@ interface PhotoPick {
   preview: string;
 }
 
+// Named stepper shared with the other contribution wizards (see AddPark). The
+// three stages are stable across entry points: arriving with `?park=` just
+// starts on "Photos" with "Parc" already checked — the step is never dropped.
+const STEPPER = ["Parc", "Photos", "Confirmation"];
+
 export default function AddPhotos() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -22,6 +27,7 @@ export default function AddPhotos() {
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
+  const preselected = useRef(Boolean(params.get("park"))).current;
 
   const [step, setStep] = useState(parkId ? 1 : 0);
   const [picks, setPicks] = useState<PhotoPick[]>([]);
@@ -93,10 +99,27 @@ export default function AddPhotos() {
   }
 
   if (done) {
+    // Écran terminal autonome, aligné sur les confirmations AddPark / EditInfo :
+    // pas de WizardHeader (ni Stepper, ni Retour, ni X) — l'envoi est fait et
+    // passé en modération. Même motif visuel : cercle + ic-check, tokens, pas
+    // d'emoji, titre sans bleu legacy, CTA primaire.
     return (
       <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div style={{ fontSize: 64 }}>📸</div>
-        <h1 style={{ fontSize: 22, marginTop: 12, color: "var(--color-info)" }}>Photo envoyée !</h1>
+        <div
+          style={{
+            width: 76,
+            height: 76,
+            borderRadius: "50%",
+            background: "var(--color-primary-tint)",
+            color: "var(--color-primary)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Icon name="ic-check" size={36} />
+        </div>
+        <h1 style={{ fontSize: 22, marginTop: 12 }}>Photo envoyée !</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 300 }}>
           Merci ! Votre {picks.length > 1 ? "photos seront visibles" : "photo sera visible"} sur la fiche du parc
           après vérification par notre équipe.
@@ -110,7 +133,14 @@ export default function AddPhotos() {
 
   return (
     <div className="screen">
-      <WizardHeader step={step} total={2} onBack={() => (step === 0 ? navigate(-1) : setStep(step - 1))} />
+      <WizardHeader
+        step={step}
+        total={STEPPER.length}
+        steps={STEPPER}
+        onBack={() =>
+          step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
+        }
+      />
 
       {step === 0 && (
         <ParkPicker
@@ -166,7 +196,7 @@ export default function AddPhotos() {
               Un compte gratuit est demandé au moment de l'envoi.
             </p>
           )}
-          <Button block loading={saving} disabled={!picks.length} style={{ marginTop: 16, background: "var(--color-info)" }} onClick={submit}>
+          <Button block loading={saving} disabled={!picks.length} style={{ marginTop: 16 }} onClick={submit}>
             Envoyer {picks.length || ""} photo{picks.length > 1 ? "s" : ""}
           </Button>
         </div>

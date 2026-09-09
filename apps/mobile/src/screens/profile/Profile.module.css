@@ -5,7 +5,8 @@
   background: var(--color-bg);
   display: flex;
   flex-direction: column;
-  padding-bottom: 96px;
+  /* Dégagement pour la bottom nav fixe — même source que la nav (tokens.css). */
+  padding-bottom: calc(var(--bottom-nav-h) + 16px);
 }
 .titleBar {
   padding: calc(24px + var(--safe-top)) 20px 10px;

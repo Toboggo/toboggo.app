@@ -594,32 +594,6 @@ export const AGE_BAND_LABEL: Record<AgeBand, string> = {
   "6-12": "6-12 ans",
 };
 
-/** Shown when a park has no recorded age range. NEVER substitute a default
- * band ("3-6 ans", "Tout âge", …) — an unknown age is unknown. */
-export const AGE_UNKNOWN_LABEL = "Âge non renseigné";
-
-/**
- * Human age-range label from the (nullable) `min_age` / `max_age` pair.
- *
- * - both absent  → `null` (caller shows `AGE_UNKNOWN_LABEL` or hides the field)
- * - both present → `"3–10 ans"`
- * - min only     → `"dès 3 ans"`
- * - max only     → `"jusqu'à 10 ans"`
- *
- * `null` is "we don't know", never "all ages" — no invented band, ever.
- */
-export function formatAgeRange(
-  min: number | null | undefined,
-  max: number | null | undefined,
-): string | null {
-  const lo = min ?? null;
-  const hi = max ?? null;
-  if (lo == null && hi == null) return null;
-  if (lo != null && hi != null) return `${lo}–${hi} ans`;
-  if (lo != null) return `dès ${lo} an${lo > 1 ? "s" : ""}`;
-  return `jusqu'à ${hi} an${(hi as number) > 1 ? "s" : ""}`;
-}
-
 export const REPORT_REASON_LABEL: Record<ReportCategory, string> = {
   broken_equipment: "Jeu cassé / dangereux",
   safety: "Problème de sécurité",
@@ -691,6 +665,17 @@ export const FEATURE_LABEL: Record<string, string> = {
   accessible_toilets: "Toilettes accessibles",
   accessible_parking: "Parking accessible",
   inclusive_play: "Jeux inclusifs",
+  // OSM playground import (0022/0023_add_osm_playground_features) — sans ces
+  // entrées, featureLabel() retombe sur le code technique brut (ex. "play
+  // structure") au lieu d'un libellé français.
+  play_structure: "Structure de jeux",
+  seesaw: "Bascule",
+  playhouse: "Maisonnette",
+  trampoline: "Trampoline",
+  balance_beam: "Poutre d'équilibre",
+  agility_trail: "Parcours d'agilité",
+  horizontal_bar: "Barre de traction",
+  hopscotch: "Marelle",
 };
 
 /** Legacy map — the old prototype's play-equipment codes. */
@@ -710,3 +695,7 @@ export const PLAY_EQUIPMENT_LABEL: Record<string, string> = {
 export function featureLabel(code: string): string {
   return FEATURE_LABEL[code] ?? PLAY_EQUIPMENT_LABEL[code] ?? code.replace(/_/g, " ");
 }
+
+// Age-range formatting (`formatAgeRange` / `formatAgeClause`) lives in
+// `./utils/age` — single source of truth, avoids the duplicate-export
+// ambiguity of having two same-named helpers re-exported from this package.

@@ -3,6 +3,9 @@ import argparse, importlib.util, json, subprocess, sys, tempfile
 from collections import Counter
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import address as address_lib  # noqa: E402  (après sys.path bootstrap)
+
 PROJECTS = {
     "staging": {"ref": "hfuaouskwysqxiwpwvqy", "label": "Toboggo Staging"},
     "prod": {"ref": "dfzrsygetbhnjzfssgub", "label": "Toboggo Production"},
@@ -88,6 +91,7 @@ def build_candidates(pbf, local):
                     "longitude": lng,
                     "min_age": local.parse_age(props.get("min_age")),
                     "max_age": local.parse_age(props.get("max_age")),
+                    "address": address_lib.extract_address_from_tags(props),
                     "features": equipment,
                     "attribute_features": attrs,
                 })
@@ -97,6 +101,45 @@ def park_sql(p, publish):
     status = "published" if publish else "pending"
     source_url = f"https://www.openstreetmap.org/{p['osm_type']}/{p['osm_id']}"
     feature_sql = []
+
+    # ── Adresse : uniquement si CET objet OSM apporte un tag addr:* ────────
+    # Jamais de blanchiment d'une adresse existante faute de donnée neuve, et
+    # jamais d'écrasement d'une source de priorité >= osm (toboggo/municipality/
+    # open_data/partner) — cf. migration 0028 (source_priority).
+    address = p.get("address")
+    has_address = address_lib.has_usable_address(address)
+    address_insert_cols = ""
+    address_insert_vals = ""
+    address_update_sql = ""
+    address_record_sql = ""
+    if has_address:
+        address_insert_cols = ", address_line, postal_code, city"
+        address_insert_vals = (
+            f", {q(address.get('address_line'))}, "
+            f"{q(address.get('postal_code'))}, {q(address.get('city'))}"
+        )
+        address_update_sql = f"""
+      address_line=case when can_source_replace_attribute(v_park_id,'address','osm')
+        then {q(address.get('address_line'))} else parks.address_line end,
+      postal_code=case when can_source_replace_attribute(v_park_id,'address','osm')
+        then {q(address.get('postal_code'))} else parks.postal_code end,
+      city=case when can_source_replace_attribute(v_park_id,'address','osm')
+        then {q(address.get('city'))} else parks.city end,"""
+        address_value_json = q(json.dumps(address, ensure_ascii=False))
+        address_record_sql = f"""
+  if can_source_replace_attribute(v_park_id, 'address', 'osm')
+     and not exists (
+       select 1 from park_attribute_sources pas
+       join park_sources ps on ps.id = pas.source_id
+       where pas.park_id = v_park_id and pas.attribute_key = 'address'
+         and pas.is_current = true and ps.source_type = 'osm'
+         and pas.value_json = {address_value_json}::jsonb
+     ) then
+    perform set_park_attribute_source(
+      v_park_id, 'address', {address_value_json}::jsonb, v_source_id, 0.700, null
+    );
+  end if;
+"""
 
     for code in p["features"]:
         feature_sql.append(f"""
@@ -126,11 +169,11 @@ begin
   if v_park_id is null then
     insert into parks (
       name, latitude, longitude, country_code, timezone, min_age, max_age,
-      ages_derived, moderation_status, verification_status
+      ages_derived, moderation_status, verification_status{address_insert_cols}
     ) values (
       {q(p['name'])}, {n(p['latitude'])}, {n(p['longitude'])},
       'FR', 'Europe/Paris', {n(p['min_age'])}, {n(p['max_age'])},
-      false, '{status}', 'unverified'
+      false, '{status}', 'unverified'{address_insert_vals}
     ) returning id into v_park_id;
 
     insert into external_ids (park_id, provider, external_id)
@@ -140,7 +183,8 @@ begin
     update parks set
       name={q(p['name'])}, latitude={n(p['latitude'])}, longitude={n(p['longitude'])},
       min_age={n(p['min_age'])}, max_age={n(p['max_age'])},
-      ages_derived=false, updated_at=now()
+      ages_derived=false,{address_update_sql}
+      updated_at=now()
     where id=v_park_id;
   end if;
 
@@ -155,7 +199,7 @@ begin
     update park_sources set source_name='OpenStreetMap', source_url={q(source_url)},
       license='ODbL', last_synced_at=now() where id=v_source_id;
   end if;
-
+{address_record_sql}
 {''.join(feature_sql)}
 end
 $toboggo$;

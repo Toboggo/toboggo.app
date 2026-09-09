@@ -1,10 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { fetchNearbyParks, getPark, listReviewsForPark, type NearbyParksParams } from "@toboggo/shared";
 
 export function useNearbyParks(params: NearbyParksParams) {
   return useQuery({
     queryKey: ["nearby-parks", params],
     queryFn: () => fetchNearbyParks(params),
+    // Keep the previous results visible while filters/location change so the
+    // Explore sheet doesn't flip to a loading state on every tweak.
+    placeholderData: keepPreviousData,
   });
 }
 

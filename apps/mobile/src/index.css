@@ -1,13 +1,24 @@
 @import "@toboggo/design-system/tokens.css";
 
+:root {
+  /* Width of the centred mobile shell. Not a design-system token: it only
+     describes how the PWA is framed inside a desktop browser during dev/preview
+     (mobile devices are full-bleed). Consumed by #root, BottomTabs and the
+     portalled BottomSheet so they all line up. */
+  --app-shell-width: 560px;
+}
+
 html,
-body,
-#root {
+body {
   height: 100%;
 }
 
 #root {
-  max-width: 560px;
+  /* Shell principal : dvh en priorité (suit le viewport réel, y compris en PWA
+     standalone iOS), vh en fallback pour les navigateurs sans dvh. */
+  min-height: 100vh;
+  min-height: 100dvh;
+  max-width: var(--app-shell-width);
   margin: 0 auto;
   position: relative;
   overflow-x: hidden;
@@ -15,10 +26,12 @@ body,
 
 .screen {
   min-height: 100vh;
-  padding-bottom: calc(84px + var(--safe-bottom));
+  min-height: 100dvh;
+  /* Dégagement pour la bottom nav fixe — dérivé de la même source que la nav. */
+  padding-bottom: calc(var(--bottom-nav-h) + 16px);
   background: var(--color-bg);
 }
 
 .screen-with-tabs {
-  padding-bottom: calc(84px + var(--safe-bottom));
+  padding-bottom: calc(var(--bottom-nav-h) + 16px);
 }

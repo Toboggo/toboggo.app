@@ -1,4 +1,4 @@
-/* Explore / map — ported from the Claude Design prototype. */
+/* Explore / map. */
 
 .screen {
   position: relative;
@@ -18,20 +18,39 @@
   align-items: center;
   gap: 8px;
   background: var(--color-surface);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 0 6px 0 14px;
   height: 52px;
-  box-shadow: 0 10px 28px rgba(36, 48, 58, 0.14);
+  box-shadow: var(--shadow-md);
 }
-.searchBar input {
+.searchField {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border: none;
   background: none;
-  outline: none;
-  flex: 1;
+  padding: 0;
+  height: 100%;
+  cursor: text;
   font: inherit;
-  font-size: 14px;
-  color: var(--color-text);
+  text-align: left;
+}
+.searchValue,
+.searchPlaceholder {
+  flex: 1;
   min-width: 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.searchValue {
+  color: var(--color-text);
+}
+.searchPlaceholder {
+  color: var(--color-text-muted);
 }
 
 .weatherChip {
@@ -39,13 +58,12 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  border: none;
   background: var(--color-surface-alt);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 8px 11px;
-  cursor: pointer;
   font-size: 12.5px;
   font-weight: 700;
+  font-family: var(--font-heading);
   color: var(--color-text);
 }
 .weatherChip span:first-child {
@@ -57,7 +75,7 @@
   position: relative;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-xs);
   border: none;
   background: var(--color-surface-alt);
   color: var(--color-text);
@@ -95,9 +113,9 @@
   top: calc(78px + var(--safe-top));
   z-index: 20;
   background: var(--color-warning-bg);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 12px 14px;
-  box-shadow: 0 8px 20px rgba(36, 48, 58, 0.12);
+  box-shadow: var(--shadow-md);
   display: flex;
   gap: 10px;
   align-items: flex-start;
@@ -141,16 +159,16 @@
 .fabStack {
   position: absolute;
   right: 14px;
-  bottom: calc(78px + 360px + 16px + var(--safe-bottom));
   z-index: 20;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transition: bottom var(--duration-base) var(--ease-emphasized);
 }
 .fabAdd,
 .fabRecenter {
-  width: 44px;
-  height: 44px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   border: none;
   display: flex;
@@ -161,9 +179,70 @@
 .fabAdd {
   background: var(--color-primary);
   color: var(--color-on-primary);
-  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.4);
+  box-shadow: var(--shadow-lg);
 }
 .fabRecenter {
   background: var(--color-surface);
-  box-shadow: 0 4px 12px rgba(36, 48, 58, 0.2);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── bottom-sheet content ── */
+.sheetHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-4) var(--space-3);
+}
+.sheetTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--color-text);
+}
+.seeAll {
+  flex: none;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.count {
+  flex: none;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+.collapsedBar {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
+  padding: 2px var(--space-4) var(--space-4);
+  cursor: pointer;
+}
+
+.intermediate {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-1);
+}
+
+.stateBtn {
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 10px 18px;
+  cursor: pointer;
 }

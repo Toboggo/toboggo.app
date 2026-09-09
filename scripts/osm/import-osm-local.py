@@ -948,12 +948,19 @@ def main():
                                 can_source_replace_attribute(%s, 'name', 'osm'),
                                 can_source_replace_attribute(%s, 'min_age', 'osm'),
                                 can_source_replace_attribute(%s, 'max_age', 'osm'),
-                                can_source_replace_attribute(%s, 'address', 'osm')
+                                can_source_replace_attribute(%s, 'address', 'osm'),
+                                can_source_replace_attribute(%s, 'location', 'osm')
                             """,
-                            (park_id, park_id, park_id, park_id),
+                            (park_id, park_id, park_id, park_id, park_id),
                         )
 
-                        allow_name, allow_min_age, allow_max_age, allow_address_priority = cur.fetchone()
+                        (
+                            allow_name,
+                            allow_min_age,
+                            allow_max_age,
+                            allow_address_priority,
+                            allow_location,
+                        ) = cur.fetchone()
 
                         allow_name = bool(
                             allow_name and park["has_osm_name"]
@@ -972,6 +979,13 @@ def main():
                             allow_address_priority
                             and address_lib.has_usable_address(park["address"])
                         )
+                        # `location` : un objet OSM porte toujours un point
+                        # (prérequis d'import), donc aucun garde-fou "présence".
+                        # Seul le gate de priorité compte : une position
+                        # corrigée dans le back-office (source toboggo/
+                        # municipality via apply_park_attribute) n'est plus
+                        # réécrite par un réimport OSM.
+                        allow_location = bool(allow_location)
 
                         # `moderation_status` : promotion UNIQUEMENT si
                         # --publish ET statut courant = 'pending'. Les états
@@ -990,8 +1004,8 @@ def main():
                             update parks
                             set
                                 name = case when %s then %s else name end,
-                                latitude = %s,
-                                longitude = %s,
+                                latitude = case when %s then %s else latitude end,
+                                longitude = case when %s then %s else longitude end,
                                 min_age = case when %s then %s else min_age end,
                                 max_age = case when %s then %s else max_age end,
                                 ages_derived = case
@@ -1021,7 +1035,9 @@ def main():
                                 park_id,
                                 allow_name,
                                 park["name"],
+                                allow_location,
                                 park["latitude"],
+                                allow_location,
                                 park["longitude"],
                                 allow_min_age,
                                 park["min_age"],

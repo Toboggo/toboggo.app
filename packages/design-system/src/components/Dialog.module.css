@@ -46,9 +46,9 @@
   background: var(--color-surface);
   border-radius: 26px 26px 0 0;
   box-shadow: var(--shadow-lg);
-  z-index: 95;
-  /* The bottom safe-area reserve lives inside the scroll content (see
-     BottomSheet.tsx `bottomReserve`), never as padding on the sheet itself —
+  z-index: var(--z-sheet, 95);
+  /* The bottom-edge reserve lives inside the scroll content as a sibling spacer
+     (see BottomSheet.tsx `scrollReserve`), never as padding on the sheet itself —
      otherwise `canScroll` / `"fit"` would misjudge the scrollable box. */
   overflow: hidden;
   display: flex;
@@ -58,6 +58,12 @@
 }
 .sheet[data-dragging="1"] {
   transition: none;
+}
+/* Docked: the sheet is a surface that continues *behind* the fixed bottom nav.
+   It drops below the nav in the stack (nav stays tappable on top) and its body
+   is painted to the screen edge — no rounded bottom, the top corners still round. */
+.sheet[data-docked="1"] {
+  z-index: var(--z-sheet-docked, 45);
 }
 .grabZone {
   flex-shrink: 0;

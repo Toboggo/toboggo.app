@@ -124,7 +124,11 @@ export default function AddPhotos() {
           Merci ! Votre {picks.length > 1 ? "photos seront visibles" : "photo sera visible"} sur la fiche du parc
           après vérification par notre équipe.
         </p>
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`)}>
+        {/* Photos envoyées : on remplace l'entrée d'historique du wizard par la
+            fiche parc. Depuis la fiche, Retour ramène au contexte antérieur,
+            jamais dans AddPhotos ni sur cette confirmation. Idem AddPark /
+            RatePark / ReportProblem / EditInfo. */}
+        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
           Voir le parc
         </Button>
       </div>

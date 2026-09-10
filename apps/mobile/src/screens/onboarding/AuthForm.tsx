@@ -20,21 +20,21 @@ export default function AuthForm() {
   const [resetSent, setResetSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation("onboarding");
   const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
   const showToast = useToastStore((s) => s.show);
 
   const isSignup = mode === "signup";
-  const title = isSignup ? "Créer un compte" : "Bon retour !";
-  const subtitle = isSignup
-    ? "Créez votre compte pour sauvegarder vos parcs favoris."
-    : "Connectez-vous à votre compte.";
+  const title = isSignup ? t("auth.signupTitle") : t("auth.loginTitle");
+  const subtitle = isSignup ? t("auth.signupSubtitle") : t("auth.loginSubtitle");
   const submitLabel = loading
     ? isSignup
-      ? "Création..."
-      : "Connexion..."
+      ? t("auth.signupSubmitting")
+      : t("auth.loginSubmitting")
     : isSignup
-      ? "Créer un compte"
-      : "Se connecter";
+      ? t("auth.signupSubmit")
+      : t("auth.loginSubmit");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,7 +47,7 @@ export default function AuthForm() {
     try {
       if (isSignup) {
         const res = await signUp(email, password, email.split("@")[0]);
-        showToast("Compte créé — vérifiez vos e-mails pour confirmer.");
+        showToast(t("auth.accountCreated"));
         // Only jump straight to a pending contribution when a session was issued
         // right away (email confirmation disabled); otherwise the draft waits.
         const resumeRoute = res.session ? takeResumeRoute() : null;
@@ -106,7 +106,7 @@ export default function AuthForm() {
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.back} onClick={() => navigate(-1)} aria-label="Retour">
+      <button type="button" className={styles.back} onClick={() => navigate(-1)} aria-label={tCommon("action.back")}>
         <ChevronLeft />
       </button>
 
@@ -120,12 +120,12 @@ export default function AuthForm() {
 
       <form className={styles.form} onSubmit={submit}>
         <div className={styles.field}>
-          <label htmlFor="auth-email">E-mail</label>
+          <label htmlFor="auth-email">{t("auth.emailLabel")}</label>
           <input
             id="auth-email"
             type="email"
             autoComplete="email"
-            placeholder="exemple@email.com"
+            placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             style={inputStyle}
@@ -133,31 +133,31 @@ export default function AuthForm() {
         </div>
 
         <div className={styles.field}>
-          <label htmlFor="auth-pwd">Mot de passe</label>
+          <label htmlFor="auth-pwd">{t("auth.passwordLabel")}</label>
           <div className={styles.pwdWrap}>
             <input
               id="auth-pwd"
               type={showPwd ? "text" : "password"}
               autoComplete={isSignup ? "new-password" : "current-password"}
-              placeholder={isSignup ? "Choisissez un mot de passe" : "Votre mot de passe"}
+              placeholder={isSignup ? t("auth.passwordPlaceholderSignup") : t("auth.passwordPlaceholderLogin")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={inputStyle}
             />
-            <button type="button" className={styles.eye} onClick={() => setShowPwd((v) => !v)} aria-label="Afficher le mot de passe">
+            <button type="button" className={styles.eye} onClick={() => setShowPwd((v) => !v)} aria-label={t("auth.showPassword")}>
               <EyeIcon />
             </button>
           </div>
           {!isSignup && (
             <p className={styles.forgot}>
-              <span onClick={forgotPassword}>Mot de passe oublié ?</span>
+              <span onClick={forgotPassword}>{t("auth.forgotPassword")}</span>
             </p>
           )}
         </div>
 
         {error && <p className={styles.error}>{error}</p>}
         {resetSent && (
-          <p className={styles.ok}>Lien de réinitialisation envoyé à {email}. Consultez votre boîte mail.</p>
+          <p className={styles.ok}>{t("auth.resetSent", { email })}</p>
         )}
 
         <button type="submit" className={styles.submit} disabled={loading} style={{ opacity: loading ? 0.85 : 1 }}>
@@ -167,23 +167,23 @@ export default function AuthForm() {
 
         <div className={styles.divider}>
           <span />
-          <em>ou</em>
+          <em>{t("or")}</em>
           <span />
         </div>
 
         <button type="button" className={styles.social} onClick={continueWithGoogle}>
           <GoogleIcon size={17} />
-          <span>Continuer avec Google</span>
+          <span>{t("auth.continueGoogle")}</span>
         </button>
-        <button type="button" className={styles.social} onClick={() => showToast("Bientôt disponible")}>
+        <button type="button" className={styles.social} onClick={() => showToast(tCommon("comingSoon"))}>
           <AppleIcon size={16} />
-          <span>Continuer avec Apple</span>
+          <span>{t("auth.continueApple")}</span>
         </button>
 
         <p className={styles.switch}>
-          {isSignup ? "Vous avez déjà un compte ?" : "Pas encore de compte ?"}{" "}
+          {isSignup ? t("auth.haveAccount") : t("auth.noAccount")}{" "}
           <span onClick={() => (setMode(isSignup ? "login" : "signup"), setError(null))}>
-            {isSignup ? "Se connecter" : "Créer un compte"}
+            {isSignup ? t("auth.switchToLogin") : t("auth.switchToSignup")}
           </span>
         </p>
       </form>

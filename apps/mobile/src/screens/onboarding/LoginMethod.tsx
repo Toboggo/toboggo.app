@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { signInWithGoogle } from "@toboggo/shared";
 import { Illustration } from "../../illustrations";
 import { useToastStore } from "../../lib/toast";
@@ -8,13 +9,16 @@ import styles from "./LoginMethod.module.css";
 export default function LoginMethod() {
   const navigate = useNavigate();
   const showToast = useToastStore((s) => s.show);
+  const { t } = useTranslation("onboarding");
+  const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
 
   const continueWithGoogle = async () => {
     try {
       await signInWithGoogle();
       // On success the browser redirects to Google, so nothing else runs here.
-    } catch (err: any) {
-      showToast(err?.message ?? "Connexion Google indisponible pour le moment");
+    } catch {
+      showToast(tErr("auth.googleUnavailable"));
     }
   };
 
@@ -24,8 +28,8 @@ export default function LoginMethod() {
       tile: "var(--color-primary-tint)",
       tint: "var(--color-primary)",
       icon: <MailIcon />,
-      title: "Avec votre e-mail",
-      subtitle: "Rapide et sécurisé",
+      title: t("loginMethod.email.title"),
+      subtitle: t("loginMethod.email.subtitle"),
       onClick: () => navigate("/login?mode=login"),
     },
     {
@@ -33,26 +37,26 @@ export default function LoginMethod() {
       tile: "var(--color-primary-tint)",
       tint: "var(--color-primary)",
       icon: <PhoneIcon />,
-      title: "Avec votre numéro de téléphone",
-      subtitle: "Recevez un code par SMS",
-      onClick: () => showToast("Bientôt disponible"),
+      title: t("loginMethod.phone.title"),
+      subtitle: t("loginMethod.phone.subtitle"),
+      onClick: () => showToast(tCommon("comingSoon")),
     },
     {
       key: "apple",
       tile: "var(--color-surface-alt)",
       tint: "var(--color-text)",
       icon: <AppleIcon />,
-      title: "Avec Apple",
-      subtitle: "Connexion en un seul geste",
-      onClick: () => showToast("Bientôt disponible"),
+      title: t("loginMethod.apple.title"),
+      subtitle: t("loginMethod.apple.subtitle"),
+      onClick: () => showToast(tCommon("comingSoon")),
     },
     {
       key: "google",
       tile: "var(--color-surface-alt)",
       tint: "var(--color-text)",
       icon: <GoogleIcon />,
-      title: "Avec Google",
-      subtitle: "Connexion en un seul geste",
+      title: t("loginMethod.google.title"),
+      subtitle: t("loginMethod.google.subtitle"),
       onClick: continueWithGoogle,
     },
   ];
@@ -60,18 +64,14 @@ export default function LoginMethod() {
   return (
     <div className={styles.wrap}>
       <div className={styles.topbar}>
-        <button type="button" className={styles.back} onClick={() => navigate("/")} aria-label="Retour">
+        <button type="button" className={styles.back} onClick={() => navigate("/")} aria-label={tCommon("action.back")}>
           <ChevronLeft />
         </button>
       </div>
 
       <div className={styles.header}>
-        <h1>Se connecter</h1>
-        <p>
-          Choisissez votre méthode
-          <br />
-          pour vous connecter à Toboggo.
-        </p>
+        <h1>{t("loginMethod.title")}</h1>
+        <p style={{ whiteSpace: "pre-line" }}>{t("loginMethod.subtitle")}</p>
       </div>
 
       <div className={styles.list}>

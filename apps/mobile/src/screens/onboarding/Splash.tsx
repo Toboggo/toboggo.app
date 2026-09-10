@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { signInWithGoogle } from "@toboggo/shared";
 import { Logo } from "@toboggo/design-system";
 import { Illustration } from "../../illustrations";
@@ -15,19 +16,22 @@ export default function Splash() {
   const navigate = useNavigate();
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
+  const { t } = useTranslation("onboarding");
+  const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
 
   useEffect(() => {
     if (userId) navigate("/map", { replace: true });
   }, [userId, navigate]);
 
-  const comingSoon = () => showToast("Bientôt disponible");
+  const comingSoon = () => showToast(tCommon("comingSoon"));
 
   const continueWithGoogle = async () => {
     try {
       await signInWithGoogle();
       // On success the browser redirects to Google, so nothing else runs here.
-    } catch (err: any) {
-      showToast(err?.message ?? "Connexion Google indisponible pour le moment");
+    } catch {
+      showToast(tErr("auth.googleUnavailable"));
     }
   };
 
@@ -35,17 +39,11 @@ export default function Splash() {
     <div className={styles.wrap}>
       <div className={styles.header}>
         <Logo size={44} variant="brand" />
-        <h1 className={styles.headline}>
-          Trouvez
-          <br />
-          le parc idéal
-          <br />
-          pour vos enfants
+        <h1 className={styles.headline} style={{ whiteSpace: "pre-line" }}>
+          {t("splash.headline")}
         </h1>
-        <p className={styles.tagline}>
-          Des milliers de parcs notés
-          <br />
-          par des parents comme vous.
+        <p className={styles.tagline} style={{ whiteSpace: "pre-line" }}>
+          {t("splash.tagline")}
         </p>
       </div>
 
@@ -56,22 +54,22 @@ export default function Splash() {
       <div className={styles.sheet}>
         <button type="button" className={styles.socialBtn} onClick={comingSoon}>
           <AppleIcon size={17} />
-          <span>Continuer avec Apple</span>
+          <span>{t("splash.continueApple")}</span>
         </button>
         <button type="button" className={styles.socialBtn} onClick={continueWithGoogle}>
           <GoogleIcon size={17} />
-          <span>Continuer avec Google</span>
+          <span>{t("splash.continueGoogle")}</span>
         </button>
         <button type="button" className={styles.socialBtn} onClick={() => navigate("/login?mode=signup")}>
           <span style={brandTint}>
             <MailIcon size={18} />
           </span>
-          <span>Continuer avec un e-mail</span>
+          <span>{t("splash.continueEmail")}</span>
         </button>
 
         <div className={styles.divider}>
           <span />
-          <em>ou</em>
+          <em>{t("or")}</em>
           <span />
         </div>
 
@@ -79,19 +77,24 @@ export default function Splash() {
           <span style={brandTint}>
             <PhoneIcon size={17} />
           </span>
-          <span>Continuer avec un numéro de téléphone</span>
+          <span>{t("splash.continuePhone")}</span>
         </button>
 
         <p className={styles.legal}>
-          En continuant, vous acceptez nos{" "}
-          <span onClick={() => navigate("/legal/terms?from=onboarding")}>Conditions d'utilisation</span> et notre{" "}
-          <span onClick={() => navigate("/legal/privacy?from=onboarding")}>Politique de confidentialité</span>.
+          <Trans
+            t={t}
+            i18nKey="splash.legal"
+            components={{
+              terms: <span onClick={() => navigate("/legal/terms?from=onboarding")} />,
+              privacy: <span onClick={() => navigate("/legal/privacy?from=onboarding")} />,
+            }}
+          />
         </p>
 
         <p className={styles.switch}>
-          Vous avez déjà un compte ?
+          {t("splash.haveAccount")}
           <button type="button" onClick={() => navigate("/login-method")}>
-            Se connecter
+            {t("splash.signIn")}
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
               <path d="M9 6l6 6-6 6" />
             </svg>

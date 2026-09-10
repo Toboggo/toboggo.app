@@ -20,6 +20,14 @@ import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { clearDraft, loadDraft, saveDraft, setResumeRoute } from "../../lib/contributionDraft";
 
+// Stepper nommé, partagé avec les autres wizards de contribution via
+// WizardHeader (voir AddPark / AddPhotos / RatePark / ReportProblem). Les trois
+// étapes correspondent 1:1 à `d.step` (0 → Type, 1 → Correction, 2 →
+// Vérification) : `current` = `d.step`, aucune conversion. "Vérification" est la
+// dernière étape AVANT soumission ; la confirmation de succès reste un écran
+// autonome séparé (bloc `done`) et n'apparaît donc pas dans le stepper.
+const STEPPER = ["Type", "Correction", "Vérification"];
+
 type Target = "general" | "ages" | "play" | "service" | "accessibility" | "characteristics" | "location" | "other";
 
 const TARGETS: { value: Target; label: string; icon: IconName }[] = [
@@ -368,7 +376,8 @@ export default function EditInfo() {
     <div className="screen">
       <WizardHeader
         step={d.step}
-        total={3}
+        total={STEPPER.length}
+        steps={STEPPER}
         onBack={() => (d.step === 0 ? navigate(-1) : patch({ step: d.step - 1 }))}
         onClose={closeAndDiscard}
       />

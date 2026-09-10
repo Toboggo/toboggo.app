@@ -212,8 +212,27 @@ aucun `addr:place`/`is_in`/`place`). Le reste dépend du reverse geocoding.
   > reverse_geocode (45) > user (40) > other (10)`.
 - Tests : `python3 -m unittest discover -s scripts/osm/tests -p "test_*.py"`.
 
+## Provenance des corrections manuelles (migration `0032`, D3 Phase 1)
+
+Une édition d'un attribut **suivi** (`name`, `min_age`, `max_age`, `address`,
+`location`) depuis le back-office passe par la RPC `apply_park_attribute` :
+elle enregistre une source `toboggo` / `municipality` (priorité > OSM), archive
+la valeur précédente (`is_current = false`) et projette la nouvelle valeur dans
+`parks`. Un réimport OSM ne peut plus l'écraser silencieusement.
+
+Alignement des importeurs sur le gate `can_source_replace_attribute` :
+
+| attribut | `import-osm-local.py` | `import-osm-remote.py` |
+|---|---|---|
+| `address` | gaté (avant 0032) | gaté (avant 0032) |
+| `name` / `min_age` / `max_age` | gaté (avant 0032) | **gaté (0032)** |
+| `location` (`latitude`/`longitude`) | **gaté (0032)** | **gaté (0032)** |
+
+Hors périmètre Phase 1 (réservé Phase 2) : `park_features` (toujours upsertées
+sans gate), `source_records`, pipeline open data, déduplication multi-source.
+
 ## Prochaines priorités
-1. ~~priorité des sources / protection contre écrasement OSM~~ — fait (`0024`, `0028`, `0029`)
+1. ~~priorité des sources / protection contre écrasement OSM~~ — fait (`0024`, `0028`, `0029`, `0032` : corrections back-office + gate `name`/`age`/`location`)
 2. ~~ville / adresse / région~~ — fait pour OSM + reverse geocoding (voir ci-dessus) ; open data collectivités reste à faire (#5)
 3. `parks.boundary`
 4. `opening_hours`, `operator`, `fee`

@@ -2148,13 +2148,35 @@ export type Database = {
             }
             Returns: string
           }
+      apply_park_attribute: {
+        Args: {
+          p_attribute_key: string
+          p_confidence?: number
+          p_park_id: string
+          p_source_type?: Database["public"]["Enums"]["source_type"]
+          p_value_json: Json
+        }
+        Returns: string
+      }
       can_edit_park: {
         Args: { p_park_id: string; p_uid: string }
+        Returns: boolean
+      }
+      can_source_replace_attribute: {
+        Args: {
+          p_attribute_key: string
+          p_incoming_source_type: Database["public"]["Enums"]["source_type"]
+          p_park_id: string
+        }
         Returns: boolean
       }
       commune_role: {
         Args: { p_commune_id: string; p_uid: string }
         Returns: Database["public"]["Enums"]["team_role"]
+      }
+      current_attribute_source_priority: {
+        Args: { p_attribute_key: string; p_park_id: string }
+        Returns: number
       }
       delete_own_account: { Args: never; Returns: undefined }
       disablelongtransactions: { Args: never; Returns: string }
@@ -2425,8 +2447,23 @@ export type Database = {
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
       recalculate_park_score: { Args: { p_park_id: string }; Returns: string }
+      set_park_attribute_source: {
+        Args: {
+          p_attribute_key: string
+          p_confidence?: number
+          p_park_id: string
+          p_source_id: string
+          p_value_json: Json
+          p_verified_at?: string
+        }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      source_priority: {
+        Args: { p_source_type: Database["public"]["Enums"]["source_type"] }
+        Returns: number
+      }
       st_3dclosestpoint: {
         Args: { geom1: unknown; geom2: unknown }
         Returns: unknown
@@ -3117,6 +3154,7 @@ export type Database = {
         | "user"
         | "toboggo"
         | "other"
+        | "reverse_geocode"
       team_role:
         | "super_admin"
         | "moderation"
@@ -3370,6 +3408,7 @@ export const Constants = {
         "user",
         "toboggo",
         "other",
+        "reverse_geocode",
       ],
       team_role: [
         "super_admin",

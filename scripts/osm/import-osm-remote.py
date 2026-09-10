@@ -180,10 +180,27 @@ begin
     values (v_park_id, 'osm', {q(p['external_id'])})
     on conflict (provider, external_id) do nothing;
   else
+    -- Réimport OSM : chaque attribut suivi par la provenance n'est réécrit
+    -- QUE si aucune source de priorité >= osm ne le protège
+    -- (`can_source_replace_attribute`, migrations 0024/0032). Une correction
+    -- back-office (`apply_park_attribute` -> source toboggo/municipality) est
+    -- donc préservée. `import-osm-local.py` applique le même gate sur
+    -- name/min_age/max_age/address ; ici on l'aligne + on ajoute `location`.
     update parks set
-      name={q(p['name'])}, latitude={n(p['latitude'])}, longitude={n(p['longitude'])},
-      min_age={n(p['min_age'])}, max_age={n(p['max_age'])},
-      ages_derived=false,{address_update_sql}
+      name=case when can_source_replace_attribute(v_park_id,'name','osm')
+        then {q(p['name'])} else parks.name end,
+      latitude=case when can_source_replace_attribute(v_park_id,'location','osm')
+        then {n(p['latitude'])} else parks.latitude end,
+      longitude=case when can_source_replace_attribute(v_park_id,'location','osm')
+        then {n(p['longitude'])} else parks.longitude end,
+      min_age=case when can_source_replace_attribute(v_park_id,'min_age','osm')
+        then {n(p['min_age'])} else parks.min_age end,
+      max_age=case when can_source_replace_attribute(v_park_id,'max_age','osm')
+        then {n(p['max_age'])} else parks.max_age end,
+      ages_derived=case
+        when can_source_replace_attribute(v_park_id,'min_age','osm')
+          or can_source_replace_attribute(v_park_id,'max_age','osm')
+        then false else parks.ages_derived end,{address_update_sql}
       updated_at=now()
     where id=v_park_id;
   end if;

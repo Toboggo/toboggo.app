@@ -222,6 +222,98 @@ function splitParkInput(input: Partial<Park>) {
   return { parkRow, featureRows, orgId };
 }
 
+/**
+ * Phase 1 (D3) — attributs dont la valeur canonique est protégée par la
+ * provenance (`park_attribute_sources`). Voir `supabase/migrations/0032`.
+ *
+ * Une édition back-office de l'un de ces attributs ne doit PAS écrire
+ * `parks.*` en direct : elle passe par la RPC `apply_park_attribute`, qui
+ *   1. enregistre une source `toboggo` / `municipality` (priorité > OSM),
+ *   2. applique le gate `can_source_replace_attribute`,
+ *   3. archive la valeur précédente (`is_current = false`),
+ *   4. projette la nouvelle valeur dans `parks`,
+ * de sorte qu'un réimport OSM ne peut plus l'écraser silencieusement.
+ *
+ * Les autres colonnes (`description`, `slug`, `moderation_status`,
+ * `operational_status`, …) ne sont jamais touchées par l'import OSM :
+ * elles restent en écriture directe.
+ */
+const PROVENANCE_ADDRESS_KEYS = [
+  "address_line",
+  "postal_code",
+  "city",
+  "admin_area_1",
+  "admin_area_2",
+] as const;
+
+/** Peel the provenance-tracked attributes off `parkRow`, apply each through
+ * `apply_park_attribute`, and return the remaining columns for a plain
+ * `parks` update. */
+async function applyProvenanceAttributes(id: string, parkRow: ParkWriteRow): Promise<ParkWriteRow> {
+  const supabase = getSupabase();
+  const rest: ParkWriteRow = { ...parkRow };
+  const calls: { key: string; value: Json }[] = [];
+
+  if (rest.name != null) {
+    calls.push({ key: "name", value: rest.name });
+    delete rest.name;
+  }
+  if (rest.min_age != null) {
+    calls.push({ key: "min_age", value: rest.min_age });
+    delete rest.min_age;
+  }
+  if (rest.max_age != null) {
+    calls.push({ key: "max_age", value: rest.max_age });
+    delete rest.max_age;
+  }
+  if (calls.some((c) => c.key === "min_age" || c.key === "max_age")) {
+    // `ages_derived` is set by the RPC's projection (`ages_derived = false`).
+    delete rest.ages_derived;
+  }
+
+  const addrChanged = PROVENANCE_ADDRESS_KEYS.some((k) => rest[k] != null);
+  const locChanged = rest.latitude != null || rest.longitude != null;
+
+  if (addrChanged || locChanged) {
+    // The RPC stores the full composite; merge the patch over the current values.
+    const current = await getPark(id);
+    if (addrChanged) {
+      calls.push({
+        key: "address",
+        value: {
+          address_line: (rest.address_line ?? current.address_line) ?? null,
+          postal_code: (rest.postal_code ?? current.postal_code) ?? null,
+          city: (rest.city ?? current.city) ?? null,
+          admin_area_1: (rest.admin_area_1 ?? current.admin_area_1) ?? null,
+          admin_area_2: (rest.admin_area_2 ?? current.admin_area_2) ?? null,
+        },
+      });
+      for (const k of PROVENANCE_ADDRESS_KEYS) delete rest[k];
+    }
+    if (locChanged) {
+      calls.push({
+        key: "location",
+        value: {
+          lat: rest.latitude ?? current.latitude,
+          lng: rest.longitude ?? current.longitude,
+        },
+      });
+      delete rest.latitude;
+      delete rest.longitude;
+    }
+  }
+
+  for (const call of calls) {
+    const { error } = await supabase.rpc("apply_park_attribute", {
+      p_park_id: id,
+      p_attribute_key: call.key,
+      p_value_json: call.value,
+    });
+    if (error) throw error;
+  }
+  return rest;
+}
+
 async function applyFeatures(parkId: string, rows: { code: string; status: FeatureStatus; value?: string | null; quantity?: number | null }[]) {
   if (!rows.length) return;
   const supabase = getSupabase();
@@ -276,8 +368,13 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
 export async function updatePark(id: string, patch: Partial<Park>, _historyNote?: string): Promise<Park> {
   const supabase = getSupabase();
   const { parkRow, featureRows, orgId } = splitParkInput(patch);
-  if (Object.keys(parkRow).length) {
-    const { error } = await supabase.from("parks").update(parkRow).eq("id", id);
+  // Provenance-tracked attributes (name / ages / address / location) go through
+  // `apply_park_attribute` so a manual correction records a Toboggo/collectivité
+  // source and survives a later OSM re-import (migration 0032). The rest is a
+  // plain column update.
+  const directRow = await applyProvenanceAttributes(id, parkRow);
+  if (Object.keys(directRow).length) {
+    const { error } = await supabase.from("parks").update(directRow).eq("id", id);
     if (error) throw error;
   }
   await applyFeatures(id, featureRows);

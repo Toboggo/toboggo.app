@@ -26,6 +26,7 @@ export default defineConfig({
       "packages/shared/src/**/*.test.ts",
       "packages/design-system/src/**/*.test.{ts,tsx}",
       "apps/backoffice/src/**/*.test.{ts,tsx}",
+      "apps/mobile/src/**/*.test.{ts,tsx}",
     ],
   },
 });

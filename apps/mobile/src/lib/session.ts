@@ -44,15 +44,29 @@ export const useSession = create<SessionState>((set, get) => ({
       .catch(() => set({ loading: false }));
 
     onAuthStateChange((userId) => {
-      if (userId) {
-        getSession().then((session) => {
-          if (session?.user) {
-            void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
-          }
-        });
-      } else {
+      const current = get().userId;
+
+      // supabase-js re-emits SIGNED_IN / TOKEN_REFRESHED every time the tab or
+      // installed PWA regains visibility (GoTrueClient._recoverAndRefresh), not
+      // only on a real sign-in. Re-running bootstrapProfile() on those would
+      // flip `loading` back to true and, via App.tsx (`if (loading) return
+      // null`), unmount the whole routed tree — losing every in-progress
+      // contribution form (LOT 3D audit §B.2). A same-user session refresh
+      // changes nothing we hold: the profile is untouched by a token rotation.
+      if (userId && userId === current) return;
+
+      if (!userId) {
         set({ userId: null, profile: null, loading: false });
+        return;
       }
+
+      // First sign-in (including the just-in-time login that resumes a guest
+      // contribution) or a genuine account switch.
+      getSession().then((session) => {
+        if (session?.user) {
+          void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
+        }
+      });
     });
 
     async function bootstrapProfile(userId: string, name: string | undefined, email: string) {

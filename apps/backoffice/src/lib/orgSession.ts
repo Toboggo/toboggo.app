@@ -65,10 +65,34 @@ export const useOrgSession = create<OrgSessionState>((set, get) => ({
     });
 
     onAuthStateChange((userId) => {
+      const current = get().userId;
+
+      // supabase-js re-emits SIGNED_IN / TOKEN_REFRESHED every time the tab
+      // regains visibility (GoTrueClient._recoverAndRefresh), not only on a
+      // real sign-in. Re-running load() on those would flip `loading` back to
+      // true and, via App.tsx's full-screen loader, unmount the whole routed
+      // tree — losing every in-progress form (LOT 3D audit §B.2). A same-user
+      // session refresh needs no reload: memberships and org scope are only
+      // ever established at a real sign-in.
+      if (userId && userId === current) return;
+
       if (!userId) {
-        set({ userId: null, memberships: [], activeOrg: null, loading: false, accessDenied: false });
+        set({
+          userId: null,
+          userName: "",
+          userEmail: "",
+          memberships: [],
+          communes: [],
+          activeOrg: null,
+          loading: false,
+          accessDenied: false,
+        });
         return;
       }
+
+      // First sign-in, or a genuine account switch (A → B). load() flips
+      // `loading` (spinner expected here) and replaces every field, so no
+      // stale access data from the previous user survives.
       getSession().then((session) => {
         if (session?.user) void load(session.user.id, session.user.user_metadata?.name ?? session.user.email!, session.user.email!);
       });

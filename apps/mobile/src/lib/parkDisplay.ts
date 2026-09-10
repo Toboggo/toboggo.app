@@ -24,13 +24,6 @@ export function ageRange(p: AgeLike): { min: number; max: number } | null {
   return { min: p.age_min, max: p.age_max };
 }
 
-/** Legacy — French age range string. Still used by the contribution search
- * (`AddParkSearch`), out of the i18n discovery-path scope for now. */
-export function ageRangeLabel(p: AgeLike): string | null {
-  if (p.age_min == null || p.age_max == null) return null;
-  return `${p.age_min}–${p.age_max} ans`;
-}
-
 /**
  * Up to two decision-relevant, actually-present attributes, as `features:attr.*`
  * keys — the card component translates them.

@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { BottomSheet, Icon } from "@toboggo/design-system";
 import styles from "./QuickMenu.module.css";
 
@@ -20,6 +21,7 @@ export function ContributeSheet({
   parkId: string;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("contribute");
 
   const go = (to: string) => {
     onClose();
@@ -33,18 +35,18 @@ export function ContributeSheet({
           <span className={styles.icon}>
             <Icon name="ic-report-info" size={18} />
           </span>
-          Corriger une information
+          {t("sheet.editInfo")}
         </button>
         <button className={styles.item} onClick={() => go(`/photo-add?park=${parkId}`)}>
           {/* Pas de pictogramme "photo" validé dans le sprite (DESIGN-SYSTEM §7) — emoji conservé, comme QuickMenu. */}
           <span className={styles.icon}>📷</span>
-          Ajouter des photos
+          {t("sheet.addPhotos")}
         </button>
         <button className={styles.item} onClick={() => go(`/report?park=${parkId}`)}>
           <span className={styles.icon}>
             <Icon name="ic-flag" size={18} />
           </span>
-          Signaler un problème
+          {t("sheet.report")}
         </button>
       </div>
     </BottomSheet>

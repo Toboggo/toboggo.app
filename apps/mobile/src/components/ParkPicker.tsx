@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input } from "@toboggo/design-system";
 import { searchParks, type Park } from "@toboggo/shared";
 
 export function ParkPicker({ onPick, onNone }: { onPick: (park: Park) => void; onNone: () => void }) {
+  const { t } = useTranslation("contribute");
   const [query, setQuery] = useState("");
   const { data: results = [] } = useQuery({
     queryKey: ["park-picker", query],
@@ -13,7 +15,7 @@ export function ParkPicker({ onPick, onNone }: { onPick: (park: Park) => void; o
 
   return (
     <div style={{ padding: "0 20px" }}>
-      <Input placeholder="Nom ou adresse du parc" value={query} onChange={(e) => setQuery(e.target.value)} />
+      <Input placeholder={t("picker.placeholder")} value={query} onChange={(e) => setQuery(e.target.value)} />
       <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
         {results.map((p) => (
           <button
@@ -34,7 +36,7 @@ export function ParkPicker({ onPick, onNone }: { onPick: (park: Park) => void; o
         ))}
       </div>
       <Button variant="ghost" block style={{ marginTop: 16 }} onClick={onNone}>
-        Aucun de ceux-ci — ajouter un nouveau parc
+        {t("picker.none")}
       </Button>
     </div>
   );

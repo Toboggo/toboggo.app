@@ -15,22 +15,29 @@ export const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
 
 export const ACCEPTED_IMAGE_EXT = /\.(jpe?g|png|webp|heic|heif|avif)$/i;
 
+/** Machine-readable reason — the caller maps it to a localized message. */
+export type ImageErrorCode = "not_an_image" | "too_large";
+
 export class ImageValidationError extends Error {
-  constructor(message: string) {
-    super(message);
+  readonly code: ImageErrorCode;
+  constructor(code: ImageErrorCode) {
+    // The `message` is a non-localized fallback for logs / non-UI contexts;
+    // the UI renders `t("errors:image." + code)` from `code`.
+    super(code === "too_large" ? "Image too large" : "Not an image");
     this.name = "ImageValidationError";
+    this.code = code;
   }
 }
 
-/** Throws `ImageValidationError` with a user-facing French message when the
- * picked file is obviously not a usable photo. */
+/** Throws `ImageValidationError` (carrying a `code`) when the picked file is
+ * obviously not a usable photo. */
 export function validateImageFile(file: File): void {
   const looksImage = file.type.startsWith("image/") || ACCEPTED_IMAGE_EXT.test(file.name);
   if (!looksImage) {
-    throw new ImageValidationError("Ce fichier n'est pas une image.");
+    throw new ImageValidationError("not_an_image");
   }
   if (file.size > MAX_SOURCE_BYTES) {
-    throw new ImageValidationError("Cette image est trop lourde (25 Mo maximum).");
+    throw new ImageValidationError("too_large");
   }
 }
 

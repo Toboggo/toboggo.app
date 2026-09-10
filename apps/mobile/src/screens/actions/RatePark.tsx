@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button, Chip, Icon, StarInput, Textarea } from "@toboggo/design-system";
 import { addMedia, createReview, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
@@ -10,27 +11,26 @@ import { requireAccount, useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
 
-const CRITERIA: { key: keyof ReviewSubRatings; label: string }[] = [
-  { key: "clean", label: "Propreté" },
-  { key: "safety", label: "Sécurité" },
-  { key: "equipment", label: "Équipements" },
-  { key: "comfort", label: "Confort" },
+const CRITERIA: { key: keyof ReviewSubRatings; labelKey: string }[] = [
+  { key: "clean", labelKey: "rate.criteria.clean" },
+  { key: "safety", labelKey: "rate.criteria.safety" },
+  { key: "equipment", labelKey: "rate.criteria.equipment" },
+  { key: "comfort", labelKey: "rate.criteria.comfort" },
 ];
 const FACES = ["😞", "😐", "😄"];
 // Named stepper shared with the other contribution wizards (see AddPark /
 // AddPhotos). The three stages are stable across entry points: arriving with
 // `?park=` just starts on "Avis" with "Parc" already checked — the step is
-// never dropped dynamically.
-const STEPPER = ["Parc", "Avis", "Commentaire"];
-const AGE_BANDS: { value: AgeBand; label: string }[] = [
-  { value: "under3", label: "-3 ans" },
-  { value: "3-6", label: "3-6 ans" },
-  { value: "6-12", label: "6-12 ans" },
-];
+// never dropped dynamically. Keys resolved against the `contribute` namespace.
+const STEPPER = ["steps.park", "steps.opinion", "steps.comment"];
+const AGE_BANDS: AgeBand[] = ["under3", "3-6", "6-12"];
 
 export default function RatePark() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("contribute");
+  const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
@@ -92,11 +92,11 @@ export default function RatePark() {
       if (inline) {
         setDone(true);
       } else {
-        toast("Avis publié. Merci !");
+        toast(t("rate.published"));
         navigate(`/park/${parkId}`);
       }
-    } catch (err: any) {
-      toast(err?.message ?? "Une erreur est survenue");
+    } catch {
+      toast(tErr("generic"));
     } finally {
       if (inline) setSaving(false);
     }
@@ -122,16 +122,16 @@ export default function RatePark() {
         >
           <Icon name="ic-check" size={36} />
         </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>Merci !</h1>
+        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("common.thanks")}</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
-          Votre avis a été publié et aide d'autres parents à choisir {park?.name}.
+          {t("rate.doneBody", { park: park?.name ?? "" })}
         </p>
         {/* Avis soumis : on remplace l'entrée d'historique du wizard par la
             fiche parc. Depuis la fiche, Retour ramène au contexte antérieur
             (fiche parc d'origine / carte), jamais dans RatePark ni sur cette
             confirmation. Idem AddPark / AddPhotos / ReportProblem / EditInfo. */}
         <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          Voir le parc
+          {t("common.seePark")}
         </Button>
       </div>
     );
@@ -142,7 +142,7 @@ export default function RatePark() {
       <WizardHeader
         step={step}
         total={STEPPER.length}
-        steps={STEPPER}
+        steps={STEPPER.map((k) => t(k))}
         onBack={() =>
           step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
         }
@@ -161,13 +161,13 @@ export default function RatePark() {
       {step === 1 && park && (
         <div style={{ padding: "0 20px", textAlign: "center" }}>
           <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park.name}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 20 }}>Comment était votre visite ?</p>
-          <StarInput value={stars} onChange={setStars} />
+          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 20 }}>{t("rate.visitQuestion")}</p>
+          <StarInput value={stars} onChange={setStars} starLabel={(n) => t("rate.starLabel", { count: n })} />
 
           <div style={{ marginTop: 28, textAlign: "left" }}>
             {CRITERIA.map((c) => (
               <div key={c.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <span style={{ fontSize: 14 }}>{c.label}</span>
+                <span style={{ fontSize: 14 }}>{t(c.labelKey)}</span>
                 <div style={{ display: "flex", gap: 6 }}>
                   {FACES.map((face, i) => (
                     <button
@@ -192,18 +192,18 @@ export default function RatePark() {
           </div>
 
           <div style={{ marginTop: 12, textAlign: "left" }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Âge de l'enfant</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{t("rate.childAge")}</div>
             <div style={{ display: "flex", gap: 8 }}>
               {AGE_BANDS.map((b) => (
-                <Chip key={b.value} active={ageBand === b.value} onClick={() => setAgeBand(b.value)}>
-                  {b.label}
+                <Chip key={b} active={ageBand === b} onClick={() => setAgeBand(b)}>
+                  {tCommon(`age.band.${b}`)}
                 </Chip>
               ))}
             </div>
           </div>
 
           <Button block style={{ marginTop: 24 }} disabled={stars === 0} onClick={() => setStep(2)}>
-            Continuer
+            {t("common.continue")}
           </Button>
         </div>
       )}
@@ -211,7 +211,7 @@ export default function RatePark() {
       {step === 2 && (
         <div style={{ padding: "0 20px" }}>
           <Textarea
-            label="Votre commentaire (facultatif)"
+            label={t("rate.commentLabel")}
             value={comment}
             maxLength={200}
             onChange={(e) => setComment(e.target.value)}
@@ -240,7 +240,7 @@ export default function RatePark() {
           )}
           <PhotoTip />
           <Button block loading={saving} style={{ marginTop: 24 }} onClick={submit}>
-            Publier mon avis
+            {t("rate.submit")}
           </Button>
         </div>
       )}

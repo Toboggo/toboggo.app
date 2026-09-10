@@ -1,9 +1,11 @@
+import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@toboggo/design-system";
 import type { Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { useToastStore } from "../lib/toast";
 
 export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: () => void; park: Park }) {
+  const { t } = useTranslation("contribute");
   const showToast = useToastStore((s) => s.show);
   const shareUrl = `${window.location.origin}/park/${park.id}`;
 
@@ -11,7 +13,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
     { label: "WhatsApp", icon: "💬", href: `https://wa.me/?text=${encodeURIComponent(`${park.name} — ${shareUrl}`)}` },
     { label: "SMS", icon: "✉️", href: `sms:?body=${encodeURIComponent(`${park.name} — ${shareUrl}`)}` },
     { label: "Instagram", icon: "📷", href: `https://instagram.com` },
-    { label: "Mail", icon: "📧", href: `mailto:?subject=${encodeURIComponent(park.name)}&body=${encodeURIComponent(shareUrl)}` },
+    { label: t("share.email"), icon: "📧", href: `mailto:?subject=${encodeURIComponent(park.name)}&body=${encodeURIComponent(shareUrl)}` },
   ];
 
   return (
@@ -64,7 +66,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
         <button
           onClick={() => {
             navigator.clipboard?.writeText(shareUrl);
-            showToast("Lien copié dans le presse-papiers");
+            showToast(t("share.copied"));
             onClose();
           }}
           style={{
@@ -78,7 +80,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
             cursor: "pointer",
           }}
         >
-          Copier le lien
+          {t("share.copy")}
         </button>
       </div>
     </BottomSheet>

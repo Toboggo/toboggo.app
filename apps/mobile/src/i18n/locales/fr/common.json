@@ -52,5 +52,11 @@
   },
   "a11y": {
     "noParkPhoto": "Aucune photo pour ce parc"
+  },
+  "comingSoon": "Bientôt disponible",
+  "visitPrompt": {
+    "message": "Vous étiez peut-être à {{park}} ? Donnez votre avis.",
+    "later": "Plus tard",
+    "rate": "Donner mon avis"
   }
 }

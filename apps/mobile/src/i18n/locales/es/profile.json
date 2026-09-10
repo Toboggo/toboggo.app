@@ -2,6 +2,23 @@
   "title": "Perfil",
   "edit": "Editar",
   "notifications": "Notificaciones",
+  "notifs": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo como leído",
+    "filter": { "all": "Todas", "unread": "No leídas", "read": "Leídas" },
+    "empty": "No hay ninguna notificación aquí.",
+    "seePark": "Ver el parque",
+    "pref": {
+      "reports": "Seguimiento de mis informes",
+      "newParks": "Nuevos parques cercanos",
+      "reviewReplies": "Respuestas a mis opiniones",
+      "recommendations": "Recomendaciones personalizadas",
+      "news": "Novedades de Toboggo"
+    },
+    "channels": "Canales",
+    "channelPush": "Notificaciones push",
+    "channelEmail": "Correo electrónico"
+  },
   "level": "Nv. {{level}}",
   "levelProgress": "{{points}} puntos · {{remaining}} para el siguiente nivel",
   "myChildren": "Mis hijos",
@@ -25,6 +42,49 @@
   "display": "Visualización",
   "privacy": "Privacidad",
   "help": "Ayuda",
+  "helpScreen": {
+    "title": "Ayuda",
+    "contactSupport": "Contactar con soporte",
+    "faq": {
+      "geoloc": {
+        "q": "¿Cómo funciona la geolocalización?",
+        "a": "Toboggo usa tu ubicación para mostrar los parques más cercanos, ordenados por distancia. También puedes buscar una ciudad manualmente."
+      },
+      "filters": {
+        "q": "¿Qué significan los filtros (aseos, sombra, franja de edad)?",
+        "a": "Esta información la aportan la comunidad o los ayuntamientos asociados, y se verifica antes de publicarla."
+      },
+      "addPark": {
+        "q": "¿Cómo se añade un parque?",
+        "a": "Desde la pestaña Añadir, indica el nombre, la dirección y el equipamiento disponible. Nuestro equipo verifica tu aportación antes de que aparezca en el mapa."
+      },
+      "report": {
+        "q": "¿Cómo se informa de un problema?",
+        "a": "Usa el botón «Informar de un problema» en la ficha del parque. Nuestro equipo o el ayuntamiento correspondiente actualiza la información."
+      },
+      "municipality": {
+        "q": "Soy un ayuntamiento, ¿cómo gestiono mis parques?",
+        "a": "Los ayuntamientos asociados disponen de un back-office propio. Contáctanos para activarlo."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contacto",
+    "sentTitle": "Mensaje enviado",
+    "sentBody": "Nuestro equipo te responderá en breve.",
+    "intro": "Para un parque dañado o información errónea, usa mejor el botón «Informar» desde la ficha del parque.",
+    "nameLabel": "Nombre",
+    "emailLabel": "Correo electrónico",
+    "subjectLabel": "Asunto",
+    "messageLabel": "Mensaje",
+    "send": "Enviar",
+    "subject": {
+      "general": "Consulta general",
+      "technical": "Problema técnico",
+      "partnership": "Colaboración",
+      "press": "Prensa"
+    }
+  },
   "signOut": "Cerrar sesión",
   "favorites": {
     "title": "Favoritos",
@@ -53,7 +113,13 @@
   "activity": {
     "title": "Actividad",
     "loading": "Cargando…",
-    "empty": "No hay actividad aquí."
+    "empty": "No hay actividad aquí.",
+    "feed": {
+      "parkAdded": "Nuevo parque añadido: {{park}}",
+      "reviewAdded": "{{author}} ha dejado una opinión de {{rating}}★ sobre {{park}}",
+      "reportResolved": "Se ha resuelto un informe sobre {{park}}",
+      "somePark": "un parque"
+    }
   },
   "editProfile": {
     "title": "Editar el perfil",
@@ -87,6 +153,10 @@
     "shareWhatsApp": "Compartir por WhatsApp",
     "shareText": "¡Únete a mi salida de Toboggo! Código: {{code}}",
     "leave": "Salir de la salida",
-    "you": "Tú"
+    "you": "Tú",
+    "status": {
+      "organizer": "Organizador",
+      "enRoute": "En camino"
+    }
   }
 }

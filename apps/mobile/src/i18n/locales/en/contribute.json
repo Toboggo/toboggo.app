@@ -1,0 +1,221 @@
+{
+  "menu": {
+    "addPark": "Add a park",
+    "rate": "Write a review",
+    "report": "Report a problem",
+    "addPhoto": "Add a photo",
+    "more": "More actions",
+    "ask": "Ask a question"
+  },
+  "sheet": {
+    "editInfo": "Correct information",
+    "addPhotos": "Add photos",
+    "report": "Report a problem"
+  },
+  "common": {
+    "continue": "Continue",
+    "skip": "Skip this step",
+    "edit": "Edit",
+    "verify": "Review",
+    "loading": "Loading…",
+    "searching": "Searching…",
+    "thanks": "Thank you!",
+    "seePark": "View the park",
+    "backToPark": "Back to the park",
+    "removePhoto": "Remove this photo",
+    "addPhoto": "Add a photo",
+    "useMyLocation": "Use my current location",
+    "accountRequired": "A free account is required to submit.",
+    "accountRequiredDraft": "A free account is required to submit. Your draft is saved."
+  },
+  "steps": {
+    "park": "Park",
+    "location": "Location",
+    "info": "Details",
+    "photos": "Photos",
+    "verify": "Review",
+    "opinion": "Review",
+    "comment": "Comment",
+    "confirmation": "Confirmation",
+    "problem": "Problem",
+    "details": "Details",
+    "type": "Type",
+    "correction": "Correction"
+  },
+  "field": {
+    "ageRange": "Age range",
+    "playEquipment": "Play equipment"
+  },
+  "photoTip": {
+    "label": "Tip",
+    "text": "Avoid showing children in photos. Focus on the equipment and surroundings."
+  },
+  "picker": {
+    "placeholder": "Park name or address",
+    "none": "None of these — add a new park"
+  },
+  "intro": {
+    "subtitle": "Help other families by adding a new park.",
+    "step1": "Locate the park on the map",
+    "step2": "List its equipment",
+    "step3": "Add a photo (optional)",
+    "start": "Get started"
+  },
+  "share": {
+    "email": "Email",
+    "copied": "Link copied to clipboard",
+    "copy": "Copy link"
+  },
+  "rate": {
+    "criteria": {
+      "clean": "Cleanliness",
+      "safety": "Safety",
+      "equipment": "Equipment",
+      "comfort": "Comfort"
+    },
+    "visitQuestion": "How was your visit?",
+    "starLabel_one": "{{count}} star",
+    "starLabel_other": "{{count}} stars",
+    "childAge": "Child's age",
+    "commentLabel": "Your comment (optional)",
+    "submit": "Post my review",
+    "published": "Review posted. Thank you!",
+    "doneBody": "Your review has been posted and helps other parents choose {{park}}."
+  },
+  "addParkSearch": {
+    "title": "Which park would you like to add?",
+    "subtitle": "Let's first check it isn't already listed.",
+    "searchLabel": "Search for a park or an address",
+    "searchPlaceholder": "Park name, street, city…",
+    "noResults": "No park found for this search.",
+    "locationDenied": "Location not allowed — you can continue without it, or search for an address above.",
+    "nearby": "Nearby parks",
+    "nearbyLoading": "Searching for parks around you…",
+    "nearbyNone": "No known parks nearby.",
+    "none": "None of these",
+    "seeMore": "Show more ({{count}})"
+  },
+  "pin": {
+    "searchPlaceholder": "Search for a city, an address or a place",
+    "unavailable": "Map unavailable — adjust the position step by step.",
+    "locating": "Locating…",
+    "myLocationShort": "My location",
+    "useMyLocationAria": "Use my location",
+    "geoError": "Location unavailable — search for a place or move the marker.",
+    "nudge": { "north": "North", "south": "South", "east": "East", "west": "West" }
+  },
+  "addPark": {
+    "locationTitle": "Where is the park?",
+    "locationHint": "Search for a place, use your location, or drop the marker on the map.",
+    "pinHint": "Move the marker to pinpoint the location.",
+    "addressLabel": "Address (if you know it)",
+    "addressPlaceholder": "12 Oak Street, London",
+    "infoTitle": "Park details",
+    "infoHint": "Only fill in what you know.",
+    "nameLabel": "Park name",
+    "namePlaceholder": "Victoria Gardens",
+    "descriptionLabel": "Description (optional)",
+    "serviceGroup": {
+      "comfort": "Services & comfort",
+      "characteristics": "Park features"
+    },
+    "photosTitle": "Photos",
+    "photosHint": "Add a photo to help other parents recognise the park.",
+    "verifyTitle": "Check before sending",
+    "verifyHint": "You can still edit each section before sending.",
+    "section": {
+      "park": "Park",
+      "services": "Services & features",
+      "description": "Description"
+    },
+    "locationOnMap": "Location selected on the map",
+    "submit": "Send the park",
+    "sentToast": "Park submitted — under review.",
+    "doneBody": "Your park has been submitted. We'll check the information before publishing it on Toboggo.",
+    "pendingTag": "Under review",
+    "addAnother": "Add another park"
+  },
+  "addPhotos": {
+    "doneTitle": "Photo sent!",
+    "doneBody_one": "Thank you! Your photo will appear on the park page after our team reviews it.",
+    "doneBody_other": "Thank you! Your photos will appear on the park page after our team reviews it.",
+    "submit_one": "Send {{count}} photo",
+    "submit_other": "Send {{count}} photos",
+    "sentToast": "Photo sent, awaiting approval."
+  },
+  "report": {
+    "problemQuestion": "What's the problem?",
+    "equipmentLabel": "Equipment affected",
+    "describeLabel": "Describe the problem",
+    "submit": "Send the report",
+    "doneTitle": "Report sent!",
+    "doneBody": "Thank you for helping keep children safe. We'll keep you posted on progress."
+  },
+  "reason": {
+    "broken_equipment": "Broken / dangerous equipment",
+    "safety": "Safety issue",
+    "cleanliness": "Cleanliness",
+    "vegetation": "Overgrown vegetation",
+    "accessibility": "Wheelchair accessibility",
+    "wrong_info": "Incorrect information",
+    "other": "Other"
+  },
+  "equipment": {
+    "slide": "Slide",
+    "swing": "Swing",
+    "climbing": "Climbing frame",
+    "sandbox": "Sandpit",
+    "other": "Other"
+  },
+  "status": {
+    "available": "Available",
+    "unavailable": "Not there",
+    "unknown": "I don't know"
+  },
+  "statusLabel": {
+    "available": "Available",
+    "unavailable": "Absent",
+    "unknown": "Not specified",
+    "temporarily_unavailable": "Temporarily unavailable"
+  },
+  "edit": {
+    "target": {
+      "general": "General information",
+      "ages": "Age range",
+      "play": "Play equipment",
+      "service": "Services",
+      "accessibility": "Accessibility",
+      "characteristics": "Park features",
+      "location": "Location",
+      "other": "Other"
+    },
+    "diff": {
+      "name": "Name",
+      "description": "Description",
+      "ages": "Age range",
+      "location": "Position",
+      "freeText": "Proposed correction"
+    },
+    "notFoundTitle": "Park not found",
+    "notFoundBody": "This park can't be opened right now.",
+    "backToMap": "Back to the map",
+    "noChanges": "No change to propose.",
+    "doneBody": "Your correction for <strong>{{park}}</strong> has been received. Our team will review it before applying it.",
+    "draftResumed": "Draft restored.",
+    "step0Question": "What would you like to correct?",
+    "currently": "Currently: {{value}}",
+    "current": "Current: {{value}}",
+    "currentAddress": "Current address: {{value}}",
+    "descriptionLabel": "Description",
+    "locationHeading": "Park position",
+    "otherLabel": "What information needs correcting?",
+    "playQuestion": "Which equipment is there?",
+    "playHint": "Select what you see on site. Equipment already known to Toboggo is pre-selected — untick one to report it's missing.",
+    "noteSection": "Details",
+    "noteLabel": "Anything to add? (optional)",
+    "needOneChange": "Change at least one value to continue.",
+    "verifyTitle": "Check your correction",
+    "notePrefix": "Details: {{value}}",
+    "submit": "Submit the change"
+  }
+}

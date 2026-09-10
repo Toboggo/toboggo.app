@@ -1,17 +1,21 @@
 import { getSupabase } from "../supabaseClient";
 
-export interface FeedItem {
-  id: string;
-  icon: string;
-  text: string;
-  time: string;
-}
+/**
+ * Structured community-feed event. The presentation layer (the consumer app's
+ * Activity screen) turns `kind` + `params` into a localized sentence and picks
+ * an icon — this module never builds user-facing copy.
+ */
+export type CommunityFeedItem = { id: string; time: string } & (
+  | { kind: "park_added"; params: { park: string } }
+  | { kind: "review_added"; params: { author: string; rating: number; park: string | null } }
+  | { kind: "report_resolved"; params: { park: string | null } }
+);
 
 /** Public "what's happening" feed for the consumer app — recently published
  * parks, new reviews, and resolved reports, merged client-side rather than a
  * dedicated table (the commune-scoped activity_log is a separate, internal
  * back-office audit trail — see api/notifications.ts). */
-export async function getCommunityActivity(limit = 20): Promise<FeedItem[]> {
+export async function getCommunityActivity(limit = 20): Promise<CommunityFeedItem[]> {
   const supabase = getSupabase();
   const [{ data: parks }, { data: reviews }, { data: reports }] = await Promise.all([
     supabase.from("parks").select("id,name,created_at").eq("moderation_status", "published").order("created_at", { ascending: false }).limit(limit),
@@ -24,20 +28,26 @@ export async function getCommunityActivity(limit = 20): Promise<FeedItem[]> {
       .limit(limit),
   ]);
 
-  const items: FeedItem[] = [
-    ...(parks ?? []).map((p) => ({ id: `park-${p.id}`, icon: "🛝", text: `Nouveau parc ajouté : ${p.name}`, time: p.created_at })),
-    ...(reviews ?? []).map((r: any) => ({
-      id: `review-${r.id}`,
-      icon: "⭐",
-      text: `${r.author_name} a laissé un avis ${r.rating}★ sur ${r.parks?.name ?? "un parc"}`,
-      time: r.created_at,
-    })),
-    ...(reports ?? []).map((r: any) => ({
-      id: `report-${r.id}`,
-      icon: "✅",
-      text: `Un signalement a été résolu sur ${r.parks?.name ?? "un parc"}`,
-      time: r.resolved_at,
-    })),
+  const items: CommunityFeedItem[] = [
+    ...(parks ?? []).map(
+      (p): CommunityFeedItem => ({ id: `park-${p.id}`, kind: "park_added", time: p.created_at, params: { park: p.name } }),
+    ),
+    ...(reviews ?? []).map(
+      (r: any): CommunityFeedItem => ({
+        id: `review-${r.id}`,
+        kind: "review_added",
+        time: r.created_at,
+        params: { author: r.author_name, rating: r.rating, park: r.parks?.name ?? null },
+      }),
+    ),
+    ...(reports ?? []).map(
+      (r: any): CommunityFeedItem => ({
+        id: `report-${r.id}`,
+        kind: "report_resolved",
+        time: r.resolved_at,
+        params: { park: r.parks?.name ?? null },
+      }),
+    ),
   ];
 
   return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, limit);

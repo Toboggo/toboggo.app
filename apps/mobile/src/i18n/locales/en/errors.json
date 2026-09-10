@@ -1,0 +1,17 @@
+{
+  "generic": "Something went wrong",
+  "network": "The connection to the service failed. Check your network and try again.",
+  "image": {
+    "not_an_image": "This file is not an image.",
+    "too_large": "This image is too large (25 MB maximum).",
+    "invalid": "Invalid image",
+    "uploadFailed": "Photo upload failed"
+  },
+  "auth": {
+    "invalidCredentials": "Incorrect email or password.",
+    "invalidForm": "Enter a valid email and password (6 characters min).",
+    "emailForReset": "Enter your email to receive the link",
+    "googleUnavailable": "Google sign-in unavailable right now",
+    "generic": "Sign-in failed. Please try again."
+  }
+}

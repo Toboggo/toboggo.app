@@ -1,18 +1,10 @@
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button, Icon, StepDots, type IconName } from "@toboggo/design-system";
 import { IconButton } from "@toboggo/design-system";
 
-const CONTENT: Record<
-  string,
-  { iconName: IconName; title: string; subtitle: string; steps: string[]; to: string }
-> = {
-  add: {
-    iconName: "ic-plus",
-    title: "Ajouter un parc",
-    subtitle: "Aidez d'autres familles en référençant un nouveau parc.",
-    steps: ["Localisez le parc sur la carte", "Renseignez ses équipements", "Ajoutez une photo (facultatif)"],
-    to: "/add",
-  },
+const CONTENT: Record<string, { iconName: IconName; to: string }> = {
+  add: { iconName: "ic-plus", to: "/add" },
   // "rate" (Donner un avis) et "report" (Signaler un problème) n'ont plus
   // d'intro : /action-intro/rate et /action-intro/report redirigent vers /rate
   // et /report (wizards canoniques auto-porteurs). Voir App.tsx.
@@ -22,8 +14,15 @@ export default function ActionIntro() {
   const { type } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const content = CONTENT[type ?? "add"];
-  if (!content) return null;
+  const { t } = useTranslation("contribute");
+  const meta = CONTENT[type ?? "add"];
+  if (!meta) return null;
+  const content = {
+    ...meta,
+    title: t("menu.addPark"),
+    subtitle: t("intro.subtitle"),
+    steps: [t("intro.step1"), t("intro.step2"), t("intro.step3")],
+  };
 
   // Keep the park context (if any) when entering the flow, so the sub-flow
   // doesn't ask the user to pick the park again.
@@ -33,7 +32,7 @@ export default function ActionIntro() {
   return (
     <div className="screen" style={{ display: "flex", flexDirection: "column" }}>
       <div style={{ padding: "calc(14px + var(--safe-top)) 16px" }}>
-        <IconButton aria-label="Fermer" onClick={() => navigate(-1)}>
+        <IconButton aria-label={t("action.close", { ns: "common" })} onClick={() => navigate(-1)}>
           <Icon name="ic-close" size={18} />
         </IconButton>
       </div>
@@ -85,7 +84,7 @@ export default function ActionIntro() {
       </div>
       <div style={{ padding: 24 }}>
         <Button block onClick={() => navigate(target)}>
-          Commencer
+          {t("intro.start")}
         </Button>
       </div>
     </div>

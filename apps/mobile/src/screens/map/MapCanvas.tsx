@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { mapStyleUrl } from "@toboggo/shared";
+import { mapStyleUrl, formatRating } from "@toboggo/shared";
 import type { Park } from "@toboggo/shared";
+import { useTranslation } from "react-i18next";
+import { useLocale } from "../../i18n/useLocale";
 import { hasRating } from "../../lib/parkDisplay";
 import { FakeMap } from "./FakeMap";
 import { ratingTierColor, buildParkMarker, buildUserMarker } from "./markers";
@@ -45,6 +47,8 @@ export function MapCanvas({
   /** Pixels hidden by the floating header (top) and the bottom sheet (bottom). */
   insets?: { top: number; bottom: number };
 }) {
+  const { t } = useTranslation("map");
+  const { intlLocale } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Record<string, maplibregl.Marker>>({});
@@ -132,9 +136,9 @@ export function MapCanvas({
         rated ? ratingTierColor(park.rating) : "var(--color-primary)",
       );
       const noteEl = el.querySelector("[data-note]");
-      if (noteEl) noteEl.textContent = rated ? park.rating.toFixed(1).replace(".", ",") : "";
+      if (noteEl) noteEl.textContent = rated ? formatRating(park.rating, intlLocale) : "";
     }
-  }, [parks, selectedId, mapEpoch]);
+  }, [parks, selectedId, mapEpoch, intlLocale]);
 
   // User position marker.
   useEffect(() => {
@@ -150,10 +154,10 @@ export function MapCanvas({
       return;
     }
     if (!userMarkerRef.current) {
-      userMarkerRef.current = new maplibregl.Marker({ element: buildUserMarker() });
+      userMarkerRef.current = new maplibregl.Marker({ element: buildUserMarker(t("a11y.userLocation")) });
     }
     userMarkerRef.current.setLngLat([lng, lat]).addTo(map);
-  }, [showUser, lat, lng, mapEpoch]);
+  }, [showUser, lat, lng, mapEpoch, t]);
 
   // Camera — moves ONLY on an explicit recenter (recenterSignal changes: first
   // GPS fix, city pick, or the recenter button). Data / query changes never move

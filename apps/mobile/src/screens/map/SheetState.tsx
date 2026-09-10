@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Icon, type IconName } from "@toboggo/design-system";
 import styles from "./SheetState.module.css";
 
@@ -33,6 +34,7 @@ export function SheetState({
 }
 
 export function SheetLoading() {
+  const { t } = useTranslation("map");
   return (
     <div className={styles.wrap}>
       <div className={styles.skeletonRow}>
@@ -40,7 +42,7 @@ export function SheetLoading() {
           <div key={i} className={styles.skelCard} />
         ))}
       </div>
-      <div className={styles.loadingLabel}>Recherche des parcs autour de vous…</div>
+      <div className={styles.loadingLabel}>{t("sheet.loading")}</div>
     </div>
   );
 }

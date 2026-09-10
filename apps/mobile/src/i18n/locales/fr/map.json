@@ -1,0 +1,81 @@
+{
+  "searchPlaceholder": "Rechercher un parc, une ville…",
+  "search": {
+    "cancel": "Annuler",
+    "nearby": "À proximité",
+    "recent": "Recherches récentes",
+    "suggestedCities": "Villes suggérées",
+    "parks": "Parcs",
+    "places": "Lieux",
+    "noResults": "Aucun résultat pour « {{query}} »."
+  },
+  "filters": {
+    "title": "Filtres",
+    "ageRange": "Tranche d’âge",
+    "ageValue": "De {{min}} à {{max}} ans",
+    "ageValuePlus": "De {{min}} à {{max}}+ ans",
+    "ageMin": "Âge minimum",
+    "ageMax": "Âge maximum",
+    "availability": "Disponibilité",
+    "openNow": "Ouvert maintenant",
+    "equipmentAccess": "Équipements & accès",
+    "reset": "Réinitialiser",
+    "apply": "Voir les résultats",
+    "open": "Filtres",
+    "amenity": {
+      "wc": "Toilettes",
+      "shade": "Ombragé",
+      "fenced": "Clôturé",
+      "pmr": "Accès PMR",
+      "benches": "Bancs",
+      "water": "Point d’eau",
+      "parking": "Parking"
+    }
+  },
+  "sheet": {
+    "aroundYou": "Autour de vous",
+    "count_one": "{{count}} parc",
+    "count_other": "{{count}} parcs",
+    "dragHint_one": "{{count}} parc · Faites glisser pour explorer",
+    "dragHint_other": "{{count}} parcs · Faites glisser pour explorer",
+    "loading": "Recherche des parcs autour de vous…"
+  },
+  "state": {
+    "errorTitle": "Impossible de charger les parcs",
+    "errorDesc": "La connexion au service a échoué. Vérifiez votre réseau et réessayez.",
+    "locationOffTitle": "Localisation désactivée",
+    "locationOffDesc": "Autorisez la localisation ou cherchez une ville pour voir les parcs autour de vous.",
+    "locationOffAction": "Activer la localisation",
+    "filtersTitle": "Aucun parc avec ces filtres",
+    "filtersDesc": "Élargissez la tranche d’âge ou retirez des critères pour voir plus de parcs.",
+    "filtersAction": "Effacer les filtres",
+    "placeTitle": "Aucun parc ici",
+    "placeDesc": "Aucun parc référencé dans cette zone pour le moment.",
+    "placeAction": "Chercher un autre lieu",
+    "aroundTitle": "Aucun parc autour de vous",
+    "aroundDesc": "Aucune aire de jeux référencée dans cette zone pour le moment.",
+    "aroundAction": "Chercher une ville",
+    "listEmpty": "Aucun parc adapté à l’âge de vos enfants dans cette zone."
+  },
+  "sort": {
+    "distance": "Proximité",
+    "rating": "Mieux notés",
+    "recent": "Récents",
+    "forChildren": "Pour mes enfants"
+  },
+  "weather": {
+    "aria": "Météo {{temp}}°",
+    "heatMessage": "Forte chaleur aujourd’hui — préférez un parc ombragé pour la sortie.",
+    "heatAction": "Voir les parcs ombragés",
+    "rainMessage": "Pluie prévue cet après-midi — mieux vaut un parc proche de chez vous.",
+    "rainAction": "Trier par proximité",
+    "windMessage": "Vent fort annoncé — vérifiez que le parc est bien clôturé.",
+    "windAction": "Voir les parcs clôturés"
+  },
+  "a11y": {
+    "notifications": "Notifications",
+    "recenter": "Recentrer",
+    "contribute": "Contribuer",
+    "userLocation": "Votre position"
+  }
+}

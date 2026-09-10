@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { listMyParks, listMyReviews, signOut } from "@toboggo/shared";
 import { BottomTabs } from "../../components/BottomTabs";
@@ -24,13 +25,47 @@ function initials(name: string) {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
 
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
 
-  if (!profile) return null;
+  // Guest: no account yet. Still expose the account-independent settings
+  // (language above all) and a sign-in entry, instead of a blank screen.
+  if (!profile) {
+    if (userId) return null; // signed in, profile still loading
+    return (
+      <div className={styles.screen}>
+        <div className={styles.titleBar}>
+          <h2>{t("nav.profile")}</h2>
+        </div>
+        <div className={styles.body}>
+          <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", lineHeight: 1.5, margin: "4px 0 16px" }}>
+            {t("guestProfile.prompt")}
+          </p>
+          <button
+            type="button"
+            className={styles.logout}
+            style={{ color: "var(--color-primary)" }}
+            onClick={() => navigate("/login-method")}
+          >
+            {t("action.signIn")}
+          </button>
+
+          <h6 className={styles.kicker}>{t("settings.displayTitle")}</h6>
+          <div className={styles.group}>
+            <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
+              {t("settings.languageLabel")}
+              <Chevron />
+            </button>
+          </div>
+        </div>
+        <BottomTabs />
+      </div>
+    );
+  }
 
   const stats: Stats = { parks: myParks.length, reviews: myReviews.length, favorites: profile.favorites.length };
   const points = stats.parks * 30 + stats.reviews * 15 + stats.favorites * 5;

@@ -17,12 +17,12 @@ export default function Display() {
   const patchProfile = useSession((s) => s.patchProfile);
   const { t } = useTranslation();
   const { language, setLanguage } = useLocale();
-  if (!profile) return null;
 
   return (
     <div className="screen">
       <TopBar title={t("settings.displayTitle")} />
       <div style={{ padding: "0 20px" }}>
+        {/* Le choix de langue ne dépend pas d'un compte : disponible en mode invité. */}
         <div style={{ padding: "14px 0", borderBottom: "1px solid var(--color-border)" }}>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>
             {t("settings.languageLabel")}
@@ -36,21 +36,26 @@ export default function Display() {
             onChange={setLanguage}
           />
         </div>
-        <div style={{ padding: "14px 0", borderBottom: "1px solid var(--color-border)" }}>
-          <Toggle
-            label={t("settings.offlineMode")}
-            description={t("settings.offlineModeHint")}
-            checked={profile.offline_mode}
-            onChange={(v) => void patchProfile({ offline_mode: v })}
-          />
-        </div>
-        <div style={{ padding: "14px 0" }}>
-          <Toggle
-            label={t("settings.darkMode")}
-            checked={profile.dark_mode}
-            onChange={(v) => void patchProfile({ dark_mode: v })}
-          />
-        </div>
+
+        {profile && (
+          <>
+            <div style={{ padding: "14px 0", borderBottom: "1px solid var(--color-border)" }}>
+              <Toggle
+                label={t("settings.offlineMode")}
+                description={t("settings.offlineModeHint")}
+                checked={profile.offline_mode}
+                onChange={(v) => void patchProfile({ offline_mode: v })}
+              />
+            </div>
+            <div style={{ padding: "14px 0" }}>
+              <Toggle
+                label={t("settings.darkMode")}
+                checked={profile.dark_mode}
+                onChange={(v) => void patchProfile({ dark_mode: v })}
+              />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

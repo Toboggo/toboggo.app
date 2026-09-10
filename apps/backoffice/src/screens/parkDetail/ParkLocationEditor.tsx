@@ -14,6 +14,26 @@ export interface ParkLocationEditorProps {
   longitude: string;
   /** Le formulaire Informations est-il en mode édition ? */
   editing: boolean;
+  /**
+   * Contexte « choix de la position » (création de parc) : le clic-carte et le
+   * glisser du repère sont actifs en permanence, sans bouton « Déplacer le
+   * repère » — l'étape est explicitement dédiée à la position. Détail parc :
+   * laisser `false` (comportement inchangé, déplacement derrière le toggle).
+   */
+  directMove?: boolean;
+  /**
+   * Jeton incrémenté par le parent pour demander un recadrage animé de la
+   * carte sur la position courante (ex. après sélection d'un résultat de
+   * recherche géographique, 3C.4b). `0` / absent = aucun recadrage — le détail
+   * parc ne passe pas cette prop et reste inchangé.
+   */
+  flyToSignal?: number;
+  /**
+   * Carte plus haute pour une tâche de positionnement précis (création de parc,
+   * 3C.4b). Absent / `false` = hauteur compacte — le détail parc ne passe pas
+   * cette prop et garde sa taille 3C.3.
+   */
+  tall?: boolean;
   /** Désactive les interactions pendant une sauvegarde. */
   disabled?: boolean;
   /**
@@ -46,6 +66,9 @@ export function ParkLocationEditor({
   latitude,
   longitude,
   editing,
+  directMove = false,
+  flyToSignal = 0,
+  tall = false,
   disabled,
   onChange,
 }: ParkLocationEditorProps) {
@@ -63,8 +86,9 @@ export function ParkLocationEditor({
   const valid = lat != null && lng != null && isValidCoordinate(lat, lng);
   const invalid = bothFilled && !valid;
 
-  // Le déplacement n'est réellement actif qu'en édition, hors sauvegarde.
-  const moveActive = editing && moveMode && !disabled;
+  // Le déplacement est actif : en édition, hors sauvegarde, ET soit en mode
+  // « choix de position » (création), soit après activation du toggle (détail).
+  const moveActive = editing && !disabled && (directMove || moveMode);
 
   // Refs pour que le handler de clic carte (enregistré une seule fois) voie
   // toujours les valeurs fraîches.
@@ -144,6 +168,17 @@ export function ParkLocationEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lng, valid, moveActive]);
 
+  // Recadrage animé sur demande explicite du parent (jeton) — ex. après un
+  // résultat de recherche géographique. Ne s'exécute jamais tant que le jeton
+  // reste à 0 (détail parc).
+  useEffect(() => {
+    if (!flyToSignal) return;
+    const map = mapRef.current;
+    if (!map || !valid) return;
+    map.flyTo({ center: [lng as number, lat as number], zoom: 15 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flyToSignal]);
+
   // ── Rendu ──────────────────────────────────────────────────────────────
   const coordsText = valid
     ? `${(lat as number).toFixed(6)}, ${(lng as number).toFixed(6)}`
@@ -154,7 +189,7 @@ export function ParkLocationEditor({
       {styleUrl ? (
         <div
           ref={containerRef}
-          className={styles.locMap}
+          className={tall ? `${styles.locMap} ${styles.locMapTall}` : styles.locMap}
           data-move={moveActive ? "1" : undefined}
           aria-label="Carte de localisation du parc"
         />
@@ -168,7 +203,7 @@ export function ParkLocationEditor({
 
       {editing && (
         <>
-          {styleUrl && (
+          {styleUrl && !directMove && (
             <div className={styles.locBar}>
               <Button
                 type="button"
@@ -186,6 +221,11 @@ export function ParkLocationEditor({
                 </span>
               )}
             </div>
+          )}
+          {styleUrl && directMove && (
+            <p className={styles.locHintBlock}>
+              Cliquez sur la carte ou faites glisser le repère pour ajuster sa position.
+            </p>
           )}
 
           <div className={styles.twoCol}>

@@ -29,7 +29,6 @@ import {
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkStatusTag, ParkVerificationTag } from "../components/StatusTag";
-import { ParkModal } from "../components/ParkModal";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
@@ -100,9 +99,6 @@ export default function Parks() {
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  // Creation still uses ParkModal in 3B (geocoding on create lands in 3C);
-  // opening an existing park navigates to the /parks/:id page instead.
-  const [creating, setCreating] = useState(false);
 
   function openPark(park: Park) {
     const qs = searchParams.toString();
@@ -374,7 +370,7 @@ export default function Parks() {
         actions={
           <>
             {canCreatePark && (
-              <Button size="sm" onClick={() => setCreating(true)}>
+              <Button size="sm" onClick={() => navigate("/parks/new")}>
                 Ajouter un parc
               </Button>
             )}
@@ -494,7 +490,7 @@ export default function Parks() {
               </p>
               {canCreatePark && (
                 <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 12 }}>
-                  <Button size="sm" onClick={() => setCreating(true)}>
+                  <Button size="sm" onClick={() => navigate("/parks/new")}>
                     Ajouter un parc
                   </Button>
                 </div>
@@ -527,8 +523,6 @@ export default function Parks() {
           </button>
         </div>
       )}
-
-      {creating && <ParkModal park="new" onClose={() => setCreating(false)} canManage={canEditPark} />}
     </div>
   );
 }

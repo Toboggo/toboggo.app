@@ -18,6 +18,8 @@ vi.mock("maplibre-gl", () => {
   }
   class FakeMap extends Evented {
     center: [number, number] = [0, 0];
+    zoom = 5;
+    flyToCalls: { center: [number, number]; zoom?: number }[] = [];
     constructor(opts: { center?: [number, number] }) {
       super();
       if (opts?.center) this.center = opts.center;
@@ -28,6 +30,12 @@ vi.mock("maplibre-gl", () => {
     }
     setCenter(c: [number, number]) {
       this.center = c;
+      return this;
+    }
+    flyTo(o: { center: [number, number]; zoom?: number }) {
+      this.center = o.center;
+      if (o.zoom != null) this.zoom = o.zoom;
+      this.flyToCalls.push(o);
       return this;
     }
     remove() {}
@@ -200,5 +208,65 @@ describe("ParkLocationEditor (Lot 3C.3)", () => {
     expect(screen.getByRole("button", { name: "Terminer le déplacement" })).toBeTruthy();
     rerender(<ParkLocationEditor editing={false} latitude="44.1" longitude="3.07" />);
     expect(screen.queryByRole("button", { name: /déplacer le repère/i })).toBeNull();
+  });
+
+  // ── directMove : contexte création (pas de bouton toggle) ────────────────
+  describe("directMove (park creation)", () => {
+    function Direct({ onChange }: { onChange?: (la: string, lo: string) => void }) {
+      const [lat, setLat] = useState("");
+      const [lng, setLng] = useState("");
+      return (
+        <ParkLocationEditor
+          editing
+          directMove
+          latitude={lat}
+          longitude={lng}
+          onChange={(la, lo) => {
+            setLat(la);
+            setLng(lo);
+            onChange?.(la, lo);
+          }}
+        />
+      );
+    }
+
+    it("no 'Déplacer le repère' toggle — a persistent hint instead", () => {
+      render(<Direct />);
+      expect(screen.queryByRole("button", { name: /déplacer le repère/i })).toBeNull();
+      expect(
+        screen.getByText(/Cliquez sur la carte ou faites glisser le repère pour ajuster sa position/),
+      ).toBeTruthy();
+    });
+
+    it("map click places the marker immediately (no toggle needed) — no write", async () => {
+      const onChange = vi.fn();
+      render(<Direct onChange={onChange} />);
+      const inst = await mapInstances();
+      inst.maps.at(-1)!.fire("click", { lngLat: { lat: 44.101234, lng: 3.105678 } });
+      expect(onChange).toHaveBeenCalledWith("44.101234", "3.105678");
+    });
+
+    it("marker becomes draggable as soon as a valid position exists", async () => {
+      render(
+        <ParkLocationEditor editing directMove latitude="44.1" longitude="3.07" onChange={() => {}} />,
+      );
+      const inst = await mapInstances();
+      expect(inst.markers.at(-1)!.isDraggable()).toBe(true);
+    });
+
+    it("flyToSignal recentres + zooms the map on the current position (3C.4b)", async () => {
+      const { rerender } = render(
+        <ParkLocationEditor editing directMove latitude="44.10" longitude="3.07" flyToSignal={0} />,
+      );
+      const inst = await mapInstances();
+      const map = inst.maps.at(-1)! as unknown as {
+        flyToCalls: { center: [number, number]; zoom?: number }[];
+      };
+      expect(map.flyToCalls.length).toBe(0); // token 0 → no fly
+      rerender(
+        <ParkLocationEditor editing directMove latitude="44.20" longitude="3.20" flyToSignal={1} />,
+      );
+      expect(map.flyToCalls.at(-1)).toEqual({ center: [3.2, 44.2], zoom: 15 });
+    });
   });
 });

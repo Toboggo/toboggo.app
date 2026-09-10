@@ -231,6 +231,12 @@
 .locBlock .locMap {
   height: 190px;
 }
+/* Contexte création de parc (3C.4b) : carte plus haute pour un positionnement
+ * précis. Spécificité 0,2,0 → l'emporte sur `.locMap`. Détail parc non concerné
+ * (prop `tall` non passée). */
+.locMap.locMapTall {
+  height: 270px;
+}
 .locMap[data-move="1"] {
   outline: 2px solid var(--color-primary);
   outline-offset: -2px;
@@ -249,6 +255,12 @@
   margin-top: 10px;
 }
 .locHint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+/* Variante bloc (contexte création : hint permanent sous la carte). */
+.locHintBlock {
+  margin: 8px 0 0;
   font-size: 12px;
   color: var(--color-text-muted);
 }

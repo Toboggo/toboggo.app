@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@toboggo/design-system";
 import { listNotifications, getPark } from "@toboggo/shared";
@@ -9,6 +10,7 @@ import { useSession } from "../../lib/session";
 export default function NotifResolved() {
   const { notifId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("profile");
   const userId = useSession((s) => s.userId);
   const { data: notifs = [] } = useQuery({ queryKey: ["notifications", userId], queryFn: () => listNotifications(userId!), enabled: !!userId });
   const notif = notifs.find((n) => n.id === notifId);
@@ -21,6 +23,8 @@ export default function NotifResolved() {
       <TopBar />
       <div style={{ padding: "0 24px", textAlign: "center" }}>
         <div style={{ fontSize: 56 }}>✅</div>
+        {/* i18n debt: notification `title` / `description` are stored pre-rendered
+            in French (schema change to `type` + `params` needed — see i18n audit). */}
         <h1 style={{ fontSize: 20, marginTop: 12 }}>{notif.title}</h1>
         <p style={{ color: "var(--color-text-muted)", fontSize: 14, marginTop: 8 }}>{notif.description}</p>
         {park && (
@@ -30,7 +34,7 @@ export default function NotifResolved() {
         )}
         {park && (
           <Button block style={{ marginTop: 20 }} onClick={() => navigate(`/park/${park.id}`)}>
-            Voir le parc
+            {t("notifs.seePark")}
           </Button>
         )}
       </div>

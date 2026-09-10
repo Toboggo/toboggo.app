@@ -2,6 +2,23 @@
   "title": "Perfil",
   "edit": "Editar",
   "notifications": "Notificaciones",
+  "notifs": {
+    "title": "Notificaciones",
+    "markAllRead": "Marcar todo como leído",
+    "filter": { "all": "Todas", "unread": "No leídas", "read": "Leídas" },
+    "empty": "No hay ninguna notificación aquí.",
+    "seePark": "Ver el parque",
+    "pref": {
+      "reports": "Seguimiento de mis informes",
+      "newParks": "Nuevos parques cercanos",
+      "reviewReplies": "Respuestas a mis opiniones",
+      "recommendations": "Recomendaciones personalizadas",
+      "news": "Novedades de Toboggo"
+    },
+    "channels": "Canales",
+    "channelPush": "Notificaciones push",
+    "channelEmail": "Correo electrónico"
+  },
   "level": "Nv. {{level}}",
   "levelProgress": "{{points}} puntos · {{remaining}} para el siguiente nivel",
   "myChildren": "Mis hijos",

@@ -2,6 +2,23 @@
   "title": "Profile",
   "edit": "Edit",
   "notifications": "Notifications",
+  "notifs": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "filter": { "all": "All", "unread": "Unread", "read": "Read" },
+    "empty": "No notifications here.",
+    "seePark": "View the park",
+    "pref": {
+      "reports": "Updates on my reports",
+      "newParks": "New parks nearby",
+      "reviewReplies": "Replies to my reviews",
+      "recommendations": "Personalized recommendations",
+      "news": "Toboggo news"
+    },
+    "channels": "Channels",
+    "channelPush": "Push notifications",
+    "channelEmail": "Email"
+  },
   "level": "Lvl {{level}}",
   "levelProgress": "{{points}} points · {{remaining}} to next level",
   "myChildren": "My children",

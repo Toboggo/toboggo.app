@@ -23,5 +23,19 @@
     "toilets": "WC",
     "accessible": "PMR",
     "water": "Point d’eau"
+  },
+  "surface": {
+    "grass": "Gazon",
+    "gazon": "Gazon",
+    "sand": "Sable",
+    "sable": "Sable",
+    "rubber": "Sol souple",
+    "sol_souple": "Sol souple",
+    "wood_chips": "Copeaux de bois",
+    "gravel": "Gravier",
+    "concrete": "Béton",
+    "mixed": "Mixte",
+    "unknown": "Non précisé",
+    "non_precise": "Non précisé"
   }
 }

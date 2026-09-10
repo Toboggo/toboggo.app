@@ -32,10 +32,13 @@ migration décrite dans l'audit i18n.
 `features`, `errors`, `legal`.
 
 **Remplis** : `common`, `features`, `map`, `detail` (parcours découverte —
-carte, recherche, filtres, ParkCard, fiche parc, équipements, score).
-`onboarding`, `contribute`, `reviews`, `profile`, `errors`, `legal` : non
-encore créés — un namespace sans fichier se résout en `{}` (repli `en` puis clé
-brute). Pour ajouter un namespace : créer
+carte, recherche, filtres, ParkCard, fiche parc, équipements, score) et
+`profile` (shell utilisateur — Profil, Favoris, Contributions/Aportaciones,
+Comparer, Activité, ainsi que Modifier le profil / Confidentialité / Sortie de
+groupe accessibles depuis Profil).
+`onboarding`, `contribute`, `reviews`, `errors`, `legal` : non encore créés —
+un namespace sans fichier se résout en `{}` (repli `en` puis clé brute). Pour
+ajouter un namespace : créer
 `locales/fr/<ns>.json`, `locales/es/<ns>.json`, `locales/en/<ns>.json`, puis
 consommer via `useTranslation("<ns>")`.
 

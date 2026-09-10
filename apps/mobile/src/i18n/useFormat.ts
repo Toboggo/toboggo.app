@@ -21,6 +21,7 @@ import { useTranslation } from "react-i18next";
 import {
   formatCount,
   formatDate,
+  formatDateTime,
   formatMeters,
   formatMinutes,
   formatPercent,
@@ -64,6 +65,7 @@ export function useFormat() {
       walk: (minutes: number) => formatMinutes(minutes, intlLocale),
       percent: (v: number) => formatPercent(v, intlLocale),
       date: (value: Date | string | number) => formatDate(value, intlLocale),
+      dateTime: (value: Date | string | number) => formatDateTime(value, intlLocale),
 
       ageRange: (min: number | null | undefined, max: number | null | undefined): string =>
         ageRangeInner(min, max) ?? t("age.notSpecified"),

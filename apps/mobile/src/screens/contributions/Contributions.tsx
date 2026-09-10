@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { listMyParks, listMyReviews, listMyReports } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { BottomTabs } from "../../components/BottomTabs";
 import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
+import { useFormat } from "../../i18n/useFormat";
 import styles from "./Contributions.module.css";
 
 type Tab = "parks" | "reviews" | "reports";
@@ -22,14 +24,16 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-const TABS: { value: Tab; label: string }[] = [
-  { value: "parks", label: "Parcs ajoutés" },
-  { value: "reviews", label: "Avis" },
-  { value: "reports", label: "Signalements" },
+const TABS: { value: Tab; labelKey: string }[] = [
+  { value: "parks", labelKey: "contributions.tabParks" },
+  { value: "reviews", labelKey: "contributions.tabReviews" },
+  { value: "reports", labelKey: "contributions.tabReports" },
 ];
 
 export default function Contributions() {
   const navigate = useNavigate();
+  const { t } = useTranslation("profile");
+  const f = useFormat();
   const userId = useSession((s) => s.userId);
   const [tab, setTab] = useState<Tab>("parks");
 
@@ -39,18 +43,18 @@ export default function Contributions() {
 
   const emptyText =
     tab === "parks"
-      ? "Vous n'avez pas encore ajouté de parc."
+      ? t("contributions.emptyParks")
       : tab === "reviews"
-        ? "Vous n'avez pas encore laissé d'avis."
-        : "Vous n'avez pas encore signalé de problème.";
+        ? t("contributions.emptyReviews")
+        : t("contributions.emptyReports");
 
   return (
     <div className={styles.screen}>
-      <DetailHeader title="Contributions" onBack={() => navigate("/map")} />
+      <DetailHeader title={t("contributions.title")} onBack={() => navigate("/map")} />
       <div className={styles.tabs}>
-        {TABS.map((t) => (
-          <button key={t.value} type="button" className={styles.tab} data-on={tab === t.value ? "1" : undefined} onClick={() => setTab(t.value)}>
-            {t.label}
+        {TABS.map((tabDef) => (
+          <button key={tabDef.value} type="button" className={styles.tab} data-on={tab === tabDef.value ? "1" : undefined} onClick={() => setTab(tabDef.value)}>
+            {t(tabDef.labelKey)}
           </button>
         ))}
       </div>
@@ -67,7 +71,7 @@ export default function Contributions() {
                   <div className={styles.rowName}>{p.name}</div>
                   <div className={styles.rowSub}>{p.formatted_address}</div>
                 </div>
-                {p.status !== "published" && <span className={styles.pending}>En attente</span>}
+                {p.status !== "published" && <span className={styles.pending}>{t("contributions.pending")}</span>}
               </div>
             ))
           ))}
@@ -80,7 +84,7 @@ export default function Contributions() {
               <div key={r.id} className={styles.card}>
                 <div className={styles.cardTop}>
                   <span className={styles.cardName}>{r.parks?.name ?? r.parkName}</span>
-                  <span className={styles.cardDate}>{new Date(r.created_at).toLocaleDateString("fr-FR")}</span>
+                  <span className={styles.cardDate}>{f.date(r.created_at)}</span>
                 </div>
                 <div className={styles.cardStars}>
                   <Stars value={r.stars} />
@@ -97,7 +101,7 @@ export default function Contributions() {
             reports.map((r: any) => (
               <div key={r.id} className={styles.reportRow}>
                 <span className={styles.cardName}>{r.parks?.name ?? r.parkName}</span>
-                <span className={styles.cardDate}>{new Date(r.created_at).toLocaleDateString("fr-FR")}</span>
+                <span className={styles.cardDate}>{f.date(r.created_at)}</span>
               </div>
             ))
           ))}

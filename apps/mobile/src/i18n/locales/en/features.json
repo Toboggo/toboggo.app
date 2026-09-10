@@ -23,5 +23,19 @@
     "toilets": "Toilets",
     "accessible": "Accessible",
     "water": "Water"
+  },
+  "surface": {
+    "grass": "Grass",
+    "gazon": "Grass",
+    "sand": "Sand",
+    "sable": "Sand",
+    "rubber": "Soft surface",
+    "sol_souple": "Soft surface",
+    "wood_chips": "Wood chips",
+    "gravel": "Gravel",
+    "concrete": "Concrete",
+    "mixed": "Mixed",
+    "unknown": "Not specified",
+    "non_precise": "Not specified"
   }
 }

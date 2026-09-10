@@ -23,5 +23,19 @@
     "toilets": "Aseos",
     "accessible": "Accesible",
     "water": "Fuente"
+  },
+  "surface": {
+    "grass": "Césped",
+    "gazon": "Césped",
+    "sand": "Arena",
+    "sable": "Arena",
+    "rubber": "Suelo blando",
+    "sol_souple": "Suelo blando",
+    "wood_chips": "Virutas de madera",
+    "gravel": "Grava",
+    "concrete": "Hormigón",
+    "mixed": "Mixto",
+    "unknown": "Sin especificar",
+    "non_precise": "Sin especificar"
   }
 }

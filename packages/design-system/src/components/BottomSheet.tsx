@@ -41,6 +41,7 @@ export interface BottomSheetProps {
 }
 
 const GRAB_H = 26; // handle strip — added on top of a `"fit"` content height
+const EDGE_MARGIN = 12; // gap kept between the sheet's last content and the bottom obstruction / screen edge
 const TAP_SLOP = 6; // px of travel before a press becomes a drag
 const FLING = 0.5; // px/ms — above this, snap in the fling direction
 const OVERSWIPE_RUBBER = 72; // px the sheet can be pulled past its max
@@ -118,17 +119,28 @@ export function BottomSheet({
     Math.round(vpH * MAX_VH) - bottomInset,
   );
 
-  // ── bottom safe area ──
-  // Reserve the home-indicator inset *inside* the sheet's scroll content, so the
-  // last row can always be scrolled fully clear of it. Skipped when the sheet is
-  // lifted above a bottom inset (e.g. the nav): that inset's height already
-  // carries the safe area, and counting it here too would double it.
+  // ── docked mode ──
+  // A non-modal sheet handed a bottom inset (the map sheet, above the app's
+  // fixed bottom nav) is treated as a *surface that continues behind that nav*:
+  // its opaque body is painted all the way down to the screen edge (`bottom: 0`)
+  // and it sits *below* the nav in the stack, so the nav stays usable on top.
+  // A modal sheet (backdrop) still floats above everything — never docked.
+  const docked = bottomInset > 0 && !showBackdrop;
+
   const safeBottom = useSafeAreaBottom();
-  const bottomReserve = bottomInset > 0 ? 0 : safeBottom;
+
+  // Reserve kept below the visible content, above the obstruction it stops at:
+  //  - docked: a small margin only — the nav's own height already carries the
+  //    home-indicator safe area, so adding it again here would double it.
+  //  - otherwise: the home-indicator inset, so the last row clears it.
+  const fitReserve = docked ? EDGE_MARGIN : safeBottom;
+  // Padding at the end of the *scrollable* content so its last row can be
+  // scrolled fully clear of the obstruction (nav height + its safe area) + margin.
+  const scrollReserve = docked ? bottomInset + EDGE_MARGIN : safeBottom;
 
   // ── content measurement (drives `"fit"` and `canScroll`) ──
-  // The measured wrapper carries `bottomReserve` as padding, so `contentH`
-  // already includes the safe-area reserve everywhere it is used below.
+  // `contentH` is the *natural* content height; the reserve below is a sibling
+  // spacer, never folded into this measurement.
   const sheetRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentH, setContentH] = useState(0);
@@ -140,16 +152,17 @@ export function BottomSheet({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [children, bottomReserve]);
+  }, [children]);
 
   const resolve = useCallback(
     (s: Snap): number => {
-      // `"fit"` = measured content (which already includes `bottomReserve`) plus
-      // the grab strip, then clamped to the viewport budget (`maxH`).
-      const raw = s === "fit" ? contentH + GRAB_H : s <= 1 ? s * vpH : s;
+      // `"fit"` = measured content + the reserve kept below it + the grab strip,
+      // then clamped to the viewport budget (`maxH`). This is the *panel* height
+      // (the part above any bottom inset); the painted sheet adds the inset back.
+      const raw = s === "fit" ? contentH + fitReserve + GRAB_H : s <= 1 ? s * vpH : s;
       return clamp(Math.round(raw), MIN_H, maxH);
     },
-    [contentH, vpH, maxH],
+    [contentH, fitReserve, vpH, maxH],
   );
 
   // A `"fit"` snap we're not currently on can't be measured — remember it from
@@ -339,9 +352,16 @@ export function BottomSheet({
   // scrolls its own content — every drag on it is a sheet gesture, so the
   // swipe-up can't be stolen by an internal scroll.
   const lockScroll = !!onOverswipeUp && snapPoints.length === 1;
-  // `contentH` includes `bottomReserve`; the scrollable box is exactly the
-  // sheet body = `height - GRAB_H`. 1px epsilon absorbs rounding only.
-  const canScroll = !lockScroll && contentH > height - GRAB_H + 1;
+  // The panel body is `height - GRAB_H`; the content needs `contentH + fitReserve`
+  // to sit fully clear of its bottom edge. Above a `"fit"` snap these are equal by
+  // construction (see `resolve`), so it only scrolls once the content truly
+  // overflows the current panel. 1px epsilon absorbs rounding.
+  const canScroll = !lockScroll && contentH + fitReserve > height - GRAB_H + 1;
+
+  // The sheet's opaque body is painted down to the screen edge when docked, so it
+  // reads as one surface continuing behind the nav; `height` (the panel above the
+  // inset) still drives every drag / snap calculation.
+  const paintedHeight = docked ? height + bottomInset : height;
 
   return createPortal(
     <>
@@ -350,11 +370,8 @@ export function BottomSheet({
         ref={sheetRef}
         className={styles.sheet}
         data-dragging={dragging ? "1" : undefined}
-        style={{
-          height,
-          bottom: bottomInset || undefined,
-          borderRadius: bottomInset ? "26px 26px 0 0" : undefined,
-        }}
+        data-docked={docked ? "1" : undefined}
+        style={{ height: paintedHeight }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -370,9 +387,8 @@ export function BottomSheet({
             touchAction: lockScroll ? "none" : undefined,
           }}
         >
-          <div ref={contentRef} style={{ paddingBottom: bottomReserve || undefined }}>
-            {children}
-          </div>
+          <div ref={contentRef}>{children}</div>
+          {scrollReserve > 0 && <div aria-hidden style={{ height: scrollReserve }} />}
         </div>
       </div>
     </>,

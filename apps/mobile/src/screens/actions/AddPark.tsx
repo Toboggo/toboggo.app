@@ -231,7 +231,12 @@ export default function AddPark() {
           En cours de vérification
         </Tag>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 320, marginTop: 28 }}>
-          <Button block onClick={() => navigate(`/park/${createdId}`)}>
+          {/* Contribution terminée : on remplace l'entrée d'historique du wizard
+              par la fiche parc. Depuis la fiche, Retour ramène à l'origine
+              (carte / QuickMenu / écran précédent), jamais aux étapes déjà
+              soumises ni à cette confirmation. Voir aussi RatePark / AddPhotos /
+              ReportProblem / EditInfo. */}
+          <Button block onClick={() => navigate(`/park/${createdId}`, { replace: true })}>
             Voir le parc
           </Button>
           <Button variant="secondary" block onClick={() => window.location.reload()}>

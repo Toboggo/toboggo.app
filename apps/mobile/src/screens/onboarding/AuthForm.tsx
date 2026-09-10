@@ -48,11 +48,29 @@ export default function AuthForm() {
         showToast("Compte créé — vérifiez vos e-mails pour confirmer.");
         // Only jump straight to a pending contribution when a session was issued
         // right away (email confirmation disabled); otherwise the draft waits.
-        navigate((res.session && takeResumeRoute()) || "/permissions");
+        const resumeRoute = res.session ? takeResumeRoute() : null;
+        if (resumeRoute) {
+          // Reprise d'une contribution après login juste-à-temps : on REMPLACE
+          // l'entrée /login. Une fois la contribution finie (confirmation
+          // autonome → "Voir le parc"), un Retour depuis la fiche parc ne doit
+          // ramener ni dans le wizard déjà soumis ni sur cet écran de connexion.
+          // Même logique que la reprise OAuth (App.tsx). Le fallback ci-dessous
+          // reste en push : /permissions est une vraie destination d'onboarding.
+          navigate(resumeRoute, { replace: true });
+        } else {
+          navigate("/permissions");
+        }
       } else {
         await signIn(email, password);
         // Resume an in-progress contribution if one was started before login.
-        navigate(takeResumeRoute() ?? "/map");
+        const resumeRoute = takeResumeRoute();
+        if (resumeRoute) {
+          // Reprise : on remplace /login (cf. commentaire branche signup).
+          navigate(resumeRoute, { replace: true });
+        } else {
+          // Login standard : /map en push, comportement d'onboarding inchangé.
+          navigate("/map");
+        }
       }
     } catch (err: any) {
       setError(

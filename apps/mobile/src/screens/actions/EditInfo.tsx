@@ -20,6 +20,14 @@ import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { clearDraft, loadDraft, saveDraft, setResumeRoute } from "../../lib/contributionDraft";
 
+// Stepper nommé, partagé avec les autres wizards de contribution via
+// WizardHeader (voir AddPark / AddPhotos / RatePark / ReportProblem). Les trois
+// étapes correspondent 1:1 à `d.step` (0 → Type, 1 → Correction, 2 →
+// Vérification) : `current` = `d.step`, aucune conversion. "Vérification" est la
+// dernière étape AVANT soumission ; la confirmation de succès reste un écran
+// autonome séparé (bloc `done`) et n'apparaît donc pas dans le stepper.
+const STEPPER = ["Type", "Correction", "Vérification"];
+
 type Target = "general" | "ages" | "play" | "service" | "accessibility" | "characteristics" | "location" | "other";
 
 const TARGETS: { value: Target; label: string; icon: IconName }[] = [
@@ -270,7 +278,13 @@ export default function EditInfo() {
     // in-page email login and the full-page OAuth redirect).
     saveDraft(draftKey, d);
     setResumeRoute(`/contribute/edit?park=${parkId}&resume=1`);
-    navigate("/login");
+    // `replace` : la sortie vers /login REMPLACE l'entrée de ce wizard (idem
+    // ReportProblem). Avec le retour d'auth qui remplace /login et le CTA de
+    // confirmation qui remplace la resume route, une correction invité menée à
+    // son terme ne laisse aucune entrée d'historique — Retour depuis la fiche
+    // parc revient au contexte normal, jamais dans /contribute/edit ni /login.
+    // Le brouillon reste en localStorage (repris via ?resume=1 / reload).
+    navigate("/login", { replace: true });
   }
 
   // Back from sign-in with the draft intact: finish the send once.
@@ -346,7 +360,12 @@ export default function EditInfo() {
           Votre proposition de correction pour <strong>{park.name}</strong> a bien été reçue.
           Elle sera vérifiée par notre équipe avant d'être appliquée.
         </p>
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`)}>
+        {/* Correction envoyée : on remplace l'entrée d'historique du wizard par
+            la fiche parc. Depuis la fiche, Retour ramène au contexte antérieur,
+            jamais dans EditInfo ni sur cette confirmation. Idem AddPark /
+            RatePark / AddPhotos / ReportProblem. (Ne concerne que l'après-succès :
+            le stepper interne n'est pas touché.) */}
+        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
           Retour au parc
         </Button>
       </div>
@@ -357,7 +376,8 @@ export default function EditInfo() {
     <div className="screen">
       <WizardHeader
         step={d.step}
-        total={3}
+        total={STEPPER.length}
+        steps={STEPPER}
         onBack={() => (d.step === 0 ? navigate(-1) : patch({ step: d.step - 1 }))}
         onClose={closeAndDiscard}
       />

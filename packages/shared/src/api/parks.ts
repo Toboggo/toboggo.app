@@ -414,6 +414,129 @@ function splitParkInput(input: Partial<Park>) {
   return { parkRow, featureRows, orgId };
 }
 
+/**
+ * Phase 1 (D3) — attributs dont la valeur canonique est protégée par la
+ * provenance (`park_attribute_sources`). Voir `supabase/migrations/0032`.
+ *
+ * Une édition back-office de l'un de ces attributs ne doit PAS écrire
+ * `parks.*` en direct : elle passe par la RPC `apply_park_attribute`, qui
+ *   1. enregistre une source `toboggo` / `municipality` (priorité > OSM),
+ *   2. applique le gate `can_source_replace_attribute`,
+ *   3. archive la valeur précédente (`is_current = false`),
+ *   4. projette la nouvelle valeur dans `parks`,
+ * de sorte qu'un réimport OSM ne peut plus l'écraser silencieusement.
+ *
+ * Les autres colonnes (`description`, `slug`, `moderation_status`,
+ * `operational_status`, …) ne sont jamais touchées par l'import OSM :
+ * elles restent en écriture directe.
+ */
+const PROVENANCE_ADDRESS_KEYS = [
+  "address_line",
+  "postal_code",
+  "city",
+  "admin_area_1",
+  "admin_area_2",
+] as const;
+
+/**
+ * Peel the provenance-tracked attributes off `parkRow`, apply each through
+ * `apply_park_attribute` (records a `toboggo` / `municipality` source, gated so
+ * a lower-priority OSM re-import can no longer overwrite it — migration 0032),
+ * and return the columns that still need a plain `parks` update.
+ *
+ * **Presence (`k in rest`), not `!= null`, drives every decision here.** The
+ * back-office clears a field by sending it explicitly as `null` (see
+ * `splitParkInput`). That clear must be honoured — never silently reverted to
+ * the stored value, never silently downgraded to a direct write.
+ *
+ * One documented exception — an **age clear** (`min_age` / `max_age` = `null`):
+ * `apply_park_attribute` (0032, deployed to prod) rejects a JSON-`null`
+ * `value_json`, so a numeric bound goes through the RPC while a clear is written
+ * directly, in an explicit branch below (never a fall-through). Routing a clear
+ * through provenance too needs a follow-up migration that lets the RPC take
+ * `null` — see the merge report.
+ */
+async function applyProvenanceAttributes(id: string, parkRow: ParkWriteRow): Promise<ParkWriteRow> {
+  const supabase = getSupabase();
+  const rest: ParkWriteRow = { ...parkRow };
+  const calls: { key: string; value: Json }[] = [];
+
+  // ── name ── `parks.name` is NOT NULL, so there is no "clear" case.
+  if (rest.name != null) {
+    calls.push({ key: "name", value: rest.name });
+    delete rest.name;
+  }
+
+  // ── ages ── a numeric bound → RPC ; an explicit clear → kept for the direct
+  // update (the RPC cannot take null — see the doc comment).
+  let ageClearKept = false;
+  for (const col of ["min_age", "max_age"] as const) {
+    if (!(col in rest)) continue;
+    const v = rest[col];
+    if (v == null) {
+      ageClearKept = true; // explicit clear stays in `rest`
+    } else {
+      calls.push({ key: col, value: v });
+      delete rest[col];
+    }
+  }
+  // `ages_derived` is added by `splitParkInput` whenever an age key was present:
+  //  - a clear stays in the direct row → keep `ages_derived = false` alongside it;
+  //  - every age change routed to the RPC → its projection sets `ages_derived`,
+  //    so drop the leftover here.
+  if (!ageClearKept && "ages_derived" in rest && !("min_age" in rest) && !("max_age" in rest)) {
+    delete rest.ages_derived;
+  }
+
+  // ── address (full 5-field composite) & location ──
+  const addrChanged = PROVENANCE_ADDRESS_KEYS.some((k) => k in rest);
+  const locChanged = rest.latitude != null || rest.longitude != null;
+
+  if (addrChanged || locChanged) {
+    // The RPC stores the whole composite; merge the patch over the current
+    // values by *presence*, so an explicit `null` (clear) survives.
+    const current = await getPark(id);
+    if (addrChanged) {
+      const field = (k: (typeof PROVENANCE_ADDRESS_KEYS)[number]): string | null => {
+        const v = k in rest ? rest[k] : current[k];
+        return v == null ? null : String(v);
+      };
+      calls.push({
+        key: "address",
+        value: {
+          address_line: field("address_line"),
+          postal_code: field("postal_code"),
+          city: field("city"),
+          admin_area_1: field("admin_area_1"),
+          admin_area_2: field("admin_area_2"),
+        },
+      });
+      for (const k of PROVENANCE_ADDRESS_KEYS) delete rest[k];
+    }
+    if (locChanged) {
+      calls.push({
+        key: "location",
+        value: {
+          lat: rest.latitude ?? current.latitude,
+          lng: rest.longitude ?? current.longitude,
+        },
+      });
+      delete rest.latitude;
+      delete rest.longitude;
+    }
+  }
+
+  for (const call of calls) {
+    const { error } = await supabase.rpc("apply_park_attribute", {
+      p_park_id: id,
+      p_attribute_key: call.key,
+      p_value_json: call.value,
+    });
+    if (error) throw error;
+  }
+  return rest;
+}
+
 async function applyFeatures(parkId: string, rows: { code: string; status: FeatureStatus; value?: string | null; quantity?: number | null }[]) {
   if (!rows.length) return;
   const supabase = getSupabase();
@@ -475,9 +598,11 @@ export async function updatePark(id: string, patch: Partial<Park>, _historyNote?
   const supabase = getSupabase();
   const { parkRow, featureRows, orgId } = splitParkInput(patch);
 
-  // A position edit gets the same range check as `createPark` (bug B1). Both
-  // bounds must move together — a lone latitude/longitude write would leave the
-  // pair inconsistent, and there is no DB read here to fill the missing half.
+  // 1) Validations (BO). A position edit gets the same range check as
+  // `createPark` (bug B1); both bounds must move together — a lone
+  // latitude/longitude write would leave the pair inconsistent and there is no
+  // DB read here to fill the missing half. Runs *before* the provenance step,
+  // which would otherwise peel `latitude`/`longitude` away.
   const touchesLat = parkRow.latitude != null;
   const touchesLng = parkRow.longitude != null;
   if (touchesLat || touchesLng) {
@@ -489,8 +614,14 @@ export async function updatePark(id: string, patch: Partial<Park>, _historyNote?
     assertValidCoordinates(parkRow.latitude, parkRow.longitude);
   }
 
-  if (Object.keys(parkRow).length) {
-    const { error } = await supabase.from("parks").update(parkRow).eq("id", id);
+  // 2) Provenance-tracked attributes (name / ages / address / location) go
+  // through `apply_park_attribute` so a manual correction records a
+  // Toboggo/collectivité source and survives a later OSM re-import (migration
+  // 0032). Whatever is left (`description`, `slug`, `moderation_status`,
+  // `operational_status`, an explicit age clear) is a plain column update.
+  const directRow = await applyProvenanceAttributes(id, parkRow);
+  if (Object.keys(directRow).length) {
+    const { error } = await supabase.from("parks").update(directRow).eq("id", id);
     if (error) throw error;
   }
   await applyFeatures(id, featureRows);

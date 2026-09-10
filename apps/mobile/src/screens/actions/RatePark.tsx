@@ -126,7 +126,11 @@ export default function RatePark() {
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
           Votre avis a été publié et aide d'autres parents à choisir {park?.name}.
         </p>
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`)}>
+        {/* Avis soumis : on remplace l'entrée d'historique du wizard par la
+            fiche parc. Depuis la fiche, Retour ramène au contexte antérieur
+            (fiche parc d'origine / carte), jamais dans RatePark ni sur cette
+            confirmation. Idem AddPark / AddPhotos / ReportProblem / EditInfo. */}
+        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
           Voir le parc
         </Button>
       </div>

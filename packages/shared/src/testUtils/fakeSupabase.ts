@@ -62,16 +62,26 @@ export class FakeQuery implements PromiseLike<{ data: unknown; error: unknown; c
   }
 }
 
-/** Table -> canned `{ data, error, count? }` response, plus every `FakeQuery`
- * created (keyed by table) so a test can inspect exactly what was sent. */
+/** Table (or `rpc:<fn>`) -> canned `{ data, error, count? }` response, plus
+ * every `FakeQuery` created (keyed by table) and every `.rpc()` call recorded,
+ * so a test can inspect exactly what was sent.
+ *
+ * `.rpc(fn, params)` resolves to `responses["rpc:" + fn]` when given, otherwise
+ * `{ data: null, error: null }` (a call that just succeeds). It returns a
+ * `FakeQuery`, so both `await supabase.rpc(...)` and a `.select()` chain work. */
 export function makeFakeSupabase(responses: Record<string, { data: unknown; error: unknown; count?: unknown }>) {
   const queriesByTable: Record<string, FakeQuery[]> = {};
+  const rpcCalls: { fn: string; params: unknown }[] = [];
   const client = {
     from(table: string) {
       const q = new FakeQuery(responses[table] ?? { data: null, error: null });
       (queriesByTable[table] ??= []).push(q);
       return q;
     },
+    rpc(fn: string, params?: unknown) {
+      rpcCalls.push({ fn, params });
+      return new FakeQuery(responses[`rpc:${fn}`] ?? { data: null, error: null });
+    },
   };
-  return { client, queriesByTable };
+  return { client, queriesByTable, rpcCalls };
 }

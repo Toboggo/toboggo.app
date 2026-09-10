@@ -6,23 +6,35 @@ import { ConfirmDialogProvider, ToastProvider } from "@toboggo/design-system";
 import { getPark, getParkHistory } from "@toboggo/shared";
 import ParkDetail from "./ParkDetail";
 
-vi.mock("@toboggo/shared", () => ({
-  getPark: vi.fn(),
-  getParkHistory: vi.fn().mockResolvedValue([]),
-  listMedia: vi.fn().mockResolvedValue([]),
-  listExternalIds: vi.fn().mockResolvedValue([]),
-  setParkStatus: vi.fn().mockResolvedValue(undefined),
-  logActivity: vi.fn().mockResolvedValue(undefined),
-  updatePark: vi.fn().mockResolvedValue(undefined),
-  addParkPhotos: vi.fn().mockResolvedValue(undefined),
-  deleteMediaByUrl: vi.fn().mockResolvedValue(undefined),
-  setParkCover: vi.fn().mockResolvedValue(undefined),
-  uploadPhoto: vi.fn().mockResolvedValue("https://x/y.jpg"),
-  listFeatures: vi.fn().mockResolvedValue([]),
-  listParkFeatures: vi.fn().mockResolvedValue([]),
-  setParkFeature: vi.fn().mockResolvedValue(undefined),
-  removeParkFeature: vi.fn().mockResolvedValue(undefined),
+// MapLibre (pulled in by InfoPanel → ParkLocationEditor) — never instantiated
+// here (mapStyleUrl → null), but the module must resolve without WebGL.
+vi.mock("maplibre-gl", () => ({
+  __esModule: true,
+  default: { Map: class {}, Marker: class {}, NavigationControl: class {} },
 }));
+
+vi.mock("@toboggo/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@toboggo/shared")>();
+  return {
+    ...actual,
+    mapStyleUrl: vi.fn(() => null),
+    getPark: vi.fn(),
+    getParkHistory: vi.fn().mockResolvedValue([]),
+    listMedia: vi.fn().mockResolvedValue([]),
+    listExternalIds: vi.fn().mockResolvedValue([]),
+    setParkStatus: vi.fn().mockResolvedValue(undefined),
+    logActivity: vi.fn().mockResolvedValue(undefined),
+    updatePark: vi.fn().mockResolvedValue(undefined),
+    addParkPhotos: vi.fn().mockResolvedValue(undefined),
+    deleteMediaByUrl: vi.fn().mockResolvedValue(undefined),
+    setParkCover: vi.fn().mockResolvedValue(undefined),
+    uploadPhoto: vi.fn().mockResolvedValue("https://x/y.jpg"),
+    listFeatures: vi.fn().mockResolvedValue([]),
+    listParkFeatures: vi.fn().mockResolvedValue([]),
+    setParkFeature: vi.fn().mockResolvedValue(undefined),
+    removeParkFeature: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 const perms = vi.hoisted(() => ({ canEditPark: true }));
 vi.mock("../lib/permissions", () => ({ usePermissions: () => ({ canEditPark: perms.canEditPark }) }));

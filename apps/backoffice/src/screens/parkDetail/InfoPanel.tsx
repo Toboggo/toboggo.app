@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input, Select, Textarea, useToast } from "@toboggo/design-system";
 import {
+  isValidCoordinate,
   listExternalIds,
   logActivity,
   updatePark,
@@ -12,6 +13,7 @@ import { useOrgScope } from "../../lib/orgScope";
 import { useOrgSession } from "../../lib/orgSession";
 import { useAsyncAction } from "../../lib/useAsyncAction";
 import { queryClient } from "../../lib/queryClient";
+import { ParkLocationEditor } from "./ParkLocationEditor";
 import styles from "../ParkDetail.module.css";
 
 const OPERATIONAL_LABEL: Record<ParkOperationalStatus, string> = {
@@ -45,6 +47,17 @@ function Value({ children }: { children: React.ReactNode }) {
   return <dd className={empty ? styles.empty : undefined}>{empty ? "Non renseigné" : children}</dd>;
 }
 
+/** Lignes d'adresse structurée pour le mode lecture — jamais de `null`,
+ * `undefined` ni de chaîne sentinelle, et jamais d'adresse fabriquée. */
+function addressLines(park: Park): string[] {
+  const street = (park.address_line ?? "").trim();
+  const cityLine = [park.postal_code ?? "", park.city ?? ""]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" ");
+  return [street, cityLine].filter(Boolean);
+}
+
 export function InfoPanel({
   park,
   canEdit,
@@ -62,7 +75,11 @@ export function InfoPanel({
   const initial = useMemo(
     () => ({
       name: park.name,
-      address: park.formatted_address ?? "",
+      addressLine: park.address_line ?? "",
+      postalCode: park.postal_code ?? "",
+      city: park.city ?? "",
+      latitude: park.latitude != null ? String(park.latitude) : "",
+      longitude: park.longitude != null ? String(park.longitude) : "",
       ageMin: park.min_age != null ? String(park.min_age) : "",
       ageMax: park.max_age != null ? String(park.max_age) : "",
       description: park.description ?? "",
@@ -81,7 +98,11 @@ export function InfoPanel({
   const dirty =
     editing &&
     (form.name !== initial.name ||
-      form.address !== initial.address ||
+      form.addressLine !== initial.addressLine ||
+      form.postalCode !== initial.postalCode ||
+      form.city !== initial.city ||
+      form.latitude !== initial.latitude ||
+      form.longitude !== initial.longitude ||
       form.ageMin !== initial.ageMin ||
       form.ageMax !== initial.ageMax ||
       form.description !== initial.description ||
@@ -106,14 +127,48 @@ export function InfoPanel({
         toast.error("Le nom du parc est obligatoire.");
         return;
       }
+
       const patch: Partial<Park> = {
         name: form.name.trim(),
-        formatted_address: form.address.trim(),
         description: form.description.trim() || null,
         operational_status: form.operational,
       };
-      if (form.ageMin.trim() !== "") patch.age_min = Number(form.ageMin);
-      if (form.ageMax.trim() !== "") patch.age_max = Number(form.ageMax);
+
+      // ── Adresse structurée (indépendante de la position) ────────────────
+      // Champs canoniques écrits en direct — `""` sauvegardé devient `null`.
+      // `formatted_address` n'est JAMAIS écrit : c'est une projection de la vue.
+      if (form.addressLine !== initial.addressLine) {
+        patch.address_line = form.addressLine.trim() || null;
+      }
+      if (form.postalCode !== initial.postalCode) {
+        patch.postal_code = form.postalCode.trim() || null;
+      }
+      if (form.city !== initial.city) {
+        patch.city = form.city.trim() || null;
+      }
+
+      // ── Âges — si une borne est touchée, on envoie la PAIRE complète pour
+      // que la validation min <= max côté shared soit fiable (3C.1). ────────
+      if (form.ageMin !== initial.ageMin || form.ageMax !== initial.ageMax) {
+        patch.age_min = form.ageMin.trim() === "" ? null : Number(form.ageMin);
+        patch.age_max = form.ageMax.trim() === "" ? null : Number(form.ageMax);
+      }
+
+      // ── Position (indépendante de l'adresse) — uniquement si modifiée,
+      // et toujours la paire lat+lng. ──────────────────────────────────────
+      if (form.latitude !== initial.latitude || form.longitude !== initial.longitude) {
+        const latN = Number(form.latitude);
+        const lngN = Number(form.longitude);
+        if (!isValidCoordinate(latN, lngN)) {
+          toast.error(
+            "Coordonnées GPS invalides : corrigez la latitude / longitude avant d'enregistrer.",
+          );
+          return;
+        }
+        patch.latitude = latN;
+        patch.longitude = lngN;
+      }
+
       await updatePark(park.id, patch, "Modifié depuis le back office");
       await logActivity(communeId ?? null, userName, `Parc modifié : ${form.name.trim()}`);
       for (const key of [["park", park.id], ["park-history", park.id], ["bo-parks-page"], ["bo-parks"], ["dash-parks"]]) {
@@ -125,7 +180,7 @@ export function InfoPanel({
     { successMessage: "Parc mis à jour." },
   );
 
-  async function cancel() {
+  function cancel() {
     setForm(initial);
     setEditing(false);
     onDirtyChange(false);
@@ -141,13 +196,48 @@ export function InfoPanel({
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             className={styles.formWide}
           />
-          <Input
-            label="Adresse"
-            value={form.address}
-            placeholder="Ex. 12 rue des Écoles, 12100 Millau"
-            onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-            className={styles.formWide}
-          />
+
+          <p className={`${styles.formNote} ${styles.formWide}`}>
+            Adresse et position sont enregistrées séparément. Modifier l'une ne déplace pas
+            automatiquement l'autre.
+          </p>
+
+          <div className={styles.formWide}>
+            <h4 className={styles.formGroupTitle}>Adresse</h4>
+            <Input
+              label="Adresse / voie"
+              value={form.addressLine}
+              placeholder="Ex. 12 rue des Écoles"
+              onChange={(e) => setForm((f) => ({ ...f, addressLine: e.target.value }))}
+            />
+            <div className={styles.twoCol}>
+              <Input
+                label="Code postal"
+                value={form.postalCode}
+                inputMode="numeric"
+                placeholder="Ex. 12100"
+                onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))}
+              />
+              <Input
+                label="Ville"
+                value={form.city}
+                placeholder="Ex. Millau"
+                onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className={styles.locBlock}>
+            <h4 className={styles.formGroupTitle}>Position sur la carte</h4>
+            <ParkLocationEditor
+              editing
+              disabled={saving}
+              latitude={form.latitude}
+              longitude={form.longitude}
+              onChange={(latitude, longitude) => setForm((f) => ({ ...f, latitude, longitude }))}
+            />
+          </div>
+
           <div className={styles.ageRow}>
             <Input
               label="Âge minimum"
@@ -201,6 +291,8 @@ export function InfoPanel({
     );
   }
 
+  const addr = addressLines(park);
+
   return (
     <div className={styles.panel}>
       {canEdit && (
@@ -217,16 +309,25 @@ export function InfoPanel({
             <dt>Nom</dt>
             <Value>{park.name}</Value>
             <dt>Adresse</dt>
-            <Value>{park.formatted_address}</Value>
-            <dt>Ville</dt>
-            <Value>{park.city}</Value>
-            <dt>Coordonnées</dt>
-            <Value>
-              {park.latitude != null && park.longitude != null
-                ? `${Number(park.latitude).toFixed(6)}, ${Number(park.longitude).toFixed(6)}`
-                : null}
-            </Value>
+            {addr.length > 0 ? (
+              <dd className={styles.addrLines}>
+                {addr.map((line, i) => (
+                  <span key={i}>{line}</span>
+                ))}
+              </dd>
+            ) : (
+              <dd className={styles.empty}>Adresse non renseignée</dd>
+            )}
           </dl>
+        </section>
+
+        <section className={styles.section}>
+          <h3 className={styles.sectionTitle}>Localisation</h3>
+          <ParkLocationEditor
+            editing={false}
+            latitude={initial.latitude}
+            longitude={initial.longitude}
+          />
         </section>
 
         <section className={styles.section}>

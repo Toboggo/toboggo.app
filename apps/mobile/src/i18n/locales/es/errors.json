@@ -1,0 +1,17 @@
+{
+  "generic": "Se ha producido un error",
+  "network": "Falló la conexión con el servicio. Comprueba tu red e inténtalo de nuevo.",
+  "image": {
+    "not_an_image": "Este archivo no es una imagen.",
+    "too_large": "Esta imagen es demasiado pesada (25 MB máximo).",
+    "invalid": "Imagen no válida",
+    "uploadFailed": "No se pudo enviar la foto"
+  },
+  "auth": {
+    "invalidCredentials": "Correo electrónico o contraseña incorrectos.",
+    "invalidForm": "Introduce un correo electrónico y una contraseña válidos (mínimo 6 caracteres).",
+    "emailForReset": "Introduce tu correo electrónico para recibir el enlace",
+    "googleUnavailable": "Inicio de sesión con Google no disponible por ahora",
+    "generic": "El inicio de sesión ha fallado. Inténtalo de nuevo."
+  }
+}

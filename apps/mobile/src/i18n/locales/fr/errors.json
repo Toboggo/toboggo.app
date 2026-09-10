@@ -1,0 +1,17 @@
+{
+  "generic": "Une erreur est survenue",
+  "network": "La connexion au service a échoué. Vérifiez votre réseau et réessayez.",
+  "image": {
+    "not_an_image": "Ce fichier n’est pas une image.",
+    "too_large": "Cette image est trop lourde (25 Mo maximum).",
+    "invalid": "Image invalide",
+    "uploadFailed": "Échec de l’envoi de la photo"
+  },
+  "auth": {
+    "invalidCredentials": "Adresse e-mail ou mot de passe incorrect.",
+    "invalidForm": "Entrez une adresse e-mail et un mot de passe valides (6 caractères min).",
+    "emailForReset": "Entrez votre e-mail pour recevoir le lien",
+    "googleUnavailable": "Connexion Google indisponible pour le moment",
+    "generic": "La connexion a échoué. Réessayez."
+  }
+}

@@ -1,5 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Chip, Icon, Input, Textarea, DualRangeSlider, Tag, equipmentIcon, serviceIcon } from "@toboggo/design-system";
 import {
@@ -71,6 +72,7 @@ function VerifySection({ title, onEdit, children }: { title: string; onEdit: () 
 
 export default function AddPark() {
   const navigate = useNavigate();
+  const { t: tErr } = useTranslation("errors");
   const { lat, lng } = useGeo();
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
@@ -132,7 +134,11 @@ export default function AddPark() {
       const url = await uploadPhoto("parkPhotos", file, userId);
       setPhotos((p) => [...p, url].slice(0, 4));
     } catch (err) {
-      showToast(err instanceof ImageValidationError ? err.message : "Échec de l'envoi de la photo");
+      showToast(
+        err instanceof ImageValidationError
+          ? tErr(`image.${err.code}`)
+          : tErr("image.uploadFailed"),
+      );
     } finally {
       setUploading(false);
     }

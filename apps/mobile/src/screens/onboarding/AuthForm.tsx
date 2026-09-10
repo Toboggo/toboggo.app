@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { signIn, signUp, sendPasswordReset, signInWithGoogle } from "@toboggo/shared";
 import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
@@ -19,6 +20,7 @@ export default function AuthForm() {
   const [resetSent, setResetSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { t: tErr } = useTranslation("errors");
   const showToast = useToastStore((s) => s.show);
 
   const isSignup = mode === "signup";
@@ -38,7 +40,7 @@ export default function AuthForm() {
     e.preventDefault();
     setError(null);
     if (!EMAIL_RE.test(email) || password.length < 6) {
-      setError("Entrez une adresse e-mail et un mot de passe valides (6 caractères min).");
+      setError(tErr("auth.invalidForm"));
       return;
     }
     setLoading(true);
@@ -74,9 +76,9 @@ export default function AuthForm() {
       }
     } catch (err: any) {
       setError(
-        err.message === "Invalid login credentials"
-          ? "Adresse e-mail ou mot de passe incorrect."
-          : err.message,
+        err?.message === "Invalid login credentials"
+          ? tErr("auth.invalidCredentials")
+          : tErr("auth.generic"),
       );
     } finally {
       setLoading(false);
@@ -85,7 +87,7 @@ export default function AuthForm() {
 
   async function forgotPassword() {
     if (!EMAIL_RE.test(email)) {
-      setError("Entrez votre e-mail pour recevoir le lien");
+      setError(tErr("auth.emailForReset"));
       return;
     }
     await sendPasswordReset(email);
@@ -95,8 +97,8 @@ export default function AuthForm() {
   const continueWithGoogle = async () => {
     try {
       await signInWithGoogle();
-    } catch (err: any) {
-      showToast(err?.message ?? "Connexion Google indisponible pour le moment");
+    } catch {
+      showToast(tErr("auth.googleUnavailable"));
     }
   };
 

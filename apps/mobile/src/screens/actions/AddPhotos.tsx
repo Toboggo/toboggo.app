@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@toboggo/design-system";
 import { addParkPhotos, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
@@ -23,6 +24,7 @@ const STEPPER = ["Parc", "Photos", "Confirmation"];
 export default function AddPhotos() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { t: tErr } = useTranslation("errors");
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
@@ -47,7 +49,7 @@ export default function AddPhotos() {
     try {
       validateImageFile(file);
     } catch (err) {
-      showToast(err instanceof ImageValidationError ? err.message : "Image invalide");
+      showToast(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.invalid"));
       return;
     }
     setPicks((p) => [...p, { file, preview: URL.createObjectURL(file) }].slice(0, 4));
@@ -81,7 +83,7 @@ export default function AddPhotos() {
       setSaving(true);
       upload(uid, targetPark, files)
         .then(() => setDone(true))
-        .catch((err) => showToast(err?.message ?? "Échec de l'envoi de la photo"))
+        .catch(() => showToast(tErr("image.uploadFailed")))
         .finally(() => setSaving(false));
       return;
     }
@@ -93,7 +95,7 @@ export default function AddPhotos() {
       if (!newUid) return;
       upload(newUid, targetPark, files)
         .then(() => useToastStore.getState().show("Photo envoyée, en attente de validation."))
-        .catch((err) => useToastStore.getState().show(err?.message ?? "Échec de l'envoi de la photo"))
+        .catch(() => useToastStore.getState().show(tErr("image.uploadFailed")))
         .finally(() => navigate(`/park/${targetPark}`));
     });
   }

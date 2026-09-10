@@ -1,9 +1,11 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { flagReview } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { queryClient } from "../../lib/queryClient";
 import { useToastStore } from "../../lib/toast";
+import { useFormat } from "../../i18n/useFormat";
 import styles from "./DetailReviews.module.css";
 
 function Stars({ value }: { value: number }) {
@@ -21,6 +23,8 @@ function Stars({ value }: { value: number }) {
 export default function DetailReviews() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("detail");
+  const f = useFormat();
   const { data: park } = usePark(id);
   const { data: reviews = [] } = useParkReviews(id);
   const showToast = useToastStore((s) => s.show);
@@ -32,21 +36,21 @@ export default function DetailReviews() {
   async function toggleFlag(reviewId: string, flagged: boolean) {
     if (flagged) return;
     await flagReview(reviewId);
-    showToast("Avis signalé, merci.");
+    showToast(t("reviews.flagThanks"));
     void queryClient.invalidateQueries({ queryKey: ["park-reviews", id] });
   }
 
   return (
     <div className={styles.screen}>
-      <DetailHeader title="Avis des parents" />
+      <DetailHeader title={t("parentsReviews")} />
       <div className={styles.body}>
         <div className={styles.summary}>
           <div className={styles.summaryLeft}>
-            <div className={styles.avg}>{park.rating.toFixed(1)}</div>
+            <div className={styles.avg}>{f.rating(park.rating)}</div>
             <div className={styles.summaryStars}>
               <Stars value={park.rating} />
             </div>
-            <div className={styles.summaryCount}>{park.review_count} avis</div>
+            <div className={styles.summaryCount}>{t("reviewCount", { count: park.review_count })}</div>
           </div>
           <div className={styles.breakdown}>
             {[5, 4, 3, 2, 1].map((star, i) => (
@@ -68,7 +72,7 @@ export default function DetailReviews() {
               <div className={styles.cardMeta}>
                 <div className={styles.cardTop}>
                   <span className={styles.name}>{r.author_name}</span>
-                  <span className={styles.date}>{new Date(r.created_at).toLocaleDateString("fr-FR")}</span>
+                  <span className={styles.date}>{f.date(r.created_at)}</span>
                 </div>
                 <div className={styles.cardStars}>
                   <Stars value={r.stars} />
@@ -86,19 +90,19 @@ export default function DetailReviews() {
                 <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
                 <line x1="4" y1="22" x2="4" y2="15" />
               </svg>
-              {r.flagged ? "Signalé" : "Signaler cet avis"}
+              {r.flagged ? t("reviews.flagged") : t("reviews.flag")}
             </button>
           </div>
         ))}
 
         {reviews.length === 0 && (
           <p style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: 13, margin: "24px 0" }}>
-            Aucun avis pour l'instant.
+            {t("reviews.empty")}
           </p>
         )}
 
         <button type="button" className={styles.write} onClick={() => navigate(`/rate?park=${park.id}`)}>
-          Écrire un avis
+          {t("reviews.write")}
         </button>
       </div>
     </div>

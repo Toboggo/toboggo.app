@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { PLAY_EQUIPMENT_LABEL, formatAgeClause, formatAgeRange, incrementParkViews } from "@toboggo/shared";
+import { useTranslation } from "react-i18next";
+import { incrementParkViews } from "@toboggo/shared";
 import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
 import { hasRating } from "../../lib/parkDisplay";
+import { useFeatureLabel } from "../../lib/featureLabel";
+import { useFormat } from "../../i18n/useFormat";
 import { useSession } from "../../lib/session";
 import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
@@ -33,6 +36,10 @@ function CircleBtn({ label, onClick, children, on }: { label: string; onClick: (
 export default function ParkDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("detail");
+  const { t: tf } = useTranslation("features");
+  const f = useFormat();
+  const featureLabel = useFeatureLabel();
   const [params] = useSearchParams();
   const { data: park, isLoading } = usePark(id);
   const { data: reviews = [] } = useParkReviews(id);
@@ -48,13 +55,13 @@ export default function ParkDetail() {
   }, [id]);
 
   if (isLoading || !park) {
-    return <div className="screen" style={{ padding: 40, textAlign: "center" }}>Chargement…</div>;
+    return <div className="screen" style={{ padding: 40, textAlign: "center" }}>{t("loading")}</div>;
   }
 
   const photos = park.photos;
   const hasPhotos = photos.length > 0;
   const isFav = favorites.includes(park.id);
-  const score = (park.rating * 2).toFixed(1);
+  const score = f.rating(park.rating * 2);
   const tierColor =
     park.rating * 2 >= 8 ? "var(--color-success)" : park.rating * 2 >= 6 ? "var(--color-accent)" : "var(--color-error)";
   const equip = park.play_equipment ?? [];
@@ -65,14 +72,14 @@ export default function ParkDetail() {
     void patchProfile({ favorites: next });
   }
 
-  const ageClause = formatAgeClause(park.age_min, park.age_max);
+  const ageClause = f.ageClause(park.age_min, park.age_max);
   const rated = hasRating(park);
-  const chips: string[] = [formatAgeRange(park.age_min, park.age_max)];
+  const chips: string[] = [f.ageRange(park.age_min, park.age_max)];
 
-  if (park.fenced) chips.push("Clôturé");
-  if (park.shade) chips.push("Ombragé");
-  if (park.wc) chips.push("WC");
-  if (park.water) chips.push("Point d'eau");
+  if (park.fenced) chips.push(tf("attr.fenced"));
+  if (park.shade) chips.push(tf("attr.shaded"));
+  if (park.wc) chips.push(tf("attr.toilets"));
+  if (park.water) chips.push(tf("attr.water"));
 
   return (
     <div className={styles.wrap}>
@@ -86,21 +93,21 @@ export default function ParkDetail() {
             type="button"
             className={styles.heroEmpty}
             onClick={() => navigate(`/photo-add?park=${park.id}`)}
-            aria-label="Ajouter une photo de ce parc"
+            aria-label={t("addPhotoAria")}
           >
             <LogoMark size={40} rounded={false} />
-            <span>Ajouter une photo</span>
+            <span>{t("addPhoto")}</span>
           </button>
         )}
         <div className={styles.heroTop}>
-          <CircleBtn label="Retour" onClick={() => navigate(-1)}>
+          <CircleBtn label={t("a11y.back")} onClick={() => navigate(-1)}>
             <Icon name="ic-back" size={18} style={{ color: "var(--color-text)" }} />
           </CircleBtn>
           <div className={styles.heroTopRight}>
-            <CircleBtn label="Partager" onClick={() => setShareOpen(true)}>
+            <CircleBtn label={t("a11y.share")} onClick={() => setShareOpen(true)}>
               <Icon name="ic-share" size={18} style={{ color: "var(--color-text)" }} />
             </CircleBtn>
-            <CircleBtn label="Favori" on={isFav} onClick={toggleFavorite}>
+            <CircleBtn label={t("a11y.favorite")} on={isFav} onClick={toggleFavorite}>
               <svg width="17" height="17" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-error)" }} aria-hidden>
                 <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
               </svg>
@@ -132,11 +139,11 @@ export default function ParkDetail() {
             <>
               <Stars value={park.rating} />
               <span>
-                {park.rating.toFixed(1)} ({park.review_count} avis)
+                {t("ratingWithReviews", { rating: f.rating(park.rating), count: park.review_count })}
               </span>
             </>
           ) : (
-            <span>Aucun avis pour l’instant</span>
+            <span>{t("noReviews")}</span>
           )}
         </div>
 
@@ -166,7 +173,7 @@ export default function ParkDetail() {
                 </span>
               </span>
               <span className={styles.scoreSub}>
-                {ageClause ? `Adapté aux enfants ${ageClause}` : "Tranche d'âge non précisée"}
+                {ageClause ? t("score.suitable", { clause: ageClause }) : t("score.ageUnknown")}
               </span>
             </span>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-muted)" }} aria-hidden>
@@ -181,14 +188,14 @@ export default function ParkDetail() {
               <path d="M12 9v4M12 17h.01" />
               <path d="M10.3 3.9 2.5 17a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0z" />
             </svg>
-            <span>Un problème a été signalé sur ce parc récemment.</span>
+            <span>{t("issueReported")}</span>
           </div>
         ) : (
           <div className={styles.ok}>
             <span className={styles.okDot}>
               <Icon name="ic-check" size={12} style={{ color: "var(--color-on-primary)" }} />
             </span>
-            Aucun problème signalé récemment
+            {t("noIssue")}
           </div>
         )}
 
@@ -196,16 +203,16 @@ export default function ParkDetail() {
 
         <div className={styles.section}>
           <div className={styles.kickerRow}>
-            <span className={styles.kicker}>Jeux &amp; équipements</span>
+            <span className={styles.kicker}>{t("equipment.title")}</span>
             <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/amenities`)}>
-              Voir tout
+              {t("action.seeAll", { ns: "common" })}
             </button>
           </div>
           {equip.length === 0 ? (
             <div className={styles.emptyCard}>
-              <span>Informations sur les jeux indisponibles</span>
+              <span>{t("equipment.unavailable")}</span>
               <button type="button" onClick={() => navigate(`/contribute/edit?park=${park.id}`)}>
-                Compléter les informations
+                {t("equipment.complete")}
               </button>
             </div>
           ) : (
@@ -217,14 +224,14 @@ export default function ParkDetail() {
                     <span className={styles.equipIcon}>
                       {ic ? <Icon name={ic} size={24} /> : (EQUIPMENT_ICON[eq] ?? "🧩")}
                     </span>
-                    <span>{PLAY_EQUIPMENT_LABEL[eq] ?? eq}</span>
+                    <span>{featureLabel(eq)}</span>
                   </div>
                 );
               })}
               {equip.length > 3 && (
                 <button type="button" className={styles.equip} onClick={() => navigate(`/park/${park.id}/amenities`)}>
-                  <span className={styles.equipMore}>+{equip.length - 3}</span>
-                  <span>Voir tout</span>
+                  <span className={styles.equipMore}>{t("equipment.more", { count: equip.length - 3 })}</span>
+                  <span>{t("action.seeAll", { ns: "common" })}</span>
                 </button>
               )}
             </div>
@@ -233,14 +240,14 @@ export default function ParkDetail() {
 
         <div className={styles.section}>
           <div className={styles.kickerRow}>
-            <span className={styles.kicker}>Photos de la communauté</span>
+            <span className={styles.kicker}>{t("communityPhotos")}</span>
             {hasPhotos && (
               <div className={styles.kickerActions}>
                 <button type="button" className={styles.seeAll} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
-                  Ajouter
+                  {t("action.add", { ns: "common" })}
                 </button>
                 <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/photos`)}>
-                  Voir tout
+                  {t("action.seeAll", { ns: "common" })}
                 </button>
               </div>
             )}
@@ -254,16 +261,16 @@ export default function ParkDetail() {
                 type="button"
                 className={styles.photoAdd}
                 onClick={() => navigate(`/photo-add?park=${park.id}`)}
-                aria-label="Ajouter une photo"
+                aria-label={t("addPhoto")}
               >
                 <Icon name="ic-plus" size={24} />
               </button>
             </div>
           ) : (
             <div className={styles.emptyCard}>
-              <span>Aucune photo pour l'instant. Soyez le premier à en ajouter une !</span>
+              <span>{t("noPhotos")}</span>
               <button type="button" onClick={() => navigate(`/photo-add?park=${park.id}`)}>
-                Ajouter une photo
+                {t("addPhoto")}
               </button>
             </div>
           )}
@@ -273,15 +280,15 @@ export default function ParkDetail() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <path d="M4 21V4h14l-3 4 3 4H4" />
           </svg>
-          Contribuer à ce parc
+          {t("contribute")}
         </button>
 
         <div className={styles.hr} />
 
         <div className={styles.kickerRow} style={{ marginBottom: 14 }}>
-          <h4 className={styles.avisTitle}>Avis des parents</h4>
+          <h4 className={styles.avisTitle}>{t("parentsReviews")}</h4>
           <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/reviews`)}>
-            Voir tout
+            {t("action.seeAll", { ns: "common" })}
           </button>
         </div>
         {reviews.slice(0, 2).map((r) => (
@@ -294,12 +301,12 @@ export default function ParkDetail() {
           </div>
         ))}
         <button type="button" className={styles.giveReview} onClick={() => navigate(`/rate?park=${park.id}`)}>
-          Donner mon avis
+          {t("giveReview")}
         </button>
       </div>
 
       <div className={styles.footer}>
-        <button type="button" className={styles.footFav} data-on={isFav ? "1" : undefined} onClick={toggleFavorite} aria-label="Favori">
+        <button type="button" className={styles.footFav} data-on={isFav ? "1" : undefined} onClick={toggleFavorite} aria-label={t("a11y.favorite")}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-error)" }} aria-hidden>
             <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
           </svg>
@@ -308,7 +315,7 @@ export default function ParkDetail() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ color: "var(--color-on-primary)" }} aria-hidden>
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
-          Itinéraire
+          {t("directions")}
         </button>
       </div>
 

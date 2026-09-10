@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { LogoMark } from "@toboggo/design-system";
 import type { Park } from "@toboggo/shared";
 import { parkPhotoUrl } from "../lib/photos";
@@ -28,6 +29,7 @@ export function ParkPhoto({
   /** Optional overlay (e.g. a CTA) shown only in the empty state. */
   children?: ReactNode;
 }) {
+  const { t } = useTranslation("common");
   const url = parkPhotoUrl(park, index);
   if (url) {
     return <div className={className} style={{ ...style, backgroundImage: `url(${url})` }} />;
@@ -37,7 +39,7 @@ export function ParkPhoto({
       className={`${className ?? ""} ${styles.empty}`}
       style={style}
       role="img"
-      aria-label="Aucune photo pour ce parc"
+      aria-label={t("a11y.noParkPhoto")}
     >
       <LogoMark size={markSize} rounded={false} />
       {children}

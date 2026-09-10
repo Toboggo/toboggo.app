@@ -1,10 +1,27 @@
 {
   "slide": "Toboggan",
   "swing": "Balançoire",
+  "climbing": "Structure d’escalade",
   "sandbox": "Bac à sable",
+  "springer": "Jeux à ressort",
+  "zipline": "Tyrolienne",
+  "carousel": "Carrousel",
+  "motor_course": "Piste motricité",
+  "multisport": "Terrain multisport",
+  "water_play": "Jeux d’eau",
+  "play_structure": "Structure de jeux",
   "toilets": "Toilettes",
   "drinking_water": "Point d’eau potable",
+  "parking": "Parking",
+  "benches": "Bancs",
   "shade_level": "Ombrage",
   "fence_status": "Clôture",
-  "wheelchair_access": "Accès fauteuil roulant"
+  "wheelchair_access": "Accès fauteuil roulant",
+  "attr": {
+    "fenced": "Clôturé",
+    "shaded": "Ombragé",
+    "toilets": "WC",
+    "accessible": "PMR",
+    "water": "Point d’eau"
+  }
 }

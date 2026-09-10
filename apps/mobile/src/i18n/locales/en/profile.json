@@ -1,0 +1,92 @@
+{
+  "title": "Profile",
+  "edit": "Edit",
+  "notifications": "Notifications",
+  "level": "Lvl {{level}}",
+  "levelProgress": "{{points}} points · {{remaining}} to next level",
+  "myChildren": "My children",
+  "stats": {
+    "parks": "Parks added",
+    "reviews": "Reviews",
+    "favorites": "Favorites"
+  },
+  "badgesTitle": "Badges",
+  "badge": {
+    "firstReview": "First review",
+    "contributor": "Contributor",
+    "explorer": "Explorer",
+    "grand": "Top contributor"
+  },
+  "communityTitle": "Community",
+  "groupOuting": "Group outing",
+  "activityFeed": "Activity feed",
+  "preferencesTitle": "Preferences",
+  "language": "Language",
+  "display": "Display",
+  "privacy": "Privacy",
+  "help": "Help",
+  "signOut": "Sign out",
+  "favorites": {
+    "title": "Favorites",
+    "compare": "Compare",
+    "compareCount": "Compare ({{count}})",
+    "emptyTitle": "No favorite parks yet.",
+    "emptyDesc": "Tap the heart on a park to add it here."
+  },
+  "compare": {
+    "title": "Compare",
+    "rating": "Rating",
+    "age": "Recommended age",
+    "surface": "Surface",
+    "distance": "Distance"
+  },
+  "contributions": {
+    "title": "Contributions",
+    "tabParks": "Parks added",
+    "tabReviews": "Reviews",
+    "tabReports": "Reports",
+    "emptyParks": "You haven’t added a park yet.",
+    "emptyReviews": "You haven’t left a review yet.",
+    "emptyReports": "You haven’t reported a problem yet.",
+    "pending": "Pending"
+  },
+  "activity": {
+    "title": "Activity",
+    "loading": "Loading…",
+    "empty": "No activity here."
+  },
+  "editProfile": {
+    "title": "Edit profile",
+    "name": "Name",
+    "email": "Email",
+    "save": "Save",
+    "updated": "Profile updated"
+  },
+  "privacyScreen": {
+    "title": "Privacy",
+    "shareLocation": "Share my location",
+    "publicProfile": "Public profile",
+    "privacyPolicy": "Privacy policy",
+    "terms": "Terms of use",
+    "legalNotice": "Legal notice",
+    "downloadData": "Download my data",
+    "exportSent": "Export sent by email within 48h",
+    "deleteAccount": "Delete my account",
+    "deleteConfirmTitle": "Delete your account?",
+    "deleteConfirmBody": "This action is permanent. Your profile, your reviews and the parks you added will be deleted, in line with our privacy policy.",
+    "delete": "Delete"
+  },
+  "group": {
+    "title": "Group outing",
+    "intro": "Create an outing to share your live location with other parents at this park, or join one with a code.",
+    "create": "Create an outing",
+    "codePlaceholder": "5-character code",
+    "join": "Join",
+    "invalidCode": "Invalid code",
+    "code": "Code",
+    "shareWhatsApp": "Share via WhatsApp",
+    "shareText": "Join my Toboggo outing! Code: {{code}}",
+    "leave": "Leave the outing",
+    "you": "You"
+  }
+}

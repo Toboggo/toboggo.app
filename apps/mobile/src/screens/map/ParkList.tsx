@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { type Park } from "@toboggo/shared";
 import { Icon } from "@toboggo/design-system";
 import { ParkCard } from "../../components/ParkCard";
@@ -6,11 +7,7 @@ import { useSession } from "../../lib/session";
 import { useFilters, type SortMode } from "../../lib/filters";
 import styles from "./ParkList.module.css";
 
-const SORT_OPTIONS: { value: SortMode; label: string }[] = [
-  { value: "distance", label: "Proximité" },
-  { value: "rating", label: "Mieux notés" },
-  { value: "recent", label: "Récents" },
-];
+const SORT_VALUES: SortMode[] = ["distance", "rating", "recent"];
 
 export function ParkList({
   parks,
@@ -25,6 +22,7 @@ export function ParkList({
   setForChildren: (v: boolean) => void;
   header?: ReactNode;
 }) {
+  const { t } = useTranslation("map");
   const { sort, setSort } = useFilters();
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const childAges = useSession((s) => s.profile?.children ?? []).map((c) => c.age);
@@ -45,15 +43,15 @@ export function ParkList({
         {header}
         <div className={styles.controls}>
           <div className={styles.sortRow}>
-            {SORT_OPTIONS.map((o) => (
+            {SORT_VALUES.map((value) => (
               <button
-                key={o.value}
+                key={value}
                 type="button"
                 className={styles.sortChip}
-                data-on={sort === o.value ? "1" : undefined}
-                onClick={() => setSort(o.value)}
+                data-on={sort === value ? "1" : undefined}
+                onClick={() => setSort(value)}
               >
-                {o.label}
+                {t(`sort.${value}`)}
               </button>
             ))}
           </div>
@@ -65,16 +63,14 @@ export function ParkList({
               onClick={() => setForChildren(!forChildren)}
             >
               <Icon name="ic-star" size={12} />
-              Pour mes enfants
+              {t("sort.forChildren")}
             </button>
           )}
         </div>
       </div>
 
       <div className={styles.list}>
-        {rows.length === 0 && (
-          <div className={styles.empty}>Aucun parc adapté à l’âge de vos enfants dans cette zone.</div>
-        )}
+        {rows.length === 0 && <div className={styles.empty}>{t("state.listEmpty")}</div>}
         {rows.map((p) => (
           <ParkCard
             key={p.id}

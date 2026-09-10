@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, EmptyState } from "@toboggo/design-system";
 import { listParksByIds } from "@toboggo/shared";
@@ -10,6 +11,7 @@ import { useSession } from "../../lib/session";
 
 export default function Favorites() {
   const navigate = useNavigate();
+  const { t } = useTranslation("profile");
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const patchProfile = useSession((s) => s.patchProfile);
   const [compareMode, setCompareMode] = useState(false);
@@ -32,7 +34,7 @@ export default function Favorites() {
   return (
     <div className="screen screen-with-tabs">
       <TopBar
-        title="Favoris"
+        title={t("favorites.title")}
         onBack={() => navigate("/map")}
         right={
           parks.length > 0 ? (
@@ -40,14 +42,14 @@ export default function Favorites() {
               onClick={() => setCompareMode((c) => !c)}
               style={{ background: "none", border: "none", color: "var(--color-primary)", fontFamily: "var(--font-heading)", fontWeight: 600, cursor: "pointer" }}
             >
-              {compareMode ? "Annuler" : "Comparer"}
+              {compareMode ? t("action.cancel", { ns: "common" }) : t("favorites.compare")}
             </button>
           ) : null
         }
       />
       <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
         {parks.length === 0 ? (
-          <EmptyState iconName="ic-heart" title="Aucun parc favori pour le moment." description="Appuyez sur le cœur d'un parc pour l'ajouter ici." />
+          <EmptyState iconName="ic-heart" title={t("favorites.emptyTitle")} description={t("favorites.emptyDesc")} />
         ) : (
           parks.map((park) =>
             compareMode ? (
@@ -75,7 +77,7 @@ export default function Favorites() {
       {compareMode && selected.size >= 2 && (
         <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", zIndex: 40 }}>
           <Button onClick={() => navigate(`/compare?ids=${Array.from(selected).join(",")}`)}>
-            Comparer ({selected.size})
+            {t("favorites.compareCount", { count: selected.size })}
           </Button>
         </div>
       )}

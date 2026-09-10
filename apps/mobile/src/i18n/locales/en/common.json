@@ -1,0 +1,56 @@
+{
+  "nav": {
+    "explore": "Explore",
+    "favorites": "Favorites",
+    "contributions": "Contributions",
+    "profile": "Profile"
+  },
+  "action": {
+    "add": "Add",
+    "back": "Back",
+    "close": "Close",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "seeAll": "See all",
+    "signIn": "Sign in"
+  },
+  "guestProfile": {
+    "prompt": "Sign in to find your favorites and your contributions."
+  },
+  "settings": {
+    "displayTitle": "Display",
+    "darkMode": "Dark mode",
+    "offlineMode": "Offline mode",
+    "offlineModeHint": "Map saved for offline use.",
+    "languageLabel": "Language",
+    "languageHint": "Choose the app language. Independent of your location and country."
+  },
+  "age": {
+    "notSpecified": "Age not specified",
+    "range_one": "{{min}}–{{max}} yr",
+    "range_other": "{{min}}–{{max}} yrs",
+    "single_one": "{{age}} yr",
+    "single_other": "{{age}} yrs",
+    "from_one": "From {{age}} yr",
+    "from_other": "From {{age}} yrs",
+    "upTo_one": "Up to {{age}} yr",
+    "upTo_other": "Up to {{age}} yrs",
+    "clauseRange_one": "ages {{min}} to {{max}}",
+    "clauseRange_other": "ages {{min}} to {{max}}",
+    "clauseSingle_one": "age {{age}}",
+    "clauseSingle_other": "age {{age}}",
+    "clauseFrom_one": "from age {{age}}",
+    "clauseFrom_other": "from age {{age}}",
+    "clauseUpTo_one": "up to age {{age}}",
+    "clauseUpTo_other": "up to age {{age}}",
+    "band": {
+      "all": "All ages",
+      "under3": "Under 3",
+      "3-6": "3–6 yrs",
+      "6-12": "6–12 yrs"
+    }
+  },
+  "a11y": {
+    "noParkPhoto": "No photo for this park"
+  }
+}

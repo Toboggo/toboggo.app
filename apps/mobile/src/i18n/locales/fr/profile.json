@@ -1,0 +1,92 @@
+{
+  "title": "Profil",
+  "edit": "Modifier",
+  "notifications": "Notifications",
+  "level": "Niv. {{level}}",
+  "levelProgress": "{{points}} points · {{remaining}} avant le niveau suivant",
+  "myChildren": "Mes enfants",
+  "stats": {
+    "parks": "Parcs ajoutés",
+    "reviews": "Avis",
+    "favorites": "Favoris"
+  },
+  "badgesTitle": "Badges",
+  "badge": {
+    "firstReview": "Premier avis",
+    "contributor": "Contributeur",
+    "explorer": "Explorateur",
+    "grand": "Grand contributeur"
+  },
+  "communityTitle": "Communauté",
+  "groupOuting": "Sortie de groupe",
+  "activityFeed": "Fil d’activité",
+  "preferencesTitle": "Préférences",
+  "language": "Langue",
+  "display": "Affichage",
+  "privacy": "Confidentialité",
+  "help": "Aide",
+  "signOut": "Se déconnecter",
+  "favorites": {
+    "title": "Favoris",
+    "compare": "Comparer",
+    "compareCount": "Comparer ({{count}})",
+    "emptyTitle": "Aucun parc favori pour le moment.",
+    "emptyDesc": "Appuyez sur le cœur d’un parc pour l’ajouter ici."
+  },
+  "compare": {
+    "title": "Comparer",
+    "rating": "Note",
+    "age": "Âge conseillé",
+    "surface": "Sol",
+    "distance": "Distance"
+  },
+  "contributions": {
+    "title": "Contributions",
+    "tabParks": "Parcs ajoutés",
+    "tabReviews": "Avis",
+    "tabReports": "Signalements",
+    "emptyParks": "Vous n’avez pas encore ajouté de parc.",
+    "emptyReviews": "Vous n’avez pas encore laissé d’avis.",
+    "emptyReports": "Vous n’avez pas encore signalé de problème.",
+    "pending": "En attente"
+  },
+  "activity": {
+    "title": "Activité",
+    "loading": "Chargement…",
+    "empty": "Aucune activité ici."
+  },
+  "editProfile": {
+    "title": "Modifier le profil",
+    "name": "Nom",
+    "email": "E-mail",
+    "save": "Enregistrer",
+    "updated": "Profil mis à jour"
+  },
+  "privacyScreen": {
+    "title": "Confidentialité",
+    "shareLocation": "Partager ma position",
+    "publicProfile": "Profil public",
+    "privacyPolicy": "Politique de confidentialité",
+    "terms": "CGU",
+    "legalNotice": "Mentions légales",
+    "downloadData": "Télécharger mes données",
+    "exportSent": "Export envoyé par e-mail sous 48h",
+    "deleteAccount": "Supprimer mon compte",
+    "deleteConfirmTitle": "Supprimer votre compte ?",
+    "deleteConfirmBody": "Cette action est définitive. Votre profil, vos avis et vos parcs ajoutés seront supprimés, conformément à notre politique de confidentialité.",
+    "delete": "Supprimer"
+  },
+  "group": {
+    "title": "Sortie de groupe",
+    "intro": "Créez une sortie pour partager votre position en temps réel avec d’autres parents sur ce parc, ou rejoignez-en une avec un code.",
+    "create": "Créer une sortie",
+    "codePlaceholder": "Code à 5 caractères",
+    "join": "Rejoindre",
+    "invalidCode": "Code invalide",
+    "code": "Code",
+    "shareWhatsApp": "Partager par WhatsApp",
+    "shareText": "Rejoins ma sortie Toboggo ! Code : {{code}}",
+    "leave": "Quitter la sortie",
+    "you": "Vous"
+  }
+}

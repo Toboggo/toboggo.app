@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { BottomSheet, Icon, useBottomNavHeight, type Snap } from "@toboggo/design-system";
-import { WEATHER_ALERT_COPY } from "@toboggo/shared";
 import { MapCanvas } from "./MapCanvas";
 import { SearchOverlay } from "./SearchOverlay";
 import { FiltersSheet } from "./FiltersSheet";
@@ -11,7 +11,7 @@ import { ParkCarousel } from "./ParkCarousel";
 import { SheetState, SheetLoading } from "./SheetState";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
-import { useGeo, requestBrowserLocation } from "../../lib/geo";
+import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo";
 import { useFilters } from "../../lib/filters";
 import { useNearbyParks } from "../../lib/parksQuery";
 import { useWeather } from "../../lib/weather";
@@ -27,8 +27,15 @@ function weatherEmoji(condition?: string) {
   return condition === "rain" ? "🌧️" : condition === "heat" ? "☀️" : condition === "wind" ? "💨" : "⛅";
 }
 
+const WEATHER_ALERT_CONDITIONS = ["heat", "rain", "wind"] as const;
+type WeatherAlertCondition = (typeof WEATHER_ALERT_CONDITIONS)[number];
+function isWeatherAlertCondition(c: string | undefined): c is WeatherAlertCondition {
+  return (WEATHER_ALERT_CONDITIONS as readonly string[]).includes(c ?? "");
+}
+
 export default function MapExplore() {
   const navigate = useNavigate();
+  const { t } = useTranslation("map");
   const { lat, lng, label, permission, hasFix } = useGeo();
   const { ageLow, ageHigh, amenities, activeCount, reset } = useFilters();
   const [searchOpen, setSearchOpen] = useState(false);
@@ -99,7 +106,7 @@ export default function MapExplore() {
     try {
       const pos = await requestBrowserLocation();
       const { setLocation, setPermission } = useGeo.getState();
-      setLocation(pos.lat, pos.lng, "Autour de vous");
+      setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       setPermission("granted");
       setRecenterSignal((n) => n + 1);
     } catch {
@@ -107,10 +114,13 @@ export default function MapExplore() {
     }
   }
 
-  const alertCopy =
-    weather && weather.condition in WEATHER_ALERT_COPY
-      ? WEATHER_ALERT_COPY[weather.condition as keyof typeof WEATHER_ALERT_COPY]
-      : null;
+  const alertCondition = weather && isWeatherAlertCondition(weather.condition) ? weather.condition : null;
+  const alertCopy = alertCondition
+    ? {
+        message: t(`weather.${alertCondition}Message`),
+        actionLabel: t(`weather.${alertCondition}Action`),
+      }
+    : null;
   const alertShown = !!alertCopy && !weatherDismissed;
 
   // On first open, ask for the real position so "Autour de vous" is genuinely
@@ -143,7 +153,7 @@ export default function MapExplore() {
     };
   }, [alertShown]);
 
-  const placeLabel = label && label !== "Autour de vous" ? label : null;
+  const placeLabel = label && label !== DEFAULT_GEO_LABEL ? label : null;
   const sheetTopInset = headerBottom + 12;
   // Deterministic: the floating controls belong to the map browsing states, not
   // to a full-height list or a park preview. No height guessing.
@@ -173,11 +183,11 @@ export default function MapExplore() {
         <SheetState
           tone="error"
           iconName="ic-close"
-          title="Impossible de charger les parcs"
-          description="La connexion au service a échoué. Vérifiez votre réseau et réessayez."
+          title={t("state.errorTitle")}
+          description={t("state.errorDesc")}
           action={
             <button type="button" className={styles.stateBtn} onClick={() => void refetch()}>
-              Réessayer
+              {t("action.retry", { ns: "common" })}
             </button>
           }
         />
@@ -188,11 +198,11 @@ export default function MapExplore() {
         return (
           <SheetState
             iconName="ic-explore"
-            title="Localisation désactivée"
-            description="Autorisez la localisation ou cherchez une ville pour voir les parcs autour de vous."
+            title={t("state.locationOffTitle")}
+            description={t("state.locationOffDesc")}
             action={
               <button type="button" className={styles.stateBtn} onClick={() => void handleRecenter()}>
-                Activer la localisation
+                {t("state.locationOffAction")}
               </button>
             }
           />
@@ -202,11 +212,11 @@ export default function MapExplore() {
         return (
           <SheetState
             iconName="ic-slide"
-            title="Aucun parc avec ces filtres"
-            description="Élargissez la tranche d’âge ou retirez des critères pour voir plus de parcs."
+            title={t("state.filtersTitle")}
+            description={t("state.filtersDesc")}
             action={
               <button type="button" className={styles.stateBtn} onClick={reset}>
-                Effacer les filtres
+                {t("state.filtersAction")}
               </button>
             }
           />
@@ -219,11 +229,11 @@ export default function MapExplore() {
         return (
           <SheetState
             iconName="ic-slide"
-            title="Aucun parc ici"
-            description="Aucun parc référencé dans cette zone pour le moment."
+            title={t("state.placeTitle")}
+            description={t("state.placeDesc")}
             action={
               <button type="button" className={styles.stateBtn} onClick={() => setSearchOpen(true)}>
-                Chercher un autre lieu
+                {t("state.placeAction")}
               </button>
             }
           />
@@ -232,11 +242,11 @@ export default function MapExplore() {
       return (
         <SheetState
           iconName="ic-slide"
-          title="Aucun parc autour de vous"
-          description="Aucune aire de jeux référencée dans cette zone pour le moment."
+          title={t("state.aroundTitle")}
+          description={t("state.aroundDesc")}
           action={
             <button type="button" className={styles.stateBtn} onClick={() => setSearchOpen(true)}>
-              Chercher une ville
+              {t("state.aroundAction")}
             </button>
           }
         />
@@ -245,13 +255,13 @@ export default function MapExplore() {
 
     const header = (
       <div className={styles.sheetHead}>
-        <div className={styles.sheetTitle}>Autour de vous</div>
+        <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
         {snap < 2 ? (
           <button type="button" className={styles.seeAll} onClick={() => setSnap(2)}>
-            Voir tout
+            {t("action.seeAll", { ns: "common" })}
           </button>
         ) : (
-          <span className={styles.count}>{parks.length} parcs</span>
+          <span className={styles.count}>{t("sheet.count", { count: parks.length })}</span>
         )}
       </div>
     );
@@ -259,10 +269,8 @@ export default function MapExplore() {
     if (snap === 0) {
       return (
         <button type="button" className={styles.collapsedBar} onClick={() => setSnap(1)}>
-          <span className={styles.sheetTitle}>Autour de vous</span>
-          <span className={styles.count}>
-            {parks.length} parc{parks.length > 1 ? "s" : ""} · Faites glisser pour explorer
-          </span>
+          <span className={styles.sheetTitle}>{t("sheet.aroundYou")}</span>
+          <span className={styles.count}>{t("sheet.dragHint", { count: parks.length })}</span>
         </button>
       );
     }
@@ -309,11 +317,14 @@ export default function MapExplore() {
         <button type="button" className={styles.searchField} onClick={() => setSearchOpen(true)}>
           <Icon name="ic-explore" size={16} style={{ color: "var(--color-text-muted)" }} />
           <span className={placeLabel ? styles.searchValue : styles.searchPlaceholder}>
-            {placeLabel ?? "Rechercher un parc, une ville…"}
+            {placeLabel ?? t("searchPlaceholder")}
           </span>
         </button>
         {weather && (
-          <div className={styles.weatherChip} aria-label={`Météo ${Math.round(weather.temperatureC)} degrés`}>
+          <div
+            className={styles.weatherChip}
+            aria-label={t("weather.aria", { temp: Math.round(weather.temperatureC) })}
+          >
             <span>{weatherEmoji(weather.condition)}</span>
             <span>{Math.round(weather.temperatureC)}°</span>
           </div>
@@ -323,7 +334,7 @@ export default function MapExplore() {
           className={styles.iconBtn}
           data-on={filterCount > 0 ? "1" : undefined}
           onClick={() => setFiltersOpen(true)}
-          aria-label="Filtres"
+          aria-label={t("filters.open")}
         >
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden>
             <line x1="4" y1="7" x2="20" y2="7" />
@@ -333,7 +344,7 @@ export default function MapExplore() {
           </svg>
           {filterCount > 0 && <span className={styles.badge}>{filterCount}</span>}
         </button>
-        <button type="button" className={styles.iconBtn} onClick={() => navigate("/notifications/center")} aria-label="Notifications">
+        <button type="button" className={styles.iconBtn} onClick={() => navigate("/notifications/center")} aria-label={t("a11y.notifications")}>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -350,7 +361,7 @@ export default function MapExplore() {
               {alertCopy.actionLabel}
             </button>
           </div>
-          <button type="button" className={styles.waClose} onClick={() => setWeatherDismissed(true)} aria-label="Fermer">
+          <button type="button" className={styles.waClose} onClick={() => setWeatherDismissed(true)} aria-label={t("action.close", { ns: "common" })}>
             <Icon name="ic-close" size={14} />
           </button>
         </div>
@@ -358,14 +369,14 @@ export default function MapExplore() {
 
       {showFabs && (
         <div className={styles.fabStack} style={{ bottom: fabBottom }}>
-          <button type="button" className={styles.fabRecenter} onClick={() => void handleRecenter()} aria-label="Recentrer">
+          <button type="button" className={styles.fabRecenter} onClick={() => void handleRecenter()} aria-label={t("a11y.recenter")}>
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text)" }} aria-hidden>
               <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
               <circle cx="12" cy="12" r="5" />
               <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
             </svg>
           </button>
-          <button type="button" className={styles.fabAdd} onClick={() => setQuickMenuOpen(true)} aria-label="Contribuer">
+          <button type="button" className={styles.fabAdd} onClick={() => setQuickMenuOpen(true)} aria-label={t("a11y.contribute")}>
             <Icon name="ic-plus" size={22} />
           </button>
         </div>

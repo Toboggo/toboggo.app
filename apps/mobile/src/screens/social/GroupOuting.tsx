@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input } from "@toboggo/design-system";
 import { createGroup, getMyActiveGroup, joinGroup, leaveGroup, listGroupMembers, getPark } from "@toboggo/shared";
@@ -9,6 +10,7 @@ import { queryClient } from "../../lib/queryClient";
 import { useToastStore } from "../../lib/toast";
 
 export default function GroupOuting() {
+  const { t } = useTranslation("profile");
   const userId = useSession((s) => s.userId)!;
   const profile = useSession((s) => s.profile);
   const showToast = useToastStore((s) => s.show);
@@ -28,14 +30,14 @@ export default function GroupOuting() {
   });
 
   async function onCreate(parkId: string) {
-    await createGroup(parkId, userId, profile?.name ?? "Vous");
+    await createGroup(parkId, userId, profile?.name ?? t("group.you"));
     void queryClient.invalidateQueries({ queryKey: ["my-group", userId] });
     setShowPicker(false);
   }
 
   async function onJoin() {
-    const g = await joinGroup(joinCode, profile?.name ?? "Vous");
-    if (!g) return showToast("Code invalide");
+    const g = await joinGroup(joinCode, profile?.name ?? t("group.you"));
+    if (!g) return showToast(t("group.invalidCode"));
     void queryClient.invalidateQueries({ queryKey: ["my-group", userId] });
   }
 
@@ -47,16 +49,15 @@ export default function GroupOuting() {
 
   return (
     <div className="screen">
-      <TopBar title="Sortie de groupe" />
+      <TopBar title={t("group.title")} />
       <div style={{ padding: "0 20px" }}>
         {!group ? (
           <>
             <p style={{ fontSize: 14, color: "var(--color-text-muted)", marginBottom: 20 }}>
-              Créez une sortie pour partager votre position en temps réel avec d'autres parents sur ce parc, ou
-              rejoignez-en une avec un code.
+              {t("group.intro")}
             </p>
             <Button block onClick={() => setShowPicker(true)}>
-              Créer une sortie
+              {t("group.create")}
             </Button>
             {showPicker && (
               <div style={{ marginTop: 12 }}>
@@ -64,9 +65,9 @@ export default function GroupOuting() {
               </div>
             )}
             <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
-              <Input placeholder="Code à 5 caractères" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} />
+              <Input placeholder={t("group.codePlaceholder")} value={joinCode} onChange={(e) => setJoinCode(e.target.value)} />
               <Button onClick={onJoin} disabled={!joinCode}>
-                Rejoindre
+                {t("group.join")}
               </Button>
             </div>
           </>
@@ -74,15 +75,15 @@ export default function GroupOuting() {
           <>
             <h2 style={{ fontSize: 18 }}>{park?.name}</h2>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
-              Code : <strong>{group.code}</strong>
+              {t("group.code")} : <strong>{group.code}</strong>
             </div>
             <a
-              href={`https://wa.me/?text=${encodeURIComponent(`Rejoins ma sortie Toboggo ! Code : ${group.code}`)}`}
+              href={`https://wa.me/?text=${encodeURIComponent(t("group.shareText", { code: group.code }))}`}
               target="_blank"
               rel="noreferrer"
               style={{ display: "block", marginBottom: 20, color: "var(--color-primary)", fontFamily: "var(--font-heading)", fontWeight: 600 }}
             >
-              💬 Partager par WhatsApp
+              💬 {t("group.shareWhatsApp")}
             </a>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {members.map((m) => (
@@ -93,7 +94,7 @@ export default function GroupOuting() {
               ))}
             </div>
             <Button variant="secondary" block style={{ marginTop: 24 }} onClick={onLeave}>
-              Quitter la sortie
+              {t("group.leave")}
             </Button>
           </>
         )}

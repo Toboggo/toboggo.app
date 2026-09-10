@@ -20,11 +20,14 @@ export function StarRating({
   count,
   size = "md",
   showValue = true,
+  valueText,
 }: {
   value: number;
   count?: number;
   size?: "sm" | "md";
   showValue?: boolean;
+  /** Pre-formatted value string (e.g. locale-aware "4,5"). Falls back to `value.toFixed(1)`. */
+  valueText?: string;
 }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -35,7 +38,7 @@ export function StarRating({
       </span>
       {showValue && (
         <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: size === "sm" ? 12 : 13 }}>
-          {value.toFixed(1)}
+          {valueText ?? value.toFixed(1)}
         </span>
       )}
       {count != null && (

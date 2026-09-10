@@ -93,10 +93,10 @@ export function buildParkMarker(label: string): HTMLButtonElement {
   return el;
 }
 
-export function buildUserMarker(): HTMLDivElement {
+export function buildUserMarker(label: string): HTMLDivElement {
   ensureStyles();
   const el = document.createElement("div");
   el.className = "tbg-user";
-  el.setAttribute("aria-label", "Votre position");
+  el.setAttribute("aria-label", label);
   return el;
 }

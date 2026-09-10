@@ -38,19 +38,37 @@ interface MapTilerResponse {
   features?: MapTilerFeature[];
 }
 
+/** Langues d'affichage supportées pour les libellés de lieux renvoyés par
+ * MapTiler. Sert uniquement à demander les libellés dans la langue de l'UI —
+ * ne restreint jamais la zone de recherche et ne dépend pas du pays. */
+type GeocodeLanguage = "fr" | "es" | "en";
+function toGeocodeLanguage(value: string | null | undefined): GeocodeLanguage {
+  const primary = (value ?? "").toLowerCase().split(/[-_]/)[0];
+  return primary === "es" || primary === "en" ? primary : "fr";
+}
+
 /**
  * Recherche un lieu par texte libre via MapTiler Geocoding. `signal` permet à
  * l'appelant (React Query) d'annuler une requête devenue obsolète pendant une
  * saisie rapide — les annulations remontent comme un rejet standard, sans
  * repasser par le tableau vide ci-dessous.
+ *
+ * `language` : langue des libellés renvoyés (celle de l'UI). N'influe pas sur
+ * la logique de recherche ni sur la zone couverte. Les noms officiels de
+ * communes / adresses restent ceux fournis par le fournisseur, non retraduits.
  */
-export async function searchPlaces(query: string, signal?: AbortSignal): Promise<GeoPlace[]> {
+export async function searchPlaces(
+  query: string,
+  signal?: AbortSignal,
+  language?: string,
+): Promise<GeoPlace[]> {
   const key = maptilerKey();
   if (!key) return [];
   const trimmed = query.trim();
   if (!trimmed) return [];
 
-  const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(trimmed)}.json?key=${key}&language=fr&limit=5`;
+  const lang = toGeocodeLanguage(language);
+  const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(trimmed)}.json?key=${key}&language=${lang}&limit=5`;
   const res = await fetch(url, { signal });
   if (!res.ok) {
     console.warn(`[geocode] MapTiler a répondu ${res.status}`);

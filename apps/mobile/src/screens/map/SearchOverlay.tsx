@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { searchParks, searchPlaces } from "@toboggo/shared";
 import { CITIES } from "../../lib/geo";
+import { useLocale } from "../../i18n/useLocale";
 import { EmptyState, Icon } from "@toboggo/design-system";
 import styles from "./SearchOverlay.module.css";
 
@@ -32,6 +34,8 @@ export function SearchOverlay({
   onSelectPark: (parkId: string) => void;
   onSelectPlace: (place: { lat: number; lng: number; name: string }) => void;
 }) {
+  const { t } = useTranslation("map");
+  const { language } = useLocale();
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const recent = useMemo(loadRecent, []);
@@ -55,8 +59,8 @@ export function SearchOverlay({
   // frappe plus récente change la clé — pas de résultat obsolète qui écrase
   // le plus récent.
   const { data: places } = useQuery({
-    queryKey: ["search-places", debouncedQuery.trim()],
-    queryFn: ({ signal }) => searchPlaces(debouncedQuery, signal),
+    queryKey: ["search-places", debouncedQuery.trim(), language],
+    queryFn: ({ signal }) => searchPlaces(debouncedQuery, signal, language),
     enabled: geoActive,
   });
 
@@ -98,19 +102,19 @@ export function SearchOverlay({
         <input
           id="toboggo-search-input"
           className={styles.input}
-          placeholder="Rechercher un parc, une ville…"
+          placeholder={t("searchPlaceholder")}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
         <button type="button" className={styles.cancel} onClick={onClose}>
-          Annuler
+          {t("search.cancel")}
         </button>
       </form>
 
       <div className={styles.content}>
         {!active && (
           <>
-            <div className={styles.sectionTitle}>À proximité</div>
+            <div className={styles.sectionTitle}>{t("search.nearby")}</div>
             {CITIES.slice(0, 3).map((c) => (
               <button key={c.name} className={styles.row} onClick={() => onSelectPlace(c)}>
                 <span className={styles.rowIcon}><Icon name="ic-explore" size={16} /></span>
@@ -120,7 +124,7 @@ export function SearchOverlay({
             ))}
             {recent.length > 0 && (
               <>
-                <div className={styles.sectionTitle}>Recherches récentes</div>
+                <div className={styles.sectionTitle}>{t("search.recent")}</div>
                 {recent.map((r) => (
                   <button key={r} className={styles.row} onClick={() => setQuery(r)}>
                     <span className={styles.rowIcon}>🕓</span>
@@ -129,7 +133,7 @@ export function SearchOverlay({
                 ))}
               </>
             )}
-            <div className={styles.sectionTitle}>Villes suggérées</div>
+            <div className={styles.sectionTitle}>{t("search.suggestedCities")}</div>
             {CITIES.map((c) => (
               <button key={c.name} className={styles.row} onClick={() => onSelectPlace(c)}>
                 <span className={styles.rowIcon}>🏙️</span>
@@ -144,7 +148,7 @@ export function SearchOverlay({
           <>
             {(results?.length ?? 0) > 0 && (
               <>
-                <div className={styles.sectionTitle}>Parcs</div>
+                <div className={styles.sectionTitle}>{t("search.parks")}</div>
                 {results!.map((p) => (
                   <button
                     key={p.id}
@@ -160,7 +164,7 @@ export function SearchOverlay({
             )}
             {(places?.length ?? 0) > 0 && (
               <>
-                <div className={styles.sectionTitle}>Lieux</div>
+                <div className={styles.sectionTitle}>{t("search.places")}</div>
                 {places!.map((place) => (
                   <button
                     key={place.id}
@@ -175,7 +179,7 @@ export function SearchOverlay({
               </>
             )}
             {!results?.length && !places?.length && (
-              <EmptyState icon="🔍" title={`Aucun résultat pour « ${query} ».`} />
+              <EmptyState icon="🔍" title={t("search.noResults", { query })} />
             )}
           </>
         )}

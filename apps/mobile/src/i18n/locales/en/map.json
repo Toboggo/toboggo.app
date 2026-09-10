@@ -1,0 +1,81 @@
+{
+  "searchPlaceholder": "Search for a park or a city…",
+  "search": {
+    "cancel": "Cancel",
+    "nearby": "Nearby",
+    "recent": "Recent searches",
+    "suggestedCities": "Suggested cities",
+    "parks": "Parks",
+    "places": "Places",
+    "noResults": "No results for “{{query}}”."
+  },
+  "filters": {
+    "title": "Filters",
+    "ageRange": "Age range",
+    "ageValue": "Ages {{min}} to {{max}}",
+    "ageValuePlus": "Ages {{min}} to {{max}}+",
+    "ageMin": "Minimum age",
+    "ageMax": "Maximum age",
+    "availability": "Availability",
+    "openNow": "Open now",
+    "equipmentAccess": "Equipment & access",
+    "reset": "Reset",
+    "apply": "Show results",
+    "open": "Filters",
+    "amenity": {
+      "wc": "Toilets",
+      "shade": "Shaded",
+      "fenced": "Fenced",
+      "pmr": "Accessible",
+      "benches": "Benches",
+      "water": "Water",
+      "parking": "Parking"
+    }
+  },
+  "sheet": {
+    "aroundYou": "Around you",
+    "count_one": "{{count}} park",
+    "count_other": "{{count}} parks",
+    "dragHint_one": "{{count}} park · Drag to explore",
+    "dragHint_other": "{{count}} parks · Drag to explore",
+    "loading": "Looking for parks around you…"
+  },
+  "state": {
+    "errorTitle": "Couldn’t load the parks",
+    "errorDesc": "The connection to the service failed. Check your network and try again.",
+    "locationOffTitle": "Location turned off",
+    "locationOffDesc": "Allow location or search for a city to see parks around you.",
+    "locationOffAction": "Turn on location",
+    "filtersTitle": "No parks match these filters",
+    "filtersDesc": "Widen the age range or remove criteria to see more parks.",
+    "filtersAction": "Clear filters",
+    "placeTitle": "No parks here",
+    "placeDesc": "No parks listed in this area yet.",
+    "placeAction": "Search another place",
+    "aroundTitle": "No parks around you",
+    "aroundDesc": "No playgrounds listed in this area yet.",
+    "aroundAction": "Search for a city",
+    "listEmpty": "No parks suited to your children’s age in this area."
+  },
+  "sort": {
+    "distance": "Nearest",
+    "rating": "Top rated",
+    "recent": "Newest",
+    "forChildren": "For my children"
+  },
+  "weather": {
+    "aria": "Weather {{temp}}°",
+    "heatMessage": "Very hot today — pick a shaded park for your outing.",
+    "heatAction": "See shaded parks",
+    "rainMessage": "Rain expected this afternoon — better to stay close to home.",
+    "rainAction": "Sort by distance",
+    "windMessage": "Strong wind forecast — check that the park is fenced.",
+    "windAction": "See fenced parks"
+  },
+  "a11y": {
+    "notifications": "Notifications",
+    "recenter": "Recenter",
+    "contribute": "Contribute",
+    "userLocation": "Your location"
+  }
+}

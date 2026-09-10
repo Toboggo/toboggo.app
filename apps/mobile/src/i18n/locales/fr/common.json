@@ -1,0 +1,56 @@
+{
+  "nav": {
+    "explore": "Explorer",
+    "favorites": "Favoris",
+    "contributions": "Contributions",
+    "profile": "Profil"
+  },
+  "action": {
+    "add": "Ajouter",
+    "back": "Retour",
+    "close": "Fermer",
+    "cancel": "Annuler",
+    "retry": "Réessayer",
+    "seeAll": "Voir tout",
+    "signIn": "Se connecter"
+  },
+  "guestProfile": {
+    "prompt": "Connectez-vous pour retrouver vos favoris et vos contributions."
+  },
+  "settings": {
+    "displayTitle": "Affichage",
+    "darkMode": "Mode sombre",
+    "offlineMode": "Mode hors-ligne",
+    "offlineModeHint": "Carte enregistrée pour une utilisation sans connexion.",
+    "languageLabel": "Langue",
+    "languageHint": "Choisissez la langue de l’application. Indépendante de votre position et de votre pays."
+  },
+  "age": {
+    "notSpecified": "Âge non renseigné",
+    "range_one": "{{min}}–{{max}} an",
+    "range_other": "{{min}}–{{max}} ans",
+    "single_one": "{{age}} an",
+    "single_other": "{{age}} ans",
+    "from_one": "Dès {{age}} an",
+    "from_other": "Dès {{age}} ans",
+    "upTo_one": "Jusqu’à {{age}} an",
+    "upTo_other": "Jusqu’à {{age}} ans",
+    "clauseRange_one": "de {{min}} à {{max}} an",
+    "clauseRange_other": "de {{min}} à {{max}} ans",
+    "clauseSingle_one": "de {{age}} an",
+    "clauseSingle_other": "de {{age}} ans",
+    "clauseFrom_one": "dès {{age}} an",
+    "clauseFrom_other": "dès {{age}} ans",
+    "clauseUpTo_one": "jusqu’à {{age}} an",
+    "clauseUpTo_other": "jusqu’à {{age}} ans",
+    "band": {
+      "all": "Tout âge",
+      "under3": "−3 ans",
+      "3-6": "3–6 ans",
+      "6-12": "6–12 ans"
+    }
+  },
+  "a11y": {
+    "noParkPhoto": "Aucune photo pour ce parc"
+  }
+}

@@ -1,15 +1,17 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { listMyParks, listMyReviews, signOut } from "@toboggo/shared";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
+import { useFormat } from "../../i18n/useFormat";
 import styles from "./Profile.module.css";
 
-const BADGES = [
-  { key: "first_review", icon: "⭐", label: "Premier avis", earned: (s: Stats) => s.reviews >= 1 },
-  { key: "contributor", icon: "🛝", label: "Contributeur", earned: (s: Stats) => s.parks >= 1 },
-  { key: "explorer", icon: "🧭", label: "Explorateur", earned: (s: Stats) => s.favorites >= 5 },
-  { key: "grand", icon: "🏆", label: "Grand contributeur", earned: (s: Stats) => s.parks + s.reviews >= 10 },
+const BADGES: { key: string; icon: string; labelKey: string; earned: (s: Stats) => boolean }[] = [
+  { key: "first_review", icon: "⭐", labelKey: "badge.firstReview", earned: (s) => s.reviews >= 1 },
+  { key: "contributor", icon: "🛝", labelKey: "badge.contributor", earned: (s) => s.parks >= 1 },
+  { key: "explorer", icon: "🧭", labelKey: "badge.explorer", earned: (s) => s.favorites >= 5 },
+  { key: "grand", icon: "🏆", labelKey: "badge.grand", earned: (s) => s.parks + s.reviews >= 10 },
 ];
 
 interface Stats {
@@ -24,13 +26,52 @@ function initials(name: string) {
 
 export default function Profile() {
   const navigate = useNavigate();
+  const { t } = useTranslation("profile");
+  const f = useFormat();
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
 
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
 
-  if (!profile) return null;
+  // Guest: no account yet. Still expose the account-independent settings
+  // (language above all) and a sign-in entry, instead of a blank screen.
+  if (!profile) {
+    if (userId) return null; // signed in, profile still loading
+    return (
+      <div className={styles.screen}>
+        <div className={styles.titleBar}>
+          <h2>{t("title")}</h2>
+        </div>
+        <div className={styles.body}>
+          <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", lineHeight: 1.5, margin: "4px 0 16px" }}>
+            {t("guestProfile.prompt", { ns: "common" })}
+          </p>
+          <button
+            type="button"
+            className={styles.logout}
+            style={{ color: "var(--color-primary)" }}
+            onClick={() => navigate("/login-method")}
+          >
+            {t("action.signIn", { ns: "common" })}
+          </button>
+
+          <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
+          <div className={styles.group}>
+            <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
+              {t("language")}
+              <Chevron />
+            </button>
+            <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
+              {t("display")}
+              <Chevron />
+            </button>
+          </div>
+        </div>
+        <BottomTabs />
+      </div>
+    );
+  }
 
   const stats: Stats = { parks: myParks.length, reviews: myReviews.length, favorites: profile.favorites.length };
   const points = stats.parks * 30 + stats.reviews * 15 + stats.favorites * 5;
@@ -45,7 +86,7 @@ export default function Profile() {
   return (
     <div className={styles.screen}>
       <div className={styles.titleBar}>
-        <h2>Profil</h2>
+        <h2>{t("title")}</h2>
       </div>
 
       <div className={styles.body}>
@@ -56,7 +97,7 @@ export default function Profile() {
             <div className={styles.idEmail}>{profile.email}</div>
           </div>
           <button type="button" className={styles.editBtn} onClick={() => navigate("/profile/edit")}>
-            Modifier
+            {t("edit")}
           </button>
         </div>
 
@@ -67,17 +108,17 @@ export default function Profile() {
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
           </span>
-          <span className={styles.notifLabel}>Notifications</span>
+          <span className={styles.notifLabel}>{t("notifications")}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-faint)" }} aria-hidden>
             <path d="M9 6l6 6-6 6" />
           </svg>
         </div>
 
         <div className={styles.levelCard}>
-          <span className={styles.levelBadge}>Nv.{level}</span>
+          <span className={styles.levelBadge}>{t("level", { level })}</span>
           <div className={styles.levelBody}>
             <div className={styles.levelText}>
-              {points} points · {100 - progress} avant le niveau suivant
+              {t("levelProgress", { points, remaining: 100 - progress })}
             </div>
             <div className={styles.levelTrack}>
               <div style={{ width: `${progress}%` }} />
@@ -87,11 +128,11 @@ export default function Profile() {
 
         {profile.children.length > 0 && (
           <>
-            <h6 className={styles.kicker}>Mes enfants</h6>
+            <h6 className={styles.kicker}>{t("myChildren")}</h6>
             <div className={styles.children}>
               {profile.children.map((c, i) => (
                 <span key={i} className={styles.child}>
-                  {c.age} ans
+                  {f.ageRange(c.age, c.age)}
                 </span>
               ))}
             </div>
@@ -101,62 +142,66 @@ export default function Profile() {
         <div className={styles.stats}>
           <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
             <span style={{ color: "var(--color-primary)" }}>{stats.parks}</span>
-            Parcs ajoutés
+            {t("stats.parks")}
           </button>
           <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
             <span style={{ color: "var(--color-accent)" }}>{stats.reviews}</span>
-            Avis
+            {t("stats.reviews")}
           </button>
           <button type="button" className={styles.stat} onClick={() => navigate("/favorites")}>
             <span style={{ color: "var(--color-error)" }}>{stats.favorites}</span>
-            Favoris
+            {t("stats.favorites")}
           </button>
         </div>
 
-        <h6 className={styles.kicker}>Badges</h6>
+        <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
         <div className={styles.badges}>
           {BADGES.map((b) => (
             <div key={b.key} className={styles.badge} style={{ opacity: b.earned(stats) ? 1 : 0.35 }}>
               <div className={styles.badgeIcon}>{b.icon}</div>
-              <span>{b.label}</span>
+              <span>{t(b.labelKey)}</span>
             </div>
           ))}
         </div>
 
-        <h6 className={styles.kicker}>Communauté</h6>
+        <h6 className={styles.kicker}>{t("communityTitle")}</h6>
         <div className={styles.group}>
           <button type="button" className={styles.groupRow} onClick={() => navigate("/group")}>
-            Sortie de groupe
+            {t("groupOuting")}
             <Chevron />
           </button>
           <button type="button" className={styles.groupRow} onClick={() => navigate("/activity")}>
-            Fil d'activité
+            {t("activityFeed")}
             <Chevron />
           </button>
         </div>
 
-        <h6 className={styles.kicker}>Préférences</h6>
+        <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
         <div className={styles.group}>
+          <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
+            {t("language")}
+            <Chevron />
+          </button>
           <button type="button" className={styles.groupRow} onClick={() => navigate("/notifications")}>
-            Notifications
+            {t("notifications")}
             <Chevron />
           </button>
           <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-            Affichage
+            {t("display")}
             <Chevron />
           </button>
           <button type="button" className={styles.groupRow} onClick={() => navigate("/privacy")}>
-            Confidentialité
+            {t("privacy")}
             <Chevron />
           </button>
           <button type="button" className={styles.groupRow} onClick={() => navigate("/help")}>
-            Aide
+            {t("help")}
             <Chevron />
           </button>
         </div>
 
         <button type="button" className={styles.logout} onClick={logout}>
-          Se déconnecter
+          {t("signOut")}
         </button>
       </div>
 

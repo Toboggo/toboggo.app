@@ -1,24 +1,32 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { formatDistance, haversineMeters } from "@toboggo/shared";
+import { useTranslation } from "react-i18next";
+import { haversineMeters } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
 import { useGeo } from "../../lib/geo";
 import { useVisitPrompt } from "../../lib/visitPrompt";
 import { useToastStore } from "../../lib/toast";
+import { useFormat } from "../../i18n/useFormat";
 import styles from "./Directions.module.css";
 
 const MODES = [
-  { value: "walk", label: "À pied", speedKmh: 4.8 },
-  { value: "bike", label: "Vélo", speedKmh: 15 },
-  { value: "car", label: "Voiture", speedKmh: 30 },
+  { value: "walk", labelKey: "route.modeWalk", speedKmh: 4.8 },
+  { value: "bike", labelKey: "route.modeBike", speedKmh: 15 },
+  { value: "car", labelKey: "route.modeCar", speedKmh: 30 },
 ] as const;
 
-const STOPS = ["Boulangerie", "Parking", "Point d'eau"];
+const STOPS = [
+  { value: "bakery", labelKey: "route.stopBakery" },
+  { value: "parking", labelKey: "route.stopParking" },
+  { value: "water", labelKey: "route.stopWater" },
+] as const;
 
 export default function Directions() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("detail");
+  const f = useFormat();
   const { data: park } = usePark(id);
   const { lat, lng } = useGeo();
   const [mode, setMode] = useState<(typeof MODES)[number]["value"]>("walk");
@@ -31,17 +39,17 @@ export default function Directions() {
 
   const distanceM = haversineMeters(lat, lng, park.lat, park.lng);
   const etaFor = (speed: number) => Math.max(1, Math.round((distanceM / 1000 / speed) * 60));
-  const selectedEta = `${etaFor(MODES.find((m) => m.value === mode)!.speedKmh)} min · ${formatDistance(distanceM)}`;
+  const selectedEta = `${f.walk(etaFor(MODES.find((m) => m.value === mode)!.speedKmh))} · ${f.distance(distanceM)}`;
 
   function startNav() {
     setNavigating(true);
-    showToast("Navigation démarrée");
+    showToast(t("route.started"));
     schedule(park!.id, park!.name);
   }
 
   return (
     <div className={styles.screen}>
-      <DetailHeader title="Itinéraire" />
+      <DetailHeader title={t("route.title")} />
       <div className={styles.body}>
         <div className={styles.card}>
           <div className={styles.parkName}>{park.name}</div>
@@ -51,11 +59,11 @@ export default function Directions() {
         <div className={styles.mini}>
           <span className={styles.miniDot} />
           <span className={styles.miniPath} />
-          <span className={styles.miniPin}>{park.rating.toFixed(1)}</span>
+          <span className={styles.miniPin}>{f.rating(park.rating)}</span>
         </div>
 
         <div>
-          <label className={styles.label}>Mode de déplacement</label>
+          <label className={styles.label}>{t("route.mode")}</label>
           <div className={styles.modes}>
             {MODES.map((m) => (
               <button
@@ -65,36 +73,36 @@ export default function Directions() {
                 data-on={mode === m.value ? "1" : undefined}
                 onClick={() => setMode(m.value)}
               >
-                <span>{m.label}</span>
-                <em>{etaFor(m.speedKmh)} min</em>
+                <span>{t(m.labelKey)}</span>
+                <em>{f.walk(etaFor(m.speedKmh))}</em>
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className={styles.label}>Ajouter une étape en chemin</label>
+          <label className={styles.label}>{t("route.addStop")}</label>
           <div className={styles.stops}>
             {STOPS.map((s) => (
               <button
-                key={s}
+                key={s.value}
                 type="button"
                 className={styles.stop}
-                data-on={stops.includes(s) ? "1" : undefined}
-                onClick={() => setStops((v) => (v.includes(s) ? v.filter((x) => x !== s) : [...v, s]))}
+                data-on={stops.includes(s.value) ? "1" : undefined}
+                onClick={() => setStops((v) => (v.includes(s.value) ? v.filter((x) => x !== s.value) : [...v, s.value]))}
               >
-                {s}
+                {t(s.labelKey)}
               </button>
             ))}
           </div>
         </div>
 
         <button type="button" className={styles.cta} disabled={navigating} onClick={startNav}>
-          {navigating ? "Navigation en cours…" : `Démarrer la navigation · ${selectedEta}`}
+          {navigating ? t("route.inProgress") : t("route.start", { eta: selectedEta })}
         </button>
         {navigating && (
           <button type="button" className={styles.ghost} onClick={() => navigate(`/park/${park.id}`)}>
-            Retour à la fiche du parc
+            {t("route.backToPark")}
           </button>
         )}
       </div>

@@ -42,6 +42,49 @@
   "display": "Visualización",
   "privacy": "Privacidad",
   "help": "Ayuda",
+  "helpScreen": {
+    "title": "Ayuda",
+    "contactSupport": "Contactar con soporte",
+    "faq": {
+      "geoloc": {
+        "q": "¿Cómo funciona la geolocalización?",
+        "a": "Toboggo usa tu ubicación para mostrar los parques más cercanos, ordenados por distancia. También puedes buscar una ciudad manualmente."
+      },
+      "filters": {
+        "q": "¿Qué significan los filtros (aseos, sombra, franja de edad)?",
+        "a": "Esta información la aportan la comunidad o los ayuntamientos asociados, y se verifica antes de publicarla."
+      },
+      "addPark": {
+        "q": "¿Cómo se añade un parque?",
+        "a": "Desde la pestaña Añadir, indica el nombre, la dirección y el equipamiento disponible. Nuestro equipo verifica tu aportación antes de que aparezca en el mapa."
+      },
+      "report": {
+        "q": "¿Cómo se informa de un problema?",
+        "a": "Usa el botón «Informar de un problema» en la ficha del parque. Nuestro equipo o el ayuntamiento correspondiente actualiza la información."
+      },
+      "municipality": {
+        "q": "Soy un ayuntamiento, ¿cómo gestiono mis parques?",
+        "a": "Los ayuntamientos asociados disponen de un back-office propio. Contáctanos para activarlo."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contacto",
+    "sentTitle": "Mensaje enviado",
+    "sentBody": "Nuestro equipo te responderá en breve.",
+    "intro": "Para un parque dañado o información errónea, usa mejor el botón «Informar» desde la ficha del parque.",
+    "nameLabel": "Nombre",
+    "emailLabel": "Correo electrónico",
+    "subjectLabel": "Asunto",
+    "messageLabel": "Mensaje",
+    "send": "Enviar",
+    "subject": {
+      "general": "Consulta general",
+      "technical": "Problema técnico",
+      "partnership": "Colaboración",
+      "press": "Prensa"
+    }
+  },
   "signOut": "Cerrar sesión",
   "favorites": {
     "title": "Favoritos",

@@ -42,6 +42,49 @@
   "display": "Display",
   "privacy": "Privacy",
   "help": "Help",
+  "helpScreen": {
+    "title": "Help",
+    "contactSupport": "Contact support",
+    "faq": {
+      "geoloc": {
+        "q": "How does location work?",
+        "a": "Toboggo uses your location to show the nearest parks, sorted by distance. You can also search for a city manually."
+      },
+      "filters": {
+        "q": "What do the filters (toilets, shade, age range) mean?",
+        "a": "This information comes from the community or partner local authorities, and is checked before publication."
+      },
+      "addPark": {
+        "q": "How do I add a park?",
+        "a": "From the Add tab, enter the name, address and available equipment. Your submission is checked by our team before it appears on the map."
+      },
+      "report": {
+        "q": "How do I report a problem?",
+        "a": "Use the “Report a problem” button on the park page. Our team or the relevant local authority updates the information."
+      },
+      "municipality": {
+        "q": "I'm a local authority — how do I manage my parks?",
+        "a": "Partner local authorities get a dedicated back office. Contact us to enable it."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact",
+    "sentTitle": "Message sent",
+    "sentBody": "Our team will get back to you shortly.",
+    "intro": "For a damaged park or incorrect information, please use the “Report” button on the park page instead.",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "subjectLabel": "Subject",
+    "messageLabel": "Message",
+    "send": "Send",
+    "subject": {
+      "general": "General enquiry",
+      "technical": "Technical problem",
+      "partnership": "Partnership",
+      "press": "Press"
+    }
+  },
   "signOut": "Sign out",
   "favorites": {
     "title": "Favorites",

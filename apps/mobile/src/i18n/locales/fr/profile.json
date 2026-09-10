@@ -42,6 +42,49 @@
   "display": "Affichage",
   "privacy": "Confidentialité",
   "help": "Aide",
+  "helpScreen": {
+    "title": "Aide",
+    "contactSupport": "Contacter le support",
+    "faq": {
+      "geoloc": {
+        "q": "Comment fonctionne la géolocalisation ?",
+        "a": "Toboggo utilise votre position pour afficher les parcs les plus proches, triés par distance. Vous pouvez aussi chercher une ville manuellement."
+      },
+      "filters": {
+        "q": "Que signifient les filtres (WC, ombre, tranche d’âge) ?",
+        "a": "Ces informations sont fournies par la communauté ou les collectivités partenaires, et vérifiées avant publication."
+      },
+      "addPark": {
+        "q": "Comment ajouter un parc ?",
+        "a": "Depuis l’onglet Ajouter, indiquez le nom, l’adresse et les équipements présents. Votre ajout est vérifié par notre équipe avant d’apparaître sur la carte."
+      },
+      "report": {
+        "q": "Comment signaler un problème ?",
+        "a": "Utilisez le bouton « Signaler un problème » sur la fiche du parc. Notre équipe ou la collectivité concernée met à jour l’information."
+      },
+      "municipality": {
+        "q": "Je suis une collectivité, comment gérer mes parcs ?",
+        "a": "Les collectivités partenaires disposent d’un back-office dédié. Contactez-nous pour l’activer."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact",
+    "sentTitle": "Message envoyé",
+    "sentBody": "Notre équipe vous répondra sous peu.",
+    "intro": "Pour un parc endommagé ou une information erronée, utilisez plutôt le bouton « Signaler » depuis la fiche du parc.",
+    "nameLabel": "Nom",
+    "emailLabel": "E-mail",
+    "subjectLabel": "Sujet",
+    "messageLabel": "Message",
+    "send": "Envoyer",
+    "subject": {
+      "general": "Question générale",
+      "technical": "Problème technique",
+      "partnership": "Partenariat",
+      "press": "Presse"
+    }
+  },
   "signOut": "Se déconnecter",
   "favorites": {
     "title": "Favoris",

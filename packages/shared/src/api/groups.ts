@@ -1,6 +1,17 @@
 import { getSupabase } from "../supabaseClient";
 import type { GroupMember, GroupOuting } from "../types";
 
+/**
+ * `group_members.status` values.
+ *
+ * These fixed French literals act as a de-facto enum: they are the only values
+ * ever written (`createGroup` / `joinGroup` below), `updateMemberStatus` is
+ * currently unused, and the sole reader (`GroupOuting.tsx`) maps them to the
+ * active locale for display. Kept as-is on purpose — no stored value changes,
+ * no migration — see the mapping in `GroupOuting.tsx`.
+ */
+const MEMBER_STATUS = { organizer: "Organisateur", enRoute: "En route" } as const;
+
 function genCode(): string {
   return Math.random().toString(36).slice(2, 7).toUpperCase();
 }
@@ -13,7 +24,7 @@ export async function createGroup(parkId: string, userId: string, organizerName:
     .select()
     .single();
   if (error) throw error;
-  await supabase.from("group_members").insert({ group_id: data.id, name: organizerName, status: "Organisateur" });
+  await supabase.from("group_members").insert({ group_id: data.id, name: organizerName, status: MEMBER_STATUS.organizer });
   return data as GroupOuting;
 }
 
@@ -27,7 +38,7 @@ export async function joinGroup(code: string, name: string): Promise<GroupOuting
     .maybeSingle();
   if (error) throw error;
   if (!group) return null;
-  await supabase.from("group_members").insert({ group_id: group.id, name, status: "En route" });
+  await supabase.from("group_members").insert({ group_id: group.id, name, status: MEMBER_STATUS.enRoute });
   return group as GroupOuting;
 }
 

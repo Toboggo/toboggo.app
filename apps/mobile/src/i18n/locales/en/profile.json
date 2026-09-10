@@ -113,7 +113,13 @@
   "activity": {
     "title": "Activity",
     "loading": "Loading…",
-    "empty": "No activity here."
+    "empty": "No activity here.",
+    "feed": {
+      "parkAdded": "New park added: {{park}}",
+      "reviewAdded": "{{author}} left a {{rating}}★ review of {{park}}",
+      "reportResolved": "A report was resolved for {{park}}",
+      "somePark": "a park"
+    }
   },
   "editProfile": {
     "title": "Edit profile",
@@ -147,6 +153,10 @@
     "shareWhatsApp": "Share via WhatsApp",
     "shareText": "Join my Toboggo outing! Code: {{code}}",
     "leave": "Leave the outing",
-    "you": "You"
+    "you": "You",
+    "status": {
+      "organizer": "Organizer",
+      "enRoute": "On the way"
+    }
   }
 }

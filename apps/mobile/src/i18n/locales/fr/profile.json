@@ -113,7 +113,13 @@
   "activity": {
     "title": "Activité",
     "loading": "Chargement…",
-    "empty": "Aucune activité ici."
+    "empty": "Aucune activité ici.",
+    "feed": {
+      "parkAdded": "Nouveau parc ajouté : {{park}}",
+      "reviewAdded": "{{author}} a laissé un avis {{rating}}★ sur {{park}}",
+      "reportResolved": "Un signalement a été résolu sur {{park}}",
+      "somePark": "un parc"
+    }
   },
   "editProfile": {
     "title": "Modifier le profil",
@@ -147,6 +153,10 @@
     "shareWhatsApp": "Partager par WhatsApp",
     "shareText": "Rejoins ma sortie Toboggo ! Code : {{code}}",
     "leave": "Quitter la sortie",
-    "you": "Vous"
+    "you": "Vous",
+    "status": {
+      "organizer": "Organisateur",
+      "enRoute": "En route"
+    }
   }
 }

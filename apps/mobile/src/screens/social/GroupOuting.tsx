@@ -17,6 +17,15 @@ export default function GroupOuting() {
   const [showPicker, setShowPicker] = useState(false);
   const [joinCode, setJoinCode] = useState("");
 
+  // `group_members.status` is written by createGroup / joinGroup as a fixed
+  // French literal that acts as a de-facto enum ("Organisateur" / "En route").
+  // We map it to the active locale here; any other value is shown as-is.
+  const memberStatusLabel = (status: string): string => {
+    if (status === "Organisateur" || status === "organizer") return t("group.status.organizer");
+    if (status === "En route" || status === "en_route") return t("group.status.enRoute");
+    return status;
+  };
+
   const { data: group } = useQuery({ queryKey: ["my-group", userId], queryFn: () => getMyActiveGroup(userId) });
   const { data: park } = useQuery({
     queryKey: ["group-park", group?.park_id],
@@ -89,7 +98,7 @@ export default function GroupOuting() {
               {members.map((m) => (
                 <div key={m.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, background: "var(--color-surface)", borderRadius: 12 }}>
                   <span>{m.name}</span>
-                  <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>{m.status}</span>
+                  <span style={{ color: "var(--color-text-muted)", fontSize: 13 }}>{memberStatusLabel(m.status)}</span>
                 </div>
               ))}
             </div>

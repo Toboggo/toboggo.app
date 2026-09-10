@@ -42,6 +42,30 @@ export function formatMeters(meters: number, locale: string): string {
   return `${formatNumber(meters / 1000, locale, { maximumFractionDigits: 1 })} km`;
 }
 
+/** Durée courte en minutes : « 5 min » — unité localisée via Intl. */
+export function formatMinutes(minutes: number, locale: string): string {
+  if (!Number.isFinite(minutes)) return "";
+  const rounded = Math.max(0, Math.round(minutes));
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "unit",
+      unit: "minute",
+      unitDisplay: "short",
+    }).format(rounded);
+  } catch {
+    return `${formatNumber(rounded, locale)} min`;
+  }
+}
+
+/** Pourcentage entier : « 80 % » (fr/es) / « 80% » (en). */
+export function formatPercent(value0to100: number, locale: string): string {
+  if (!Number.isFinite(value0to100)) return "";
+  return new Intl.NumberFormat(locale, {
+    style: "percent",
+    maximumFractionDigits: 0,
+  }).format(value0to100 / 100);
+}
+
 export function formatDate(
   value: Date | string | number,
   locale: string,

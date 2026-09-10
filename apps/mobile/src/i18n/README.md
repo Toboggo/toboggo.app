@@ -23,6 +23,7 @@ migration décrite dans l'audit i18n.
 | `backend.ts` | Backend i18next branché sur `resources.ts` |
 | `index.ts` | `i18n.init(...)` + synchro `<html lang>`. À importer une fois dans `main.tsx` |
 | `useLocale.ts` | Hook : `{ language, setLanguage, intlLocale }` |
+| `useFormat.ts` | Hook : nombres / notes / distances / minutes / % / âges localisés (Intl + pluriels i18next) |
 | `locales/<lang>/<ns>.json` | Catalogues de traduction |
 
 ## Namespaces (découpage par domaine)
@@ -30,9 +31,11 @@ migration décrite dans l'audit i18n.
 `common`, `onboarding`, `map`, `detail`, `contribute`, `reviews`, `profile`,
 `features`, `errors`, `legal`.
 
-**Remplis en Phase 1** : `common`, `features` (extrait de démonstration).
-Les autres se créent au fil des lots — un namespace sans fichier se résout en
-`{}` (repli `en` puis clé brute). Pour ajouter un namespace : créer
+**Remplis** : `common`, `features`, `map`, `detail` (parcours découverte —
+carte, recherche, filtres, ParkCard, fiche parc, équipements, score).
+`onboarding`, `contribute`, `reviews`, `profile`, `errors`, `legal` : non
+encore créés — un namespace sans fichier se résout en `{}` (repli `en` puis clé
+brute). Pour ajouter un namespace : créer
 `locales/fr/<ns>.json`, `locales/es/<ns>.json`, `locales/en/<ns>.json`, puis
 consommer via `useTranslation("<ns>")`.
 

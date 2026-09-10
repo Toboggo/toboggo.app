@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Icon, Input } from "@toboggo/design-system";
-import { fetchNearbyParks, formatDistance, haversineMeters, searchParks, type Park } from "@toboggo/shared";
+import { fetchNearbyParks, haversineMeters, searchParks, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
-import { ageRangeLabel } from "../lib/parkDisplay";
+import { useFormat } from "../i18n/useFormat";
 import { useGeo } from "../lib/geo";
 
 /**
@@ -29,6 +30,7 @@ const NEARBY_VISIBLE_CAP = 3;
  * (the "Aucun de ceux-ci" CTA) further down the screen.
  */
 function CappedRows<T>({ items, renderRow, cap = VISIBLE_CAP }: { items: T[]; renderRow: (item: T) => ReactNode; cap?: number }) {
+  const { t } = useTranslation("contribute");
   const [expanded, setExpanded] = useState(false);
   const hidden = items.length - cap;
   const shown = expanded ? items : items.slice(0, cap);
@@ -60,7 +62,7 @@ function CappedRows<T>({ items, renderRow, cap = VISIBLE_CAP }: { items: T[]; re
             cursor: "pointer",
           }}
         >
-          Voir plus ({hidden})
+          {t("addParkSearch.seeMore", { count: hidden })}
         </button>
       )}
     </>
@@ -76,8 +78,9 @@ function ChevronRight() {
 }
 
 function ParkResultRow({ park, distanceM, onOpen }: { park: Park; distanceM?: number; onOpen: () => void }) {
-  const age = ageRangeLabel(park);
-  const meta = [distanceM != null ? formatDistance(distanceM) : null, age].filter(Boolean).join(" · ");
+  const f = useFormat();
+  const age = f.ageRangeOrNull(park.age_min, park.age_max);
+  const meta = [distanceM != null ? f.distance(distanceM) : null, age].filter(Boolean).join(" · ");
   return (
     <button
       type="button"
@@ -142,6 +145,7 @@ export function AddParkSearch({
   onUseMyLocation: () => void;
   locating: boolean;
 }) {
+  const { t } = useTranslation("contribute");
   const { hasFix, lat, lng, permission } = useGeo();
 
   const { data: searchResults = [], isFetching: searching } = useQuery({
@@ -158,22 +162,22 @@ export function AddParkSearch({
 
   return (
     <div style={{ padding: "0 20px" }}>
-      <h2 style={{ fontSize: 18, marginBottom: 4 }}>Quel parc souhaitez-vous ajouter ?</h2>
+      <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addParkSearch.title")}</h2>
       <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-        Vérifions d'abord qu'il n'est pas déjà référencé.
+        {t("addParkSearch.subtitle")}
       </p>
 
       <Input
-        label="Rechercher un parc ou une adresse"
+        label={t("addParkSearch.searchLabel")}
         value={query}
         onChange={(e) => onQueryChange(e.target.value)}
-        placeholder="Nom du parc, rue, ville…"
+        placeholder={t("addParkSearch.searchPlaceholder")}
       />
       {query.trim().length >= 2 && (
         <div style={{ marginTop: 10 }}>
-          {searching && <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Recherche…</p>}
+          {searching && <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("common.searching")}</p>}
           {!searching && searchResults.length === 0 && (
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Aucun parc trouvé pour cette recherche.</p>
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("addParkSearch.noResults")}</p>
           )}
           <CappedRows
             items={searchResults}
@@ -191,24 +195,24 @@ export function AddParkSearch({
 
       <Button variant="secondary" block loading={locating} style={{ marginTop: 20 }} onClick={onUseMyLocation}>
         <Icon name="ic-explore" size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "-2px" }} />
-        Utiliser ma position actuelle
+        {t("common.useMyLocation")}
       </Button>
       {permission === "denied" && (
         <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 8 }}>
-          Position non autorisée — vous pouvez continuer sans, ou rechercher une adresse ci-dessus.
+          {t("addParkSearch.locationDenied")}
         </p>
       )}
 
       {hasFix && (
         <div style={{ marginTop: 24 }}>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>
-            Parcs à proximité
+            {t("addParkSearch.nearby")}
           </div>
           {loadingNearby && (
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>Recherche des parcs autour de vous…</p>
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("addParkSearch.nearbyLoading")}</p>
           )}
           {!loadingNearby && nearbyParks.length === 0 && (
-            <p style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>Aucun parc connu à proximité.</p>
+            <p style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>{t("addParkSearch.nearbyNone")}</p>
           )}
           <CappedRows
             items={nearbyParks}
@@ -221,7 +225,7 @@ export function AddParkSearch({
       )}
 
       <Button variant="ghost" block style={{ marginTop: 24 }} onClick={onNone}>
-        Aucun de ceux-ci
+        {t("addParkSearch.none")}
       </Button>
     </div>
   );

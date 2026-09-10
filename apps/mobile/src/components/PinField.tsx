@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { mapStyleUrl, searchPlaces, type GeoPlace } from "@toboggo/shared";
 import { Button, Chip, Icon, Input } from "@toboggo/design-system";
-import { requestBrowserLocation, useGeo } from "../lib/geo";
+import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../lib/geo";
 
 /**
  * MapTiler/Mapbox-style geocoding ids are prefixed with the feature's kind
@@ -62,6 +63,7 @@ export function PinField({
    */
   onAddressResolved?: (address: string) => void;
 }) {
+  const { t } = useTranslation("contribute");
   const styleUrl = mapStyleUrl();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -109,12 +111,12 @@ export function PinField({
     setGeoError(null);
     try {
       const pos = await requestBrowserLocation();
-      useGeo.getState().setLocation(pos.lat, pos.lng, "Autour de vous");
+      useGeo.getState().setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       useGeo.getState().setPermission("granted");
       recenter(pos.lat, pos.lng);
     } catch {
       useGeo.getState().setPermission("denied");
-      setGeoError("Position indisponible — recherchez un lieu ou déplacez le repère.");
+      setGeoError(t("pin.geoError"));
     } finally {
       setLocating(false);
     }
@@ -146,7 +148,7 @@ export function PinField({
   const searchBar = (
     <div style={{ position: "relative" }}>
       <Input
-        placeholder="Rechercher une ville, une adresse ou un lieu"
+        placeholder={t("pin.searchPlaceholder")}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
@@ -192,11 +194,11 @@ export function PinField({
 
   if (!styleUrl) {
     const step = 0.0002;
-    const nudges: { label: string; dLat: number; dLng: number }[] = [
-      { label: "Nord", dLat: step, dLng: 0 },
-      { label: "Sud", dLat: -step, dLng: 0 },
-      { label: "Est", dLat: 0, dLng: step },
-      { label: "Ouest", dLat: 0, dLng: -step },
+    const nudges: { key: string; dLat: number; dLng: number }[] = [
+      { key: "north", dLat: step, dLng: 0 },
+      { key: "south", dLat: -step, dLng: 0 },
+      { key: "east", dLat: 0, dLng: step },
+      { key: "west", dLat: 0, dLng: -step },
     ];
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -210,18 +212,18 @@ export function PinField({
           }}
         >
           <div style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 10 }}>
-            Carte indisponible — ajustez la position pas à pas.
+            {t("pin.unavailable")}
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 10 }}>
             {nudges.map((n) => (
               <Chip
-                key={n.label}
+                key={n.key}
                 onClick={() => onChange(Number((lat + n.dLat).toFixed(6)), Number((lng + n.dLng).toFixed(6)))}
               >
-                {n.label}
+                {t(`pin.nudge.${n.key}`)}
               </Chip>
             ))}
-            <Chip onClick={handleUseMyLocation}>{locating ? "Localisation…" : "Ma position"}</Chip>
+            <Chip onClick={handleUseMyLocation}>{locating ? t("pin.locating") : t("pin.myLocationShort")}</Chip>
           </div>
           <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
             {lat.toFixed(5)}, {lng.toFixed(5)}
@@ -237,7 +239,7 @@ export function PinField({
       {searchBar}
       <Button variant="secondary" block loading={locating} onClick={handleUseMyLocation}>
         <Icon name="ic-explore" size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "-2px" }} />
-        Utiliser ma position actuelle
+        {t("common.useMyLocation")}
       </Button>
       <div
         style={{
@@ -268,7 +270,7 @@ export function PinField({
         </div>
         <button
           type="button"
-          aria-label="Utiliser ma position"
+          aria-label={t("pin.useMyLocationAria")}
           onClick={handleUseMyLocation}
           disabled={locating}
           style={{

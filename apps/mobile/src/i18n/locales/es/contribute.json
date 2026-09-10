@@ -11,5 +11,211 @@
     "editInfo": "Corregir una información",
     "addPhotos": "Añadir fotos",
     "report": "Informar de un problema"
+  },
+  "common": {
+    "continue": "Continuar",
+    "skip": "Saltar este paso",
+    "edit": "Editar",
+    "verify": "Verificar",
+    "loading": "Cargando…",
+    "searching": "Buscando…",
+    "thanks": "¡Gracias!",
+    "seePark": "Ver el parque",
+    "backToPark": "Volver al parque",
+    "removePhoto": "Quitar esta foto",
+    "addPhoto": "Añadir una foto",
+    "useMyLocation": "Usar mi ubicación actual",
+    "accountRequired": "Se necesita una cuenta gratuita al enviar.",
+    "accountRequiredDraft": "Se necesita una cuenta gratuita al enviar. Tu borrador se conserva."
+  },
+  "steps": {
+    "park": "Parque",
+    "location": "Ubicación",
+    "info": "Información",
+    "photos": "Fotos",
+    "verify": "Verificación",
+    "opinion": "Opinión",
+    "comment": "Comentario",
+    "confirmation": "Confirmación",
+    "problem": "Problema",
+    "details": "Detalles",
+    "type": "Tipo",
+    "correction": "Corrección"
+  },
+  "field": {
+    "ageRange": "Franja de edad",
+    "playEquipment": "Juegos y equipamiento"
+  },
+  "photoTip": {
+    "label": "Consejo",
+    "text": "Evita que aparezcan niños en las fotos. Prioriza los juegos y el entorno."
+  },
+  "picker": {
+    "placeholder": "Nombre o dirección del parque",
+    "none": "Ninguno de estos — añadir un parque nuevo"
+  },
+  "intro": {
+    "subtitle": "Ayuda a otras familias añadiendo un parque nuevo.",
+    "step1": "Localiza el parque en el mapa",
+    "step2": "Indica su equipamiento",
+    "step3": "Añade una foto (opcional)",
+    "start": "Empezar"
+  },
+  "share": {
+    "email": "Correo",
+    "copied": "Enlace copiado al portapapeles",
+    "copy": "Copiar el enlace"
+  },
+  "rate": {
+    "criteria": {
+      "clean": "Limpieza",
+      "safety": "Seguridad",
+      "equipment": "Equipamiento",
+      "comfort": "Confort"
+    },
+    "visitQuestion": "¿Qué tal fue tu visita?",
+    "starLabel_one": "{{count}} estrella",
+    "starLabel_other": "{{count}} estrellas",
+    "childAge": "Edad del niño",
+    "commentLabel": "Tu comentario (opcional)",
+    "submit": "Publicar mi opinión",
+    "published": "Opinión publicada. ¡Gracias!",
+    "doneBody": "Tu opinión se ha publicado y ayuda a otros padres a elegir {{park}}."
+  },
+  "addParkSearch": {
+    "title": "¿Qué parque quieres añadir?",
+    "subtitle": "Comprobemos primero que no esté ya registrado.",
+    "searchLabel": "Buscar un parque o una dirección",
+    "searchPlaceholder": "Nombre del parque, calle, ciudad…",
+    "noResults": "No se ha encontrado ningún parque para esta búsqueda.",
+    "locationDenied": "Ubicación no autorizada — puedes continuar sin ella o buscar una dirección arriba.",
+    "nearby": "Parques cercanos",
+    "nearbyLoading": "Buscando parques a tu alrededor…",
+    "nearbyNone": "No hay parques conocidos cerca.",
+    "none": "Ninguno de estos",
+    "seeMore": "Ver más ({{count}})"
+  },
+  "pin": {
+    "searchPlaceholder": "Buscar una ciudad, una dirección o un lugar",
+    "unavailable": "Mapa no disponible — ajusta la posición paso a paso.",
+    "locating": "Ubicando…",
+    "myLocationShort": "Mi ubicación",
+    "useMyLocationAria": "Usar mi ubicación",
+    "geoError": "Ubicación no disponible — busca un lugar o mueve el marcador.",
+    "nudge": { "north": "Norte", "south": "Sur", "east": "Este", "west": "Oeste" }
+  },
+  "addPark": {
+    "locationTitle": "¿Dónde está el parque?",
+    "locationHint": "Busca un lugar, usa tu ubicación o coloca el marcador en el mapa.",
+    "pinHint": "Mueve el marcador para precisar la ubicación.",
+    "addressLabel": "Dirección (si la conoces)",
+    "addressPlaceholder": "Calle Mayor 12, 28013 Madrid",
+    "infoTitle": "Información del parque",
+    "infoHint": "Indica solo lo que sepas.",
+    "nameLabel": "Nombre del parque",
+    "namePlaceholder": "Parque del Oeste",
+    "descriptionLabel": "Descripción (opcional)",
+    "serviceGroup": {
+      "comfort": "Servicios y confort",
+      "characteristics": "Características del parque"
+    },
+    "photosTitle": "Fotos",
+    "photosHint": "Añade una foto para ayudar a otros padres a reconocer el parque.",
+    "verifyTitle": "Revisa antes de enviar",
+    "verifyHint": "Todavía podrás modificar cada sección antes del envío.",
+    "section": {
+      "park": "Parque",
+      "services": "Servicios y características",
+      "description": "Descripción"
+    },
+    "locationOnMap": "Ubicación seleccionada en el mapa",
+    "submit": "Enviar el parque",
+    "sentToast": "Parque enviado — en verificación.",
+    "doneBody": "Tu parque se ha propuesto correctamente. Vamos a verificar la información antes de publicarlo en Toboggo.",
+    "pendingTag": "En verificación",
+    "addAnother": "Añadir otro parque"
+  },
+  "addPhotos": {
+    "doneTitle": "¡Foto enviada!",
+    "doneBody_one": "¡Gracias! Tu foto se verá en la ficha del parque tras la verificación de nuestro equipo.",
+    "doneBody_other": "¡Gracias! Tus fotos se verán en la ficha del parque tras la verificación de nuestro equipo.",
+    "submit_one": "Enviar {{count}} foto",
+    "submit_other": "Enviar {{count}} fotos",
+    "sentToast": "Foto enviada, pendiente de validación."
+  },
+  "report": {
+    "problemQuestion": "¿Cuál es el problema?",
+    "equipmentLabel": "Equipamiento afectado",
+    "describeLabel": "Describe el problema",
+    "submit": "Enviar el informe",
+    "doneTitle": "¡Informe enviado!",
+    "doneBody": "Gracias por contribuir a la seguridad de los niños. Te mantendremos informado del avance."
+  },
+  "reason": {
+    "broken_equipment": "Juego roto / peligroso",
+    "safety": "Problema de seguridad",
+    "cleanliness": "Limpieza",
+    "vegetation": "Vegetación descontrolada",
+    "accessibility": "Accesibilidad PMR",
+    "wrong_info": "Información errónea",
+    "other": "Otro"
+  },
+  "equipment": {
+    "slide": "Tobogán",
+    "swing": "Columpio",
+    "climbing": "Estructura de escalada",
+    "sandbox": "Arenero",
+    "other": "Otro"
+  },
+  "status": {
+    "available": "Disponible",
+    "unavailable": "Ausente",
+    "unknown": "No lo sé"
+  },
+  "statusLabel": {
+    "available": "Disponible",
+    "unavailable": "Ausente",
+    "unknown": "Sin indicar",
+    "temporarily_unavailable": "No disponible temporalmente"
+  },
+  "edit": {
+    "target": {
+      "general": "Información general",
+      "ages": "Franja de edad",
+      "play": "Juegos y equipamiento",
+      "service": "Servicios",
+      "accessibility": "Accesibilidad",
+      "characteristics": "Características del parque",
+      "location": "Ubicación",
+      "other": "Otro"
+    },
+    "diff": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "ages": "Franja de edad",
+      "location": "Posición",
+      "freeText": "Corrección propuesta"
+    },
+    "notFoundTitle": "Parque no encontrado",
+    "notFoundBody": "No se puede abrir este parque por ahora.",
+    "backToMap": "Volver al mapa",
+    "noChanges": "No hay ninguna modificación que proponer.",
+    "doneBody": "Tu propuesta de corrección para <strong>{{park}}</strong> se ha recibido correctamente. Nuestro equipo la verificará antes de aplicarla.",
+    "draftResumed": "Borrador recuperado.",
+    "step0Question": "¿Qué quieres corregir?",
+    "currently": "Actualmente: {{value}}",
+    "current": "Actual: {{value}}",
+    "currentAddress": "Dirección actual: {{value}}",
+    "descriptionLabel": "Descripción",
+    "locationHeading": "Posición del parque",
+    "otherLabel": "¿Qué información hay que corregir?",
+    "playQuestion": "¿Qué juegos hay?",
+    "playHint": "Selecciona lo que observes in situ. Los juegos ya conocidos por Toboggo están preseleccionados — desmarca uno para indicar su ausencia.",
+    "noteSection": "Detalle",
+    "noteLabel": "¿Algún detalle que añadir? (opcional)",
+    "needOneChange": "Modifica al menos un valor para continuar.",
+    "verifyTitle": "Revisa tu corrección",
+    "notePrefix": "Detalle: {{value}}",
+    "submit": "Proponer la modificación"
   }
 }

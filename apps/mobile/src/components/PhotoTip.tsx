@@ -1,4 +1,7 @@
+import { useTranslation } from "react-i18next";
+
 export function PhotoTip() {
+  const { t } = useTranslation("contribute");
   return (
     <div
       style={{
@@ -10,7 +13,7 @@ export function PhotoTip() {
         marginTop: 12,
       }}
     >
-      <strong>Conseil</strong> — Évitez de montrer des enfants sur les photos. Privilégiez les jeux et l'environnement.
+      <strong>{t("photoTip.label")}</strong> — {t("photoTip.text")}
     </div>
   );
 }

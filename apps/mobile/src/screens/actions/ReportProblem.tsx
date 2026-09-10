@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button, Select, Textarea, Icon, IconButton, reportReasonIcon } from "@toboggo/design-system";
 import { createReport, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
@@ -25,7 +26,16 @@ const REASON_EMOJI: Partial<Record<ReportReason, string>> = {
   wrong_info: "✏️",
 };
 
-const EQUIPMENT_CHOICES = ["Toboggan", "Balançoire", "Structure d'escalade", "Bac à sable", "Autre"];
+// `value` is the stable string persisted to `reports.equipment` (unchanged
+// across locales, so moderation keeps a single vocabulary); only the visible
+// label is localized via `contribute:equipment.*`.
+const EQUIPMENT_CHOICES: { value: string; key: string }[] = [
+  { value: "Toboggan", key: "equipment.slide" },
+  { value: "Balançoire", key: "equipment.swing" },
+  { value: "Structure d'escalade", key: "equipment.climbing" },
+  { value: "Bac à sable", key: "equipment.sandbox" },
+  { value: "Autre", key: "equipment.other" },
+];
 
 // Stepper nommé, partagé avec les autres wizards de contribution via
 // WizardHeader (voir AddPark / AddPhotos / RatePark). Contrairement à ceux-ci,
@@ -37,11 +47,14 @@ const EQUIPMENT_CHOICES = ["Toboggan", "Balançoire", "Structure d'escalade", "B
 //   step interne 1 (choix du problème) → stepper, "Problème" courant  (step-1 = 0)
 //   step interne 2 (détails)           → stepper, "Détails" courant   (step-1 = 1)
 //   done → confirmation autonome, "Confirmation" n'est jamais l'étape courante
-const STEPPER = ["Problème", "Détails", "Confirmation"];
+const STEPPER = ["steps.problem", "steps.details", "steps.confirmation"];
 
 export default function ReportProblem() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("contribute");
+  const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
@@ -54,7 +67,7 @@ export default function ReportProblem() {
   const initial = useRef<ReportDraft | null>(loadDraft<ReportDraft>(draftKey)).current;
   const [step, setStep] = useState(parkId ? (initial?.reason ? 2 : 1) : 0);
   const [reason, setReason] = useState<ReportReason | null>(initial?.reason ?? null);
-  const [equipment, setEquipment] = useState(initial?.equipment ?? EQUIPMENT_CHOICES[0]);
+  const [equipment, setEquipment] = useState(initial?.equipment ?? EQUIPMENT_CHOICES[0].value);
   const [comment, setComment] = useState(initial?.comment ?? "");
   const [photo, setPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -83,8 +96,8 @@ export default function ReportProblem() {
       clearDraft(draftKey);
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
       setDone(true);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Envoi impossible");
+    } catch {
+      showToast(tErr("generic"));
     } finally {
       setSaving(false);
     }
@@ -138,16 +151,16 @@ export default function ReportProblem() {
         >
           <Icon name="ic-check" size={36} />
         </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>Signalement envoyé !</h1>
+        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("report.doneTitle")}</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
-          Merci de contribuer à la sécurité des enfants. Nous vous tiendrons informé de l'avancement.
+          {t("report.doneBody")}
         </p>
         {/* Signalement envoyé : on remplace l'entrée d'historique du wizard par
             la fiche parc. Depuis la fiche, Retour ramène au contexte antérieur
             (carte / ParkPreview), jamais dans ReportProblem ni sur cette
             confirmation. Idem AddPark / RatePark / AddPhotos / EditInfo. */}
         <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          Retour au parc
+          {t("common.backToPark")}
         </Button>
       </div>
     );
@@ -160,11 +173,11 @@ export default function ReportProblem() {
         // Fermer, même gabarit que WizardHeader) et titre, sans stepper. Le
         // stepper n'apparaît qu'à partir de "Problème".
         <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(14px + var(--safe-top)) 16px 14px" }}>
-          <IconButton aria-label="Retour" onClick={() => navigate(-1)}>
+          <IconButton aria-label={tCommon("action.back")} onClick={() => navigate(-1)}>
             <Icon name="ic-back" size={18} />
           </IconButton>
-          <h1 style={{ flex: 1, fontSize: 16, margin: 0 }}>Signaler un problème</h1>
-          <IconButton aria-label="Fermer" onClick={() => navigate("/map")}>
+          <h1 style={{ flex: 1, fontSize: 16, margin: 0 }}>{t("menu.report")}</h1>
+          <IconButton aria-label={tCommon("action.close")} onClick={() => navigate("/map")}>
             <Icon name="ic-close" size={18} />
           </IconButton>
         </div>
@@ -172,7 +185,7 @@ export default function ReportProblem() {
         <WizardHeader
           step={step - 1}
           total={STEPPER.length}
-          steps={STEPPER}
+          steps={STEPPER.map((k) => t(k))}
           onBack={() => (step === 1 && preselected ? navigate(-1) : setStep(step - 1))}
         />
       )}
@@ -190,7 +203,7 @@ export default function ReportProblem() {
       {step === 1 && park && (
         <div style={{ padding: "0 20px" }}>
           <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park.name}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>Quel est le problème ?</p>
+          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>{t("report.problemQuestion")}</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {(Object.keys(REPORT_REASON_LABEL) as ReportReason[]).map((r) => {
               const ic = reportReasonIcon(r);
@@ -213,7 +226,7 @@ export default function ReportProblem() {
                   <div style={{ fontSize: 24, minHeight: 24, display: "flex", justifyContent: "center", alignItems: "center" }}>
                     {ic ? <Icon name={ic} size={24} /> : REASON_EMOJI[r]}
                   </div>
-                  <div style={{ fontSize: 12, marginTop: 6 }}>{REPORT_REASON_LABEL[r]}</div>
+                  <div style={{ fontSize: 12, marginTop: 6 }}>{t(`reason.${r}`)}</div>
                 </button>
               );
             })}
@@ -223,13 +236,13 @@ export default function ReportProblem() {
 
       {step === 2 && (
         <div style={{ padding: "0 20px" }}>
-          <Select label="Équipement concerné" value={equipment} onChange={(e) => setEquipment(e.target.value)}>
+          <Select label={t("report.equipmentLabel")} value={equipment} onChange={(e) => setEquipment(e.target.value)}>
             {EQUIPMENT_CHOICES.map((c) => (
-              <option key={c}>{c}</option>
+              <option key={c.value} value={c.value}>{t(c.key)}</option>
             ))}
           </Select>
           <Textarea
-            label="Décrivez le problème"
+            label={t("report.describeLabel")}
             value={comment}
             maxLength={200}
             onChange={(e) => setComment(e.target.value)}
@@ -259,7 +272,7 @@ export default function ReportProblem() {
           )}
           <PhotoTip />
           <Button block loading={saving} style={{ marginTop: 24 }} onClick={submit}>
-            Envoyer le signalement
+            {t("report.submit")}
           </Button>
         </div>
       )}

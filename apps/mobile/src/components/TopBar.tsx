@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Icon } from "@toboggo/design-system";
 import styles from "./TopBar.module.css";
 
@@ -18,13 +19,14 @@ export function TopBar({
   right?: ReactNode;
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
   return (
     <header className={styles.wrap}>
       <button
         type="button"
         className={styles.back}
         onClick={onBack ?? (() => navigate(-1))}
-        aria-label="Retour"
+        aria-label={t("action.back")}
       >
         <Icon name="ic-back" size={16} />
       </button>

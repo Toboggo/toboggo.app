@@ -1,0 +1,15 @@
+{
+  "menu": {
+    "addPark": "Añadir un parque",
+    "rate": "Dar mi opinión",
+    "report": "Informar de un problema",
+    "addPhoto": "Añadir una foto",
+    "more": "Más acciones",
+    "ask": "Hacer una pregunta"
+  },
+  "sheet": {
+    "editInfo": "Corregir una información",
+    "addPhotos": "Añadir fotos",
+    "report": "Informar de un problema"
+  }
+}

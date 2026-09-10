@@ -1,0 +1,15 @@
+{
+  "menu": {
+    "addPark": "Add a park",
+    "rate": "Write a review",
+    "report": "Report a problem",
+    "addPhoto": "Add a photo",
+    "more": "More actions",
+    "ask": "Ask a question"
+  },
+  "sheet": {
+    "editInfo": "Correct information",
+    "addPhotos": "Add photos",
+    "report": "Report a problem"
+  }
+}

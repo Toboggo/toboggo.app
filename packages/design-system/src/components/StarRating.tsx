@@ -48,14 +48,25 @@ export function StarRating({
   );
 }
 
-export function StarInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+export function StarInput({
+  value,
+  onChange,
+  // Default kept until every caller passes a localized label (see the app's
+  // contribution screens) — avoids a silent a11y-text change meanwhile.
+  starLabel = (n) => `${n} étoiles`,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  /** a11y label for the "give N stars" button. The app passes a localized one. */
+  starLabel?: (n: number) => string;
+}) {
   return (
     <span style={{ display: "inline-flex", gap: 6 }}>
       {[1, 2, 3, 4, 5].map((i) => (
         <button
           key={i}
           type="button"
-          aria-label={`${i} étoiles`}
+          aria-label={starLabel(i)}
           onClick={() => onChange(i)}
           className={clsx()}
           style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}

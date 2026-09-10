@@ -141,7 +141,9 @@ export function ParkCard({
           {distanceM != null && ageBand ? " · " : ""}
           {ageBand ?? ""}
         </div>
-        {hasRating(park) && <StarRating value={park.rating} count={park.review_count} size="sm" />}
+        {hasRating(park) && (
+          <StarRating value={park.rating} valueText={f.rating(park.rating)} count={park.review_count} size="sm" />
+        )}
       </div>
       {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} />}
     </div>

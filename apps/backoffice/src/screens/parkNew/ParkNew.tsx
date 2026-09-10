@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button, Segmented, useToast } from "@toboggo/design-system";
+import { Button, Segmented, useToast, usePersistentDraft } from "@toboggo/design-system";
 import {
   assertValidAgeRange,
+  buildDraftKey,
   createPark,
   isValidCoordinate,
   logActivity,
@@ -45,7 +46,20 @@ const EMPTY_DRAFT: ParkDraft = {
   description: "",
 };
 
+const FORM_KEYS = Object.keys(EMPTY_DRAFT) as (keyof ParkDraft)[];
+
 type Step = "location" | "info";
+
+// ── Brouillon persistant (LOT 3D.C) ──────────────────────────────────────────
+// Le travail d'un gestionnaire sur /parks/new survit à un changement d'onglet,
+// un refresh, une fermeture d'onglet… tant que localStorage persiste. Clé
+// isolée par organisation + utilisateur ; restauration automatique + un simple
+// toast « Brouillon restauré » (pas de modal Reprendre/Recommencer en V1).
+type PersistedParkNewDraft = ParkDraft & { step: Step };
+
+const PARK_NEW_DRAFT_VERSION = 1;
+const PARK_NEW_DRAFT_TTL_MS = 72 * 60 * 60 * 1000; // 72 h — le pro revient le lendemain
+const INITIAL_PARK_NEW_DRAFT: PersistedParkNewDraft = { ...EMPTY_DRAFT, step: "location" };
 
 function parkPayload(draft: ParkDraft, communeId: string, publish: boolean): Partial<Park> {
   const payload: Partial<Park> = {
@@ -79,17 +93,39 @@ export default function ParkNew() {
   const toast = useToast();
   const { communeId } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
+  const userId = useOrgSession((s) => s.userId);
   const isGestionnaireOrAbove = useOrgSession((s) => s.isGestionnaireOrAbove());
   const { canCreatePark } = usePermissions();
 
-  const [step, setStep] = useState<Step>("location");
-  const [draft, setDraft] = useState<ParkDraft>(EMPTY_DRAFT);
+  // No org or no user yet ⇒ no key ⇒ no persistence (a draft is never shared
+  // across organisations or users — see buildDraftKey).
+  const draftKey =
+    communeId && userId
+      ? buildDraftKey({
+          surface: "bo",
+          flow: "park.new",
+          scope: { organizationId: communeId },
+          principal: { userId },
+        })
+      : null;
+
+  const {
+    value: draft,
+    patch,
+    restored,
+    clear: clearParkDraft,
+  } = usePersistentDraft<PersistedParkNewDraft>(draftKey, INITIAL_PARK_NEW_DRAFT, {
+    schemaVersion: PARK_NEW_DRAFT_VERSION,
+    ttlMs: PARK_NEW_DRAFT_TTL_MS,
+    restore: "auto",
+  });
+
   const [advanceAttempted, setAdvanceAttempted] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
 
-  const patch = (next: Partial<ParkDraft>) => setDraft((d) => ({ ...d, ...next }));
+  const setStep = (next: Step) => patch({ step: next });
 
-  const dirty = useMemo(() => Object.values(draft).some((v) => v.trim() !== ""), [draft]);
+  const dirty = useMemo(() => FORM_KEYS.some((k) => draft[k].trim() !== ""), [draft]);
   const confirmIfDirty = useUnsavedChangesGuard(dirty);
 
   const latN = Number(draft.latitude);
@@ -98,6 +134,19 @@ export default function ParkNew() {
     draft.latitude.trim() !== "" &&
     draft.longitude.trim() !== "" &&
     isValidCoordinate(latN, lngN);
+
+  // A restored draft that claims step 2 but no longer has valid coordinates
+  // (stale / logically inconsistent) falls back cleanly to step 1.
+  const step: Step = draft.step === "info" && !coordsValid ? "location" : draft.step;
+
+  // One discreet toast on restoration — never on every render.
+  const restoreToastShown = useRef(false);
+  useEffect(() => {
+    if (restored && !restoreToastShown.current) {
+      restoreToastShown.current = true;
+      toast.info("Brouillon restauré");
+    }
+  }, [restored, toast]);
 
   const nameEmpty = draft.name.trim() === "";
 
@@ -128,7 +177,13 @@ export default function ParkNew() {
   }
 
   async function leave() {
-    if (await confirmIfDirty()) navigate("/parks");
+    // Confirmed abandon (or a pristine form) ⇒ the draft is dropped before
+    // navigating. A refused confirmation leaves both the form and the draft
+    // untouched — the draft is NEVER cleared before the user confirms.
+    if (await confirmIfDirty()) {
+      clearParkDraft();
+      navigate("/parks");
+    }
   }
 
   const { run: submit, pending: creating } = useAsyncAction(async () => {
@@ -150,6 +205,10 @@ export default function ParkNew() {
     }
 
     const created = await createPark(parkPayload(draft, communeId, isGestionnaireOrAbove));
+    // Creation succeeded — drop the draft BEFORE navigating. `clear()` also
+    // suppresses any later flush (debounce / pagehide / unmount), so the
+    // draft cannot be resurrected on the way out (see usePersistentDraft).
+    clearParkDraft();
     await logActivity(communeId, userName, `Parc ajouté : ${created.name}`);
     for (const key of [["bo-parks-page"], ["bo-parks"], ["dash-parks"], ["shell-pending-parks"]]) {
       void queryClient.invalidateQueries({ queryKey: key });

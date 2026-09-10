@@ -1,9 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfirmDialogProvider, ToastProvider } from "@toboggo/design-system";
-import { createPark, isGeocodingConfigured, logActivity, mapStyleUrl, searchPlaces } from "@toboggo/shared";
+import {
+  buildDraftKey,
+  createPark,
+  isGeocodingConfigured,
+  logActivity,
+  mapStyleUrl,
+  readDraft,
+  searchPlaces,
+  writeDraft,
+} from "@toboggo/shared";
 import ParkNew from "./ParkNew";
 
 // ── MapLibre : mock léger, sans WebGL ni réseau ─────────────────────────────
@@ -89,14 +98,23 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
 });
 
 const perms = vi.hoisted(() => ({ canCreatePark: true }));
+const org = vi.hoisted(() => ({ userId: "user-1" as string | null, communeId: "org-1" as string | undefined }));
 vi.mock("../../lib/permissions", () => ({ usePermissions: () => ({ canCreatePark: perms.canCreatePark }) }));
-vi.mock("../../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: "org-1" }) }));
+vi.mock("../../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: org.communeId }) }));
 vi.mock("../../lib/orgSession", () => ({
   useOrgSession: (sel?: (s: unknown) => unknown) => {
-    const state = { userName: "Testeur", isGestionnaireOrAbove: () => true };
+    const state = { userName: "Testeur", userId: org.userId, isGestionnaireOrAbove: () => true };
     return sel ? sel(state) : state;
   },
 }));
+
+const PARK_NEW_KEY = buildDraftKey({
+  surface: "bo",
+  flow: "park.new",
+  scope: { organizationId: "org-1" },
+  principal: { userId: "user-1" },
+});
+const DRAFT_READ = { schemaVersion: 1, ttlMs: 72 * 60 * 60 * 1000 };
 
 interface FakeMapInst {
   center: [number, number];
@@ -153,6 +171,9 @@ function toStep2() {
 describe("ParkNew — /parks/new (Lot 3C.4)", () => {
   beforeEach(async () => {
     perms.canCreatePark = true;
+    org.userId = "user-1";
+    org.communeId = "org-1";
+    localStorage.clear();
     vi.mocked(mapStyleUrl).mockReset().mockReturnValue("https://style.test/x.json");
     vi.mocked(createPark).mockReset().mockResolvedValue({ id: "new-1", name: "Aire de jeux" } as never);
     vi.mocked(logActivity).mockReset().mockResolvedValue(undefined as never);
@@ -445,5 +466,151 @@ describe("ParkNew — /parks/new (Lot 3C.4)", () => {
     fireEvent.change(screen.getByLabelText("Ville"), { target: { value: "Millau" } });
     fireEvent.click(screen.getByRole("link", { name: "Mes parcs" }));
     expect(await screen.findByText("Modifications non enregistrées")).toBeTruthy();
+  });
+
+  // ── LOT 3D.C — brouillon persistant ────────────────────────────────────────
+  const storedDraft = () => readDraft(PARK_NEW_KEY, DRAFT_READ) as Record<string, unknown> | null;
+  function seedDraft(over: Record<string, unknown>) {
+    writeDraft(
+      PARK_NEW_KEY,
+      {
+        addressLine: "",
+        postalCode: "",
+        city: "",
+        latitude: "",
+        longitude: "",
+        name: "",
+        ageMin: "",
+        ageMax: "",
+        description: "",
+        step: "location",
+        ...over,
+      },
+      { schemaVersion: 1 },
+    );
+  }
+
+  it("no stored draft → a normal empty form, no 'Brouillon restauré' toast", () => {
+    renderNew();
+    expect((screen.getByLabelText(/^Latitude/) as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+  });
+
+  it("a valid stored draft is restored automatically into the fields", async () => {
+    seedDraft({ latitude: "44.100000", longitude: "3.070000", city: "Creissels", name: "Aire restaurée", step: "info" });
+    renderNew();
+    await waitFor(() => expect(screen.getByText("Brouillon restauré")).toBeTruthy());
+    // step 2 was restored (valid coords)
+    expect((screen.getByLabelText("Nom du parc") as HTMLInputElement).value).toBe("Aire restaurée");
+    fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
+    expect((screen.getByLabelText("Ville") as HTMLInputElement).value).toBe("Creissels");
+    expect((screen.getByLabelText(/^Latitude/) as HTMLInputElement).value).toBe("44.100000");
+  });
+
+  it("shows the 'Brouillon restauré' toast only once, not on every render", async () => {
+    seedDraft({ city: "Millau", name: "X" });
+    renderNew();
+    await waitFor(() => expect(screen.getByText("Brouillon restauré")).toBeTruthy());
+    // force several re-renders
+    fireEvent.change(screen.getByLabelText("Ville"), { target: { value: "Millau-2" } });
+    fireEvent.change(screen.getByLabelText("Adresse / voie"), { target: { value: "rue X" } });
+    expect(screen.getAllByText("Brouillon restauré").length).toBe(1);
+  });
+
+  it("step 2 in the draft but no valid coordinates → falls back to step 1, no crash", () => {
+    seedDraft({ step: "info", name: "Sans position" });
+    renderNew();
+    // step 1 controls are shown, step 2 is not
+    expect(screen.getByLabelText("Adresse / voie")).toBeTruthy();
+    expect(screen.queryByLabelText("Nom du parc")).toBeNull();
+  });
+
+  it("restoring a position does NOT trigger any geocoding / MapTiler search, address untouched", async () => {
+    vi.mocked(isGeocodingConfigured).mockReturnValue(true);
+    seedDraft({ latitude: "44.100000", longitude: "3.070000", step: "location" });
+    renderNew();
+    await waitFor(() =>
+      expect((screen.getByLabelText(/^Latitude/) as HTMLInputElement).value).toBe("44.100000"),
+    );
+    expect(vi.mocked(searchPlaces)).not.toHaveBeenCalled();
+    expect((screen.getByLabelText("Adresse / voie") as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText("Code postal") as HTMLInputElement).value).toBe("");
+  });
+
+  it("typing autosaves the draft after the debounce (no bespoke localStorage code)", async () => {
+    renderNew();
+    fireEvent.change(screen.getByLabelText("Ville"), { target: { value: "Millau" } });
+    await waitFor(() => expect(storedDraft()?.city).toBe("Millau"), { timeout: 2000 });
+  });
+
+  it("createPark success → the draft is cleared before navigating and never reappears", async () => {
+    seedDraft({ latitude: "44.099776", longitude: "3.111459", step: "info", name: "Aire OK" });
+    renderNew();
+    await screen.findByText("Brouillon restauré");
+    fireEvent.click(screen.getByRole("button", { name: "Créer le parc" }));
+
+    await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(loc()).toBe("/parks/new-1"));
+    expect(storedDraft()).toBeNull();
+    // a late pagehide must not resurrect it
+    window.dispatchEvent(new Event("pagehide"));
+    expect(storedDraft()).toBeNull();
+  });
+
+  it("createPark failure → stays on the form AND keeps the persisted draft", async () => {
+    vi.mocked(createPark).mockRejectedValue(new Error("RLS denied"));
+    renderNew();
+    fillCoords("44.099776", "3.111459");
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    fireEvent.change(screen.getByLabelText("Nom du parc"), { target: { value: "Aire échec" } });
+    await waitFor(() => expect(storedDraft()?.name).toBe("Aire échec"), { timeout: 2000 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Créer le parc" }));
+    await waitFor(() => expect(createPark).toHaveBeenCalled());
+    expect(loc()).toBe("/parks/new");
+    expect(storedDraft()?.name).toBe("Aire échec"); // draft survived the failure
+  });
+
+  it("Annuler confirmed → the draft is dropped and we return to Mes parcs", async () => {
+    renderNew();
+    fireEvent.change(screen.getByLabelText("Ville"), { target: { value: "Millau" } });
+    await waitFor(() => expect(storedDraft()?.city).toBe("Millau"), { timeout: 2000 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Abandonner" }));
+    await waitFor(() => expect(loc()).toBe("/parks"));
+    expect(storedDraft()).toBeNull();
+  });
+
+  it("Annuler refused → the draft is kept and we stay on the form", async () => {
+    renderNew();
+    fireEvent.change(screen.getByLabelText("Ville"), { target: { value: "Millau" } });
+    await waitFor(() => expect(storedDraft()?.city).toBe("Millau"), { timeout: 2000 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Annuler" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(loc()).toBe("/parks/new");
+    expect(storedDraft()?.city).toBe("Millau");
+  });
+
+  it("a draft is never restored across organisations or users", async () => {
+    seedDraft({ city: "Confidentiel", name: "Parc de A" });
+    expect(storedDraft()?.city).toBe("Confidentiel");
+
+    // same user, different org
+    org.communeId = "org-2";
+    const a = renderNew();
+    expect((screen.getByLabelText("Ville") as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    a.unmount();
+
+    // same org as the draft, different user
+    org.communeId = "org-1";
+    org.userId = "user-2";
+    renderNew();
+    expect((screen.getByLabelText("Ville") as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
   });
 });

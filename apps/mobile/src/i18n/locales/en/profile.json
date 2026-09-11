@@ -40,7 +40,6 @@
   "preferencesTitle": "Preferences",
   "language": "Language",
   "appearance": "Appearance",
-  "privacy": "Privacy",
   "helpInfoTitle": "Help & information",
   "contactUs": "Contact us",
   "accountTitle": "Account",
@@ -132,14 +131,10 @@
     "updated": "Profile updated"
   },
   "privacyScreen": {
-    "title": "Privacy",
-    "shareLocation": "Share my location",
-    "publicProfile": "Public profile",
+    "title": "Privacy & terms",
     "privacyPolicy": "Privacy policy",
     "terms": "Terms of use",
     "legalNotice": "Legal notice",
-    "downloadData": "Download my data",
-    "exportSent": "Export sent by email within 48h",
     "deleteAccount": "Delete my account",
     "deleteConfirmTitle": "Delete your account?",
     "deleteConfirmBody": "This action is permanent. Your profile, your reviews and the parks you added will be deleted, in line with our privacy policy.",

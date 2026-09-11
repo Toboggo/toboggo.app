@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { listMyParks, listMyReviews, signOut } from "@toboggo/shared";
-import { useTheme, type ThemePreference } from "@toboggo/design-system";
+import { listMyParks, listMyReviews, signOut, deleteOwnAccount } from "@toboggo/shared";
+import { useTheme, type ThemePreference, Button, Dialog } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useFormat } from "../../i18n/useFormat";
@@ -42,6 +43,8 @@ export default function Profile() {
   const appearanceLabel = t(APPEARANCE_LABEL_KEY[appearance], { ns: "common" });
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
@@ -73,6 +76,7 @@ export default function Profile() {
           <div className={styles.group}>
             <Row label={t("help")} onClick={() => navigate("/help")} />
             <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
+            <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
           </div>
         </div>
         <BottomTabs />
@@ -88,6 +92,16 @@ export default function Profile() {
   async function logout() {
     await signOut();
     navigate("/");
+  }
+
+  async function onDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteOwnAccount();
+      navigate("/");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -189,7 +203,7 @@ export default function Profile() {
         <div className={styles.group}>
           <Row label={t("help")} onClick={() => navigate("/help")} />
           <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
-          <Row label={t("privacy")} onClick={() => navigate("/privacy")} />
+          <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
         </div>
 
         <h6 className={styles.kicker}>{t("accountTitle")}</h6>
@@ -197,8 +211,35 @@ export default function Profile() {
           <button type="button" className={styles.groupRow} onClick={logout}>
             <span>{t("signOut")}</span>
           </button>
+          <button
+            type="button"
+            className={styles.groupRow}
+            onClick={() => setConfirmDeleteOpen(true)}
+          >
+            <span className={styles.groupRowDanger}>{t("privacyScreen.deleteAccount")}</span>
+          </button>
         </div>
       </div>
+
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        title={t("privacyScreen.deleteConfirmTitle")}
+        actions={
+          <>
+            <Button variant="secondary" block onClick={() => setConfirmDeleteOpen(false)}>
+              {t("action.cancel", { ns: "common" })}
+            </Button>
+            <Button variant="danger" block loading={deleting} onClick={onDeleteAccount}>
+              {t("privacyScreen.delete")}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 14, color: "var(--color-text-muted)" }}>
+          {t("privacyScreen.deleteConfirmBody")}
+        </p>
+      </Dialog>
 
       <BottomTabs />
     </div>

@@ -40,7 +40,7 @@ import NotifCenter from "./screens/profile/NotifCenter";
 import NotifResolved from "./screens/profile/NotifResolved";
 import Language from "./screens/profile/Language";
 import Appearance from "./screens/profile/Appearance";
-import Privacy from "./screens/profile/Privacy";
+import LegalIndex from "./screens/profile/LegalIndex";
 import Legal from "./screens/profile/Legal";
 import Help from "./screens/profile/Help";
 import Contact from "./screens/profile/Contact";
@@ -143,7 +143,11 @@ export default function App() {
       {/* Ancienne route (langue + apparence mélangées) — alias pour ne pas
           casser un lien/historique existant, cf. refonte profil/réglages §7. */}
       <Route path="/display" element={<Navigate to="/appearance" replace />} />
-      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/legal" element={<LegalIndex />} />
+      {/* Ancien écran Confidentialité (toggles placeholders + liens légaux +
+          suppression de compte) retiré — alias vers le nouvel index léger,
+          cf. refonte profil/réglages §6-7. */}
+      <Route path="/privacy" element={<Navigate to="/legal" replace />} />
       <Route path="/legal/:doc" element={<Legal />} />
       <Route path="/help" element={<Help />} />
       <Route path="/contact" element={<Contact />} />

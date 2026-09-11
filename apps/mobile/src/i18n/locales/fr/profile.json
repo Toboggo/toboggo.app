@@ -40,7 +40,6 @@
   "preferencesTitle": "Préférences",
   "language": "Langue",
   "appearance": "Apparence",
-  "privacy": "Confidentialité",
   "helpInfoTitle": "Aide & informations",
   "contactUs": "Nous contacter",
   "accountTitle": "Compte",
@@ -132,14 +131,10 @@
     "updated": "Profil mis à jour"
   },
   "privacyScreen": {
-    "title": "Confidentialité",
-    "shareLocation": "Partager ma position",
-    "publicProfile": "Profil public",
+    "title": "Confidentialité et conditions",
     "privacyPolicy": "Politique de confidentialité",
     "terms": "CGU",
     "legalNotice": "Mentions légales",
-    "downloadData": "Télécharger mes données",
-    "exportSent": "Export envoyé par e-mail sous 48h",
     "deleteAccount": "Supprimer mon compte",
     "deleteConfirmTitle": "Supprimer votre compte ?",
     "deleteConfirmBody": "Cette action est définitive. Votre profil, vos avis et vos parcs ajoutés seront supprimés, conformément à notre politique de confidentialité.",

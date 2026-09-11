@@ -40,7 +40,6 @@
   "preferencesTitle": "Preferencias",
   "language": "Idioma",
   "appearance": "Apariencia",
-  "privacy": "Privacidad",
   "helpInfoTitle": "Ayuda e información",
   "contactUs": "Contáctanos",
   "accountTitle": "Cuenta",
@@ -132,14 +131,10 @@
     "updated": "Perfil actualizado"
   },
   "privacyScreen": {
-    "title": "Privacidad",
-    "shareLocation": "Compartir mi ubicación",
-    "publicProfile": "Perfil público",
+    "title": "Privacidad y condiciones",
     "privacyPolicy": "Política de privacidad",
     "terms": "Condiciones de uso",
     "legalNotice": "Aviso legal",
-    "downloadData": "Descargar mis datos",
-    "exportSent": "Exportación enviada por correo en 48 h",
     "deleteAccount": "Eliminar mi cuenta",
     "deleteConfirmTitle": "¿Eliminar tu cuenta?",
     "deleteConfirmBody": "Esta acción es definitiva. Tu perfil, tus opiniones y los parques que has añadido se eliminarán, conforme a nuestra política de privacidad.",

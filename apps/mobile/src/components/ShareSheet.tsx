@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { BottomSheet } from "@toboggo/design-system";
-import type { Park } from "@toboggo/shared";
+import { getParkDisplayName, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { useToastStore } from "../lib/toast";
 
@@ -8,12 +8,13 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   const { t } = useTranslation("contribute");
   const showToast = useToastStore((s) => s.show);
   const shareUrl = `${window.location.origin}/park/${park.id}`;
+  const displayName = getParkDisplayName(park, t);
 
   const links = [
-    { label: "WhatsApp", icon: "💬", href: `https://wa.me/?text=${encodeURIComponent(`${park.name} — ${shareUrl}`)}` },
-    { label: "SMS", icon: "✉️", href: `sms:?body=${encodeURIComponent(`${park.name} — ${shareUrl}`)}` },
+    { label: "WhatsApp", icon: "💬", href: `https://wa.me/?text=${encodeURIComponent(`${displayName} — ${shareUrl}`)}` },
+    { label: "SMS", icon: "✉️", href: `sms:?body=${encodeURIComponent(`${displayName} — ${shareUrl}`)}` },
     { label: "Instagram", icon: "📷", href: `https://instagram.com` },
-    { label: t("share.email"), icon: "📧", href: `mailto:?subject=${encodeURIComponent(park.name)}&body=${encodeURIComponent(shareUrl)}` },
+    { label: t("share.email"), icon: "📧", href: `mailto:?subject=${encodeURIComponent(displayName)}&body=${encodeURIComponent(shareUrl)}` },
   ];
 
   return (
@@ -32,7 +33,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
             }}
           />
           <div>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600 }}>{park.name}</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600 }}>{displayName}</div>
             <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>{park.formatted_address}</div>
           </div>
         </div>

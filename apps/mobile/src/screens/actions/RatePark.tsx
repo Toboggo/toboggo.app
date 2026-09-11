@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Chip, Icon, StarInput, Textarea } from "@toboggo/design-system";
-import { addMedia, createReview, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
+import { addMedia, createReview, getParkDisplayName, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -124,7 +124,7 @@ export default function RatePark() {
         </div>
         <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("common.thanks")}</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
-          {t("rate.doneBody", { park: park?.name ?? "" })}
+          {t("rate.doneBody", { park: park ? getParkDisplayName(park, t) : "" })}
         </p>
         {/* Avis soumis : on remplace l'entrée d'historique du wizard par la
             fiche parc. Depuis la fiche, Retour ramène au contexte antérieur
@@ -160,7 +160,7 @@ export default function RatePark() {
 
       {step === 1 && park && (
         <div style={{ padding: "0 20px", textAlign: "center" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park.name}</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{getParkDisplayName(park, t)}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 20 }}>{t("rate.visitQuestion")}</p>
           <StarInput value={stars} onChange={setStars} starLabel={(n) => t("rate.starLabel", { count: n })} />
 

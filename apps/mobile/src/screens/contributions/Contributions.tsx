@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { listMyParks, listMyReviews, listMyReports } from "@toboggo/shared";
+import { getParkDisplayName, listMyParks, listMyReviews, listMyReports } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { BottomTabs } from "../../components/BottomTabs";
 import { ParkPhoto } from "../../components/ParkPhoto";
@@ -68,7 +68,7 @@ export default function Contributions() {
               <div key={p.id} className={styles.parkRow} onClick={() => navigate(`/park/${p.id}`)}>
                 <ParkPhoto park={p} className={styles.thumb} markSize={18} />
                 <div className={styles.rowBody}>
-                  <div className={styles.rowName}>{p.name}</div>
+                  <div className={styles.rowName}>{getParkDisplayName(p, t)}</div>
                   <div className={styles.rowSub}>{p.formatted_address}</div>
                 </div>
                 {p.status !== "published" && <span className={styles.pending}>{t("contributions.pending")}</span>}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input } from "@toboggo/design-system";
-import { createGroup, getMyActiveGroup, joinGroup, leaveGroup, listGroupMembers, getPark } from "@toboggo/shared";
+import { createGroup, getMyActiveGroup, getParkDisplayName, joinGroup, leaveGroup, listGroupMembers, getPark } from "@toboggo/shared";
 import { TopBar } from "../../components/TopBar";
 import { ParkPicker } from "../../components/ParkPicker";
 import { useSession } from "../../lib/session";
@@ -82,7 +82,7 @@ export default function GroupOuting() {
           </>
         ) : (
           <>
-            <h2 style={{ fontSize: 18 }}>{park?.name}</h2>
+            <h2 style={{ fontSize: 18 }}>{park && getParkDisplayName(park, t)}</h2>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
               {t("group.code")} : <strong>{group.code}</strong>
             </div>

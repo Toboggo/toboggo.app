@@ -18,12 +18,12 @@
     "prompt": "Connectez-vous pour retrouver vos favoris et vos contributions."
   },
   "settings": {
-    "displayTitle": "Affichage",
-    "darkMode": "Mode sombre",
-    "offlineMode": "Mode hors-ligne",
-    "offlineModeHint": "Carte enregistrée pour une utilisation sans connexion.",
     "languageLabel": "Langue",
-    "languageHint": "Choisissez la langue de l’application. Indépendante de votre position et de votre pays."
+    "languageHint": "Choisissez la langue de l’application. Indépendante de votre position et de votre pays.",
+    "appearanceTitle": "Apparence",
+    "appearanceSystem": "Système",
+    "appearanceLight": "Clair",
+    "appearanceDark": "Sombre"
   },
   "age": {
     "notSpecified": "Âge non renseigné",
@@ -58,5 +58,9 @@
     "message": "Vous étiez peut-être à {{park}} ? Donnez votre avis.",
     "later": "Plus tard",
     "rate": "Donner mon avis"
+  },
+  "park": {
+    "generic": "Aire de jeux",
+    "displayName": "{{generic}} • {{qualifier}}"
   }
 }

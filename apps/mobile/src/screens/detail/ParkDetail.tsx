@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { incrementParkViews } from "@toboggo/shared";
+import { getParkDisplayName, incrementParkViews } from "@toboggo/shared";
 import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
@@ -131,7 +131,7 @@ export default function ParkDetail() {
       </div>
 
       <div className={styles.body}>
-        <h1 className={styles.name}>{park.name}</h1>
+        <h1 className={styles.name}>{getParkDisplayName(park, t)}</h1>
         {park.formatted_address && <div className={styles.sub}>{park.formatted_address}</div>}
 
         <div className={styles.ratingRow} onClick={() => navigate(`/park/${park.id}/reviews`)}>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Select, Textarea, Icon, IconButton, reportReasonIcon } from "@toboggo/design-system";
-import { createReport, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
+import { createReport, getParkDisplayName, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -202,7 +202,7 @@ export default function ReportProblem() {
 
       {step === 1 && park && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park.name}</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{getParkDisplayName(park, t)}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>{t("report.problemQuestion")}</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {(Object.keys(REPORT_REASON_LABEL) as ReportReason[]).map((r) => {

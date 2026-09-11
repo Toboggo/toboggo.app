@@ -76,7 +76,14 @@ def build_candidates(pbf, local):
                     continue
 
                 lng, lat = point
-                name = local.decode_osm_value(str(props["name"])) if props.get("name") else "Aire de jeux"
+                # `has_osm_name` distinguishes a real OSM `name` tag from the
+                # "Aire de jeux" placeholder this importer writes to satisfy
+                # `parks.name NOT NULL` when OSM has none — see `park_sql()`,
+                # which only gates re-imports / records provenance for a
+                # genuine name (park-display-name Phase 2, §H). Mirrors
+                # `import-osm-local.py`'s `has_osm_name` (already correct).
+                has_osm_name = bool(props.get("name"))
+                name = local.decode_osm_value(str(props["name"])) if has_osm_name else "Aire de jeux"
                 equipment = local.map_playground_features(props.get("playground"), mapping)
                 attrs = local.build_attribute_features(props)
                 for a in attrs:
@@ -87,6 +94,7 @@ def build_candidates(pbf, local):
                     "osm_id": str(osm_id),
                     "external_id": external_id,
                     "name": name,
+                    "has_osm_name": has_osm_name,
                     "latitude": lat,
                     "longitude": lng,
                     "min_age": local.parse_age(props.get("min_age")),
@@ -101,6 +109,42 @@ def park_sql(p, publish):
     status = "published" if publish else "pending"
     source_url = f"https://www.openstreetmap.org/{p['osm_type']}/{p['osm_id']}"
     feature_sql = []
+
+    # ── Nom : uniquement si CET objet OSM porte un tag `name` (has_osm_name)
+    # ────────────────────────────────────────────────────────────────────
+    # Le fallback technique "Aire de jeux" (has_osm_name=False) ne doit
+    # JAMAIS : (a) écraser un nom existant lors d'un réimport — un parc dont
+    # le nom réel aurait disparu d'un futur extrait OSM garde son nom actuel
+    # plutôt que d'être renommé "Aire de jeux" ; (b) être enregistré comme
+    # provenance `osm` dans `park_attribute_sources` — ce n'est pas une
+    # donnée source, c'est un remplissage technique imposé par `parks.name
+    # NOT NULL`. Sans cette distinction, il était impossible de savoir si
+    # "Aire de jeux" en base venait vraiment d'OSM ou du fallback Toboggo
+    # (audit `AUDIT-display-name-parcs-phase1.md` §C ; `import-osm-local.py`
+    # a déjà ce garde-fou côté local — `allow_name = ... and has_osm_name` —
+    # aligné ici sur le chemin prod). NON DESTRUCTIF : `parks.name` reste
+    # `NOT NULL`, toujours rempli (par le fallback si besoin) à l'INSERT ;
+    # aucune migration, aucune colonne nullable.
+    name_update_sql = "parks.name"
+    name_record_sql = ""
+    if p["has_osm_name"]:
+        name_update_sql = f"""case when can_source_replace_attribute(v_park_id,'name','osm')
+        then {q(p['name'])} else parks.name end"""
+        name_value_json = q(json.dumps(p["name"], ensure_ascii=False))
+        name_record_sql = f"""
+  if can_source_replace_attribute(v_park_id, 'name', 'osm')
+     and not exists (
+       select 1 from park_attribute_sources pas
+       join park_sources ps on ps.id = pas.source_id
+       where pas.park_id = v_park_id and pas.attribute_key = 'name'
+         and pas.is_current = true and ps.source_type = 'osm'
+         and pas.value_json = {name_value_json}::jsonb
+     ) then
+    perform set_park_attribute_source(
+      v_park_id, 'name', {name_value_json}::jsonb, v_source_id, 0.700, null
+    );
+  end if;
+"""
 
     # ── Adresse : uniquement si CET objet OSM apporte un tag addr:* ────────
     # Jamais de blanchiment d'une adresse existante faute de donnée neuve, et
@@ -187,8 +231,7 @@ begin
     -- donc préservée. `import-osm-local.py` applique le même gate sur
     -- name/min_age/max_age/address ; ici on l'aligne + on ajoute `location`.
     update parks set
-      name=case when can_source_replace_attribute(v_park_id,'name','osm')
-        then {q(p['name'])} else parks.name end,
+      name={name_update_sql},
       latitude=case when can_source_replace_attribute(v_park_id,'location','osm')
         then {n(p['latitude'])} else parks.latitude end,
       longitude=case when can_source_replace_attribute(v_park_id,'location','osm')
@@ -216,6 +259,7 @@ begin
     update park_sources set source_name='OpenStreetMap', source_url={q(source_url)},
       license='ODbL', last_synced_at=now() where id=v_source_id;
   end if;
+{name_record_sql}
 {address_record_sql}
 {''.join(feature_sql)}
 end

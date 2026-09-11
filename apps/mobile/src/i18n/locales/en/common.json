@@ -18,12 +18,12 @@
     "prompt": "Sign in to find your favorites and your contributions."
   },
   "settings": {
-    "displayTitle": "Display",
-    "darkMode": "Dark mode",
-    "offlineMode": "Offline mode",
-    "offlineModeHint": "Map saved for offline use.",
     "languageLabel": "Language",
-    "languageHint": "Choose the app language. Independent of your location and country."
+    "languageHint": "Choose the app language. Independent of your location and country.",
+    "appearanceTitle": "Appearance",
+    "appearanceSystem": "System",
+    "appearanceLight": "Light",
+    "appearanceDark": "Dark"
   },
   "age": {
     "notSpecified": "Age not specified",
@@ -58,5 +58,9 @@
     "message": "Were you at {{park}}? Leave a review.",
     "later": "Later",
     "rate": "Write a review"
+  },
+  "park": {
+    "generic": "Playground",
+    "displayName": "{{generic}} • {{qualifier}}"
   }
 }

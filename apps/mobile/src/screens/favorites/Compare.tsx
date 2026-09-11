@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { listParksByIds, haversineMeters } from "@toboggo/shared";
+import { getParkDisplayName, listParksByIds, haversineMeters } from "@toboggo/shared";
 import { Icon } from "@toboggo/design-system";
 import { TopBar } from "../../components/TopBar";
 import { useGeo } from "../../lib/geo";
@@ -31,7 +31,7 @@ export default function Compare() {
               <td />
               {parks.map((p) => (
                 <th key={p.id} style={{ textAlign: "left", padding: 8, fontFamily: "var(--font-heading)", fontSize: 13 }}>
-                  {p.name}
+                  {getParkDisplayName(p, t)}
                 </th>
               ))}
             </tr>

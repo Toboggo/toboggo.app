@@ -150,6 +150,11 @@ class ProvenancePhase1Base(unittest.TestCase):
             "osm_id": self.osm_ext.split("/")[1],
             "external_id": self.osm_ext,
             "name": name,
+            # Every caller here simulates OSM re-supplying a concrete `name`
+            # (never the "OSM has no name tag" case — see park-display-name
+            # Phase 2, §H) — always True, matching import-osm-remote.py's own
+            # `has_osm_name = bool(props.get("name"))`.
+            "has_osm_name": True,
             "latitude": lat,
             "longitude": lng,
             "min_age": min_age,

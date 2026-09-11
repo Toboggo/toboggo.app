@@ -44,6 +44,7 @@ import LegalIndex from "./screens/profile/LegalIndex";
 import Legal from "./screens/profile/Legal";
 import Help from "./screens/profile/Help";
 import Contact from "./screens/profile/Contact";
+import About from "./screens/profile/About";
 
 // Legacy intro path for "Donner un avis": the wizard canonique (Parc → Avis →
 // Commentaire) est auto-porteur, comme AddPark. Redirige vers /rate en
@@ -151,6 +152,7 @@ export default function App() {
       <Route path="/legal/:doc" element={<Legal />} />
       <Route path="/help" element={<Help />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/about" element={<About />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -140,6 +140,11 @@
     "deleteConfirmBody": "Esta acción es definitiva. Tu perfil, tus opiniones y los parques que has añadido se eliminarán, conforme a nuestra política de privacidad.",
     "delete": "Eliminar"
   },
+  "about": {
+    "title": "Acerca de Toboggo",
+    "tagline": "Miles de parques valorados\npor padres y madres como tú.",
+    "version": "Versión {{version}}"
+  },
   "group": {
     "title": "Salida en grupo",
     "intro": "Crea una salida para compartir tu ubicación en tiempo real con otros padres en este parque, o únete a una con un código.",

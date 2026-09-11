@@ -140,6 +140,11 @@
     "deleteConfirmBody": "This action is permanent. Your profile, your reviews and the parks you added will be deleted, in line with our privacy policy.",
     "delete": "Delete"
   },
+  "about": {
+    "title": "About Toboggo",
+    "tagline": "Thousands of parks rated\nby parents like you.",
+    "version": "Version {{version}}"
+  },
   "group": {
     "title": "Group outing",
     "intro": "Create an outing to share your live location with other parents at this park, or join one with a code.",

@@ -76,6 +76,7 @@ export default function Profile() {
           <div className={styles.group}>
             <Row label={t("help")} onClick={() => navigate("/help")} />
             <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
+            <Row label={t("about.title")} onClick={() => navigate("/about")} />
             <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
           </div>
         </div>
@@ -203,6 +204,7 @@ export default function Profile() {
         <div className={styles.group}>
           <Row label={t("help")} onClick={() => navigate("/help")} />
           <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
+          <Row label={t("about.title")} onClick={() => navigate("/about")} />
           <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
         </div>
 

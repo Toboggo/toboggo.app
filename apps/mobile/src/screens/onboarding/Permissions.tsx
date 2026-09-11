@@ -1,27 +1,31 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { createChild } from "@toboggo/shared";
 import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo";
 import { useSession } from "../../lib/session";
+import { ChildBirthFields } from "../../components/ChildBirthFields";
 import { ChevronRight, PinIcon } from "./authIcons";
 import styles from "./Permissions.module.css";
 
 export default function Permissions() {
   const navigate = useNavigate();
   const { t } = useTranslation("onboarding");
-  const [low, setLow] = useState(0);
-  const [high, setHigh] = useState(6);
+  const [birthMonth, setBirthMonth] = useState<number | null>(null);
+  const [birthYear, setBirthYear] = useState<number | null>(null);
   const [showPermModal, setShowPermModal] = useState(false);
   const [zone, setZone] = useState<string | null>(null);
   const setLocation = useGeo((s) => s.setLocation);
   const setPermission = useGeo((s) => s.setPermission);
-  const patchProfile = useSession((s) => s.patchProfile);
+  const userId = useSession((s) => s.userId);
 
-  const pct = (v: number) => (v / 12) * 100;
-  const maxLabel = high >= 12 ? "12+" : String(high);
-
+  // Adding a child here is optional — skipping ("later") or continuing
+  // without filling the fields both just leave it for the "Mes enfants"
+  // screen later. Never blocks onboarding: a failed insert is silent here.
   function finish() {
-    void patchProfile({ children: [{ age: Math.round((low + high) / 2) }] });
+    if (userId && birthMonth != null && birthYear != null) {
+      void createChild(userId, { birth_month: birthMonth, birth_year: birthYear });
+    }
     navigate("/map");
   }
 
@@ -48,31 +52,17 @@ export default function Permissions() {
 
         <div>
           <h6 className={styles.kicker}>{t("permissions.ageKicker")}</h6>
-          <div className={styles.ageLabel}>
-            {t("permissions.ageRange", { low, max: maxLabel })}
-          </div>
-          <div className={styles.slider}>
-            <div className={styles.trackBg} />
-            <div className={styles.trackFill} style={{ left: `${pct(low)}%`, right: `${100 - pct(high)}%` }} />
-            <input
-              type="range"
-              min={0}
-              max={12}
-              step={1}
-              value={low}
-              onChange={(e) => setLow(Math.min(Number(e.target.value), high))}
-              aria-label={t("permissions.ageMin")}
-            />
-            <input
-              type="range"
-              min={0}
-              max={12}
-              step={1}
-              value={high}
-              onChange={(e) => setHigh(Math.max(Number(e.target.value), low))}
-              aria-label={t("permissions.ageMax")}
-            />
-          </div>
+          <ChildBirthFields
+            birthMonth={birthMonth}
+            birthYear={birthYear}
+            onChangeMonth={setBirthMonth}
+            onChangeYear={setBirthYear}
+            monthLabel={t("permissions.birthMonth")}
+            yearLabel={t("permissions.birthYear")}
+            monthPlaceholder={t("permissions.selectMonth")}
+            yearPlaceholder={t("permissions.selectYear")}
+          />
+          <p className={styles.hint}>{t("permissions.noExactDob")}</p>
         </div>
 
         <div>

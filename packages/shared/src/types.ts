@@ -553,6 +553,12 @@ export interface Profile {
   id: string;
   name: string;
   email: string;
+  /**
+   * @deprecated Legacy onboarding blob (single midpoint age, no birth data).
+   * Superseded by the `children` table (see `Child`) — kept read-only for
+   * accounts that only ever went through the old onboarding slider; never
+   * backfilled into the new table (we don't actually know their birth month).
+   */
   children: { age: number }[];
   favorites: string[];
   notif_prefs: {
@@ -569,6 +575,17 @@ export interface Profile {
   suspended: boolean;
   created_at: string;
 }
+
+/** A parent's child — month/year of birth only, no name, no full birthdate. Age is always derived (see `computeChildAge`), never stored. */
+export interface Child {
+  id: string;
+  parent_id: string;
+  birth_month: number;
+  birth_year: number;
+  created_at: string;
+}
+
+export type NewChild = Pick<Child, "birth_month" | "birth_year">;
 
 export interface GroupOuting {
   id: string;

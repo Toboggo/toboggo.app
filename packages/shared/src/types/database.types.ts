@@ -93,6 +93,30 @@ export type Database = {
         }
         Relationships: []
       }
+      children: {
+        Row: {
+          birth_month: number
+          birth_year: number
+          created_at: string
+          id: string
+          parent_id: string
+        }
+        Insert: {
+          birth_month: number
+          birth_year: number
+          created_at?: string
+          id?: string
+          parent_id: string
+        }
+        Update: {
+          birth_month?: number
+          birth_year?: number
+          created_at?: string
+          id?: string
+          parent_id?: string
+        }
+        Relationships: []
+      }
       communes: {
         Row: {
           contact_email: string | null

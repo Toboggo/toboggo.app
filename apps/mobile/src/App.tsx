@@ -37,6 +37,7 @@ import Profile from "./screens/profile/Profile";
 import EditProfile from "./screens/profile/EditProfile";
 import Children from "./screens/profile/Children";
 import ChildForm from "./screens/profile/ChildForm";
+import Account from "./screens/profile/Account";
 import NotificationPrefs from "./screens/profile/NotificationPrefs";
 import NotifCenter from "./screens/profile/NotifCenter";
 import NotifResolved from "./screens/profile/NotifResolved";
@@ -141,6 +142,7 @@ export default function App() {
       <Route path="/profile/children" element={<Children />} />
       <Route path="/profile/children/new" element={<ChildForm />} />
       <Route path="/profile/children/:childId" element={<ChildForm />} />
+      <Route path="/profile/account" element={<Account />} />
       <Route path="/notifications" element={<NotificationPrefs />} />
       <Route path="/notifications/center" element={<NotifCenter />} />
       <Route path="/notifications/resolved/:notifId" element={<NotifResolved />} />

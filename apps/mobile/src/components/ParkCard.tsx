@@ -2,7 +2,7 @@ import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Icon, StarRating } from "@toboggo/design-system";
-import { walkMinutes, type Park } from "@toboggo/shared";
+import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { hasRating, keyAttributes } from "../lib/parkDisplay";
 import { useFormat } from "../i18n/useFormat";
@@ -66,6 +66,7 @@ export function ParkCard({
   const navigate = useNavigate();
   const { t } = useTranslation("features");
   const f = useFormat();
+  const displayName = getParkDisplayName(park, t);
   const open = () => (onOpen ? onOpen() : navigate(`/park/${park.id}`));
   const ageBand = f.ageBand(park.age_min, park.age_max);
   const walkDistance =
@@ -96,7 +97,7 @@ export function ParkCard({
           )}
         </div>
         <div className={styles.cardBody}>
-          <div className={styles.name}>{park.name}</div>
+          <div className={styles.name}>{displayName}</div>
           <div className={styles.cardMeta}>{walkDistance && <span>{walkDistance}</span>}</div>
           <CompactRating park={park} />
         </div>
@@ -112,7 +113,7 @@ export function ParkCard({
         <ParkPhoto park={park} className={styles.listPhoto} markSize={26} />
         <div className={styles.listBody}>
           <div className={styles.listTop}>
-            <div className={styles.name}>{park.name}</div>
+            <div className={styles.name}>{displayName}</div>
             {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} />}
           </div>
           <CompactRating park={park} />
@@ -135,7 +136,7 @@ export function ParkCard({
     <div className={styles.row} {...activate}>
       <ParkPhoto park={park} className={styles.thumb} markSize={22} />
       <div className={styles.body}>
-        <div className={styles.name}>{park.name}</div>
+        <div className={styles.name}>{displayName}</div>
         <div className={styles.meta}>
           {distanceM != null ? f.distance(distanceM) : ""}
           {distanceM != null && ageBand ? " · " : ""}

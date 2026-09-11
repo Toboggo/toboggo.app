@@ -58,5 +58,9 @@
     "message": "Vous étiez peut-être à {{park}} ? Donnez votre avis.",
     "later": "Plus tard",
     "rate": "Donner mon avis"
+  },
+  "park": {
+    "generic": "Aire de jeux",
+    "displayName": "{{generic}} • {{qualifier}}"
   }
 }

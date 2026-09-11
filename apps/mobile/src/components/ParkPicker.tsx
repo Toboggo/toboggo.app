@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Input } from "@toboggo/design-system";
-import { searchParks, type Park } from "@toboggo/shared";
+import { getParkDisplayName, searchParks, type Park } from "@toboggo/shared";
 
 export function ParkPicker({ onPick, onNone }: { onPick: (park: Park) => void; onNone: () => void }) {
   const { t } = useTranslation("contribute");
@@ -30,7 +30,7 @@ export function ParkPicker({ onPick, onNone }: { onPick: (park: Park) => void; o
               cursor: "pointer",
             }}
           >
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>{p.name}</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>{getParkDisplayName(p, t)}</div>
             <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{p.formatted_address}</div>
           </button>
         ))}

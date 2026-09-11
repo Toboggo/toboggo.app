@@ -1,4 +1,4 @@
-import type { Park } from "@toboggo/shared";
+import { getParkDisplayName, type Park } from "@toboggo/shared";
 import { useTranslation } from "react-i18next";
 import { hasRating } from "../../lib/parkDisplay";
 import { useFormat } from "../../i18n/useFormat";
@@ -66,7 +66,7 @@ export function FakeMap({
               ["--marker-color" as string]: rated ? ratingTierColor(p.rating) : "var(--color-primary)",
             }}
             onClick={() => onSelect(p.id)}
-            aria-label={p.name}
+            aria-label={getParkDisplayName(p, t)}
           >
             <span className={styles.dot}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

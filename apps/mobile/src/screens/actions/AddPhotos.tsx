@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@toboggo/design-system";
-import { addParkPhotos, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
+import { addParkPhotos, getParkDisplayName, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -161,7 +161,7 @@ export default function AddPhotos() {
 
       {step === 1 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 16 }}>{park?.name}</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 16 }}>{park && getParkDisplayName(park, t)}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i}>

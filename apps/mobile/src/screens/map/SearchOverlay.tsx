@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { searchParks, searchPlaces } from "@toboggo/shared";
+import { getParkDisplayName, searchParks, searchPlaces } from "@toboggo/shared";
 import { CITIES } from "../../lib/geo";
 import { useLocale } from "../../i18n/useLocale";
 import { EmptyState, Icon } from "@toboggo/design-system";
@@ -156,7 +156,7 @@ export function SearchOverlay({
                     onClick={() => selectPark(p.id)}
                   >
                     <span className={styles.rowIcon}><Icon name="ic-slide" size={16} /></span>
-                    {p.name}
+                    {getParkDisplayName(p, t)}
                     <span className={styles.rowSub}>{p.formatted_address}</span>
                   </button>
                 ))}

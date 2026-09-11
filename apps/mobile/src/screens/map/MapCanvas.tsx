@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { mapStyleUrl, formatRating } from "@toboggo/shared";
+import { mapStyleUrl, formatRating, getParkDisplayName } from "@toboggo/shared";
 import type { Park } from "@toboggo/shared";
 import { useTranslation } from "react-i18next";
 import { useLocale } from "../../i18n/useLocale";
@@ -122,7 +122,7 @@ export function MapCanvas({
       if (!lngLat) continue;
       let marker = markersRef.current[park.id];
       if (!marker) {
-        const el = buildParkMarker(park.name);
+        const el = buildParkMarker(getParkDisplayName(park, t));
         el.addEventListener("click", () => onSelectRef.current(park.id));
         marker = new maplibregl.Marker({ element: el, anchor: "bottom" });
         markersRef.current[park.id] = marker;

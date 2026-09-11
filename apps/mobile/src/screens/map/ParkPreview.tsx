@@ -2,7 +2,7 @@ import type { KeyboardEvent, MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@toboggo/design-system";
-import { walkMinutes, type Park } from "@toboggo/shared";
+import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
 import { hasRating } from "../../lib/parkDisplay";
@@ -30,6 +30,7 @@ export function ParkPreview({
   const isFav = favorites.includes(park.id);
   const dist = distanceM ?? park.distance_m ?? 0;
   const openDetail = () => navigate(`/park/${park.id}`);
+  const displayName = getParkDisplayName(park, t);
 
   const ageRangeLabel = f.ageRangeOrNull(park.age_min, park.age_max);
   const criteria: string[] = [];
@@ -64,7 +65,7 @@ export function ParkPreview({
         <ParkPhoto park={park} className={styles.photo} markSize={30} />
         <div className={styles.headBody}>
           <div className={styles.titleRow}>
-            <div className={styles.name}>{park.name}</div>
+            <div className={styles.name}>{displayName}</div>
             <div className={styles.circleRow}>
               <button type="button" className={styles.circleBtn} onClick={(e) => { stop(e); navigate(`/park/${park.id}?share=1`); }} aria-label={t("a11y.share")}>
                 <Icon name="ic-share" size={15} style={{ color: "var(--color-text)" }} />

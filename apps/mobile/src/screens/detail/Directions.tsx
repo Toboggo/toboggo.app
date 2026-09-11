@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { haversineMeters } from "@toboggo/shared";
+import { getParkDisplayName, haversineMeters } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
 import { useGeo } from "../../lib/geo";
@@ -37,6 +37,7 @@ export default function Directions() {
 
   if (!park) return null;
 
+  const displayName = getParkDisplayName(park, t);
   const distanceM = haversineMeters(lat, lng, park.lat, park.lng);
   const etaFor = (speed: number) => Math.max(1, Math.round((distanceM / 1000 / speed) * 60));
   const selectedEta = `${f.walk(etaFor(MODES.find((m) => m.value === mode)!.speedKmh))} · ${f.distance(distanceM)}`;
@@ -44,7 +45,7 @@ export default function Directions() {
   function startNav() {
     setNavigating(true);
     showToast(t("route.started"));
-    schedule(park!.id, park!.name);
+    schedule(park!.id, displayName);
   }
 
   return (
@@ -52,7 +53,7 @@ export default function Directions() {
       <DetailHeader title={t("route.title")} />
       <div className={styles.body}>
         <div className={styles.card}>
-          <div className={styles.parkName}>{park.name}</div>
+          <div className={styles.parkName}>{displayName}</div>
           <div className={styles.parkAddr}>{park.formatted_address}</div>
         </div>
 

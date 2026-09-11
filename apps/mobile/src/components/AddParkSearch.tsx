@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Icon, Input } from "@toboggo/design-system";
-import { fetchNearbyParks, haversineMeters, searchParks, type Park } from "@toboggo/shared";
+import { fetchNearbyParks, getParkDisplayName, haversineMeters, searchParks, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { useFormat } from "../i18n/useFormat";
 import { useGeo } from "../lib/geo";
@@ -78,7 +78,9 @@ function ChevronRight() {
 }
 
 function ParkResultRow({ park, distanceM, onOpen }: { park: Park; distanceM?: number; onOpen: () => void }) {
+  const { t } = useTranslation("contribute");
   const f = useFormat();
+  const displayName = getParkDisplayName(park, t);
   const age = f.ageRangeOrNull(park.age_min, park.age_max);
   const meta = [distanceM != null ? f.distance(distanceM) : null, age].filter(Boolean).join(" · ");
   return (
@@ -105,7 +107,7 @@ function ParkResultRow({ park, distanceM, onOpen }: { park: Park; distanceM?: nu
       />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {park.name}
+          {displayName}
         </div>
         <div style={{ fontSize: 12, color: "var(--color-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {meta || park.formatted_address || " "}

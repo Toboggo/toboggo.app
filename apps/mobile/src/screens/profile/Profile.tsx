@@ -56,7 +56,7 @@ export default function Profile() {
 
           <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
           <div className={styles.group}>
-            <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/display")} />
+            <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
           </div>
 
           <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
@@ -171,7 +171,7 @@ export default function Profile() {
 
         <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
         <div className={styles.group}>
-          <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/display")} />
+          <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
         </div>
 
         <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>

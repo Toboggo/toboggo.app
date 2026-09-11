@@ -38,6 +38,7 @@ import EditProfile from "./screens/profile/EditProfile";
 import NotificationPrefs from "./screens/profile/NotificationPrefs";
 import NotifCenter from "./screens/profile/NotifCenter";
 import NotifResolved from "./screens/profile/NotifResolved";
+import Language from "./screens/profile/Language";
 import Display from "./screens/profile/Display";
 import Privacy from "./screens/profile/Privacy";
 import Legal from "./screens/profile/Legal";
@@ -139,6 +140,7 @@ export default function App() {
       <Route path="/notifications" element={<NotificationPrefs />} />
       <Route path="/notifications/center" element={<NotifCenter />} />
       <Route path="/notifications/resolved/:notifId" element={<NotifResolved />} />
+      <Route path="/language" element={<Language />} />
       <Route path="/display" element={<Display />} />
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/legal/:doc" element={<Legal />} />

@@ -2,12 +2,19 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { listMyParks, listMyReviews, signOut } from "@toboggo/shared";
+import { useTheme, type ThemePreference } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useFormat } from "../../i18n/useFormat";
 import { useLocale } from "../../i18n/useLocale";
 import { LANGUAGE_ENDONYM } from "../../i18n/languageNames";
 import styles from "./Profile.module.css";
+
+const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
+  system: "settings.appearanceSystem",
+  light: "settings.appearanceLight",
+  dark: "settings.appearanceDark",
+};
 
 const BADGES: { key: string; icon: string; labelKey: string; earned: (s: Stats) => boolean }[] = [
   { key: "first_review", icon: "⭐", labelKey: "badge.firstReview", earned: (s) => s.reviews >= 1 },
@@ -31,6 +38,8 @@ export default function Profile() {
   const { t } = useTranslation("profile");
   const f = useFormat();
   const { language } = useLocale();
+  const [, appearance] = useTheme();
+  const appearanceLabel = t(APPEARANCE_LABEL_KEY[appearance], { ns: "common" });
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
 
@@ -57,6 +66,7 @@ export default function Profile() {
           <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
           <div className={styles.group}>
             <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
+            <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
           </div>
 
           <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
@@ -172,6 +182,7 @@ export default function Profile() {
         <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
         <div className={styles.group}>
           <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
+          <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
         </div>
 
         <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>

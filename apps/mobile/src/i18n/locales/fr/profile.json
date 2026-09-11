@@ -159,6 +159,10 @@
     "deleteConfirmBody": "Cette action est définitive. Votre profil, vos avis et vos parcs ajoutés seront supprimés, conformément à notre politique de confidentialité.",
     "delete": "Supprimer"
   },
+  "accountScreen": {
+    "sessionKicker": "Session",
+    "managementKicker": "Gestion du compte"
+  },
   "about": {
     "title": "À propos de Toboggo",
     "tagline": "Des milliers de parcs notés\npar des parents comme vous.",

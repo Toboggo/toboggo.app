@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { computeChildAge, listMyParks, listMyReviews, purgeDraftsForPrincipal, signOut, deleteOwnAccount } from "@toboggo/shared";
-import { useTheme, type ThemePreference, Button, Dialog } from "@toboggo/design-system";
+import { computeChildAge, listMyParks, listMyReviews } from "@toboggo/shared";
+import { useTheme, type ThemePreference } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useChildren } from "../../lib/children";
@@ -44,8 +43,6 @@ export default function Profile() {
   const appearanceLabel = t(APPEARANCE_LABEL_KEY[appearance], { ns: "common" });
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
-  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
@@ -91,26 +88,6 @@ export default function Profile() {
   const points = stats.parks * 30 + stats.reviews * 15 + stats.favorites * 5;
   const level = Math.floor(points / 100) + 1;
   const progress = points % 100;
-
-  async function logout() {
-    // Captured before the session is cleared — a shared-device logout must
-    // remove only THIS account's local drafts (LOT 3D.F), never a guest's or
-    // another signed-in user's.
-    const uid = useSession.getState().userId;
-    await signOut();
-    if (uid) purgeDraftsForPrincipal({ userId: uid });
-    navigate("/");
-  }
-
-  async function onDeleteAccount() {
-    setDeleting(true);
-    try {
-      await deleteOwnAccount();
-      navigate("/");
-    } finally {
-      setDeleting(false);
-    }
-  }
 
   return (
     <div className={styles.screen}>
@@ -220,38 +197,9 @@ export default function Profile() {
 
         <h6 className={styles.kicker}>{t("accountTitle")}</h6>
         <div className={styles.group}>
-          <button type="button" className={styles.groupRow} onClick={logout}>
-            <span>{t("signOut")}</span>
-          </button>
-          <button
-            type="button"
-            className={styles.groupRow}
-            onClick={() => setConfirmDeleteOpen(true)}
-          >
-            <span className={styles.groupRowDanger}>{t("privacyScreen.deleteAccount")}</span>
-          </button>
+          <Row label={t("accountTitle")} onClick={() => navigate("/profile/account")} />
         </div>
       </div>
-
-      <Dialog
-        open={confirmDeleteOpen}
-        onClose={() => setConfirmDeleteOpen(false)}
-        title={t("privacyScreen.deleteConfirmTitle")}
-        actions={
-          <>
-            <Button variant="secondary" block onClick={() => setConfirmDeleteOpen(false)}>
-              {t("action.cancel", { ns: "common" })}
-            </Button>
-            <Button variant="danger" block loading={deleting} onClick={onDeleteAccount}>
-              {t("privacyScreen.delete")}
-            </Button>
-          </>
-        }
-      >
-        <p style={{ fontSize: 14, color: "var(--color-text-muted)" }}>
-          {t("privacyScreen.deleteConfirmBody")}
-        </p>
-      </Dialog>
 
       <BottomTabs />
     </div>

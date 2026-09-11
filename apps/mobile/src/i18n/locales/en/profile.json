@@ -159,6 +159,10 @@
     "deleteConfirmBody": "This action is permanent. Your profile, your reviews and the parks you added will be deleted, in line with our privacy policy.",
     "delete": "Delete"
   },
+  "accountScreen": {
+    "sessionKicker": "Session",
+    "managementKicker": "Account management"
+  },
   "about": {
     "title": "About Toboggo",
     "tagline": "Thousands of parks rated\nby parents like you.",

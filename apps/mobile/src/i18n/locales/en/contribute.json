@@ -26,7 +26,8 @@
     "addPhoto": "Add a photo",
     "useMyLocation": "Use my current location",
     "accountRequired": "A free account is required to submit.",
-    "accountRequiredDraft": "A free account is required to submit. Your draft is saved."
+    "accountRequiredDraft": "A free account is required to submit. Your draft is saved.",
+    "accountRequiredPhotos": "A free account is required to add photos."
   },
   "steps": {
     "park": "Park",

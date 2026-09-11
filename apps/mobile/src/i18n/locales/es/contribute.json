@@ -26,7 +26,8 @@
     "addPhoto": "Añadir una foto",
     "useMyLocation": "Usar mi ubicación actual",
     "accountRequired": "Se necesita una cuenta gratuita al enviar.",
-    "accountRequiredDraft": "Se necesita una cuenta gratuita al enviar. Tu borrador se conserva."
+    "accountRequiredDraft": "Se necesita una cuenta gratuita al enviar. Tu borrador se conserva.",
+    "accountRequiredPhotos": "Se necesita una cuenta gratuita para añadir fotos."
   },
   "steps": {
     "park": "Parque",

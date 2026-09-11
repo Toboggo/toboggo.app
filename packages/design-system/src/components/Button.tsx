@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import clsx from "clsx";
 import styles from "./Button.module.css";
@@ -12,18 +13,16 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   children?: ReactNode;
 }
 
-export function Button({
-  variant = "primary",
-  block,
-  size = "md",
-  loading,
-  className,
-  disabled,
-  children,
-  ...rest
-}: ButtonProps) {
+/** `forwardRef` so callers that need to manage focus (e.g. the ConfirmDialog
+ * primitive) can do so — purely additive, no behaviour change for existing
+ * callers that don't pass a ref. */
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { variant = "primary", block, size = "md", loading, className, disabled, children, ...rest },
+  ref,
+) {
   return (
     <button
+      ref={ref}
       className={clsx(styles.btn, styles[variant], block && styles.block, size === "sm" && styles.sm, className)}
       disabled={disabled || loading}
       {...rest}
@@ -31,7 +30,7 @@ export function Button({
       {loading ? "…" : children}
     </button>
   );
-}
+});
 
 export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   filled?: boolean;

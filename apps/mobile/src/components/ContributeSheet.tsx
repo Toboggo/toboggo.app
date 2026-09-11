@@ -8,8 +8,9 @@ import styles from "./QuickMenu.module.css";
  *
  * The current park is passed in, so none of the three sub-flows asks the user
  * to pick a park again (`?park=<id>` is forwarded). Auth is **not** requested
- * here — each sub-flow asks for an account only at send time (see
- * `lib/contributionDraft.ts`). Reviews are intentionally not offered here.
+ * here — each sub-flow asks for an account only at send time, and its
+ * in-progress content is autosaved (the shared draft socle). Reviews are
+ * intentionally not offered here.
  */
 export function ContributeSheet({
   open,

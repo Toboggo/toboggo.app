@@ -6,6 +6,7 @@ import type {
   ParkEditHistoryEntry,
   ParkFeatureView,
   ParkStatus,
+  VerificationStatus,
 } from "../types";
 import type { Database, Json, TablesInsert, TablesUpdate } from "../types/database.types";
 
@@ -135,14 +136,136 @@ export async function getPark(id: string): Promise<Park> {
   return data as unknown as Park;
 }
 
+/**
+ * Park ids linked to an organisation via `organization_parks` — the canonical
+ * V2 rattachement. `listReports` / `listReviews` already resolved this inline;
+ * centralised here so every commune-scoped read (parks / reports / reviews /
+ * pending media) uses the same source of truth instead of the legacy V1
+ * `parks.commune_id` column, which `createPark` never populates.
+ *
+ * Screens routinely call several of `listParks`/`listReports`/`listReviews`/
+ * `listPendingMedia` in parallel for the same organisation (e.g. the
+ * dashboard, or the sidebar badge counts) — each would otherwise re-run this
+ * same lookup. In-flight calls for the same `organizationId` are coalesced
+ * into a single request; the cache entry is cleared as soon as it settles
+ * (success or failure), so this never serves stale data across renders or
+ * after a mutation invalidates a query — only truly concurrent callers share
+ * a request.
+ */
+const inFlightOrgParkIds = new Map<string, Promise<string[]>>();
+
+export function listOrgParkIds(organizationId: string): Promise<string[]> {
+  const inFlight = inFlightOrgParkIds.get(organizationId);
+  if (inFlight) return inFlight;
+
+  const promise = (async () => {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from("organization_parks")
+      .select("park_id")
+      .eq("organization_id", organizationId);
+    if (error) throw error;
+    return (data ?? []).map((r: { park_id: string }) => r.park_id);
+  })();
+
+  const tracked = promise.finally(() => {
+    if (inFlightOrgParkIds.get(organizationId) === tracked) inFlightOrgParkIds.delete(organizationId);
+  });
+  inFlightOrgParkIds.set(organizationId, tracked);
+  return tracked;
+}
+
+/** `.in("id", ids)` with an empty list matches every row (Postgres/PostgREST
+ * treats `IN ()` as always-false only when at least one value is given) — a
+ * commune with 0 linked parks must see 0 rows, not everything. Callers pass
+ * this sentinel, matching the pattern already used by `listReports`/`listReviews`. */
+const NO_MATCH_SENTINEL = "00000000-0000-0000-0000-000000000000";
+
 export async function listParks(opts: { communeId?: string; status?: ParkStatus[] } = {}): Promise<Park[]> {
   const supabase = getSupabase();
   let query = supabase.from("park_public").select(PARK_COLS).order("created_at", { ascending: false });
-  if (opts.communeId) query = query.eq("commune_id", opts.communeId);
+  if (opts.communeId) {
+    const ids = await listOrgParkIds(opts.communeId);
+    query = query.in("id", ids.length ? ids : [NO_MATCH_SENTINEL]);
+  }
   if (opts.status?.length) query = query.in("moderation_status", opts.status);
   const { data, error } = await query;
   if (error) throw error;
   return data as unknown as Park[];
+}
+
+// ── Server-paginated management list (BO Lot 3A) ──────────────────────────
+// Separate from `listParks` (which stays an unpaginated array, still used by
+// the dashboard / map / sidebar counts) — this one adds page/sort/search/
+// verification filtering server-side so `/parks` scales past a few hundred
+// rows. `park_public.photos` is already the aggregated list of *approved*
+// media URLs, so the photo count is `row.photos.length` — no extra query.
+
+export const PARKS_PAGE_SIZE = 25;
+
+/** Columns the list can sort on server-side. `name`/`created_at`/`updated_at`
+ * are real `parks` columns; computed cells (photo count, open-report flag)
+ * are intentionally not sortable. */
+export type ParksSortKey = "name" | "created_at" | "updated_at";
+
+export interface ListParksPageOpts {
+  communeId?: string;
+  /** Case-insensitive substring match on the park name. */
+  q?: string;
+  status?: ParkStatus[];
+  verification?: VerificationStatus[];
+  sort?: ParksSortKey;
+  order?: "asc" | "desc";
+  /** 1-based. */
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ParksPage {
+  rows: Park[];
+  total: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+}
+
+export async function listParksPage(opts: ListParksPageOpts = {}): Promise<ParksPage> {
+  const supabase = getSupabase();
+  const page = Math.max(1, Math.trunc(opts.page ?? 1));
+  const pageSize = Math.max(1, Math.trunc(opts.pageSize ?? PARKS_PAGE_SIZE));
+  const sort: ParksSortKey = opts.sort ?? "updated_at";
+  const ascending = (opts.order ?? "desc") === "asc";
+
+  let query = supabase
+    .from("park_public")
+    .select(PARK_COLS, { count: "exact" })
+    .order(sort, { ascending })
+    // Stable tiebreaker so a row never straddles two pages when the sort
+    // column has duplicate values (e.g. a bulk import sharing a timestamp).
+    .order("id", { ascending: true });
+
+  if (opts.communeId) {
+    const ids = await listOrgParkIds(opts.communeId);
+    query = query.in("id", ids.length ? ids : [NO_MATCH_SENTINEL]);
+  }
+  if (opts.status?.length) query = query.in("moderation_status", opts.status);
+  if (opts.verification?.length) query = query.in("verification_status", opts.verification);
+  const q = opts.q?.trim();
+  if (q) query = query.ilike("name", `%${q}%`);
+
+  const from = (page - 1) * pageSize;
+  query = query.range(from, from + pageSize - 1);
+
+  const { data, error, count } = await query;
+  if (error) throw error;
+  const total = count ?? 0;
+  return {
+    rows: (data ?? []) as unknown as Park[],
+    total,
+    page,
+    pageSize,
+    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+  };
 }
 
 // ── Write path ────────────────────────────────────────────────────────────
@@ -185,9 +308,52 @@ function requireField<T>(value: T | null | undefined, field: string): T {
   return value;
 }
 
+/**
+ * A park must carry its real GPS position. No caller may substitute a
+ * placeholder (e.g. a city-centre fallback) when the real position is
+ * unknown — refuse the write instead (see database-migration.md §5 and the
+ * back-office audit, bug B1). `(0, 0)` ("Null Island") is rejected too: it is
+ * never a legitimate park location for this France-only product and is the
+ * classic sign of an uninitialised value slipping through.
+ */
+export function isValidCoordinate(lat: unknown, lng: unknown): lat is number {
+  return (
+    typeof lat === "number" &&
+    Number.isFinite(lat) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    typeof lng === "number" &&
+    Number.isFinite(lng) &&
+    lng >= -180 &&
+    lng <= 180 &&
+    !(lat === 0 && lng === 0)
+  );
+}
+
+export function assertValidCoordinates(lat: unknown, lng: unknown): void {
+  if (!isValidCoordinate(lat, lng)) {
+    throw new Error(
+      "Coordonnées GPS invalides ou manquantes : impossible de créer un parc sans sa position réelle.",
+    );
+  }
+}
+
+/**
+ * Refuse an inconsistent age range. Only enforced when the caller supplies
+ * *both* bounds as real numbers in the same write — a partial update that
+ * touches one bound is not cross-checked against the stored value (no DB read
+ * here). `null` (explicit clear) is fine on either side.
+ */
+export function assertValidAgeRange(min: unknown, max: unknown): void {
+  if (typeof min === "number" && typeof max === "number" && min > max) {
+    throw new Error("Âge invalide : l'âge minimum ne peut pas dépasser l'âge maximum.");
+  }
+}
+
 function splitParkInput(input: Partial<Park>) {
   const {
-    age_min, age_max, status, formatted_address, commune_id, organization_id,
+    age_min, age_max, status, formatted_address, address_line, postal_code, city,
+    commune_id, organization_id,
     surface, play_equipment, wc, shade, fenced, pmr, benches, water, parking,
     features, cover_photo, photos, translated_names, score, has_score,
     rating, review_count, has_open_report, views,
@@ -196,13 +362,39 @@ function splitParkInput(input: Partial<Park>) {
   } = input;
 
   const parkRow: ParkWriteRow = { ...rest };
-  if (age_min != null) parkRow.min_age = age_min;
-  if (age_max != null) parkRow.max_age = age_max;
-  if (age_min != null || age_max != null) parkRow.ages_derived = false;
+
+  // ── Ages ──────────────────────────────────────────────────────────────
+  // Key absent  → leave untouched.
+  // Key present with a number → set it.
+  // Key present with null     → clear it (write NULL to the canonical V2
+  //   column; `parks_v1_compat` re-derives the NOT NULL V1 `age_min`/`age_max`
+  //   back to their 0 / 12 defaults, so V1 compat is preserved).
+  assertValidAgeRange(age_min, age_max);
+  const hasAgeMin = "age_min" in input;
+  const hasAgeMax = "age_max" in input;
+  if (hasAgeMin) parkRow.min_age = age_min ?? null;
+  if (hasAgeMax) parkRow.max_age = age_max ?? null;
+  if (hasAgeMin || hasAgeMax) parkRow.ages_derived = false;
+
   if (status != null) parkRow.moderation_status = status;
   if (lat != null && parkRow.latitude == null) parkRow.latitude = lat;
   if (lng != null && parkRow.longitude == null) parkRow.longitude = lng;
-  if (formatted_address != null && parkRow.address_line == null) parkRow.address_line = formatted_address;
+
+  // ── Structured address ────────────────────────────────────────────────
+  // The canonical V2 columns are written straight through (same "key present"
+  // semantics as ages: present+null clears, present+string sets). The
+  // `parks_v1_compat` trigger keeps the V1 `formatted_address` column in sync
+  // from `address_line`; `park_public.formatted_address` is recomposed by the
+  // view from address_line + postal_code + city. `admin_area_1/2` are not
+  // touched here (derived later, when geocoding lands — 3C.3+).
+  if ("address_line" in input) parkRow.address_line = address_line ?? null;
+  if ("postal_code" in input) parkRow.postal_code = postal_code ?? null;
+  if ("city" in input) parkRow.city = city ?? null;
+  // Legacy flat callers that only pass `formatted_address`: fall back to
+  // filling `address_line` (unless a structured `address_line` was given).
+  if (formatted_address != null && !("address_line" in input)) {
+    parkRow.address_line = formatted_address || null;
+  }
 
   const featureRows: { code: string; status: FeatureStatus; value?: string | null; quantity?: number | null }[] = [];
   if (surface != null) featureRows.push({ code: "surface_type", status: "available", value: SURFACE_TO_FEATURE[surface] ?? "unknown" });
@@ -246,46 +438,77 @@ const PROVENANCE_ADDRESS_KEYS = [
   "admin_area_2",
 ] as const;
 
-/** Peel the provenance-tracked attributes off `parkRow`, apply each through
- * `apply_park_attribute`, and return the remaining columns for a plain
- * `parks` update. */
+/**
+ * Peel the provenance-tracked attributes off `parkRow`, apply each through
+ * `apply_park_attribute` (records a `toboggo` / `municipality` source, gated so
+ * a lower-priority OSM re-import can no longer overwrite it — migration 0032),
+ * and return the columns that still need a plain `parks` update.
+ *
+ * **Presence (`k in rest`), not `!= null`, drives every decision here.** The
+ * back-office clears a field by sending it explicitly as `null` (see
+ * `splitParkInput`). That clear must be honoured — never silently reverted to
+ * the stored value, never silently downgraded to a direct write.
+ *
+ * One documented exception — an **age clear** (`min_age` / `max_age` = `null`):
+ * `apply_park_attribute` (0032, deployed to prod) rejects a JSON-`null`
+ * `value_json`, so a numeric bound goes through the RPC while a clear is written
+ * directly, in an explicit branch below (never a fall-through). Routing a clear
+ * through provenance too needs a follow-up migration that lets the RPC take
+ * `null` — see the merge report.
+ */
 async function applyProvenanceAttributes(id: string, parkRow: ParkWriteRow): Promise<ParkWriteRow> {
   const supabase = getSupabase();
   const rest: ParkWriteRow = { ...parkRow };
   const calls: { key: string; value: Json }[] = [];
 
+  // ── name ── `parks.name` is NOT NULL, so there is no "clear" case.
   if (rest.name != null) {
     calls.push({ key: "name", value: rest.name });
     delete rest.name;
   }
-  if (rest.min_age != null) {
-    calls.push({ key: "min_age", value: rest.min_age });
-    delete rest.min_age;
+
+  // ── ages ── a numeric bound → RPC ; an explicit clear → kept for the direct
+  // update (the RPC cannot take null — see the doc comment).
+  let ageClearKept = false;
+  for (const col of ["min_age", "max_age"] as const) {
+    if (!(col in rest)) continue;
+    const v = rest[col];
+    if (v == null) {
+      ageClearKept = true; // explicit clear stays in `rest`
+    } else {
+      calls.push({ key: col, value: v });
+      delete rest[col];
+    }
   }
-  if (rest.max_age != null) {
-    calls.push({ key: "max_age", value: rest.max_age });
-    delete rest.max_age;
-  }
-  if (calls.some((c) => c.key === "min_age" || c.key === "max_age")) {
-    // `ages_derived` is set by the RPC's projection (`ages_derived = false`).
+  // `ages_derived` is added by `splitParkInput` whenever an age key was present:
+  //  - a clear stays in the direct row → keep `ages_derived = false` alongside it;
+  //  - every age change routed to the RPC → its projection sets `ages_derived`,
+  //    so drop the leftover here.
+  if (!ageClearKept && "ages_derived" in rest && !("min_age" in rest) && !("max_age" in rest)) {
     delete rest.ages_derived;
   }
 
-  const addrChanged = PROVENANCE_ADDRESS_KEYS.some((k) => rest[k] != null);
+  // ── address (full 5-field composite) & location ──
+  const addrChanged = PROVENANCE_ADDRESS_KEYS.some((k) => k in rest);
   const locChanged = rest.latitude != null || rest.longitude != null;
 
   if (addrChanged || locChanged) {
-    // The RPC stores the full composite; merge the patch over the current values.
+    // The RPC stores the whole composite; merge the patch over the current
+    // values by *presence*, so an explicit `null` (clear) survives.
     const current = await getPark(id);
     if (addrChanged) {
+      const field = (k: (typeof PROVENANCE_ADDRESS_KEYS)[number]): string | null => {
+        const v = k in rest ? rest[k] : current[k];
+        return v == null ? null : String(v);
+      };
       calls.push({
         key: "address",
         value: {
-          address_line: (rest.address_line ?? current.address_line) ?? null,
-          postal_code: (rest.postal_code ?? current.postal_code) ?? null,
-          city: (rest.city ?? current.city) ?? null,
-          admin_area_1: (rest.admin_area_1 ?? current.admin_area_1) ?? null,
-          admin_area_2: (rest.admin_area_2 ?? current.admin_area_2) ?? null,
+          address_line: field("address_line"),
+          postal_code: field("postal_code"),
+          city: field("city"),
+          admin_area_1: field("admin_area_1"),
+          admin_area_2: field("admin_area_2"),
         },
       });
       for (const k of PROVENANCE_ADDRESS_KEYS) delete rest[k];
@@ -347,6 +570,8 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
     country_code: parkRow.country_code ?? "FR",
     timezone: parkRow.timezone ?? "Europe/Paris",
   };
+  // No placeholder coordinates, ever (bug B1) — see assertValidCoordinates doc comment.
+  assertValidCoordinates(insertRow.latitude, insertRow.longitude);
   const { data, error } = await supabase
     .from("parks")
     // `lat`/`lng`/`formatted_address` are re-derived by parks_v1_compat (see splitParkInput).
@@ -357,10 +582,14 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
   const parkId = data.id;
   await applyFeatures(parkId, featureRows);
   if (orgId) {
-    await supabase.from("organization_parks").upsert(
+    // Links the park to its owning organisation (bug B2 depends on this
+    // succeeding — a failure here must not be swallowed, or the park is
+    // created but invisible to its own collectivité).
+    const { error: orgLinkError } = await supabase.from("organization_parks").upsert(
       { organization_id: orgId, park_id: parkId, role: "owner" },
       { onConflict: "organization_id,park_id" },
     );
+    if (orgLinkError) throw orgLinkError;
   }
   return getPark(parkId);
 }
@@ -368,10 +597,28 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
 export async function updatePark(id: string, patch: Partial<Park>, _historyNote?: string): Promise<Park> {
   const supabase = getSupabase();
   const { parkRow, featureRows, orgId } = splitParkInput(patch);
-  // Provenance-tracked attributes (name / ages / address / location) go through
-  // `apply_park_attribute` so a manual correction records a Toboggo/collectivité
-  // source and survives a later OSM re-import (migration 0032). The rest is a
-  // plain column update.
+
+  // 1) Validations (BO). A position edit gets the same range check as
+  // `createPark` (bug B1); both bounds must move together — a lone
+  // latitude/longitude write would leave the pair inconsistent and there is no
+  // DB read here to fill the missing half. Runs *before* the provenance step,
+  // which would otherwise peel `latitude`/`longitude` away.
+  const touchesLat = parkRow.latitude != null;
+  const touchesLng = parkRow.longitude != null;
+  if (touchesLat || touchesLng) {
+    if (!touchesLat || !touchesLng) {
+      throw new Error(
+        "Modification de position : latitude et longitude doivent être fournies ensemble.",
+      );
+    }
+    assertValidCoordinates(parkRow.latitude, parkRow.longitude);
+  }
+
+  // 2) Provenance-tracked attributes (name / ages / address / location) go
+  // through `apply_park_attribute` so a manual correction records a
+  // Toboggo/collectivité source and survives a later OSM re-import (migration
+  // 0032). Whatever is left (`description`, `slug`, `moderation_status`,
+  // `operational_status`, an explicit age clear) is a plain column update.
   const directRow = await applyProvenanceAttributes(id, parkRow);
   if (Object.keys(directRow).length) {
     const { error } = await supabase.from("parks").update(directRow).eq("id", id);
@@ -379,10 +626,11 @@ export async function updatePark(id: string, patch: Partial<Park>, _historyNote?
   }
   await applyFeatures(id, featureRows);
   if (orgId) {
-    await supabase.from("organization_parks").upsert(
+    const { error: orgLinkError } = await supabase.from("organization_parks").upsert(
       { organization_id: orgId, park_id: id, role: "owner" },
       { onConflict: "organization_id,park_id" },
     );
+    if (orgLinkError) throw orgLinkError;
   }
   return getPark(id);
 }

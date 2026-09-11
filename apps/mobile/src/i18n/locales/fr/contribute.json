@@ -26,7 +26,8 @@
     "addPhoto": "Ajouter une photo",
     "useMyLocation": "Utiliser ma position actuelle",
     "accountRequired": "Un compte gratuit est demandé au moment de l’envoi.",
-    "accountRequiredDraft": "Un compte gratuit est demandé au moment de l’envoi. Votre brouillon est conservé."
+    "accountRequiredDraft": "Un compte gratuit est demandé au moment de l’envoi. Votre brouillon est conservé.",
+    "accountRequiredPhotos": "Un compte gratuit est demandé pour ajouter des photos."
   },
   "steps": {
     "park": "Parc",

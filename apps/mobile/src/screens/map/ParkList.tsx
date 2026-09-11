@@ -30,7 +30,13 @@ export function ParkList({
 
   let rows = [...parks];
   if (forChildren && childAges.length > 0) {
-    rows = rows.filter((p) => childAges.some((a) => a >= p.age_min && a <= p.age_max));
+    rows = rows.filter((p) => {
+      // A park with no recorded age range is never assumed compatible.
+      if (p.age_min == null || p.age_max == null) return false;
+      const lo = p.age_min;
+      const hi = p.age_max;
+      return childAges.some((a) => a >= lo && a <= hi);
+    });
   }
   rows.sort((a, b) => {
     if (sort === "rating") return b.rating - a.rating;

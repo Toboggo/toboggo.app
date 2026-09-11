@@ -1,10 +1,23 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Chip, Icon, Input, Textarea, DualRangeSlider, Tag, equipmentIcon, serviceIcon } from "@toboggo/design-system";
+import {
+  Button,
+  Chip,
+  Icon,
+  Input,
+  Textarea,
+  DualRangeSlider,
+  Tag,
+  equipmentIcon,
+  serviceIcon,
+  usePersistentDraft,
+  useAdoptedDraftKey,
+} from "@toboggo/design-system";
 import {
   addParkPhotos,
+  buildDraftKey,
   createPark,
   listFeatures,
   logActivity,
@@ -19,12 +32,46 @@ import { PhotoTip } from "../../components/PhotoTip";
 import { useFormat } from "../../i18n/useFormat";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../../lib/geo";
-import { requireAccount, useSession } from "../../lib/session";
+import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
+import { setResumeRoute } from "../../lib/resumeRoute";
 
 // Stepper keys resolved against the `contribute` namespace.
 const STEPS = ["steps.park", "steps.location", "steps.info", "steps.photos", "steps.verify"];
 const TOTAL_STEPS = STEPS.length;
+
+// Brouillon persistant (LOT 3D.E) — socle partagé `usePersistentDraft`.
+// Step 0 (recherche d'un parc existant) n'a pas de données de formulaire propre
+// et n'est jamais persisté ; le brouillon ne couvre que les étapes 1-4.
+const ADD_PARK_DRAFT_VERSION = 1;
+const ADD_PARK_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
+
+interface AddParkDraft {
+  step: number;
+  lat: number;
+  lng: number;
+  address: string;
+  name: string;
+  ageLow: number;
+  ageHigh: number;
+  ageTouched: boolean;
+  services: Set<string>;
+  equipment: Set<string>;
+  description: string;
+  /** Already-uploaded photo URLs only — see onPickFile: a guest can never pick
+   * a photo here (it requires `userId`), so this never holds a raw File. */
+  photos: string[];
+}
+
+/** `Set` isn't JSON-native — round-trip it as a tagged array. */
+function replaceSets(_key: string, value: unknown): unknown {
+  return value instanceof Set ? { __set: [...value] } : value;
+}
+function reviveSets(_key: string, value: unknown): unknown {
+  return value && typeof value === "object" && Array.isArray((value as { __set?: unknown[] }).__set)
+    ? new Set((value as { __set: unknown[] }).__set)
+    : value;
+}
 
 /**
  * The 7 amenities `createPark` already knows how to persist (its flat V1-shape
@@ -74,6 +121,8 @@ function VerifySection({ title, onEdit, children }: { title: string; onEdit: () 
 
 export default function AddPark() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const wantsResume = params.get("resume") === "1";
   const { t } = useTranslation("contribute");
   const { t: tErr } = useTranslation("errors");
   const { t: tCommon } = useTranslation("common");
@@ -82,23 +131,65 @@ export default function AddPark() {
   const { lat, lng } = useGeo();
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
-  const [step, setStep] = useState(0);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [coords, setCoords] = useState({ lat, lng });
-  const [address, setAddress] = useState("");
+  // Draft: no parkId (there isn't one yet — this flow creates it), scoped only
+  // by principal. Guest → signed-in handover mirrors EditInfo/ReportProblem:
+  // the actual localStorage move runs in an effect (useAdoptedDraftKey), never
+  // during render, and usePersistentDraft is held until any same-flow guest
+  // draft has been arbitrated against the user's.
+  const guestDraftKey = buildDraftKey({ surface: "mobile", flow: "park.add", principal: "guest" });
+  const userDraftKey = userId ? buildDraftKey({ surface: "mobile", flow: "park.add", principal: { userId } }) : null;
+  const draftKey = useAdoptedDraftKey(guestDraftKey, userDraftKey);
+
+  const initialDraft = useMemo<AddParkDraft>(
+    () => ({
+      step: 0,
+      lat,
+      lng,
+      address: "",
+      name: "",
+      ageLow: 0,
+      ageHigh: 12,
+      ageTouched: false,
+      services: new Set(),
+      equipment: new Set(),
+      description: "",
+      photos: [],
+    }),
+    // Only the very first evaluation matters (mount, or the moment a draft
+    // key first resolves) — see usePersistentDraft's `initialValue` contract.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
+
+  const {
+    value: draft,
+    setValue: setDraft,
+    patch,
+    clear: clearAddParkDraft,
+    flush: flushAddParkDraft,
+  } = usePersistentDraft<AddParkDraft>(draftKey, initialDraft, {
+    schemaVersion: ADD_PARK_DRAFT_VERSION,
+    ttlMs: ADD_PARK_DRAFT_TTL_MS,
+    restore: "auto",
+    serialize: replaceSets,
+    deserialize: reviveSets,
+  });
+
+  // A restored draft claiming step 3 (Photos) or 4 (Vérification) without a
+  // name — the one hard precondition step 2 enforces before letting you past
+  // it — falls back to step 2 instead of skipping it. Never mutates storage.
+  const clampedStep = Math.min(Math.max(draft.step, 0), TOTAL_STEPS - 1);
+  const step = clampedStep >= 3 && !draft.name.trim() ? 2 : clampedStep;
+  const setStep = (next: number) => patch({ step: next });
+
   const [parkQuery, setParkQuery] = useState("");
   const [locating, setLocating] = useState(false);
-  const [name, setName] = useState("");
-  const [ageLow, setAgeLow] = useState(0);
-  const [ageHigh, setAgeHigh] = useState(12);
-  const [ageTouched, setAgeTouched] = useState(false);
-  const [services, setServices] = useState<Set<string>>(new Set());
-  const [equipment, setEquipment] = useState<Set<string>>(new Set());
-  const [description, setDescription] = useState("");
-  const [photos, setPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  const autoSubmitted = useRef(false);
 
   const { data: featureCatalogue = [] } = useQuery({ queryKey: ["features"], queryFn: () => listFeatures() });
   const playFeatures = useMemo(
@@ -106,16 +197,16 @@ export default function AddPark() {
     [featureCatalogue],
   );
 
-  function toggle(set: Set<string>, setSet: (s: Set<string>) => void, key: string) {
-    const next = new Set(set);
+  function toggle(field: "services" | "equipment", key: string) {
+    const next = new Set(draft[field]);
     next.has(key) ? next.delete(key) : next.add(key);
-    setSet(next);
+    patch({ [field]: next } as Partial<AddParkDraft>);
   }
 
   // Real GPS fix (not just re-reading whatever useGeo already held) — updates
   // the shared geo store (same convention as MapExplore/Permissions) so a
   // fix obtained here is also available if the parent later revisits the
-  // map, plus this wizard's own `coords` so the Localisation step starts
+  // map, plus the draft's own coordinates so the Localisation step starts
   // from it immediately.
   async function handleUseMyLocation() {
     setLocating(true);
@@ -123,7 +214,7 @@ export default function AddPark() {
       const pos = await requestBrowserLocation();
       useGeo.getState().setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       useGeo.getState().setPermission("granted");
-      setCoords({ lat: pos.lat, lng: pos.lng });
+      patch({ lat: pos.lat, lng: pos.lng });
     } catch {
       useGeo.getState().setPermission("denied");
     } finally {
@@ -138,7 +229,7 @@ export default function AddPark() {
     setUploading(true);
     try {
       const url = await uploadPhoto("parkPhotos", file, userId);
-      setPhotos((p) => [...p, url].slice(0, 4));
+      setDraft((d) => ({ ...d, photos: [...d.photos, url].slice(0, 4) }));
     } catch (err) {
       showToast(
         err instanceof ImageValidationError
@@ -151,26 +242,25 @@ export default function AddPark() {
   }
 
   function removePhoto(i: number) {
-    setPhotos((p) => p.filter((_, idx) => idx !== i));
+    setDraft((d) => ({ ...d, photos: d.photos.filter((_, idx) => idx !== i) }));
   }
 
   function publish() {
     const uid = useSession.getState().userId;
     if (uid) {
       setSaving(true);
-      void doPublish(uid, true);
+      void doPublish(uid);
       return;
     }
-    // Guest: just-in-time login, then resume. This screen unmounts during the
-    // login detour, so the resumed run reports via toast + navigation.
-    requireAccount(navigate, () => {
-      const newUid = useSession.getState().userId;
-      if (newUid) void doPublish(newUid, false);
-    });
+    // Guest: the draft is already autosaved; force the latest to disk before
+    // the full-page sign-in detour, then come back here (?resume=1) — the
+    // effect below finishes the send once signed in (email login or OAuth).
+    flushAddParkDraft();
+    setResumeRoute("/add?resume=1");
+    navigate("/login", { replace: true });
   }
 
-  async function doPublish(uid: string, inline: boolean) {
-    const toast = inline ? showToast : useToastStore.getState().show;
+  async function doPublish(uid: string) {
     try {
       // Only ever send what the parent actually stated. A chip left
       // unselected, an untouched age slider, or an empty address must never
@@ -178,49 +268,61 @@ export default function AddPark() {
       // absent from the payload (`createPark`/`splitParkInput` already skips
       // any field that isn't provided).
       const input: Partial<Park> = {
-        name,
-        lat: coords.lat,
-        lng: coords.lng,
-        play_equipment: Array.from(equipment),
-        description: description || null,
+        name: draft.name,
+        lat: draft.lat,
+        lng: draft.lng,
+        play_equipment: Array.from(draft.equipment),
+        description: draft.description || null,
         status: "pending",
         created_by: uid,
       };
-      if (address.trim()) input.formatted_address = address.trim();
-      if (ageTouched) {
-        input.age_min = ageLow;
-        input.age_max = ageHigh;
+      if (draft.address.trim()) input.formatted_address = draft.address.trim();
+      if (draft.ageTouched) {
+        input.age_min = draft.ageLow;
+        input.age_max = draft.ageHigh;
       }
-      if (services.has("wc")) input.wc = true;
-      if (services.has("shade")) input.shade = true;
-      if (services.has("fenced")) input.fenced = true;
-      if (services.has("pmr")) input.pmr = true;
-      if (services.has("benches")) input.benches = true;
-      if (services.has("water")) input.water = true;
-      if (services.has("parking")) input.parking = true;
+      if (draft.services.has("wc")) input.wc = true;
+      if (draft.services.has("shade")) input.shade = true;
+      if (draft.services.has("fenced")) input.fenced = true;
+      if (draft.services.has("pmr")) input.pmr = true;
+      if (draft.services.has("benches")) input.benches = true;
+      if (draft.services.has("water")) input.water = true;
+      if (draft.services.has("parking")) input.parking = true;
 
       const park: Park = await createPark(input);
+      // Created — drop the draft BEFORE the secondary calls below. If photos
+      // or the activity log fail afterwards, the error still surfaces, but
+      // the draft can no longer resurrect a form that would call createPark
+      // again and produce a duplicate park.
+      clearAddParkDraft();
+      const photos = draft.photos;
       if (photos.length) {
         await addParkPhotos(park.id, photos, { source: "user", userId: uid });
       }
       // Back-office audit trail (`activity_log`) — internal, not user-facing UI:
       // kept in French, out of the i18n scope (see i18n audit).
       await logActivity(park.commune_id, "Vous", `Parc ajouté : ${park.name}`, "primary");
-      if (inline) {
-        setCreatedId(park.id);
-        setStep(TOTAL_STEPS);
-      } else {
-        toast(t("addPark.sentToast"));
-        navigate(`/park/${park.id}`);
-      }
+      setCreatedId(park.id);
+      setDone(true);
     } catch {
-      toast(tErr("generic"));
+      showToast(tErr("generic"));
     } finally {
-      if (inline) setSaving(false);
+      setSaving(false);
     }
   }
 
-  if (step === TOTAL_STEPS) {
+  // Back from sign-in with the draft intact (guest draft now adopted under the
+  // user key and restored): send it once. `draft.name` mirrors the same
+  // completeness gate the UI itself enforces before step 3.
+  useEffect(() => {
+    if (!wantsResume || autoSubmitted.current) return;
+    if (!userId || !draft.name.trim()) return;
+    autoSubmitted.current = true;
+    void doPublish(userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsResume, userId, draft.name]);
+
+  if (done) {
     return (
       <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
         <div
@@ -288,18 +390,18 @@ export default function AddPark() {
             {t("addPark.locationHint")}
           </p>
           <PinField
-            lat={coords.lat}
-            lng={coords.lng}
-            onChange={(lat, lng) => setCoords({ lat, lng })}
-            onAddressResolved={setAddress}
+            lat={draft.lat}
+            lng={draft.lng}
+            onChange={(lat, lng) => patch({ lat, lng })}
+            onAddressResolved={(address) => patch({ address })}
           />
           <p style={{ fontSize: 11.5, color: "var(--color-text-faint)", margin: "6px 0 0" }}>
             {t("addPark.pinHint")}
           </p>
           <Input
             label={t("addPark.addressLabel")}
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
+            value={draft.address}
+            onChange={(e) => patch({ address: e.target.value })}
             placeholder={t("addPark.addressPlaceholder")}
             style={{ marginTop: 16 }}
           />
@@ -316,21 +418,17 @@ export default function AddPark() {
             {t("addPark.infoHint")}
           </p>
 
-          <Input label={t("addPark.nameLabel")} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("addPark.namePlaceholder")} />
+          <Input label={t("addPark.nameLabel")} value={draft.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t("addPark.namePlaceholder")} />
 
           <div style={{ marginTop: 20, marginBottom: 20 }}>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>{t("field.ageRange")}</div>
             <DualRangeSlider
               min={0}
               max={12}
-              low={ageLow}
-              high={ageHigh}
-              formatLabel={ageTouched ? (l, h) => f.ageRange(l, h) : () => tCommon("age.notSpecified")}
-              onChange={(l, h) => {
-                setAgeLow(l);
-                setAgeHigh(h);
-                setAgeTouched(true);
-              }}
+              low={draft.ageLow}
+              high={draft.ageHigh}
+              formatLabel={draft.ageTouched ? (l, h) => f.ageRange(l, h) : () => tCommon("age.notSpecified")}
+              onChange={(l, h) => patch({ ageLow: l, ageHigh: h, ageTouched: true })}
             />
           </div>
 
@@ -341,7 +439,7 @@ export default function AddPark() {
                 {group.keys.map((key) => {
                   const ic = serviceIcon(key);
                   return (
-                    <Chip key={key} active={services.has(key)} onClick={() => toggle(services, setServices, key)}>
+                    <Chip key={key} active={draft.services.has(key)} onClick={() => toggle("services", key)}>
                       {ic && <Icon name={ic} size={15} style={{ marginRight: 4, display: "inline-block", verticalAlign: "-2px" }} />}
                       {featureLabel(SERVICE_TO_FEATURE_CODE[key])}
                     </Chip>
@@ -357,7 +455,7 @@ export default function AddPark() {
               {playFeatures.map((feat) => {
                 const ic = equipmentIcon(feat.code);
                 return (
-                  <Chip key={feat.code} active={equipment.has(feat.code)} onClick={() => toggle(equipment, setEquipment, feat.code)}>
+                  <Chip key={feat.code} active={draft.equipment.has(feat.code)} onClick={() => toggle("equipment", feat.code)}>
                     {ic && <Icon name={ic} size={15} style={{ marginRight: 4, display: "inline-block", verticalAlign: "-2px" }} />}
                     {featureLabel(feat.code)}
                   </Chip>
@@ -366,8 +464,8 @@ export default function AddPark() {
             </div>
           </div>
 
-          <Textarea label={t("addPark.descriptionLabel")} value={description} onChange={(e) => setDescription(e.target.value)} rows={3} />
-          <Button block style={{ marginTop: 20 }} disabled={!name} onClick={() => setStep(3)}>
+          <Textarea label={t("addPark.descriptionLabel")} value={draft.description} onChange={(e) => patch({ description: e.target.value })} rows={3} />
+          <Button block style={{ marginTop: 20 }} disabled={!draft.name} onClick={() => setStep(3)}>
             {t("common.continue")}
           </Button>
         </div>
@@ -380,7 +478,7 @@ export default function AddPark() {
             {t("addPark.photosHint")}
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {photos.map((p, i) => (
+            {draft.photos.map((p, i) => (
               <div key={i} style={{ position: "relative", width: 80, height: 80 }}>
                 <div style={{ width: 80, height: 80, borderRadius: 14, backgroundImage: `url(${p})`, backgroundSize: "cover" }} />
                 <button
@@ -393,7 +491,7 @@ export default function AddPark() {
                 </button>
               </div>
             ))}
-            {photos.length < 4 && (
+            {draft.photos.length < 4 && (
               <label
                 style={{
                   width: 80,
@@ -425,7 +523,7 @@ export default function AddPark() {
           </div>
           <PhotoTip />
           <Button block style={{ marginTop: 24 }} onClick={() => setStep(4)}>
-            {photos.length > 0 ? t("common.continue") : t("common.skip")}
+            {draft.photos.length > 0 ? t("common.continue") : t("common.skip")}
           </Button>
         </div>
       )}
@@ -438,25 +536,25 @@ export default function AddPark() {
           </p>
 
           <VerifySection title={t("addPark.section.park")} onEdit={() => setStep(2)}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>{name || "—"}</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>{draft.name || "—"}</div>
           </VerifySection>
 
           <VerifySection title={t("steps.location")} onEdit={() => setStep(1)}>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-              {address.trim() || t("addPark.locationOnMap")}
+              {draft.address.trim() || t("addPark.locationOnMap")}
             </div>
           </VerifySection>
 
-          {ageTouched && (
+          {draft.ageTouched && (
             <VerifySection title={t("field.ageRange")} onEdit={() => setStep(2)}>
-              <Tag>{f.ageRange(ageLow, ageHigh)}</Tag>
+              <Tag>{f.ageRange(draft.ageLow, draft.ageHigh)}</Tag>
             </VerifySection>
           )}
 
-          {equipment.size > 0 && (
+          {draft.equipment.size > 0 && (
             <VerifySection title={t("field.playEquipment")} onEdit={() => setStep(2)}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {Array.from(equipment).map((code) => (
+                {Array.from(draft.equipment).map((code) => (
                   <Tag key={code} tone="primary">
                     {featureLabel(code)}
                   </Tag>
@@ -465,10 +563,10 @@ export default function AddPark() {
             </VerifySection>
           )}
 
-          {services.size > 0 && (
+          {draft.services.size > 0 && (
             <VerifySection title={t("addPark.section.services")} onEdit={() => setStep(2)}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {Array.from(services).map((key) => (
+                {Array.from(draft.services).map((key) => (
                   <Tag key={key} tone="primary">
                     {featureLabel(SERVICE_TO_FEATURE_CODE[key])}
                   </Tag>
@@ -477,16 +575,16 @@ export default function AddPark() {
             </VerifySection>
           )}
 
-          {description.trim() && (
+          {draft.description.trim() && (
             <VerifySection title={t("addPark.section.description")} onEdit={() => setStep(2)}>
-              <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>{description}</p>
+              <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>{draft.description}</p>
             </VerifySection>
           )}
 
-          {photos.length > 0 && (
+          {draft.photos.length > 0 && (
             <VerifySection title={t("steps.photos")} onEdit={() => setStep(3)}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {photos.map((p, i) => (
+                {draft.photos.map((p, i) => (
                   <div key={i} style={{ width: 56, height: 56, borderRadius: 10, backgroundImage: `url(${p})`, backgroundSize: "cover" }} />
                 ))}
               </div>

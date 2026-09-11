@@ -16,6 +16,48 @@ interface PhotoPick {
   preview: string;
 }
 
+// Brouillon persistant (LOT 3D.F) — délibérément absent ici, et `requireAccount`
+// / `pendingResume` délibérément conservés tels quels. Raisons :
+// - `picks` ne porte aucune information sérialisable qui vaille la peine d'un
+//   brouillon (pas de légende, pas d'étape à mémoriser au-delà de `parkId` déjà
+//   dans l'URL) : c'est juste « choisir des fichiers → envoyer ». Un
+//   `persistentDraft` n'apporterait donc rien.
+// - Un `File`/`Blob` ne peut JAMAIS être stocké dans `localStorage` (règle du
+//   socle) : tant que ce composant reste monté, `picks` survit déjà en mémoire
+//   aux changements d'onglet / app / Finder (protection LOT 3D.A) — un vrai
+//   rechargement, une fermeture ou une éviction du process perd les fichiers
+//   choisis. C'est une limite V1 assumée, pas un bug : il faut resélectionner
+//   les photos dans ce cas.
+// - Basculer vers `resumeRoute` (au lieu de `requireAccount`/`pendingResume`)
+//   régresserait le chemin invité → connexion in-SPA (email ou lien magique) :
+//   `pendingResume` referme sur les `File` déjà choisis et les envoie dès le
+//   retour de session, sans reformulaire. Aucun mécanisme ne peut de toute
+//   façon faire traverser un `File` à une redirection OAuth pleine page (le tas
+//   JS, donc la closure, est détruit) — le gain espéré n'existe pas.
+//
+// Micro-correctif (LOT 3D.F, point auth) — le compte est désormais requis
+// AVANT d'ouvrir le sélecteur de fichiers, pas seulement à l'envoi : un invité
+// ne doit jamais se retrouver avec des `File` en main que nous savons ne pas
+// pouvoir restaurer après une redirection OAuth pleine page. Le sélecteur
+// natif (`<input type="file">`) n'est même pas rendu tant que l'utilisateur
+// n'est pas connecté (voir `pickTileStyle` / le rendu conditionnel ci-dessous).
+
+const pickTileStyle: React.CSSProperties = {
+  aspectRatio: "1",
+  borderRadius: 14,
+  border: "2px dashed var(--color-border-strong)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 24,
+  cursor: "pointer",
+  color: "var(--color-text-faint)",
+  width: "100%",
+  background: "transparent",
+  padding: 0,
+  font: "inherit",
+};
+
 // Named stepper shared with the other contribution wizards (see AddPark). The
 // three stages are stable across entry points: arriving with `?park=` just
 // starts on "Photos" with "Parc" already checked — the step is never dropped.
@@ -38,8 +80,9 @@ export default function AddPhotos() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
-  // Browsing (incl. previewing a photo) stays anonymous; the account is only
-  // required at "Envoyer". Keep the object URLs alive until unmount.
+  // Browsing (picking a park) stays anonymous; the account is required before
+  // the file picker itself opens (see `requirePhotoAuth`). Keep the object
+  // URLs alive until unmount.
   const picksRef = useRef(picks);
   picksRef.current = picks;
   useEffect(() => () => picksRef.current.forEach((p) => URL.revokeObjectURL(p.preview)), []);
@@ -65,6 +108,14 @@ export default function AddPhotos() {
     });
   }
 
+  // Gate before the file picker (guest) — never carries File objects across
+  // auth: just routes back to this same screen, ready to pick, once signed in.
+  function requirePhotoAuth() {
+    if (!parkId) return;
+    const targetPark = parkId;
+    requireAccount(navigate, () => navigate(`/photo-add?park=${targetPark}`, { replace: true }));
+  }
+
   // Contributor photos: real photos of this park, recorded provenance
   // (source = "user"). They enter the moderation queue (status = pending).
   async function upload(uid: string, targetPark: string, files: File[]): Promise<boolean> {
@@ -81,25 +132,21 @@ export default function AddPhotos() {
     const files = picks.map((p) => p.file);
     const uid = useSession.getState().userId;
 
-    if (uid) {
-      setSaving(true);
-      upload(uid, targetPark, files)
-        .then(() => setDone(true))
-        .catch(() => showToast(tErr("image.uploadFailed")))
-        .finally(() => setSaving(false));
+    if (!uid) {
+      // Defensive only: the pick-time gate (`requirePhotoAuth`) normally makes
+      // this unreachable — `picks` can't be non-empty without an account. If
+      // the session was lost since (e.g. signed out elsewhere), route through
+      // the same gate again rather than trying to carry the already-picked
+      // `File`s across a fresh login — that's exactly what we no longer do.
+      requirePhotoAuth();
       return;
     }
 
-    // Guest: just-in-time login, then resume the upload. This screen has
-    // unmounted by then, so the resume reports via toast + navigation.
-    requireAccount(navigate, () => {
-      const newUid = useSession.getState().userId;
-      if (!newUid) return;
-      upload(newUid, targetPark, files)
-        .then(() => useToastStore.getState().show(t("addPhotos.sentToast")))
-        .catch(() => useToastStore.getState().show(tErr("image.uploadFailed")))
-        .finally(() => navigate(`/park/${targetPark}`));
-    });
+    setSaving(true);
+    upload(uid, targetPark, files)
+      .then(() => setDone(true))
+      .catch(() => showToast(tErr("image.uploadFailed")))
+      .finally(() => setSaving(false));
   }
 
   if (done) {
@@ -177,22 +224,16 @@ export default function AddPhotos() {
                       <Icon name="ic-close" size={14} />
                     </button>
                   </div>
-                ) : (
-                  <label
-                    style={{
-                      aspectRatio: "1",
-                      borderRadius: 14,
-                      border: "2px dashed var(--color-border-strong)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 24,
-                      cursor: "pointer",
-                      color: "var(--color-text-faint)",
-                    }}
-                  >
+                ) : userId ? (
+                  <label style={pickTileStyle}>
                     +<input type="file" accept="image/*" capture="environment" hidden onChange={onPickFile} />
                   </label>
+                ) : (
+                  // Invité : pas de <input type="file"> du tout — le sélecteur
+                  // natif ne doit jamais s'ouvrir avant l'authentification.
+                  <button type="button" style={pickTileStyle} onClick={requirePhotoAuth}>
+                    +
+                  </button>
                 )}
               </div>
             ))}
@@ -200,7 +241,7 @@ export default function AddPhotos() {
           <PhotoTip />
           {!userId && (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
-              {t("common.accountRequired")}
+              {t("common.accountRequiredPhotos")}
             </p>
           )}
           <Button block loading={saving} disabled={!picks.length} style={{ marginTop: 16 }} onClick={submit}>

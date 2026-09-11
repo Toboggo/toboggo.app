@@ -14,7 +14,7 @@ body,
 .bo-content {
   flex: 1;
   min-width: 0;
-  padding: 24px 32px 60px;
+  padding: 20px 28px 56px;
 }
 
 @media (max-width: 860px) {

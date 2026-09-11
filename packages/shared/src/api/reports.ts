@@ -1,4 +1,5 @@
 import { getSupabase } from "../supabaseClient";
+import { listOrgParkIds } from "./parks";
 import type { Report, ReportStatus } from "../types";
 import type { TablesInsert } from "../types/database.types";
 
@@ -31,11 +32,7 @@ export async function listReports(opts: { communeId?: string; status?: ReportSta
   const supabase = getSupabase();
   let query = supabase.from("reports").select("*, parks!inner(name)").order("created_at", { ascending: false });
   if (opts.communeId) {
-    const { data: orgParks } = await supabase
-      .from("organization_parks")
-      .select("park_id")
-      .eq("organization_id", opts.communeId);
-    const ids = (orgParks ?? []).map((r: { park_id: string }) => r.park_id);
+    const ids = await listOrgParkIds(opts.communeId);
     query = query.in("park_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
   }
   if (opts.status?.length) query = query.in("status", opts.status);

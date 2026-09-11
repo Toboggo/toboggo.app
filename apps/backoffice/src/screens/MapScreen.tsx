@@ -7,7 +7,7 @@ import { PageHeader } from "../components/PageHeader";
 import { ParkModal } from "../components/ParkModal";
 import { ReportModal } from "../components/ReportModal";
 import { useOrgScope } from "../lib/orgScope";
-import { useOrgSession } from "../lib/orgSession";
+import { usePermissions } from "../lib/permissions";
 
 // Fond de carte : URL de style MapLibre configurée via VITE_MAP_STYLE_URL
 // (OpenFreeMap au démarrage, cf. packages/shared/src/map.ts).
@@ -22,7 +22,7 @@ function pinColor(park: Park) {
 
 export default function MapScreen() {
   const { communeId } = useOrgScope();
-  const canManage = useOrgSession((s) => s.isGestionnaireOrAbove());
+  const { canEditPark, canResolveReport } = usePermissions();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [modalPark, setModalPark] = useState<Park | null>(null);
@@ -90,8 +90,8 @@ export default function MapScreen() {
         )}
       </div>
 
-      {modalPark && <ParkModal park={modalPark} onClose={() => setModalPark(null)} canManage={canManage} />}
-      {modalReport && <ReportModal report={modalReport} onClose={() => setModalReport(null)} canManage={canManage} />}
+      {modalPark && <ParkModal park={modalPark} onClose={() => setModalPark(null)} canManage={canEditPark} />}
+      {modalReport && <ReportModal report={modalReport} onClose={() => setModalReport(null)} canManage={canResolveReport} />}
     </div>
   );
 }

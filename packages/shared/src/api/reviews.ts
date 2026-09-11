@@ -1,4 +1,5 @@
 import { getSupabase } from "../supabaseClient";
+import { listOrgParkIds } from "./parks";
 import type { AgeBand, Review } from "../types";
 import type { TablesInsert } from "../types/database.types";
 
@@ -64,11 +65,7 @@ export async function listReviews(opts: { communeId?: string } = {}): Promise<Re
   const supabase = getSupabase();
   let query = supabase.from("reviews").select("*, parks!inner(name)").order("created_at", { ascending: false });
   if (opts.communeId) {
-    const { data: orgParks } = await supabase
-      .from("organization_parks")
-      .select("park_id")
-      .eq("organization_id", opts.communeId);
-    const ids = (orgParks ?? []).map((r: { park_id: string }) => r.park_id);
+    const ids = await listOrgParkIds(opts.communeId);
     query = query.in("park_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
   }
   const { data, error } = await query;

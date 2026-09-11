@@ -6,13 +6,13 @@ import { PageHeader } from "../components/PageHeader";
 import { ReportStatusTag } from "../components/StatusTag";
 import { ReportModal } from "../components/ReportModal";
 import { useOrgScope } from "../lib/orgScope";
-import { useOrgSession } from "../lib/orgSession";
+import { usePermissions } from "../lib/permissions";
 
 type TabValue = "open" | "resolved" | "dismissed" | "all";
 
 export default function Reports() {
-  const { isAdmin, communeId } = useOrgScope();
-  const canManage = isAdmin || useOrgSession((s) => s.isGestionnaireOrAbove());
+  const { communeId } = useOrgScope();
+  const { canResolveReport } = usePermissions();
   const [tab, setTab] = useState<TabValue>("open");
   const [selected, setSelected] = useState<(Report & { parks?: { name: string } }) | null>(null);
 
@@ -70,7 +70,7 @@ export default function Reports() {
         )}
       </div>
 
-      {selected && <ReportModal report={selected} onClose={() => setSelected(null)} canManage={canManage} />}
+      {selected && <ReportModal report={selected} onClose={() => setSelected(null)} canManage={canResolveReport} />}
     </div>
   );
 }

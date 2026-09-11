@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Tag } from "@toboggo/design-system";
+import { Button, Tag, useConfirm, useToast } from "@toboggo/design-system";
 import { deleteMedia, listPendingMedia, setMediaStatus, setParkCover, type PendingMedia } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { useOrgScope } from "../lib/orgScope";
@@ -18,6 +18,8 @@ const SOURCE_LABEL: Record<string, string> = {
 
 export default function Photos() {
   const { communeId } = useOrgScope();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [busy, setBusy] = useState<string | null>(null);
 
   const { data: pending = [], isLoading } = useQuery({
@@ -31,13 +33,15 @@ export default function Photos() {
     void queryClient.invalidateQueries({ queryKey: ["shell-pending-media"] });
   }
 
-  async function run(id: string, fn: () => Promise<void>) {
+  async function run(id: string, fn: () => Promise<void>, successMessage: string) {
+    if (busy) return;
     setBusy(id);
     try {
       await fn();
       refresh();
+      toast.success(successMessage);
     } catch (err: any) {
-      alert(err?.message ?? "Action impossible");
+      toast.error(err?.message ?? "Action impossible.");
     } finally {
       setBusy(null);
     }
@@ -77,20 +81,38 @@ export default function Photos() {
                   <Tag>{new Date(m.created_at).toLocaleDateString("fr-FR")}</Tag>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <Button size="sm" disabled={busy === m.id} onClick={() => run(m.id, () => approve(m, false))}>
+                  <Button size="sm" disabled={!!busy} onClick={() => run(m.id, () => approve(m, false), "Photo approuvée.")}>
                     Approuver
                   </Button>
-                  <Button size="sm" variant="secondary" disabled={busy === m.id} onClick={() => run(m.id, () => approve(m, true))}>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={!!busy}
+                    onClick={() => run(m.id, () => approve(m, true), "Photo approuvée et définie comme couverture.")}
+                  >
                     Approuver + couverture
                   </Button>
-                  <Button size="sm" variant="danger" disabled={busy === m.id} onClick={() => run(m.id, () => setMediaStatus(m.id, "rejected"))}>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    disabled={!!busy}
+                    onClick={() => run(m.id, () => setMediaStatus(m.id, "rejected"), "Photo refusée.")}
+                  >
                     Refuser
                   </Button>
                   <Button
                     size="sm"
                     variant="secondary"
-                    disabled={busy === m.id}
-                    onClick={() => confirm("Supprimer définitivement cette photo ?") && run(m.id, () => deleteMedia(m.id))}
+                    disabled={!!busy}
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Supprimer cette photo",
+                        message: "Supprimer définitivement cette photo ? Cette action ne peut pas être annulée.",
+                        confirmLabel: "Supprimer",
+                        danger: true,
+                      });
+                      if (ok) await run(m.id, () => deleteMedia(m.id), "Photo supprimée.");
+                    }}
                   >
                     Supprimer
                   </Button>

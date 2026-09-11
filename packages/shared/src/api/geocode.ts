@@ -26,6 +26,16 @@ function maptilerKey(): string | null {
   return trimmed ? trimmed : null;
 }
 
+/**
+ * `true` quand `VITE_MAPTILER_KEY` est renseignée — la recherche de lieux est
+ * alors opérationnelle. Sinon `searchPlaces` renvoie toujours `[]` sans appel
+ * réseau : l'UI doit masquer / désactiver la recherche plutôt que d'afficher
+ * un champ mort. (Miroir de `isSupabaseConfigured` dans `supabaseClient.ts`.)
+ */
+export function isGeocodingConfigured(): boolean {
+  return maptilerKey() !== null;
+}
+
 interface MapTilerFeature {
   id: string;
   place_name: string;

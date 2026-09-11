@@ -1,28 +1,110 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Avatar, Icon, Logo, type IconName } from "@toboggo/design-system";
+import { Icon, Logo, type IconName } from "@toboggo/design-system";
 import { listParks, listPendingMedia, listReports } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
+import { AppHeader } from "./AppHeader";
 import styles from "./Shell.module.css";
 
-interface NavItem {
+export interface NavItem {
   to: string;
   label: string;
-  /** Sprite icon (préféré). */
+  /** Sprite icon. Absent (not an emoji fallback) when no symbol in
+   * `icons-sprite.svg` reasonably fits — see NAV_ICON_GAPS below. The row
+   * keeps a blank, aligned icon slot rather than a mismatched pictogram. */
   icon?: IconName;
-  /** Emoji de repli — pour les entrées sans icône validée dans le sprite. */
-  emoji?: string;
   badge?: number;
+}
+
+export interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+/**
+ * Entrées de navigation sans icône de sprite adaptée (Lot 2 — audit §6 bis /
+ * §20). Recherchées dans les 47 symboles existants avant d'écarter l'idée :
+ * aucun ne représente raisonnablement une carte, l'entretien ou un journal
+ * d'activité sans dénaturer un symbole déjà utilisé ailleurs dans le sprite
+ * pour un autre sens. Pas de nouveau SVG dessiné, pas de bibliothèque externe
+ * (CLAUDE.md §9) — à fournir par le fondateur (artifact « Brand kit ») pour
+ * une passe ultérieure. Documenté ici plutôt que masqué.
+ */
+export const NAV_ICON_GAPS: Record<string, string> = {
+  "/maintenance": "entretien (outil / clé) — aucun symbole du sprite ne convient",
+  "/photos": "photo / appareil — aucun symbole du sprite ne convient",
+  "/journal": "journal d'activité — aucun symbole du sprite ne convient sans réutiliser ic-list (déjà « Parcs »)",
+};
+
+export function buildNavGroups(opts: {
+  isAdmin: boolean;
+  pendingParks: number;
+  openReports: number;
+  pendingMedia: number;
+}): NavGroup[] {
+  const { isAdmin, pendingParks, openReports, pendingMedia } = opts;
+
+  if (isAdmin) {
+    return [
+      { title: "Pilotage", items: [{ to: "/", label: "Tableau de bord", icon: "ic-dashboard" }] },
+      { title: "Parcs", items: [{ to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks }] },
+      { title: "Exploitation", items: [{ to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports }] },
+      {
+        title: "Échanges / Qualité",
+        items: [
+          { to: "/reviews", label: "Avis", icon: "ic-review" },
+          { to: "/photos", label: "Photos", badge: pendingMedia },
+        ],
+      },
+      { title: "Organisation", items: [{ to: "/settings", label: "Équipe & Réglages", icon: "ic-settings" }] },
+      { title: "Admin", items: [{ to: "/users", label: "Utilisateurs", icon: "ic-users" }] },
+    ];
+  }
+
+  return [
+    { title: "Pilotage", items: [{ to: "/", label: "Tableau de bord", icon: "ic-dashboard" }] },
+    {
+      title: "Parcs",
+      items: [
+        { to: "/parks", label: "Mes parcs", icon: "ic-list", badge: pendingParks },
+        { to: "/map", label: "Carte", icon: "ic-explore" },
+      ],
+    },
+    {
+      title: "Exploitation",
+      items: [
+        { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
+        { to: "/maintenance", label: "Entretien" },
+      ],
+    },
+    {
+      title: "Échanges / Qualité",
+      items: [
+        { to: "/reviews", label: "Avis", icon: "ic-review" },
+        { to: "/photos", label: "Photos", badge: pendingMedia },
+      ],
+    },
+    {
+      title: "Organisation",
+      items: [
+        { to: "/journal", label: "Journal" },
+        { to: "/statistiques", label: "Statistiques", icon: "ic-chart" },
+        { to: "/settings", label: "Équipe & Réglages", icon: "ic-settings" },
+      ],
+    },
+  ];
 }
 
 export function Shell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const { userName, memberships, communes, activeOrg, setActiveOrg, currentRole, signOut } = useOrgSession();
+  const location = useLocation();
+  const { memberships, communes, activeOrg, setActiveOrg } = useOrgSession();
   const { isAdmin, communeId } = useOrgScope();
+  const mainRef = useRef<HTMLElement>(null);
+  const isFirstRender = useRef(true);
 
   const { data: pendingParks = 0 } = useQuery({
     queryKey: ["shell-pending-parks", communeId, isAdmin],
@@ -37,39 +119,33 @@ export function Shell({ children }: { children: ReactNode }) {
     queryFn: async () => (await listPendingMedia({ communeId })).length,
   });
 
-  const adminItems: NavItem[] = [
-    { to: "/", label: "Tableau de bord", icon: "ic-dashboard" },
-    { to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks },
-    { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
-    { to: "/photos", label: "Photos", emoji: "📷", badge: pendingMedia },
-    { to: "/users", label: "Utilisateurs", icon: "ic-users" },
-    { to: "/reviews", label: "Avis", icon: "ic-review" },
-    { to: "/settings", label: "Paramètres", icon: "ic-settings" },
-  ];
+  const groups = buildNavGroups({ isAdmin, pendingParks, openReports, pendingMedia });
+  const allItems = groups.flatMap((g) => g.items);
+  const currentLabel = allItems.find((item) => item.to === location.pathname)?.label;
 
-  // "Carte", "Entretien", "Journal" n'ont pas d'icône dédiée dans le sprite
-  // (docs/DESIGN-SYSTEM.md §7) — emoji conservé en attendant.
-  const communeItems: NavItem[] = [
-    { to: "/", label: "Tableau de bord", icon: "ic-dashboard" },
-    { to: "/parks", label: "Mes parcs", icon: "ic-list", badge: pendingParks },
-    { to: "/map", label: "Carte", emoji: "🗺️" },
-    { to: "/maintenance", label: "Entretien", emoji: "🔧" },
-    { to: "/journal", label: "Journal", emoji: "📓" },
-    { to: "/statistiques", label: "Statistiques", icon: "ic-chart" },
-    { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
-    { to: "/photos", label: "Photos", emoji: "📷", badge: pendingMedia },
-    { to: "/reviews", label: "Avis", icon: "ic-review" },
-    { to: "/settings", label: "Paramètres", icon: "ic-settings" },
-  ];
-
-  const items = isAdmin ? adminItems : communeItems;
   const hasAdmin = memberships.some((m) => m.commune_id === null);
   const communeMemberships = memberships.filter((m) => m.commune_id !== null);
 
-  const orgLabel = isAdmin ? "Toboggo Admin" : communes.find((c) => c.id === communeId)?.name ?? "Collectivité";
+  const orgLabel = isAdmin ? "Toboggo Admin" : (communes.find((c) => c.id === communeId)?.name ?? "Collectivité");
+
+  // Focus (without scrolling the page around) moves to the content region on
+  // every route change, so keyboard/screen-reader users land somewhere
+  // predictable instead of staying on a now-stale sidebar link. Skipped on
+  // first mount — nothing to "return to" yet, and it would steal focus from
+  // whatever the browser/user already focused on load.
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    mainRef.current?.focus({ preventScroll: true });
+  }, [location.pathname]);
 
   return (
     <div className="bo-shell">
+      <a href="#main-content" className={styles.skipLink}>
+        Aller au contenu principal
+      </a>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
           <Logo size={26} tone="light" />
@@ -79,6 +155,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {(hasAdmin ? 1 : 0) + communeMemberships.length > 1 && (
           <select
             className={styles.orgSwitch}
+            aria-label="Changer d'organisation"
             value={isAdmin ? "admin" : communeId}
             onChange={(e) =>
               setActiveOrg(e.target.value === "admin" ? { type: "admin" } : { type: "commune", communeId: e.target.value })
@@ -93,40 +170,41 @@ export function Shell({ children }: { children: ReactNode }) {
           </select>
         )}
 
-        <nav className={styles.nav}>
-          {items.map((item) => (
-            <button
-              key={item.to}
-              className={clsx(styles.navItem, pathname === item.to && styles.active)}
-              onClick={() => navigate(item.to)}
-            >
-              <span className={styles.navLabel}>
-                {item.icon ? (
-                  <Icon name={item.icon} size={18} />
-                ) : (
-                  <span className={styles.navEmoji}>{item.emoji}</span>
-                )}
-                {item.label}
-              </span>
-              {!!item.badge && <span className={styles.badge}>{item.badge}</span>}
-            </button>
+        <nav className={styles.nav} aria-label="Navigation principale">
+          {groups.map((group) => (
+            <div key={group.title} className={styles.group}>
+              <div className={styles.groupTitle}>{group.title}</div>
+              {group.items.map((item) => {
+                const active = location.pathname === item.to;
+                return (
+                  <button
+                    key={item.to}
+                    className={clsx(styles.navItem, active && styles.active)}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => navigate(item.to)}
+                  >
+                    <span className={styles.navLabel}>
+                      {item.icon ? (
+                        <Icon name={item.icon} size={18} />
+                      ) : (
+                        <span className={styles.navIconSlot} aria-hidden="true" />
+                      )}
+                      <span className={styles.navLabelText}>{item.label}</span>
+                    </span>
+                    {!!item.badge && <span className={styles.badge}>{item.badge}</span>}
+                  </button>
+                );
+              })}
+            </div>
           ))}
         </nav>
-
-        <div className={styles.footer}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-            <Avatar name={userName} size={30} />
-            <div>
-              <div className={styles.footerName}>{userName}</div>
-              <div style={{ opacity: 0.6 }}>{currentRole()}</div>
-            </div>
-          </div>
-          <button className={styles.logoutBtn} onClick={() => signOut()}>
-            Se déconnecter
-          </button>
-        </div>
       </aside>
-      <main className="bo-content">{children}</main>
+      <div className={styles.column}>
+        <AppHeader orgLabel={orgLabel} screenLabel={currentLabel} />
+        <main id="main-content" className="bo-content" ref={mainRef} tabIndex={-1}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

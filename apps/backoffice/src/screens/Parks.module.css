@@ -1,0 +1,126 @@
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.search {
+  width: 240px;
+}
+.select {
+  min-width: 150px;
+}
+.reset {
+  background: none;
+  border: none;
+  color: var(--color-primary-hover);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+.count {
+  margin-left: auto;
+  align-self: center;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+/* ── Cellule « Parc » ─────────────────────────────────────────────────── */
+.parkName {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.parkMeta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+.muted {
+  color: var(--color-text-faint);
+}
+
+/* Signalement ouvert : seule attention orange de la ligne */
+.reportFlag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-warning-text);
+}
+.reportDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.photoCount {
+  font-variant-numeric: tabular-nums;
+}
+
+.date {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Pagination ──────────────────────────────────────────────────────── */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+.pagerBtn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xs);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.pagerBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── Menu d'actions de ligne ─────────────────────────────────────────── */
+.rowActions {
+  display: flex;
+  justify-content: flex-end;
+}
+.actionsTrigger {
+  font-size: 16px;
+  line-height: 1;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+}
+
+@media (max-width: 640px) {
+  .search {
+    width: 100%;
+  }
+  .count {
+    margin-left: 0;
+  }
+}

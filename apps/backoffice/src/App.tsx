@@ -1,12 +1,15 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useOrgSession } from "./lib/orgSession";
 import { useIconSprite } from "@toboggo/design-system";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Login from "./screens/Login";
 import AccessDenied from "./screens/AccessDenied";
 import { Shell } from "./components/Shell";
 import Dashboard from "./screens/Dashboard";
 import Parks from "./screens/Parks";
+import ParkNew from "./screens/parkNew/ParkNew";
+import ParkDetail from "./screens/ParkDetail";
 import Reports from "./screens/Reports";
 import Reviews from "./screens/Reviews";
 import Photos from "./screens/Photos";
@@ -16,6 +19,33 @@ import Maintenance from "./screens/Maintenance";
 import Journal from "./screens/Journal";
 import Statistiques from "./screens/Statistiques";
 import Settings from "./screens/Settings";
+
+/** Wrapped separately so a screen-level render error is caught without
+ * taking down the sidebar/shell around it — resets automatically when the
+ * user navigates to a different route. */
+function RoutedContent() {
+  const { pathname } = useLocation();
+  return (
+    <ErrorBoundary resetKey={pathname}>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/parks" element={<Parks />} />
+        <Route path="/parks/new" element={<ParkNew />} />
+        <Route path="/parks/:id" element={<ParkDetail />} />
+        <Route path="/reports" element={<Reports />} />
+        <Route path="/reviews" element={<Reviews />} />
+        <Route path="/photos" element={<Photos />} />
+        <Route path="/users" element={<Users />} />
+        <Route path="/map" element={<MapScreen />} />
+        <Route path="/maintenance" element={<Maintenance />} />
+        <Route path="/journal" element={<Journal />} />
+        <Route path="/statistiques" element={<Statistiques />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </ErrorBoundary>
+  );
+}
 
 export default function App() {
   const init = useOrgSession((s) => s.init);
@@ -28,26 +58,30 @@ export default function App() {
     init();
   }, [init]);
 
-  if (loading) return null;
-  if (!userId) return <Login />;
-  if (accessDenied) return <AccessDenied />;
-
   return (
-    <Shell>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/parks" element={<Parks />} />
-        <Route path="/reports" element={<Reports />} />
-        <Route path="/reviews" element={<Reviews />} />
-        <Route path="/photos" element={<Photos />} />
-        <Route path="/users" element={<Users />} />
-        <Route path="/map" element={<MapScreen />} />
-        <Route path="/maintenance" element={<Maintenance />} />
-        <Route path="/journal" element={<Journal />} />
-        <Route path="/statistiques" element={<Statistiques />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Shell>
+    <ErrorBoundary>
+      {loading ? (
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--color-text-muted)",
+            fontSize: 13.5,
+          }}
+        >
+          Chargement…
+        </div>
+      ) : !userId ? (
+        <Login />
+      ) : accessDenied ? (
+        <AccessDenied />
+      ) : (
+        <Shell>
+          <RoutedContent />
+        </Shell>
+      )}
+    </ErrorBoundary>
   );
 }

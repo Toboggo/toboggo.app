@@ -123,7 +123,7 @@ export default function Profile() {
           </button>
         </div>
 
-        <div className={styles.notifCard} onClick={() => navigate("/notifications/center")}>
+        <button type="button" className={styles.notifCard} onClick={() => navigate("/notifications/center")}>
           <span className={styles.notifIcon}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -134,7 +134,7 @@ export default function Profile() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-faint)" }} aria-hidden>
             <path d="M9 6l6 6-6 6" />
           </svg>
-        </div>
+        </button>
 
         <div className={styles.levelCard}>
           <span className={styles.levelBadge}>{t("level", { level })}</span>

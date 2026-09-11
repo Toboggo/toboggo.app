@@ -343,3 +343,62 @@ export function purgeDraftsForPrincipal(principal: DraftPrincipal): number {
 export function purgeAllDrafts(): number {
   return purgeDrafts();
 }
+
+// ── Guest → signed-in handover ───────────────────────────────────────────────
+
+function envelopeSavedAt(raw: string): number {
+  try {
+    const parsed = JSON.parse(raw);
+    return isValidEnvelope(parsed) ? parsed.savedAt : Number.NEGATIVE_INFINITY;
+  } catch {
+    return Number.NEGATIVE_INFINITY;
+  }
+}
+
+/**
+ * One-shot handover of a guest draft to a signed-in user for the SAME flow and
+ * scope. Touches only `guestKey` and `userKey`; every other draft (a guest
+ * draft for a different flow / park included) is left alone. Raw move — no
+ * schema knowledge, no merge: if a user draft already exists, the newer of the
+ * two by `savedAt` is kept and the other discarded. The guest key is always
+ * removed afterwards. The next `readDraft(userKey, …)` still validates TTL /
+ * version as usual.
+ *
+ * Returns `true` when a guest draft was present and its content is now under
+ * `userKey`; `false` otherwise (nothing to do, storage unavailable, or the
+ * existing user draft won).
+ */
+export function adoptGuestDraft(guestKey: string, userKey: string): boolean {
+  if (guestKey === userKey) return false;
+  const store = getLocalStorage();
+  if (!store) return false;
+
+  let guestRaw: string | null;
+  try {
+    guestRaw = store.getItem(guestKey);
+  } catch {
+    return false;
+  }
+  if (guestRaw == null) return false;
+
+  let userRaw: string | null = null;
+  try {
+    userRaw = store.getItem(userKey);
+  } catch {
+    userRaw = null;
+  }
+
+  const guestWins = userRaw == null || envelopeSavedAt(guestRaw) >= envelopeSavedAt(userRaw);
+
+  if (guestWins) {
+    try {
+      store.setItem(userKey, guestRaw);
+    } catch {
+      // Could not write the user key — keep the guest draft where it is so the
+      // work is not lost, and report that nothing was adopted.
+      return false;
+    }
+  }
+  safeRemove(store, guestKey);
+  return guestWins;
+}

@@ -1,8 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Chip, Icon, Input, Segmented, Textarea, DualRangeSlider, type IconName } from "@toboggo/design-system";
 import {
+  Button,
+  Chip,
+  Icon,
+  Input,
+  Segmented,
+  Textarea,
+  DualRangeSlider,
+  usePersistentDraft,
+  useAdoptedDraftKey,
+  type IconName,
+} from "@toboggo/design-system";
+import {
+  buildDraftKey,
   FEATURE_STATUS_LABEL,
   featureLabel,
   formatAgeRange,
@@ -18,7 +30,11 @@ import { PinField } from "../../components/PinField";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
-import { clearDraft, loadDraft, saveDraft, setResumeRoute } from "../../lib/contributionDraft";
+import { setResumeRoute } from "../../lib/resumeRoute";
+
+// Brouillon persistant (LOT 3D.D) — socle partagé `usePersistentDraft`.
+const EDIT_INFO_DRAFT_VERSION = 1;
+const EDIT_INFO_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 
 // Stepper nommé, partagé avec les autres wizards de contribution via
 // WizardHeader (voir AddPark / AddPhotos / RatePark / ReportProblem). Les trois
@@ -102,40 +118,44 @@ export default function EditInfo() {
   const navigate = useNavigate();
   const parkId = params.get("park");
   const wantsResume = params.get("resume") === "1";
-  const draftKey = `edit:${parkId ?? "none"}`;
 
   const { data: park, isLoading, isError } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
   const { data: catalogue = [] } = useQuery({ queryKey: ["features"], queryFn: () => listFeatures() });
 
-  // A saved draft should only come back after a genuine recovery — a browser
-  // refresh, or the return trip from just-in-time auth (`?resume=1`) — never on
-  // a normal in-app open (e.g. re-entering "Corriger" for the same park), even
-  // if an older, abandoned draft still lingers in storage (cleared on send/close,
-  // otherwise self-expires — see lib/contributionDraft.ts). The Navigation Timing
-  // API reliably tells a real page reload apart from a client-side route change.
-  const [isPageReload] = useState(
-    () =>
-      typeof performance !== "undefined" &&
-      (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type === "reload",
-  );
-  const shouldRecoverDraft = wantsResume || isPageReload;
+  // Draft: scoped to this flow + park + principal, autosaved by the socle. A
+  // guest draft is handed over to the user key on return from just-in-time auth
+  // — the handover runs in an effect (never during render); usePersistentDraft
+  // is held (key = null) until it has settled, so it can never load a user
+  // draft that hasn't been arbitrated against a same-flow guest draft yet (see
+  // useAdoptedDraftKey). Restoration is automatic within the 24 h TTL — the
+  // "Type" step re-picks a target anyway, and the X (`closeAndDiscard`) is the
+  // explicit way to drop it.
+  const guestDraftKey = parkId
+    ? buildDraftKey({ surface: "mobile", flow: "park.edit-info", scope: { parkId }, principal: "guest" })
+    : null;
+  const userDraftKey =
+    parkId && userId
+      ? buildDraftKey({ surface: "mobile", flow: "park.edit-info", scope: { parkId }, principal: { userId } })
+      : null;
+  const draftKey = useAdoptedDraftKey(guestDraftKey, userDraftKey);
 
-  const [d, setD] = useState<EditDraft>(() => (shouldRecoverDraft ? loadDraft<EditDraft>(draftKey) ?? EMPTY : EMPTY));
-  const [restored] = useState(() => shouldRecoverDraft && loadDraft<EditDraft>(draftKey) != null);
+  const {
+    value: d,
+    patch,
+    restored,
+    clear: clearEditDraft,
+    flush: flushEditDraft,
+  } = usePersistentDraft<EditDraft>(draftKey, EMPTY, {
+    schemaVersion: EDIT_INFO_DRAFT_VERSION,
+    ttlMs: EDIT_INFO_DRAFT_TTL_MS,
+    restore: "auto",
+  });
+
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const autoSubmitted = useRef(false);
-
-  const patch = (p: Partial<EditDraft>) => setD((cur) => ({ ...cur, ...p }));
-
-  // Persist on every change so the draft survives a full-page OAuth redirect.
-  useEffect(() => {
-    if (!parkId || done) return;
-    if (d.target === null && d.step === 0 && !restored) return; // nothing worth keeping yet
-    saveDraft(draftKey, d);
-  }, [d, parkId, done, draftKey, restored]);
 
   const relevantFeatures = useMemo(() => {
     if (!d.target) return [];
@@ -252,9 +272,12 @@ export default function EditInfo() {
     } as unknown as Json;
     try {
       await submitParkEdit({ parkId, userId: uid, changes, organizationId: park.organization_id ?? null });
-      clearDraft(draftKey);
+      // Sent — drop the draft before the confirmation screen. clear() also
+      // blocks any later flush, so it cannot come back on unmount / pagehide.
+      clearEditDraft();
       setDone(true);
     } catch (err) {
+      // Failed — keep the form and the (autosaved) draft, surface the error.
       const msg = err instanceof Error ? err.message : "Envoi impossible";
       showToast(msg);
     } finally {
@@ -273,10 +296,10 @@ export default function EditInfo() {
       void doSubmit(uid);
       return;
     }
-    // Guest: persist the draft + where to come back, then start the sign-in
-    // flow. On return, the effect below finishes the send (works for both the
-    // in-page email login and the full-page OAuth redirect).
-    saveDraft(draftKey, d);
+    // Guest: the draft is already autosaved; force the latest to disk before the
+    // full-page sign-in detour. On return (?resume=1) the effect below finishes
+    // the send (works for both the in-page email login and the OAuth redirect).
+    flushEditDraft();
     setResumeRoute(`/contribute/edit?park=${parkId}&resume=1`);
     // `replace` : la sortie vers /login REMPLACE l'entrée de ce wizard (idem
     // ReportProblem). Avec le retour d'auth qui remplace /login et le CTA de
@@ -314,7 +337,7 @@ export default function EditInfo() {
   }
 
   function closeAndDiscard() {
-    clearDraft(draftKey);
+    clearEditDraft();
     navigate(parkId ? `/park/${parkId}` : "/map");
   }
 

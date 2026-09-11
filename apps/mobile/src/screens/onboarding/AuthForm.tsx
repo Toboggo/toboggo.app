@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { signIn, signUp, sendPasswordReset, signInWithGoogle } from "@toboggo/shared";
 import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
-import { takeResumeRoute } from "../../lib/contributionDraft";
+import { takeResumeRoute } from "../../lib/resumeRoute";
 import { AppleIcon, ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 

@@ -1,7 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Select, Textarea, Icon, IconButton, reportReasonIcon } from "@toboggo/design-system";
-import { createReport, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
+import {
+  Button,
+  Select,
+  Textarea,
+  Icon,
+  IconButton,
+  reportReasonIcon,
+  usePersistentDraft,
+  useAdoptedDraftKey,
+} from "@toboggo/design-system";
+import { buildDraftKey, createReport, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -9,13 +18,17 @@ import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
-import { clearDraft, loadDraft, saveDraft, setResumeRoute } from "../../lib/contributionDraft";
+import { setResumeRoute } from "../../lib/resumeRoute";
 
 interface ReportDraft {
   reason: ReportReason | null;
   equipment: string;
   comment: string;
 }
+
+// Brouillon persistant (LOT 3D.D) — socle partagé `usePersistentDraft`.
+const REPORT_DRAFT_VERSION = 1;
+const REPORT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 
 // Catégories sans pictogramme validé dans le sprite (docs/DESIGN-SYSTEM.md §7) —
 // emoji conservé en attendant. Les autres passent par reportReasonIcon().
@@ -26,6 +39,8 @@ const REASON_EMOJI: Partial<Record<ReportReason, string>> = {
 };
 
 const EQUIPMENT_CHOICES = ["Toboggan", "Balançoire", "Structure d'escalade", "Bac à sable", "Autre"];
+
+const EMPTY_REPORT_DRAFT: ReportDraft = { reason: null, equipment: EQUIPMENT_CHOICES[0], comment: "" };
 
 // Stepper nommé, partagé avec les autres wizards de contribution via
 // WizardHeader (voir AddPark / AddPhotos / RatePark). Contrairement à ceux-ci,
@@ -49,17 +64,48 @@ export default function ReportProblem() {
   const showToast = useToastStore((s) => s.show);
   const preselected = useRef(Boolean(params.get("park"))).current;
   const wantsResume = params.get("resume") === "1";
-  const draftKey = `report:${parkId ?? "none"}`;
 
-  const initial = useRef<ReportDraft | null>(loadDraft<ReportDraft>(draftKey)).current;
-  const [step, setStep] = useState(parkId ? (initial?.reason ? 2 : 1) : 0);
-  const [reason, setReason] = useState<ReportReason | null>(initial?.reason ?? null);
-  const [equipment, setEquipment] = useState(initial?.equipment ?? EQUIPMENT_CHOICES[0]);
-  const [comment, setComment] = useState(initial?.comment ?? "");
+  // Draft: scoped to this flow + park + principal. A guest draft is handed over
+  // to the user key on return from just-in-time auth — the handover itself runs
+  // in an effect (never during render); usePersistentDraft is held (key = null)
+  // until it has settled, so it can never load a user draft that hasn't been
+  // arbitrated against a same-flow guest draft yet (see useAdoptedDraftKey).
+  const guestDraftKey = parkId
+    ? buildDraftKey({ surface: "mobile", flow: "park.report", scope: { parkId }, principal: "guest" })
+    : null;
+  const userDraftKey =
+    parkId && userId
+      ? buildDraftKey({ surface: "mobile", flow: "park.report", scope: { parkId }, principal: { userId } })
+      : null;
+  const draftKey = useAdoptedDraftKey(guestDraftKey, userDraftKey);
+
+  const {
+    value: report,
+    patch: patchReport,
+    clear: clearReportDraft,
+    flush: flushReportDraft,
+  } = usePersistentDraft<ReportDraft>(draftKey, EMPTY_REPORT_DRAFT, {
+    schemaVersion: REPORT_DRAFT_VERSION,
+    ttlMs: REPORT_DRAFT_TTL_MS,
+    restore: "auto",
+  });
+  const { reason, equipment, comment } = report;
+
+  const [step, setStep] = useState(parkId ? 1 : 0);
   const [photo, setPhoto] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const autoSubmitted = useRef(false);
+  // The draft key can resolve a render after mount (guest → user handover, or a
+  // signed-in user's own draft loading once the key is held-then-settled) —
+  // resume on the details step the first time a reason shows up, without
+  // overriding a step the user already navigated to by hand.
+  const resumedStepRef = useRef(false);
+  useEffect(() => {
+    if (resumedStepRef.current || !parkId || !reason) return;
+    resumedStepRef.current = true;
+    setStep((s) => (s < 2 ? 2 : s));
+  }, [parkId, reason]);
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -80,10 +126,14 @@ export default function ReportProblem() {
         comment: comment || null,
         photo,
       });
-      clearDraft(draftKey);
+      // Sent — drop the draft BEFORE the confirmation screen. clear() also
+      // blocks any later flush (debounce / pagehide / unmount), so the draft
+      // cannot come back on the way out.
+      clearReportDraft();
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
       setDone(true);
     } catch (err) {
+      // Failed — keep the form and the (autosaved) draft, surface the error.
       showToast(err instanceof Error ? err.message : "Envoi impossible");
     } finally {
       setSaving(false);
@@ -97,8 +147,9 @@ export default function ReportProblem() {
       void doSubmit(uid);
       return;
     }
-    // Guest: keep what was filled in, come back here after sign-in.
-    saveDraft<ReportDraft>(draftKey, { reason, equipment, comment });
+    // Guest: the draft is already autosaved; force the latest to disk before the
+    // full-page sign-in detour, then come back here (?resume=1) after auth.
+    flushReportDraft();
     setResumeRoute(`/report?park=${parkId}&resume=1`);
     // `replace` : la sortie vers /login REMPLACE l'entrée de ce wizard. Combiné
     // au retour d'auth qui remplace /login (AuthForm) puis au CTA de
@@ -109,10 +160,11 @@ export default function ReportProblem() {
     navigate("/login", { replace: true });
   }
 
-  // Back from sign-in with the report intact: send it once.
+  // Back from sign-in with the report intact (guest draft now adopted under the
+  // user key and restored): send it once.
   useEffect(() => {
     if (!wantsResume || autoSubmitted.current) return;
-    if (!userId || !parkId || !reason || !initial) return;
+    if (!userId || !parkId || !reason) return;
     autoSubmitted.current = true;
     void doSubmit(userId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,7 +250,7 @@ export default function ReportProblem() {
                 <button
                   key={r}
                   onClick={() => {
-                    setReason(r);
+                    patchReport({ reason: r });
                     setStep(2);
                   }}
                   style={{
@@ -223,7 +275,7 @@ export default function ReportProblem() {
 
       {step === 2 && (
         <div style={{ padding: "0 20px" }}>
-          <Select label="Équipement concerné" value={equipment} onChange={(e) => setEquipment(e.target.value)}>
+          <Select label="Équipement concerné" value={equipment} onChange={(e) => patchReport({ equipment: e.target.value })}>
             {EQUIPMENT_CHOICES.map((c) => (
               <option key={c}>{c}</option>
             ))}
@@ -232,7 +284,7 @@ export default function ReportProblem() {
             label="Décrivez le problème"
             value={comment}
             maxLength={200}
-            onChange={(e) => setComment(e.target.value)}
+            onChange={(e) => patchReport({ comment: e.target.value })}
             help={`${comment.length}/200`}
             style={{ marginTop: 14 }}
           />

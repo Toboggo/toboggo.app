@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import {
+  adoptGuestDraft,
   clearDraft,
   DEFAULT_DRAFT_TTL_MS,
   readDraft,
@@ -70,6 +71,13 @@ export interface UsePersistentDraftResult<T> {
   discardPending: () => void;
   /** Erase the stored draft and reset `value` to `initialValue`. */
   clear: () => void;
+  /**
+   * Write the current value to storage right now, synchronously, cancelling any
+   * pending debounce. Use before a deliberate full-page navigation the hide
+   * listeners won't catch (e.g. an OAuth redirect kicked off from elsewhere).
+   * No-op after `clear()` / when `key === null` / when nothing changed.
+   */
+  flush: () => void;
   persistenceStatus: DraftPersistenceStatus;
 }
 
@@ -256,6 +264,11 @@ export function usePersistentDraft<T>(
     });
   }, [cancelDebounce]);
 
+  const flush = useCallback(() => {
+    cancelDebounce();
+    flushWrite();
+  }, [cancelDebounce, flushWrite]);
+
   return {
     value: state.value,
     setValue,
@@ -265,6 +278,46 @@ export function usePersistentDraft<T>(
     restore,
     discardPending,
     clear,
+    flush,
     persistenceStatus: status,
   };
+}
+
+/**
+ * One-shot guest → signed-in draft handover for a single flow + scope. Call it
+ * with the two `buildDraftKey` results (guest key, user key) and feed its
+ * return value to `usePersistentDraft` as the `key`:
+ *
+ *   const draftKey = useAdoptedDraftKey(guestKey, userKey);
+ *   const draft = usePersistentDraft(draftKey, initial, options);
+ *
+ * Render stays pure: `adoptGuestDraft` — the localStorage move — only ever runs
+ * inside a `useEffect`, never while rendering.
+ *
+ * - Guest phase (`userKey` still `null`): returns `guestKey` right away: there
+ *   is nothing to arbitrate yet, so the caller's `usePersistentDraft` can load
+ *   / autosave the guest draft immediately.
+ * - The render `userKey` first becomes non-null on (first sign-in, or a mount
+ *   where the session was already restored): returns `null` ("hold") until the
+ *   effect has run the handover and settled — so `usePersistentDraft` is never
+ *   handed `userKey` before a same-flow guest draft has been arbitrated against
+ *   it (no frame can load a stale/pre-collision user draft). Once settled, every
+ *   render returns `userKey`.
+ *
+ * The handover itself runs once per `userKey` (guarded by a ref, and
+ * `adoptGuestDraft` is itself idempotent — safe under StrictMode's double effect).
+ */
+export function useAdoptedDraftKey(guestKey: string | null, userKey: string | null): string | null {
+  const settledForRef = useRef<string | null>(null);
+  const [, retry] = useReducer((n: number) => n + 1, 0);
+
+  useEffect(() => {
+    if (!userKey || settledForRef.current === userKey) return;
+    if (guestKey) adoptGuestDraft(guestKey, userKey);
+    settledForRef.current = userKey;
+    retry(); // re-render now that the handover (if any) has settled
+  }, [guestKey, userKey]);
+
+  if (!userKey) return guestKey;
+  return settledForRef.current === userKey ? userKey : null;
 }

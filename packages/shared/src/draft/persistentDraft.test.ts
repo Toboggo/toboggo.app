@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  adoptGuestDraft,
   buildDraftKey,
   clearDraft,
   DRAFT_NAMESPACE,
@@ -352,5 +353,72 @@ describe("clearDraft", () => {
     expect(store.getItem(KEY)).toBeNull();
     installStorage(undefined);
     expect(() => clearDraft(KEY)).not.toThrow();
+  });
+});
+
+describe("adoptGuestDraft — guest → signed-in handover", () => {
+  const guestKey = buildDraftKey({ surface: "mobile", flow: "park.report", scope: { parkId: "p1" }, principal: "guest" });
+  const userKey = buildDraftKey({ surface: "mobile", flow: "park.report", scope: { parkId: "p1" }, principal: { userId: "alice" } });
+  const otherGuest = buildDraftKey({ surface: "mobile", flow: "park.edit-info", scope: { parkId: "p9" }, principal: "guest" });
+
+  it("moves the guest draft to the user key and deletes the guest key", () => {
+    writeDraft(guestKey, { comment: "en cours" }, { schemaVersion: 1 });
+    writeDraft(otherGuest, { name: "autre" }, { schemaVersion: 1 });
+
+    expect(adoptGuestDraft(guestKey, userKey)).toBe(true);
+    expect(readDraft(userKey, READ)).toEqual({ comment: "en cours" });
+    expect(store.getItem(guestKey)).toBeNull();
+    // a guest draft for another flow/park is untouched
+    expect(readDraft(otherGuest, READ)).toEqual({ name: "autre" });
+  });
+
+  it("no guest draft → no-op, returns false", () => {
+    writeDraft(userKey, { comment: "user's" }, { schemaVersion: 1 });
+    expect(adoptGuestDraft(guestKey, userKey)).toBe(false);
+    expect(readDraft(userKey, READ)).toEqual({ comment: "user's" });
+  });
+
+  it("on collision, the NEWER draft by savedAt wins; the guest key is always removed", () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_000);
+    writeDraft(userKey, { v: "old user" }, { schemaVersion: 1 });
+    vi.spyOn(Date, "now").mockReturnValue(2_000);
+    writeDraft(guestKey, { v: "new guest" }, { schemaVersion: 1 });
+
+    expect(adoptGuestDraft(guestKey, userKey)).toBe(true);
+    expect(readDraft(userKey, { schemaVersion: 1, ttlMs: 10_000 })).toEqual({ v: "new guest" });
+    expect(store.getItem(guestKey)).toBeNull();
+  });
+
+  it("on collision, a NEWER user draft is kept and the guest draft discarded", () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_000);
+    writeDraft(guestKey, { v: "old guest" }, { schemaVersion: 1 });
+    vi.spyOn(Date, "now").mockReturnValue(2_000);
+    writeDraft(userKey, { v: "new user" }, { schemaVersion: 1 });
+
+    expect(adoptGuestDraft(guestKey, userKey)).toBe(false);
+    expect(readDraft(userKey, { schemaVersion: 1, ttlMs: 10_000 })).toEqual({ v: "new user" });
+    expect(store.getItem(guestKey)).toBeNull();
+  });
+
+  it("never merges fields — it is one raw envelope or the other", () => {
+    vi.spyOn(Date, "now").mockReturnValue(2_000);
+    writeDraft(guestKey, { reason: "danger", comment: "guest note" }, { schemaVersion: 1 });
+    vi.spyOn(Date, "now").mockReturnValue(1_000);
+    writeDraft(userKey, { reason: null, equipment: "Toboggan" }, { schemaVersion: 1 });
+
+    adoptGuestDraft(guestKey, userKey); // guest is newer → guest wins wholesale
+    expect(readDraft(userKey, { schemaVersion: 1, ttlMs: 10_000 })).toEqual({
+      reason: "danger",
+      comment: "guest note",
+    });
+  });
+
+  it("no-ops safely when storage is unavailable or keys are equal", () => {
+    installStorage(undefined);
+    expect(adoptGuestDraft(guestKey, userKey)).toBe(false);
+    installStorage(store);
+    writeDraft(guestKey, { a: 1 }, { schemaVersion: 1 });
+    expect(adoptGuestDraft(guestKey, guestKey)).toBe(false);
+    expect(store.getItem(guestKey)).not.toBeNull();
   });
 });

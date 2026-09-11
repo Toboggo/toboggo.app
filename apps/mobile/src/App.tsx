@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-rou
 import { useSession } from "./lib/session";
 import { useTheme, useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
-import { takeResumeRoute } from "./lib/contributionDraft";
+import { takeResumeRoute } from "./lib/resumeRoute";
 
 import Splash from "./screens/onboarding/Splash";
 import LoginMethod from "./screens/onboarding/LoginMethod";

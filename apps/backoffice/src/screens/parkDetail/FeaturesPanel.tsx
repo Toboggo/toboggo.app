@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Button, Icon, Select, useToast } from "@toboggo/design-system";
+import { Button, Icon, Select, useToast, usePersistentDraft } from "@toboggo/design-system";
 import {
+  buildDraftKey,
   listFeatures,
   listParkFeatures,
   logActivity,
@@ -19,6 +20,10 @@ import { queryClient } from "../../lib/queryClient";
 import { featureLabelBO, featureValueLabelBO, groupFeatures, humanValueOptions, isValueFeature } from "../../lib/featureCatalogue";
 import styles from "../ParkDetail.module.css";
 
+// Brouillon persistant (LOT 3D.F) — socle partagé `usePersistentDraft`.
+const FEATURES_DRAFT_VERSION = 1;
+const FEATURES_DRAFT_TTL_MS = 72 * 60 * 60 * 1000; // 72 h
+
 // ── Draft model ──────────────────────────────────────────────────────────
 type Draft =
   | { kind: "unset" }
@@ -28,6 +33,26 @@ type Draft =
   | { kind: "value"; value: string };
 
 const UNSET: Draft = { kind: "unset" };
+
+interface FeaturesFormDraft {
+  values: Record<string, Draft>;
+  /**
+   * Cheap fingerprint of the `park_features` rows this draft was seeded from
+   * (`count:maxUpdatedAt`, both already loaded — no extra query). A draft is
+   * UNSAVED CHANGES, not a copy of the record: if the fingerprint no longer
+   * matches on restore, another editor changed characteristics since — the
+   * draft is discarded outright rather than silently overwriting that. No
+   * merge attempted; see the restore effect in FeaturesPanel.
+   */
+  baseFingerprint: string;
+}
+
+function featuresFingerprint(parkFeatures: ParkFeature[]): string {
+  if (parkFeatures.length === 0) return "0:";
+  let max = parkFeatures[0].updated_at;
+  for (const pf of parkFeatures) if (pf.updated_at > max) max = pf.updated_at;
+  return `${parkFeatures.length}:${max}`;
+}
 
 /** DB row → editable draft. `unknown` status, `value = "unknown"` and a
  * missing row all collapse to "unset" (= non renseigné). An imported
@@ -142,6 +167,7 @@ export function FeaturesPanel({
 }) {
   const { communeId } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
+  const userId = useOrgSession((s) => s.userId);
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   // Which edit-mode categories are open. Empty = "not touched yet" → the first
@@ -174,10 +200,58 @@ export function FeaturesPanel({
     return m;
   }, [allFeatures, pfByFeatureId]);
 
-  const [draft, setDraft] = useState<Record<string, Draft>>({});
+  // Draft: scoped to this park + the acting org context + editor — see
+  // InfoPanel for why `organizationId` matters (a park can be linked to
+  // several organisations). `restore: "manual"`: applying it is gated on the
+  // freshness check below (baseFingerprint), never automatic.
+  const draftKey = userId
+    ? buildDraftKey({
+        surface: "bo",
+        flow: "park.edit.features",
+        scope: { parkId: park.id, organizationId: communeId ?? "admin" },
+        principal: { userId },
+      })
+    : null;
+
+  const {
+    value: draftState,
+    setValue: setDraftState,
+    pendingDraft,
+    restore: restorePendingDraft,
+    discardPending,
+    clear: clearFeaturesDraft,
+  } = usePersistentDraft<FeaturesFormDraft>(
+    draftKey,
+    { values: {}, baseFingerprint: "" },
+    { schemaVersion: FEATURES_DRAFT_VERSION, ttlMs: FEATURES_DRAFT_TTL_MS, restore: "manual" },
+  );
+  const draft = draftState.values;
+
+  // Decide once whether a stored draft is still safe to apply — only once the
+  // catalogue/park-features queries have actually loaded (baseFingerprint
+  // needs them). Mismatch ⇒ discarded outright, never silently restored.
+  const restoreDecided = useRef(false);
   useEffect(() => {
-    if (!editing) setDraft(initialByFeature);
-  }, [initialByFeature, editing]);
+    if (restoreDecided.current || pendingDraft == null || catLoading || pfLoading) return;
+    restoreDecided.current = true;
+    if (pendingDraft.baseFingerprint === featuresFingerprint(parkFeatures)) {
+      restorePendingDraft();
+      setEditing(true);
+      toast.info("Brouillon restauré");
+    } else {
+      discardPending();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDraft, catLoading, pfLoading]);
+
+  function startEditing() {
+    setDraftState({ values: initialByFeature, baseFingerprint: featuresFingerprint(parkFeatures) });
+    setEditing(true);
+  }
+
+  function patchFeature(featureId: string, next: Draft) {
+    setDraftState((d) => ({ ...d, values: { ...d.values, [featureId]: next } }));
+  }
 
   const changedIds = useMemo(
     () => (editing ? allFeatures.filter((f) => !draftEq(draft[f.id] ?? UNSET, initialByFeature[f.id] ?? UNSET)).map((f) => f.id) : []),
@@ -225,14 +299,21 @@ export function FeaturesPanel({
       }
       void logActivity(communeId ?? null, userName, `Caractéristiques mises à jour : ${park.name} (${changed.length})`);
       toast.success(`${changed.length} caractéristique(s) enregistrée(s).`);
+      // Saved — drop the draft before leaving edit mode. On a partial failure
+      // (above) the draft is deliberately left in place: failed rows stay
+      // dirty for a retry, matching the existing "stay in edit mode" behaviour.
+      clearFeaturesDraft();
       setEditing(false);
       onDirtyChange(false);
     },
     { errorMessage: () => "L'enregistrement des caractéristiques a échoué." },
   );
 
+  // "Annuler" is already an explicit, unconfirmed abandon in this screen (no
+  // dialog — only tab-switch/navigation go through useUnsavedChangesGuard) —
+  // clearing the draft here matches that existing UX exactly.
   function cancel() {
-    setDraft(initialByFeature);
+    clearFeaturesDraft();
     setEditing(false);
     onDirtyChange(false);
   }
@@ -253,7 +334,7 @@ export function FeaturesPanel({
               familles à choisir.
             </p>
             {canEdit && (
-              <Button size="sm" onClick={() => setEditing(true)}>
+              <Button size="sm" onClick={startEditing}>
                 Compléter
               </Button>
             )}
@@ -269,7 +350,7 @@ export function FeaturesPanel({
             {allFeatures.length}
           </span>
           {canEdit && (
-            <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+            <Button size="sm" variant="secondary" onClick={startEditing}>
               Modifier
             </Button>
           )}
@@ -360,10 +441,7 @@ export function FeaturesPanel({
                         value={d.kind === "value" ? d.value : ""}
                         disabled={saving}
                         onChange={(e) =>
-                          setDraft((prev) => ({
-                            ...prev,
-                            [f.id]: e.target.value ? { kind: "value", value: e.target.value } : UNSET,
-                          }))
+                          patchFeature(f.id, e.target.value ? { kind: "value", value: e.target.value } : UNSET)
                         }
                       >
                         <option value="">Non renseigné</option>
@@ -390,9 +468,7 @@ export function FeaturesPanel({
                       showTemp={showTemp}
                       disabled={saving}
                       labelledBy={`feat-${f.id}`}
-                      onChange={(v) =>
-                        setDraft((prev) => ({ ...prev, [f.id]: v === "unset" ? UNSET : { kind: v } }))
-                      }
+                      onChange={(v) => patchFeature(f.id, v === "unset" ? UNSET : { kind: v })}
                     />
                   </div>
                 );

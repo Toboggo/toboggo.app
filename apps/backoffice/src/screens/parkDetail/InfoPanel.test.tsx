@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { updatePark, listExternalIds, mapStyleUrl } from "@toboggo/shared";
+import { buildDraftKey, updatePark, listExternalIds, mapStyleUrl, readDraft, writeDraft } from "@toboggo/shared";
 import { InfoPanel } from "./InfoPanel";
 
 // MapLibre never instantiated in these tests (mapStyleUrl → null) but the
@@ -23,10 +23,12 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
   };
 });
 
-vi.mock("../../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: "org-1" }) }));
+const orgScopeState = vi.hoisted(() => ({ communeId: "org-1" as string | null }));
+vi.mock("../../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: orgScopeState.communeId }) }));
+const orgSessionState = vi.hoisted(() => ({ userId: "u1" as string | null }));
 vi.mock("../../lib/orgSession", () => ({
   useOrgSession: (sel?: (s: unknown) => unknown) => {
-    const state = { userName: "Testeur", userId: "u1" };
+    const state = { userName: "Testeur", userId: orgSessionState.userId };
     return sel ? sel(state) : state;
   },
 }));
@@ -74,6 +76,9 @@ async function enterEdit() {
 
 describe("InfoPanel — structured address + location (Lot 3C.3)", () => {
   beforeEach(() => {
+    localStorage.clear();
+    orgScopeState.communeId = "org-1";
+    orgSessionState.userId = "u1";
     vi.mocked(updatePark).mockReset().mockResolvedValue({} as never);
     vi.mocked(listExternalIds).mockReset().mockResolvedValue([] as never);
     vi.mocked(mapStyleUrl).mockReset().mockReturnValue(null);
@@ -203,5 +208,182 @@ describe("InfoPanel — structured address + location (Lot 3C.3)", () => {
     expect(
       screen.getByText(/enregistrées séparément\. Modifier l'une ne déplace pas/i),
     ).toBeTruthy();
+  });
+});
+
+// ── Persistent draft (LOT 3D.F) ───────────────────────────────────────────
+const draftKey = (parkId: string, organizationId: string | null, userId: string) =>
+  buildDraftKey({
+    surface: "bo",
+    flow: "park.edit.info",
+    scope: { parkId, organizationId: organizationId ?? "admin" },
+    principal: { userId },
+  });
+const READ = { schemaVersion: 1, ttlMs: 72 * 60 * 60 * 1000 };
+// Matches makePark()'s default `updated_at` — kept separate since makePark()
+// deliberately returns `never` (fixture shortcut), so its properties can't be
+// read back through the type checker.
+const BASE_UPDATED_AT = "2026-02-03T12:00:00Z";
+
+describe("InfoPanel — persistent draft (LOT 3D.F)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    orgScopeState.communeId = "org-1";
+    orgSessionState.userId = "u1";
+    vi.mocked(updatePark).mockReset().mockResolvedValue({} as never);
+    vi.mocked(listExternalIds).mockReset().mockResolvedValue([] as never);
+    vi.mocked(mapStyleUrl).mockReset().mockReturnValue(null);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it("no stored draft → edit mode shows plain server data, no restore toast", async () => {
+    renderPanel();
+    await enterEdit();
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Aire de jeux");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+  });
+
+  it("a modification autosaves (debounced) under the draft key, tagged with the current baseUpdatedAt", async () => {
+    const park = makePark();
+    renderPanel(park);
+    await enterEdit();
+    fireEvent.change(screen.getByLabelText("Nom"), { target: { value: "Aire modifiée" } });
+    await waitFor(
+      () => {
+        const stored = readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string; baseUpdatedAt?: string | null };
+        expect(stored?.name).toBe("Aire modifiée");
+        expect(stored?.baseUpdatedAt).toBe(BASE_UPDATED_AT);
+      },
+      { timeout: 2000 },
+    );
+  });
+
+  it("a fresh draft (baseUpdatedAt matches the server) is restored automatically on mount, with a toast", async () => {
+    const park = makePark();
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { name: "Aire reprise", addressLine: "", postalCode: "", city: "", latitude: "", longitude: "", ageMin: "", ageMax: "", description: "", operational: "active", baseUpdatedAt: BASE_UPDATED_AT },
+      { schemaVersion: 1 },
+    );
+    renderPanel(park);
+    expect(await screen.findByText("Brouillon restauré")).toBeTruthy();
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Aire reprise");
+  });
+
+  it("save success clears the draft before leaving edit mode", async () => {
+    const park = makePark();
+    renderPanel(park);
+    await enterEdit();
+    fireEvent.change(screen.getByLabelText("Nom"), { target: { value: "Aire modifiée" } });
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string })?.name).toBe("Aire modifiée"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(updatePark).toHaveBeenCalledTimes(1));
+    expect(readDraft(draftKey("p1", "org-1", "u1"), READ)).toBeNull();
+  });
+
+  it("save error keeps the draft and the form in edit mode", async () => {
+    vi.mocked(updatePark).mockRejectedValueOnce(new Error("network"));
+    const park = makePark();
+    renderPanel(park);
+    await enterEdit();
+    fireEvent.change(screen.getByLabelText("Nom"), { target: { value: "Aire modifiée" } });
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string })?.name).toBe("Aire modifiée"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(updatePark).toHaveBeenCalledTimes(1));
+    expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string })?.name).toBe("Aire modifiée");
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Aire modifiée");
+  });
+
+  it("explicit Annuler clears the draft", async () => {
+    const park = makePark();
+    renderPanel(park);
+    await enterEdit();
+    fireEvent.change(screen.getByLabelText("Nom"), { target: { value: "Aire modifiée" } });
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string })?.name).toBe("Aire modifiée"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(readDraft(draftKey("p1", "org-1", "u1"), READ)).toBeNull();
+  });
+
+  it("a draft for park p1 is never restored, and stays untouched, when viewing park p2", async () => {
+    const park1 = makePark();
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { name: "p1 only", addressLine: "", postalCode: "", city: "", latitude: "", longitude: "", ageMin: "", ageMax: "", description: "", operational: "active", baseUpdatedAt: BASE_UPDATED_AT },
+      { schemaVersion: 1 },
+    );
+    const park2 = makePark({ id: "p2", name: "Autre parc" });
+    renderPanel(park2);
+    await enterEdit();
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Autre parc");
+    expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string })?.name).toBe("p1 only");
+  });
+
+  it("a draft written by user A is never restored, and stays untouched, for user B", async () => {
+    const park = makePark();
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { name: "A private", addressLine: "", postalCode: "", city: "", latitude: "", longitude: "", ageMin: "", ageMax: "", description: "", operational: "active", baseUpdatedAt: BASE_UPDATED_AT },
+      { schemaVersion: 1 },
+    );
+    orgSessionState.userId = "u2";
+    renderPanel(park);
+    await enterEdit();
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Aire de jeux");
+    expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string })?.name).toBe("A private");
+  });
+
+  it("a draft under one organisation is never restored under another (same park, same user)", async () => {
+    const park = makePark();
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { name: "org-1 private", addressLine: "", postalCode: "", city: "", latitude: "", longitude: "", ageMin: "", ageMax: "", description: "", operational: "active", baseUpdatedAt: BASE_UPDATED_AT },
+      { schemaVersion: 1 },
+    );
+    orgScopeState.communeId = "org-2";
+    renderPanel(park);
+    await enterEdit();
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Aire de jeux");
+  });
+
+  it("a stale draft (server changed since) is discarded, never silently applied", async () => {
+    const park = makePark();
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { name: "Aire périmée", addressLine: "", postalCode: "", city: "", latitude: "", longitude: "", ageMin: "", ageMax: "", description: "", operational: "active", baseUpdatedAt: "2020-01-01T00:00:00Z" },
+      { schemaVersion: 1 },
+    );
+    renderPanel(park);
+    // Give the restore-decision effect a tick, then confirm nothing restored.
+    await waitFor(() => expect(readDraft(draftKey("p1", "org-1", "u1"), READ)).toBeNull());
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    await enterEdit();
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Aire de jeux");
+  });
+
+  it("no resurrection after clear: saving then remounting starts clean", async () => {
+    const park = makePark();
+    const { unmount } = renderPanel(park);
+    await enterEdit();
+    fireEvent.change(screen.getByLabelText("Nom"), { target: { value: "Aire modifiée" } });
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { name?: string })?.name).toBe("Aire modifiée"),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(updatePark).toHaveBeenCalledTimes(1));
+    unmount();
+
+    renderPanel(park);
+    await enterEdit();
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    expect(screen.getByLabelText("Nom")).toHaveProperty("value", "Aire de jeux");
   });
 });

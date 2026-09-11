@@ -1,29 +1,35 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { listFeatures, listParkFeatures, setParkFeature, removeParkFeature } from "@toboggo/shared";
+import { buildDraftKey, listFeatures, listParkFeatures, setParkFeature, removeParkFeature, readDraft, writeDraft } from "@toboggo/shared";
 import { FeaturesPanel } from "./FeaturesPanel";
 
-vi.mock("@toboggo/shared", () => ({
-  listFeatures: vi.fn(),
-  listParkFeatures: vi.fn(),
-  setParkFeature: vi.fn().mockResolvedValue(undefined),
-  removeParkFeature: vi.fn().mockResolvedValue(undefined),
-  logActivity: vi.fn().mockResolvedValue(undefined),
-  FEATURE_LABEL: {
-    slide: "Toboggan",
-    swing: "Balançoire",
-    toilets: "Toilettes",
-    wheelchair_access: "Accès fauteuil roulant",
-    fence_status: "Clôture",
-    surface_type: "Revêtement de sol",
-  },
-}));
-vi.mock("../../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: "org-1" }) }));
+vi.mock("@toboggo/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@toboggo/shared")>();
+  return {
+    ...actual,
+    listFeatures: vi.fn(),
+    listParkFeatures: vi.fn(),
+    setParkFeature: vi.fn().mockResolvedValue(undefined),
+    removeParkFeature: vi.fn().mockResolvedValue(undefined),
+    logActivity: vi.fn().mockResolvedValue(undefined),
+    FEATURE_LABEL: {
+      slide: "Toboggan",
+      swing: "Balançoire",
+      toilets: "Toilettes",
+      wheelchair_access: "Accès fauteuil roulant",
+      fence_status: "Clôture",
+      surface_type: "Revêtement de sol",
+    },
+  };
+});
+const orgScopeState = vi.hoisted(() => ({ communeId: "org-1" as string | null }));
+vi.mock("../../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: orgScopeState.communeId }) }));
+const orgSessionState = vi.hoisted(() => ({ userId: "u1" as string | null }));
 vi.mock("../../lib/orgSession", () => ({
   useOrgSession: (sel?: (s: unknown) => unknown) => {
-    const state = { userName: "Testeur", userId: "u1" };
+    const state = { userName: "Testeur", userId: orgSessionState.userId };
     return sel ? sel(state) : state;
   },
 }));
@@ -47,19 +53,19 @@ const CATALOGUE = [
   { id: "f-guard", code: "guard_rail", category: "safety", value_set: null, sort_order: 1, is_active: true, label_key: "", icon_key: null, created_at: "" },
 ];
 
-function pf(feature_id: string, status: string, value: string | null = null) {
-  return { park_id: "p1", feature_id, status, value, quantity: null, note: null, source_id: null, verified_at: null, updated_at: "" };
+function pf(feature_id: string, status: string, value: string | null = null, updated_at = "") {
+  return { park_id: "p1", feature_id, status, value, quantity: null, note: null, source_id: null, verified_at: null, updated_at };
 }
 
 const park = { id: "p1", name: "Parc Test" } as never;
 
-function renderPanel(canEdit = true) {
+function renderPanel(canEdit = true, thePark: { id: string; name: string } = park) {
   const onDirtyChange = vi.fn();
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const utils = render(
     <QueryClientProvider client={client}>
       <ToastProvider>
-        <FeaturesPanel park={park} canEdit={canEdit} onDirtyChange={onDirtyChange} />
+        <FeaturesPanel park={thePark as never} canEdit={canEdit} onDirtyChange={onDirtyChange} />
       </ToastProvider>
     </QueryClientProvider>,
   );
@@ -68,6 +74,9 @@ function renderPanel(canEdit = true) {
 
 describe("FeaturesPanel (Lot 3C.2)", () => {
   beforeEach(() => {
+    localStorage.clear();
+    orgScopeState.communeId = "org-1";
+    orgSessionState.userId = "u1";
     vi.mocked(listFeatures).mockReset().mockResolvedValue(CATALOGUE as never);
     vi.mocked(listParkFeatures).mockReset().mockResolvedValue([]);
     vi.mocked(setParkFeature).mockReset().mockResolvedValue(undefined);
@@ -304,5 +313,182 @@ describe("FeaturesPanel (Lot 3C.2)", () => {
     fireEvent.click(slideGroup.querySelectorAll('[role="radio"]')[1]!); // "Non" — explicit user choice
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
     await waitFor(() => expect(setParkFeature).toHaveBeenCalledWith("p1", "f-slide", "unavailable"));
+  });
+});
+
+// ── Persistent draft (LOT 3D.F) ───────────────────────────────────────────
+const draftKey = (parkId: string, organizationId: string | null, userId: string) =>
+  buildDraftKey({
+    surface: "bo",
+    flow: "park.edit.features",
+    scope: { parkId, organizationId: organizationId ?? "admin" },
+    principal: { userId },
+  });
+const READ = { schemaVersion: 1, ttlMs: 72 * 60 * 60 * 1000 };
+function fp(pfs: { updated_at: string }[]): string {
+  if (pfs.length === 0) return "0:";
+  let max = pfs[0].updated_at;
+  for (const p of pfs) if (p.updated_at > max) max = p.updated_at;
+  return `${pfs.length}:${max}`;
+}
+
+describe("FeaturesPanel — persistent draft (LOT 3D.F)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    orgScopeState.communeId = "org-1";
+    orgSessionState.userId = "u1";
+    vi.mocked(listFeatures).mockReset().mockResolvedValue(CATALOGUE as never);
+    vi.mocked(listParkFeatures).mockReset().mockResolvedValue([]);
+    vi.mocked(setParkFeature).mockReset().mockResolvedValue(undefined);
+    vi.mocked(removeParkFeature).mockReset().mockResolvedValue(undefined);
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  async function enterEdit() {
+    await screen.findByText("Aucune caractéristique renseignée");
+    fireEvent.click(screen.getByRole("button", { name: "Compléter" }));
+    return screen.findByRole("radiogroup", { name: "Toboggan" });
+  }
+
+  it("no stored draft → edit mode starts from plain server data, no restore toast", async () => {
+    renderPanel();
+    await enterEdit();
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+  });
+
+  it("a modification autosaves (debounced) under the draft key, tagged with the current baseFingerprint", async () => {
+    renderPanel();
+    const slideGroup = await enterEdit();
+    fireEvent.click(slideGroup.querySelectorAll('[role="radio"]')[0]!); // "Oui"
+    await waitFor(() => {
+      const stored = readDraft(draftKey("p1", "org-1", "u1"), READ) as {
+        values?: Record<string, { kind?: string }>;
+        baseFingerprint?: string;
+      };
+      expect(stored?.values?.["f-slide"]?.kind).toBe("available");
+      expect(stored?.baseFingerprint).toBe(fp([]));
+    });
+  });
+
+  it("a fresh draft (baseFingerprint matches the server) is restored automatically on mount, with a toast", async () => {
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { values: { "f-slide": { kind: "available" } }, baseFingerprint: fp([]) },
+      { schemaVersion: 1 },
+    );
+    renderPanel();
+    expect(await screen.findByText("Brouillon restauré")).toBeTruthy();
+    const slideGroup = await screen.findByRole("radiogroup", { name: "Toboggan" });
+    expect(slideGroup.querySelector('[aria-checked="true"]')?.textContent).toBe("Oui");
+  });
+
+  it("save success clears the draft before leaving edit mode", async () => {
+    renderPanel();
+    const slideGroup = await enterEdit();
+    fireEvent.click(slideGroup.querySelectorAll('[role="radio"]')[0]!); // "Oui"
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { values?: Record<string, unknown> })?.values?.["f-slide"]).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(setParkFeature).toHaveBeenCalledTimes(1));
+    expect(readDraft(draftKey("p1", "org-1", "u1"), READ)).toBeNull();
+  });
+
+  it("a partial save failure keeps the draft (stays in edit mode for retry)", async () => {
+    vi.mocked(setParkFeature).mockRejectedValueOnce(new Error("RLS"));
+    renderPanel();
+    const slideGroup = await enterEdit();
+    fireEvent.click(slideGroup.querySelectorAll('[role="radio"]')[0]!); // "Oui" → will fail
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { values?: Record<string, unknown> })?.values?.["f-slide"]).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await screen.findByText(/Échec .*: Toboggan/);
+    expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { values?: Record<string, unknown> })?.values?.["f-slide"]).toBeTruthy();
+  });
+
+  it("explicit Annuler clears the draft", async () => {
+    renderPanel();
+    const slideGroup = await enterEdit();
+    fireEvent.click(slideGroup.querySelectorAll('[role="radio"]')[0]!); // "Oui"
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { values?: Record<string, unknown> })?.values?.["f-slide"]).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(readDraft(draftKey("p1", "org-1", "u1"), READ)).toBeNull();
+  });
+
+  it("a draft for park p1 is never restored, and stays untouched, when viewing park p2", async () => {
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { values: { "f-slide": { kind: "available" } }, baseFingerprint: fp([]) },
+      { schemaVersion: 1 },
+    );
+    renderPanel(true, { id: "p2", name: "Autre parc" });
+    await screen.findByText("Aucune caractéristique renseignée");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    expect(
+      (readDraft(draftKey("p1", "org-1", "u1"), READ) as { values?: Record<string, unknown> })?.values?.["f-slide"],
+    ).toBeTruthy();
+  });
+
+  it("a draft written by user A is never restored, and stays untouched, for user B", async () => {
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { values: { "f-slide": { kind: "available" } }, baseFingerprint: fp([]) },
+      { schemaVersion: 1 },
+    );
+    orgSessionState.userId = "u2";
+    renderPanel();
+    await screen.findByText("Aucune caractéristique renseignée");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    expect(
+      (readDraft(draftKey("p1", "org-1", "u1"), READ) as { values?: Record<string, unknown> })?.values?.["f-slide"],
+    ).toBeTruthy();
+  });
+
+  it("a draft under one organisation is never restored under another (same park, same user)", async () => {
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { values: { "f-slide": { kind: "available" } }, baseFingerprint: fp([]) },
+      { schemaVersion: 1 },
+    );
+    orgScopeState.communeId = "org-2";
+    renderPanel();
+    await screen.findByText("Aucune caractéristique renseignée");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+  });
+
+  it("a stale draft (server characteristics changed since) is discarded, never silently applied", async () => {
+    vi.mocked(listParkFeatures).mockResolvedValue([pf("f-slide", "available", null, "2026-01-01T00:00:00Z")] as never);
+    writeDraft(
+      draftKey("p1", "org-1", "u1"),
+      { values: { "f-slide": { kind: "unavailable" } }, baseFingerprint: "0:" }, // stale: fingerprint computed before f-slide existed
+      { schemaVersion: 1 },
+    );
+    renderPanel();
+    await screen.findByText("Toboggan");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
+    await waitFor(() => expect(readDraft(draftKey("p1", "org-1", "u1"), READ)).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Modifier" }));
+    const slideGroup = await screen.findByRole("radiogroup", { name: "Toboggan" });
+    // Server truth (available), not the discarded stale draft (unavailable).
+    expect(slideGroup.querySelector('[aria-checked="true"]')?.textContent).toBe("Oui");
+  });
+
+  it("no resurrection after clear: saving then remounting starts clean", async () => {
+    const { unmount } = renderPanel();
+    const slideGroup = await enterEdit();
+    fireEvent.click(slideGroup.querySelectorAll('[role="radio"]')[0]!); // "Oui"
+    await waitFor(() =>
+      expect((readDraft(draftKey("p1", "org-1", "u1"), READ) as { values?: Record<string, unknown> })?.values?.["f-slide"]).toBeTruthy(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer" }));
+    await waitFor(() => expect(setParkFeature).toHaveBeenCalledTimes(1));
+    unmount();
+
+    renderPanel();
+    await screen.findByText("Aucune caractéristique renseignée");
+    expect(screen.queryByText("Brouillon restauré")).toBeNull();
   });
 });

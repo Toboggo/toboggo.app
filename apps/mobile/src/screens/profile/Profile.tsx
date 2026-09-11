@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { listMyParks, listMyReviews, signOut } from "@toboggo/shared";
+import { listMyParks, listMyReviews, purgeDraftsForPrincipal, signOut } from "@toboggo/shared";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import styles from "./Profile.module.css";
@@ -38,7 +38,12 @@ export default function Profile() {
   const progress = points % 100;
 
   async function logout() {
+    // Captured before the session is cleared — a shared-device logout must
+    // remove only THIS account's local drafts (LOT 3D.F), never a guest's or
+    // another signed-in user's.
+    const uid = useSession.getState().userId;
     await signOut();
+    if (uid) purgeDraftsForPrincipal({ userId: uid });
     navigate("/");
   }
 

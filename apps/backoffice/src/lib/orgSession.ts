@@ -1,5 +1,14 @@
 import { create } from "zustand";
-import { getSupabase, getSession, isSupabaseConfigured, onAuthStateChange, signOut as apiSignOut, type TeamMember, type Commune } from "@toboggo/shared";
+import {
+  getSupabase,
+  getSession,
+  isSupabaseConfigured,
+  onAuthStateChange,
+  purgeDraftsForPrincipal,
+  signOut as apiSignOut,
+  type TeamMember,
+  type Commune,
+} from "@toboggo/shared";
 
 export type ActiveOrg = { type: "admin" } | { type: "commune"; communeId: string };
 
@@ -110,7 +119,12 @@ export const useOrgSession = create<OrgSessionState>((set, get) => ({
     return role === "gestionnaire" || role === "super_admin" || role === "moderation";
   },
   signOut: async () => {
+    // Captured before the session is cleared — a shared-device logout must
+    // remove only THIS account's local drafts (LOT 3D.F), never a guest's or
+    // another signed-in user's.
+    const userId = get().userId;
     await apiSignOut();
+    if (userId) purgeDraftsForPrincipal({ userId });
     set({ userId: null, memberships: [], activeOrg: null });
   },
 }));

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Select, Textarea, useToast } from "@toboggo/design-system";
+import { Button, Input, Select, Textarea, useToast, usePersistentDraft } from "@toboggo/design-system";
 import {
+  buildDraftKey,
   isValidCoordinate,
   listExternalIds,
   logActivity,
@@ -15,6 +16,32 @@ import { useAsyncAction } from "../../lib/useAsyncAction";
 import { queryClient } from "../../lib/queryClient";
 import { ParkLocationEditor } from "./ParkLocationEditor";
 import styles from "../ParkDetail.module.css";
+
+// Brouillon persistant (LOT 3D.F) — socle partagé `usePersistentDraft`.
+const INFO_DRAFT_VERSION = 1;
+const INFO_DRAFT_TTL_MS = 72 * 60 * 60 * 1000; // 72 h
+
+interface InfoFormDraft {
+  name: string;
+  addressLine: string;
+  postalCode: string;
+  city: string;
+  latitude: string;
+  longitude: string;
+  ageMin: string;
+  ageMax: string;
+  description: string;
+  operational: ParkOperationalStatus;
+  /**
+   * `park.updated_at` at the moment this draft was seeded (édition démarrée).
+   * A draft is a set of UNSAVED CHANGES, not a copy of the whole record — if
+   * the server has moved on since (another editor saved in the meantime), a
+   * stale draft must never silently overwrite that newer server state. See
+   * the restore effect below: mismatched ⇒ the draft is discarded, never
+   * applied. No merge — simplest safe choice.
+   */
+  baseUpdatedAt: string | null;
+}
 
 const OPERATIONAL_LABEL: Record<ParkOperationalStatus, string> = {
   active: "Ouvert",
@@ -69,6 +96,7 @@ export function InfoPanel({
 }) {
   const { communeId } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
+  const userId = useOrgSession((s) => s.userId);
   const toast = useToast();
 
   const [editing, setEditing] = useState(false);
@@ -88,12 +116,55 @@ export function InfoPanel({
     [park],
   );
 
-  const [form, setForm] = useState(initial);
-  // Re-sync from the server copy only while NOT editing, so a background
-  // refetch can't silently wipe in-progress edits.
+  // Draft: scoped to this park + the acting org context + editor (a park can
+  // be linked to several organisations — organizationId keeps their drafts
+  // apart). `restore: "manual"`: applying it is gated on the freshness check
+  // below (baseUpdatedAt), never automatic.
+  const draftKey = userId
+    ? buildDraftKey({
+        surface: "bo",
+        flow: "park.edit.info",
+        scope: { parkId: park.id, organizationId: communeId ?? "admin" },
+        principal: { userId },
+      })
+    : null;
+
+  const {
+    value: form,
+    setValue: setForm,
+    patch: patchForm,
+    pendingDraft,
+    restore: restorePendingDraft,
+    discardPending,
+    clear: clearInfoDraft,
+  } = usePersistentDraft<InfoFormDraft>(
+    draftKey,
+    { ...initial, baseUpdatedAt: null },
+    { schemaVersion: INFO_DRAFT_VERSION, ttlMs: INFO_DRAFT_TTL_MS, restore: "manual" },
+  );
+
+  // Decide once whether a stored draft is still safe to apply: only if the
+  // server row hasn't changed since it was made (`baseUpdatedAt` matches).
+  // Otherwise it's discarded outright — never silently restored over a newer
+  // server edit, and no merge is attempted (see InfoFormDraft.baseUpdatedAt).
+  const restoreDecided = useRef(false);
   useEffect(() => {
-    if (!editing) setForm(initial);
-  }, [initial, editing]);
+    if (restoreDecided.current || pendingDraft == null) return;
+    restoreDecided.current = true;
+    if (pendingDraft.baseUpdatedAt === (park.updated_at ?? null)) {
+      restorePendingDraft();
+      setEditing(true);
+      toast.info("Brouillon restauré");
+    } else {
+      discardPending();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDraft]);
+
+  function startEditing() {
+    setForm({ ...initial, baseUpdatedAt: park.updated_at ?? null });
+    setEditing(true);
+  }
 
   const dirty =
     editing &&
@@ -174,14 +245,20 @@ export function InfoPanel({
       for (const key of [["park", park.id], ["park-history", park.id], ["bo-parks-page"], ["bo-parks"], ["dash-parks"]]) {
         void queryClient.invalidateQueries({ queryKey: key });
       }
+      // Saved — drop the draft before leaving edit mode; the view re-renders
+      // from the fresh `park` the invalidated query refetches.
+      clearInfoDraft();
       setEditing(false);
       onDirtyChange(false);
     },
     { successMessage: "Parc mis à jour." },
   );
 
+  // "Annuler" is already an explicit, unconfirmed abandon in this screen (no
+  // dialog — only tab-switch/navigation go through useUnsavedChangesGuard) —
+  // clearing the draft here matches that existing UX exactly.
   function cancel() {
-    setForm(initial);
+    clearInfoDraft();
     setEditing(false);
     onDirtyChange(false);
   }
@@ -193,7 +270,7 @@ export function InfoPanel({
           <Input
             label="Nom"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) => patchForm({ name: e.target.value })}
             className={styles.formWide}
           />
 
@@ -208,7 +285,7 @@ export function InfoPanel({
               label="Adresse / voie"
               value={form.addressLine}
               placeholder="Ex. 12 rue des Écoles"
-              onChange={(e) => setForm((f) => ({ ...f, addressLine: e.target.value }))}
+              onChange={(e) => patchForm({ addressLine: e.target.value })}
             />
             <div className={styles.twoCol}>
               <Input
@@ -216,13 +293,13 @@ export function InfoPanel({
                 value={form.postalCode}
                 inputMode="numeric"
                 placeholder="Ex. 12100"
-                onChange={(e) => setForm((f) => ({ ...f, postalCode: e.target.value }))}
+                onChange={(e) => patchForm({ postalCode: e.target.value })}
               />
               <Input
                 label="Ville"
                 value={form.city}
                 placeholder="Ex. Millau"
-                onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                onChange={(e) => patchForm({ city: e.target.value })}
               />
             </div>
           </div>
@@ -234,7 +311,7 @@ export function InfoPanel({
               disabled={saving}
               latitude={form.latitude}
               longitude={form.longitude}
-              onChange={(latitude, longitude) => setForm((f) => ({ ...f, latitude, longitude }))}
+              onChange={(latitude, longitude) => patchForm({ latitude, longitude })}
             />
           </div>
 
@@ -245,7 +322,7 @@ export function InfoPanel({
               min={0}
               max={18}
               value={form.ageMin}
-              onChange={(e) => setForm((f) => ({ ...f, ageMin: e.target.value }))}
+              onChange={(e) => patchForm({ ageMin: e.target.value })}
             />
             <Input
               label="Âge maximum"
@@ -253,13 +330,13 @@ export function InfoPanel({
               min={0}
               max={18}
               value={form.ageMax}
-              onChange={(e) => setForm((f) => ({ ...f, ageMax: e.target.value }))}
+              onChange={(e) => patchForm({ ageMax: e.target.value })}
             />
           </div>
           <Select
             label="État d'exploitation"
             value={form.operational}
-            onChange={(e) => setForm((f) => ({ ...f, operational: e.target.value as ParkOperationalStatus }))}
+            onChange={(e) => patchForm({ operational: e.target.value as ParkOperationalStatus })}
           >
             {(Object.keys(OPERATIONAL_LABEL) as ParkOperationalStatus[]).map((v) => (
               <option key={v} value={v}>
@@ -270,7 +347,7 @@ export function InfoPanel({
           <Textarea
             label="Description"
             value={form.description}
-            onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            onChange={(e) => patchForm({ description: e.target.value })}
             className={styles.formWide}
             rows={4}
           />
@@ -297,7 +374,7 @@ export function InfoPanel({
     <div className={styles.panel}>
       {canEdit && (
         <div className={styles.infoToolbar}>
-          <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+          <Button size="sm" variant="secondary" onClick={startEditing}>
             Modifier
           </Button>
         </div>

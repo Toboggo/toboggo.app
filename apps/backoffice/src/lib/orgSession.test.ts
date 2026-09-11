@@ -41,6 +41,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     getSession: vi.fn(async () => supa.session),
     onAuthStateChange: (fn: (userId: string | null) => void) => authMock.register(fn),
     signOut: vi.fn(async () => {}),
+    purgeDraftsForPrincipal: vi.fn(() => 0),
     getSupabase: () =>
       ({
         from: () => ({
@@ -56,6 +57,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
   };
 });
 
+import { purgeDraftsForPrincipal as purgeDraftsForPrincipalMock, signOut as apiSignOutMock } from "@toboggo/shared";
 import { useOrgSession } from "./orgSession";
 
 const SESSION = { user: { id: "user-1", email: "alice@ville.fr", user_metadata: { name: "Alice" } } };
@@ -161,5 +163,32 @@ describe("useOrgSession.init", () => {
     await flush();
     expect(useOrgSession.getState().loading).toBe(false);
     expect(useOrgSession.getState().accessDenied).toBe(true);
+  });
+});
+
+describe("useOrgSession.signOut — targeted draft purge (LOT 3D.F)", () => {
+  beforeEach(() => {
+    vi.mocked(apiSignOutMock).mockReset().mockResolvedValue(undefined);
+    vi.mocked(purgeDraftsForPrincipalMock).mockReset().mockReturnValue(0);
+  });
+
+  it("logging out user A purges only A's principal — captured before the session is cleared", async () => {
+    useOrgSession.setState({ userId: "A", memberships: [MEMBERSHIP] as never, activeOrg: { type: "admin" } });
+    await useOrgSession.getState().signOut();
+
+    expect(apiSignOutMock).toHaveBeenCalledTimes(1);
+    expect(purgeDraftsForPrincipalMock).toHaveBeenCalledTimes(1);
+    expect(purgeDraftsForPrincipalMock).toHaveBeenCalledWith({ userId: "A" });
+
+    const s = useOrgSession.getState();
+    expect(s.userId).toBeNull();
+    expect(s.memberships).toEqual([]);
+    expect(s.activeOrg).toBeNull();
+  });
+
+  it("logging out with no signed-in user never purges (nothing to scope to)", async () => {
+    useOrgSession.setState({ userId: null });
+    await useOrgSession.getState().signOut();
+    expect(purgeDraftsForPrincipalMock).not.toHaveBeenCalled();
   });
 });

@@ -46,7 +46,9 @@ export function DualRangeSlider({ min, max, low, high, onChange, formatLabel }: 
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.label}>{formatLabel ? formatLabel(low, high) : `${low} - ${high} ans`}</div>
+      {/* Locale-neutral fallback: every app caller passes `formatLabel` with a
+          localized string (the design system stays free of react-i18next). */}
+      <div className={styles.label}>{formatLabel ? formatLabel(low, high) : `${low}–${high}`}</div>
       <div className={styles.track} ref={trackRef}>
         <div
           className={styles.fill}

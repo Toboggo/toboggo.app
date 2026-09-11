@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { buildDraftKey, createReview, readDraft, uploadPhoto, writeDraft, type DraftPrincipal } from "@toboggo/shared";
+import "../../i18n/testInit";
 import RatePark from "./RatePark";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -161,7 +162,9 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
 
     await waitFor(() => expect(createReview).toHaveBeenCalled());
-    expect(toasts.list).toContain("network");
+    // Server error details are never surfaced verbatim — a generic, translated
+    // message is shown instead (see doSubmit's catch).
+    expect(toasts.list).toContain("Une erreur est survenue");
     expect(loc()).toBe("/rate");
     expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string })?.comment).toBe("Ne part pas");
   });

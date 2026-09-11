@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
 
@@ -28,5 +28,10 @@ export default defineConfig({
       "apps/backoffice/src/**/*.test.{ts,tsx}",
       "apps/mobile/src/**/*.test.{ts,tsx}",
     ],
+    // `packages/shared/src/utils/*.test.ts` is Node's built-in test runner
+    // (`node --experimental-strip-types --test`, see that package's own `test`
+    // script), not Vitest — excluded here so `npm run test` doesn't try to load
+    // it as a Vitest suite (it has no `describe`/`it` and would report 0 tests).
+    exclude: [...configDefaults.exclude, "packages/shared/src/utils/*.test.ts"],
   },
 });

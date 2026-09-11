@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { Trans, useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -15,9 +16,6 @@ import {
 } from "@toboggo/design-system";
 import {
   buildDraftKey,
-  FEATURE_STATUS_LABEL,
-  featureLabel,
-  formatAgeRange,
   listFeatures,
   submitParkEdit,
   type FeatureCategory,
@@ -27,6 +25,8 @@ import {
 import { WizardHeader } from "../../components/WizardHeader";
 import { DiffRow } from "../../components/DiffRow";
 import { PinField } from "../../components/PinField";
+import { useFormat } from "../../i18n/useFormat";
+import { useFeatureLabel } from "../../lib/featureLabel";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
@@ -42,19 +42,19 @@ const EDIT_INFO_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 // Vérification) : `current` = `d.step`, aucune conversion. "Vérification" est la
 // dernière étape AVANT soumission ; la confirmation de succès reste un écran
 // autonome séparé (bloc `done`) et n'apparaît donc pas dans le stepper.
-const STEPPER = ["Type", "Correction", "Vérification"];
+const STEPPER = ["steps.type", "steps.correction", "steps.verify"];
 
 type Target = "general" | "ages" | "play" | "service" | "accessibility" | "characteristics" | "location" | "other";
 
-const TARGETS: { value: Target; label: string; icon: IconName }[] = [
-  { value: "general", label: "Informations générales", icon: "ic-list" },
-  { value: "ages", label: "Tranche d'âge", icon: "ic-age" },
-  { value: "play", label: "Jeux & équipements", icon: "ic-slide" },
-  { value: "service", label: "Services", icon: "ic-bench" },
-  { value: "accessibility", label: "Accessibilité", icon: "ic-pmr" },
-  { value: "characteristics", label: "Caractéristiques du parc", icon: "ic-fence" },
-  { value: "location", label: "Localisation", icon: "ic-explore" },
-  { value: "other", label: "Autre", icon: "ic-question" },
+const TARGETS: { value: Target; icon: IconName }[] = [
+  { value: "general", icon: "ic-list" },
+  { value: "ages", icon: "ic-age" },
+  { value: "play", icon: "ic-slide" },
+  { value: "service", icon: "ic-bench" },
+  { value: "accessibility", icon: "ic-pmr" },
+  { value: "characteristics", icon: "ic-fence" },
+  { value: "location", icon: "ic-explore" },
+  { value: "other", icon: "ic-question" },
 ];
 
 const TARGET_CATEGORIES: Partial<Record<Target, FeatureCategory[]>> = {
@@ -64,10 +64,10 @@ const TARGET_CATEGORIES: Partial<Record<Target, FeatureCategory[]>> = {
   characteristics: ["environment", "safety"],
 };
 
-const STATUS_OPTIONS: { value: FeatureStatus; label: string }[] = [
-  { value: "available", label: "Disponible" },
-  { value: "unavailable", label: "Absent" },
-  { value: "unknown", label: "Je ne sais pas" },
+const STATUS_OPTIONS: { value: FeatureStatus; labelKey: string }[] = [
+  { value: "available", labelKey: "status.available" },
+  { value: "unavailable", labelKey: "status.unavailable" },
+  { value: "unknown", labelKey: "status.unknown" },
 ];
 
 interface EditDraft {
@@ -116,6 +116,11 @@ interface DiffItem {
 export default function EditInfo() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("contribute");
+  const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
+  const fmt = useFormat();
+  const featureLabel = useFeatureLabel();
   const parkId = params.get("park");
   const wantsResume = params.get("resume") === "1";
 
@@ -196,12 +201,12 @@ export default function EditInfo() {
     const out: DiffItem[] = [];
     if (d.target === "general") {
       if (d.name.trim() && d.name.trim() !== (park.name ?? "")) {
-        out.push({ field: "name", label: "Nom", currentText: park.name ?? "—", proposedText: d.name.trim(), current: park.name ?? null, proposed: d.name.trim() });
+        out.push({ field: "name", label: t("edit.diff.name"), currentText: park.name ?? "—", proposedText: d.name.trim(), current: park.name ?? null, proposed: d.name.trim() });
       }
       if ((d.description ?? "").trim() !== (park.description ?? "")) {
         out.push({
           field: "description",
-          label: "Description",
+          label: t("edit.diff.description"),
           currentText: park.description || "—",
           proposedText: d.description.trim() || "—",
           current: park.description ?? null,
@@ -214,9 +219,9 @@ export default function EditInfo() {
       if (d.agesTouched && (d.ageLow !== park.age_min || d.ageHigh !== park.age_max)) {
         out.push({
           field: "ages",
-          label: "Tranche d'âge",
-          currentText: formatAgeRange(park.age_min, park.age_max),
-          proposedText: `${d.ageLow}–${d.ageHigh} ans`,
+          label: t("edit.diff.ages"),
+          currentText: fmt.ageRange(park.age_min, park.age_max),
+          proposedText: fmt.ageRange(d.ageLow, d.ageHigh),
           current: { min: park.age_min, max: park.age_max },
           proposed: { min: d.ageLow, max: d.ageHigh },
         });
@@ -229,7 +234,7 @@ export default function EditInfo() {
       if (changed) {
         out.push({
           field: "location",
-          label: "Position",
+          label: t("edit.diff.location"),
           currentText: `${park.latitude.toFixed(5)}, ${park.longitude.toFixed(5)}`,
           proposedText: `${d.lat!.toFixed(5)}, ${d.lng!.toFixed(5)}`,
           current: { latitude: park.latitude, longitude: park.longitude },
@@ -238,20 +243,20 @@ export default function EditInfo() {
       }
     } else if (d.target === "other") {
       if (d.freeText.trim()) {
-        out.push({ field: "free_text", label: "Correction proposée", currentText: "—", proposedText: d.freeText.trim(), current: null, proposed: d.freeText.trim() });
+        out.push({ field: "free_text", label: t("edit.diff.freeText"), currentText: "—", proposedText: d.freeText.trim(), current: null, proposed: d.freeText.trim() });
       }
     } else {
-      for (const f of relevantFeatures) {
-        const before = park.features[f.code]?.status ?? "unknown";
+      for (const feat of relevantFeatures) {
+        const before = park.features[feat.code]?.status ?? "unknown";
         // Fall back to the park's current value for features the user hasn't
         // touched (covers the case where the catalogue wasn't loaded at seed time).
-        const after = d.featureStatus[f.code] ?? before;
+        const after = d.featureStatus[feat.code] ?? before;
         if (after !== before) {
           out.push({
-            field: `feature:${f.code}`,
-            label: featureLabel(f.code),
-            currentText: FEATURE_STATUS_LABEL[before],
-            proposedText: FEATURE_STATUS_LABEL[after],
+            field: `feature:${feat.code}`,
+            label: featureLabel(feat.code),
+            currentText: t(`statusLabel.${before}`),
+            proposedText: t(`statusLabel.${after}`),
             current: before,
             proposed: after,
           });
@@ -259,7 +264,7 @@ export default function EditInfo() {
       }
     }
     return out;
-  }, [park, d, relevantFeatures]);
+  }, [park, d, relevantFeatures, t, fmt, featureLabel]);
 
   async function doSubmit(uid: string) {
     if (!park || !parkId || !d.target || !items.length) return;
@@ -276,10 +281,9 @@ export default function EditInfo() {
       // blocks any later flush, so it cannot come back on unmount / pagehide.
       clearEditDraft();
       setDone(true);
-    } catch (err) {
+    } catch {
       // Failed — keep the form and the (autosaved) draft, surface the error.
-      const msg = err instanceof Error ? err.message : "Envoi impossible";
-      showToast(msg);
+      showToast(tErr("generic"));
     } finally {
       setSaving(false);
     }
@@ -287,7 +291,7 @@ export default function EditInfo() {
 
   function submit() {
     if (!items.length) {
-      showToast("Aucune modification à proposer.");
+      showToast(t("edit.noChanges"));
       return;
     }
     const uid = useSession.getState().userId;
@@ -345,19 +349,19 @@ export default function EditInfo() {
   if (!parkId || isError) {
     return (
       <div className="screen" style={{ padding: 32, textAlign: "center" }}>
-        <h1 style={{ fontSize: 20, marginTop: 24 }}>Parc introuvable</h1>
+        <h1 style={{ fontSize: 20, marginTop: 24 }}>{t("edit.notFoundTitle")}</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8 }}>
-          Impossible d'ouvrir ce parc pour le moment.
+          {t("edit.notFoundBody")}
         </p>
         <Button block style={{ marginTop: 24, maxWidth: 280, marginInline: "auto" }} onClick={() => navigate("/map")}>
-          Retour à la carte
+          {t("edit.backToMap")}
         </Button>
       </div>
     );
   }
 
   if (isLoading || !park) {
-    return <div className="screen" style={{ padding: 40, textAlign: "center" }}>Chargement…</div>;
+    return <div className="screen" style={{ padding: 40, textAlign: "center" }}>{t("common.loading")}</div>;
   }
 
   if (done) {
@@ -378,10 +382,9 @@ export default function EditInfo() {
         >
           <Icon name="ic-check" size={36} />
         </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>Merci !</h1>
+        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("common.thanks")}</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 300 }}>
-          Votre proposition de correction pour <strong>{park.name}</strong> a bien été reçue.
-          Elle sera vérifiée par notre équipe avant d'être appliquée.
+          <Trans t={t} i18nKey="edit.doneBody" values={{ park: park.name }} components={{ strong: <strong /> }} />
         </p>
         {/* Correction envoyée : on remplace l'entrée d'historique du wizard par
             la fiche parc. Depuis la fiche, Retour ramène au contexte antérieur,
@@ -389,7 +392,7 @@ export default function EditInfo() {
             RatePark / AddPhotos / ReportProblem. (Ne concerne que l'après-succès :
             le stepper interne n'est pas touché.) */}
         <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          Retour au parc
+          {t("common.backToPark")}
         </Button>
       </div>
     );
@@ -400,14 +403,14 @@ export default function EditInfo() {
       <WizardHeader
         step={d.step}
         total={STEPPER.length}
-        steps={STEPPER}
+        steps={STEPPER.map((k) => t(k))}
         onBack={() => (d.step === 0 ? navigate(-1) : patch({ step: d.step - 1 }))}
         onClose={closeAndDiscard}
       />
 
       {restored && d.step > 0 && (
         <p style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "0 20px", marginTop: -4 }}>
-          Brouillon repris.
+          {t("edit.draftResumed")}
         </p>
       )}
 
@@ -415,13 +418,13 @@ export default function EditInfo() {
         <div style={{ padding: "0 20px" }}>
           <h2 style={{ fontSize: 18, marginBottom: 4 }}>{park.name}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            Que souhaitez-vous corriger ?
+            {t("edit.step0Question")}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {TARGETS.map((t) => (
+            {TARGETS.map((tgt) => (
               <button
-                key={t.value}
-                onClick={() => seedFromPark(t.value)}
+                key={tgt.value}
+                onClick={() => seedFromPark(tgt.value)}
                 style={{
                   padding: 16,
                   borderRadius: 14,
@@ -435,8 +438,8 @@ export default function EditInfo() {
                   gap: 8,
                 }}
               >
-                <Icon name={t.icon} size={22} />
-                <span style={{ fontSize: 12.5 }}>{t.label}</span>
+                <Icon name={tgt.icon} size={22} />
+                <span style={{ fontSize: 12.5 }}>{t(`edit.target.${tgt.value}`)}</span>
               </button>
             ))}
           </div>
@@ -447,19 +450,19 @@ export default function EditInfo() {
         <div style={{ padding: "0 20px" }}>
           {d.target === "general" && (
             <>
-              <Input label="Nom du parc" value={d.name} onChange={(e) => patch({ name: e.target.value })} />
+              <Input label={t("edit.diff.name")} value={d.name} onChange={(e) => patch({ name: e.target.value })} />
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "4px 0 16px" }}>
-                Actuellement : {park.name}
+                {t("edit.currently", { value: park.name })}
               </p>
               <Textarea
-                label="Description"
+                label={t("edit.descriptionLabel")}
                 rows={3}
                 value={d.description}
                 onChange={(e) => patch({ description: e.target.value })}
               />
               {park.description && (
                 <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 4 }}>
-                  Actuellement : {park.description}
+                  {t("edit.currently", { value: park.description })}
                 </p>
               )}
             </>
@@ -468,10 +471,10 @@ export default function EditInfo() {
           {d.target === "ages" && (
             <>
               <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
-                Tranche d'âge
+                {t("field.ageRange")}
               </div>
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 10 }}>
-                Actuellement : {formatAgeRange(park.age_min, park.age_max)}
+                {t("edit.currently", { value: fmt.ageRange(park.age_min, park.age_max) })}
               </p>
               <DualRangeSlider
                 min={0}
@@ -480,8 +483,8 @@ export default function EditInfo() {
                 high={d.ageHigh}
                 formatLabel={
                   !d.agesTouched && park.age_min == null && park.age_max == null
-                    ? () => "Âge non renseigné"
-                    : undefined
+                    ? () => tCommon("age.notSpecified")
+                    : (l, h) => fmt.ageRange(l, h)
                 }
                 onChange={(l, h) => patch({ ageLow: l, ageHigh: h, agesTouched: true })}
               />
@@ -491,7 +494,7 @@ export default function EditInfo() {
           {d.target === "location" && (
             <>
               <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>
-                Position du parc
+                {t("edit.locationHeading")}
               </div>
               <PinField
                 lat={d.lat ?? park.latitude}
@@ -500,7 +503,7 @@ export default function EditInfo() {
               />
               {park.formatted_address && (
                 <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 8 }}>
-                  Adresse actuelle : {park.formatted_address}
+                  {t("edit.currentAddress", { value: park.formatted_address })}
                 </p>
               )}
             </>
@@ -508,7 +511,7 @@ export default function EditInfo() {
 
           {d.target === "other" && (
             <Textarea
-              label="Quelle information faut-il corriger ?"
+              label={t("edit.otherLabel")}
               rows={4}
               maxLength={400}
               value={d.freeText}
@@ -520,19 +523,18 @@ export default function EditInfo() {
           {d.target === "play" && (
             <>
               <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>
-                Quels jeux sont présents ?
+                {t("edit.playQuestion")}
               </div>
               <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
-                Sélectionnez ce que vous observez sur place. Les jeux déjà connus de Toboggo sont
-                pré-sélectionnés — décochez-en un pour signaler son absence.
+                {t("edit.playHint")}
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {relevantFeatures.map((f) => {
-                  const before = park.features[f.code]?.status ?? "unknown";
-                  const active = (d.featureStatus[f.code] ?? before) === "available";
+                {relevantFeatures.map((feat) => {
+                  const before = park.features[feat.code]?.status ?? "unknown";
+                  const active = (d.featureStatus[feat.code] ?? before) === "available";
                   return (
-                    <Chip key={f.code} active={active} onClick={() => togglePlayChip(f.code)}>
-                      {featureLabel(f.code)}
+                    <Chip key={feat.code} active={active} onClick={() => togglePlayChip(feat.code)}>
+                      {featureLabel(feat.code)}
                     </Chip>
                   );
                 })}
@@ -542,23 +544,23 @@ export default function EditInfo() {
 
           {d.target !== "play" && TARGET_CATEGORIES[d.target ?? "other"] && (
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {relevantFeatures.map((f) => {
-                const before = park.features[f.code]?.status ?? "unknown";
-                const value = d.featureStatus[f.code] ?? before;
+              {relevantFeatures.map((feat) => {
+                const before = park.features[feat.code]?.status ?? "unknown";
+                const value = d.featureStatus[feat.code] ?? before;
                 return (
-                  <div key={f.code}>
+                  <div key={feat.code}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
                       <span style={{ fontSize: 13.5, fontWeight: 600, fontFamily: "var(--font-heading)" }}>
-                        {featureLabel(f.code)}
+                        {featureLabel(feat.code)}
                       </span>
                       <span style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>
-                        Actuel : {FEATURE_STATUS_LABEL[before]}
+                        {t("edit.current", { value: t(`statusLabel.${before}`) })}
                       </span>
                     </div>
                     <Segmented
-                      options={STATUS_OPTIONS}
+                      options={STATUS_OPTIONS.map((o) => ({ value: o.value, label: t(o.labelKey) }))}
                       value={value}
-                      onChange={(v) => patch({ featureStatus: { ...d.featureStatus, [f.code]: v } })}
+                      onChange={(v) => patch({ featureStatus: { ...d.featureStatus, [feat.code]: v } })}
                     />
                   </div>
                 );
@@ -580,10 +582,10 @@ export default function EditInfo() {
               marginBottom: 8,
             }}
           >
-            Précision
+            {t("edit.noteSection")}
           </div>
           <Textarea
-            label="Un détail à ajouter ? (facultatif)"
+            label={t("edit.noteLabel")}
             rows={2}
             maxLength={200}
             value={d.note}
@@ -592,11 +594,11 @@ export default function EditInfo() {
           />
 
           <Button block style={{ marginTop: 20 }} disabled={!items.length} onClick={() => patch({ step: 2 })}>
-            Vérifier
+            {t("common.verify")}
           </Button>
           {!items.length && (
             <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", marginTop: 8 }}>
-              Modifiez au moins une valeur pour continuer.
+              {t("edit.needOneChange")}
             </p>
           )}
         </div>
@@ -604,7 +606,7 @@ export default function EditInfo() {
 
       {d.step === 2 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>Vérifiez votre correction</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("edit.verifyTitle")}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 12 }}>
             {park.name}
           </p>
@@ -615,20 +617,20 @@ export default function EditInfo() {
           </div>
           {d.note.trim() && (
             <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 12 }}>
-              Précision : {d.note.trim()}
+              {t("edit.notePrefix", { value: d.note.trim() })}
             </p>
           )}
           {!userId && (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
-              Un compte gratuit est demandé au moment de l'envoi. Votre brouillon est conservé.
+              {t("common.accountRequiredDraft")}
             </p>
           )}
           <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
             <Button variant="secondary" block onClick={() => patch({ step: 1 })}>
-              Modifier
+              {t("common.edit")}
             </Button>
             <Button block loading={saving} onClick={submit}>
-              Proposer la modification
+              {t("edit.submit")}
             </Button>
           </div>
         </div>

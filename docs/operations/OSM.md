@@ -231,6 +231,32 @@ Alignement des importeurs sur le gate `can_source_replace_attribute` :
 Hors périmètre Phase 1 (réservé Phase 2) : `park_features` (toujours upsertées
 sans gate), `source_records`, pipeline open data, déduplication multi-source.
 
+### `name` : distinguer un vrai tag OSM du fallback technique `"Aire de jeux"` (chantier `park-display-name`, Phase 2, §H)
+
+`0032` gatait déjà l'écrasement de `name` via `can_source_replace_attribute`,
+mais **ni `import-osm-local.py` ni, surtout, `import-osm-remote.py` (chemin
+prod)** ne distinguaient un `name` OSM réel du fallback `"Aire de jeux"` écrit
+quand OSM n'a pas de tag `name` (`parks.name` reste `NOT NULL` — aucune
+migration, aucune colonne nullable) :
+
+- `import-osm-local.py` gate déjà correctement `has_osm_name` (recensé, non
+  modifié ici).
+- `import-osm-remote.py` a été aligné : `has_osm_name = bool(props.get("name"))`
+  est désormais calculé et propagé. Le fallback (`has_osm_name = False`)
+  **n'écrase plus jamais** `parks.name` sur un réimport (avant, un parc dont
+  le tag OSM `name` disparaîtrait d'un futur extrait pouvait être renommé
+  silencieusement `"Aire de jeux"`), et **n'est plus jamais enregistré** dans
+  `park_attribute_sources` comme provenance `osm` — un vrai nom OSM, lui, l'est
+  (réutilise `set_park_attribute_source`, migration 0024, même mécanisme que
+  l'adresse ci-dessus).
+
+Sans cette distinction, il n'était pas possible de savoir a posteriori si
+`"Aire de jeux"` en base venait vraiment d'OSM ou d'un remplissage technique
+Toboggo — voir `AUDIT-display-name-parcs-phase1.md` §C, et le helper
+`isGenericParkName` / `getParkDisplayName` (`packages/shared/src/utils/parkName.ts`)
+qui calcule le titre affiché à partir de `name` + `address_line` + `city`, sans
+jamais stocker de phrase composée.
+
 ## Prochaines priorités
 1. ~~priorité des sources / protection contre écrasement OSM~~ — fait (`0024`, `0028`, `0029`, `0032` : corrections back-office + gate `name`/`age`/`location`)
 2. ~~ville / adresse / région~~ — fait pour OSM + reverse geocoding (voir ci-dessus) ; open data collectivités reste à faire (#5)

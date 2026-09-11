@@ -1,0 +1,165 @@
+{
+  "title": "Profile",
+  "edit": "Edit",
+  "notifications": "Notifications",
+  "notifs": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "filter": { "all": "All", "unread": "Unread", "read": "Read" },
+    "empty": "No notifications here.",
+    "seePark": "View the park",
+    "pref": {
+      "reports": "Updates on my reports",
+      "newParks": "New parks nearby",
+      "reviewReplies": "Replies to my reviews",
+      "recommendations": "Personalized recommendations",
+      "news": "Toboggo news"
+    },
+    "channels": "Channels",
+    "channelPush": "Push notifications",
+    "channelEmail": "Email"
+  },
+  "level": "Lvl {{level}}",
+  "levelProgress": "{{points}} points · {{remaining}} to next level",
+  "myChildren": "My children",
+  "stats": {
+    "parks": "Parks added",
+    "reviews": "Reviews",
+    "favorites": "Favorites"
+  },
+  "badgesTitle": "Badges",
+  "badge": {
+    "firstReview": "First review",
+    "contributor": "Contributor",
+    "explorer": "Explorer",
+    "grand": "Top contributor"
+  },
+  "myToboggoTitle": "My Toboggo",
+  "myContributions": "My contributions",
+  "groupOuting": "Group outing",
+  "preferencesTitle": "Preferences",
+  "language": "Language",
+  "appearance": "Appearance",
+  "helpInfoTitle": "Help & information",
+  "contactUs": "Contact us",
+  "accountTitle": "Account",
+  "help": "Help",
+  "helpScreen": {
+    "title": "Help",
+    "contactSupport": "Contact support",
+    "faq": {
+      "geoloc": {
+        "q": "How does location work?",
+        "a": "Toboggo uses your location to show the nearest parks, sorted by distance. You can also search for a city manually."
+      },
+      "filters": {
+        "q": "What do the filters (toilets, shade, age range) mean?",
+        "a": "This information comes from the community or partner local authorities, and is checked before publication."
+      },
+      "addPark": {
+        "q": "How do I add a park?",
+        "a": "From the Add tab, enter the name, address and available equipment. Your submission is checked by our team before it appears on the map."
+      },
+      "report": {
+        "q": "How do I report a problem?",
+        "a": "Use the “Report a problem” button on the park page. Our team or the relevant local authority updates the information."
+      },
+      "municipality": {
+        "q": "I'm a local authority — how do I manage my parks?",
+        "a": "Partner local authorities get a dedicated back office. Contact us to enable it."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact",
+    "sentTitle": "Message sent",
+    "sentBody": "Our team will get back to you shortly.",
+    "intro": "For a damaged park or incorrect information, please use the “Report” button on the park page instead.",
+    "nameLabel": "Name",
+    "emailLabel": "Email",
+    "subjectLabel": "Subject",
+    "messageLabel": "Message",
+    "send": "Send",
+    "subject": {
+      "general": "General enquiry",
+      "technical": "Technical problem",
+      "partnership": "Partnership",
+      "press": "Press"
+    }
+  },
+  "signOut": "Sign out",
+  "favorites": {
+    "title": "Favorites",
+    "compare": "Compare",
+    "compareCount": "Compare ({{count}})",
+    "emptyTitle": "No favorite parks yet.",
+    "emptyDesc": "Tap the heart on a park to add it here."
+  },
+  "compare": {
+    "title": "Compare",
+    "rating": "Rating",
+    "age": "Recommended age",
+    "surface": "Surface",
+    "distance": "Distance"
+  },
+  "contributions": {
+    "title": "Contributions",
+    "tabParks": "Parks added",
+    "tabReviews": "Reviews",
+    "tabReports": "Reports",
+    "emptyParks": "You haven’t added a park yet.",
+    "emptyReviews": "You haven’t left a review yet.",
+    "emptyReports": "You haven’t reported a problem yet.",
+    "pending": "Pending"
+  },
+  "activity": {
+    "title": "Activity",
+    "loading": "Loading…",
+    "empty": "No activity here.",
+    "feed": {
+      "parkAdded": "New park added: {{park}}",
+      "reviewAdded": "{{author}} left a {{rating}}★ review of {{park}}",
+      "reportResolved": "A report was resolved for {{park}}",
+      "somePark": "a park"
+    }
+  },
+  "editProfile": {
+    "title": "Edit profile",
+    "name": "Name",
+    "email": "Email",
+    "save": "Save",
+    "updated": "Profile updated"
+  },
+  "privacyScreen": {
+    "title": "Privacy & terms",
+    "privacyPolicy": "Privacy policy",
+    "terms": "Terms of use",
+    "legalNotice": "Legal notice",
+    "deleteAccount": "Delete my account",
+    "deleteConfirmTitle": "Delete your account?",
+    "deleteConfirmBody": "This action is permanent. Your profile, your reviews and the parks you added will be deleted, in line with our privacy policy.",
+    "delete": "Delete"
+  },
+  "about": {
+    "title": "About Toboggo",
+    "tagline": "Thousands of parks rated\nby parents like you.",
+    "version": "Version {{version}}"
+  },
+  "group": {
+    "title": "Group outing",
+    "intro": "Create an outing to share your live location with other parents at this park, or join one with a code.",
+    "create": "Create an outing",
+    "codePlaceholder": "5-character code",
+    "join": "Join",
+    "invalidCode": "Invalid code",
+    "code": "Code",
+    "shareWhatsApp": "Share via WhatsApp",
+    "shareText": "Join my Toboggo outing! Code: {{code}}",
+    "leave": "Leave the outing",
+    "you": "You",
+    "status": {
+      "organizer": "Organizer",
+      "enRoute": "On the way"
+    }
+  }
+}

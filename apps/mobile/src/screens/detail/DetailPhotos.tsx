@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { LogoMark } from "@toboggo/design-system";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
@@ -6,13 +7,14 @@ import { usePark } from "../../lib/parksQuery";
 export default function DetailPhotos() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("detail");
   const { data: park } = usePark(id);
   if (!park) return null;
   const photos = park.photos;
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-bg)", display: "flex", flexDirection: "column" }}>
-      <DetailHeader title="Photos" />
+      <DetailHeader title={t("photos")} />
       <div style={{ flex: 1, overflow: "auto", padding: "6px 20px 30px" }}>
         {photos.length === 0 ? (
           <div
@@ -27,9 +29,7 @@ export default function DetailPhotos() {
             }}
           >
             <LogoMark size={44} rounded={false} />
-            <p style={{ fontSize: 13, maxWidth: 260 }}>
-              Aucune photo pour l'instant. Soyez le premier à en ajouter une !
-            </p>
+            <p style={{ fontSize: 13, maxWidth: 260 }}>{t("noPhotos")}</p>
             <button
               type="button"
               onClick={() => navigate(`/photo-add?park=${park.id}`)}
@@ -45,7 +45,7 @@ export default function DetailPhotos() {
                 cursor: "pointer",
               }}
             >
-              Ajouter une photo
+              {t("addPhoto")}
             </button>
           </div>
         ) : (
@@ -59,7 +59,7 @@ export default function DetailPhotos() {
             <button
               type="button"
               onClick={() => navigate(`/photo-add?park=${park.id}`)}
-              aria-label="Ajouter une photo"
+              aria-label={t("addPhoto")}
               style={{
                 width: "100%",
                 height: 140,

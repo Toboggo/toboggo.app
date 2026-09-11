@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { buildDraftKey, createReport, readDraft, writeDraft, type DraftPrincipal } from "@toboggo/shared";
+import "../../i18n/testInit";
 import ReportProblem from "./ReportProblem";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -122,7 +123,9 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
     await waitFor(() => expect(createReport).toHaveBeenCalled());
-    expect(toasts.list).toContain("network");
+    // Server error details are never surfaced verbatim — a generic, translated
+    // message is shown instead (see doSubmit's catch).
+    expect(toasts.list).toContain("Une erreur est survenue");
     expect(commentField().value).toBe("échec");
     expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string })?.comment).toBe("échec");
   });

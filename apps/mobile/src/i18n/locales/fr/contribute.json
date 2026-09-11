@@ -1,0 +1,222 @@
+{
+  "menu": {
+    "addPark": "Ajouter un parc",
+    "rate": "Donner mon avis",
+    "report": "Signaler un problème",
+    "addPhoto": "Ajouter une photo",
+    "more": "Plus d’actions",
+    "ask": "Poser une question"
+  },
+  "sheet": {
+    "editInfo": "Corriger une information",
+    "addPhotos": "Ajouter des photos",
+    "report": "Signaler un problème"
+  },
+  "common": {
+    "continue": "Continuer",
+    "skip": "Passer cette étape",
+    "edit": "Modifier",
+    "verify": "Vérifier",
+    "loading": "Chargement…",
+    "searching": "Recherche…",
+    "thanks": "Merci !",
+    "seePark": "Voir le parc",
+    "backToPark": "Retour au parc",
+    "removePhoto": "Retirer cette photo",
+    "addPhoto": "Ajouter une photo",
+    "useMyLocation": "Utiliser ma position actuelle",
+    "accountRequired": "Un compte gratuit est demandé au moment de l’envoi.",
+    "accountRequiredDraft": "Un compte gratuit est demandé au moment de l’envoi. Votre brouillon est conservé.",
+    "accountRequiredPhotos": "Un compte gratuit est demandé pour ajouter des photos."
+  },
+  "steps": {
+    "park": "Parc",
+    "location": "Localisation",
+    "info": "Informations",
+    "photos": "Photos",
+    "verify": "Vérification",
+    "opinion": "Avis",
+    "comment": "Commentaire",
+    "confirmation": "Confirmation",
+    "problem": "Problème",
+    "details": "Détails",
+    "type": "Type",
+    "correction": "Correction"
+  },
+  "field": {
+    "ageRange": "Tranche d’âge",
+    "playEquipment": "Jeux & équipements"
+  },
+  "photoTip": {
+    "label": "Conseil",
+    "text": "Évitez de montrer des enfants sur les photos. Privilégiez les jeux et l’environnement."
+  },
+  "picker": {
+    "placeholder": "Nom ou adresse du parc",
+    "none": "Aucun de ceux-ci — ajouter un nouveau parc"
+  },
+  "intro": {
+    "subtitle": "Aidez d’autres familles en référençant un nouveau parc.",
+    "step1": "Localisez le parc sur la carte",
+    "step2": "Renseignez ses équipements",
+    "step3": "Ajoutez une photo (facultatif)",
+    "start": "Commencer"
+  },
+  "share": {
+    "email": "Mail",
+    "copied": "Lien copié dans le presse-papiers",
+    "copy": "Copier le lien"
+  },
+  "rate": {
+    "criteria": {
+      "clean": "Propreté",
+      "safety": "Sécurité",
+      "equipment": "Équipements",
+      "comfort": "Confort"
+    },
+    "visitQuestion": "Comment était votre visite ?",
+    "starLabel_one": "{{count}} étoile",
+    "starLabel_other": "{{count}} étoiles",
+    "childAge": "Âge de l’enfant",
+    "commentLabel": "Votre commentaire (facultatif)",
+    "submit": "Publier mon avis",
+    "published": "Avis publié. Merci !",
+    "doneBody": "Votre avis a été publié et aide d’autres parents à choisir {{park}}."
+  },
+  "addParkSearch": {
+    "title": "Quel parc souhaitez-vous ajouter ?",
+    "subtitle": "Vérifions d’abord qu’il n’est pas déjà référencé.",
+    "searchLabel": "Rechercher un parc ou une adresse",
+    "searchPlaceholder": "Nom du parc, rue, ville…",
+    "noResults": "Aucun parc trouvé pour cette recherche.",
+    "locationDenied": "Position non autorisée — vous pouvez continuer sans, ou rechercher une adresse ci-dessus.",
+    "nearby": "Parcs à proximité",
+    "nearbyLoading": "Recherche des parcs autour de vous…",
+    "nearbyNone": "Aucun parc connu à proximité.",
+    "none": "Aucun de ceux-ci",
+    "seeMore": "Voir plus ({{count}})"
+  },
+  "pin": {
+    "searchPlaceholder": "Rechercher une ville, une adresse ou un lieu",
+    "unavailable": "Carte indisponible — ajustez la position pas à pas.",
+    "locating": "Localisation…",
+    "myLocationShort": "Ma position",
+    "useMyLocationAria": "Utiliser ma position",
+    "geoError": "Position indisponible — recherchez un lieu ou déplacez le repère.",
+    "nudge": { "north": "Nord", "south": "Sud", "east": "Est", "west": "Ouest" }
+  },
+  "addPark": {
+    "locationTitle": "Où se trouve le parc ?",
+    "locationHint": "Recherchez un lieu, utilisez votre position ou placez le repère sur la carte.",
+    "pinHint": "Déplacez le repère pour préciser l’emplacement.",
+    "addressLabel": "Adresse (si vous la connaissez)",
+    "addressPlaceholder": "12 rue des Tilleuls, 69000 Lyon",
+    "infoTitle": "Informations sur le parc",
+    "infoHint": "Renseignez uniquement ce que vous savez.",
+    "nameLabel": "Nom du parc",
+    "namePlaceholder": "Square Voltaire",
+    "descriptionLabel": "Description (facultatif)",
+    "serviceGroup": {
+      "comfort": "Services & confort",
+      "characteristics": "Caractéristiques du parc"
+    },
+    "photosTitle": "Photos",
+    "photosHint": "Ajoutez une photo pour aider les autres parents à reconnaître le parc.",
+    "verifyTitle": "Vérifiez avant d’envoyer",
+    "verifyHint": "Vous pourrez encore modifier chaque section avant l’envoi.",
+    "section": {
+      "park": "Parc",
+      "services": "Services & caractéristiques",
+      "description": "Description"
+    },
+    "locationOnMap": "Emplacement sélectionné sur la carte",
+    "submit": "Envoyer le parc",
+    "sentToast": "Parc envoyé — en cours de vérification.",
+    "doneBody": "Votre parc a bien été proposé. Nous allons vérifier les informations avant de le publier sur Toboggo.",
+    "pendingTag": "En cours de vérification",
+    "addAnother": "Ajouter un autre parc"
+  },
+  "addPhotos": {
+    "doneTitle": "Photo envoyée !",
+    "doneBody_one": "Merci ! Votre photo sera visible sur la fiche du parc après vérification par notre équipe.",
+    "doneBody_other": "Merci ! Vos photos seront visibles sur la fiche du parc après vérification par notre équipe.",
+    "submit_one": "Envoyer {{count}} photo",
+    "submit_other": "Envoyer {{count}} photos",
+    "sentToast": "Photo envoyée, en attente de validation."
+  },
+  "report": {
+    "problemQuestion": "Quel est le problème ?",
+    "equipmentLabel": "Équipement concerné",
+    "describeLabel": "Décrivez le problème",
+    "submit": "Envoyer le signalement",
+    "doneTitle": "Signalement envoyé !",
+    "doneBody": "Merci de contribuer à la sécurité des enfants. Nous vous tiendrons informé de l’avancement."
+  },
+  "reason": {
+    "broken_equipment": "Jeu cassé / dangereux",
+    "safety": "Problème de sécurité",
+    "cleanliness": "Propreté",
+    "vegetation": "Végétation envahissante",
+    "accessibility": "Accessibilité PMR",
+    "wrong_info": "Information erronée",
+    "other": "Autre"
+  },
+  "equipment": {
+    "slide": "Toboggan",
+    "swing": "Balançoire",
+    "climbing": "Structure d’escalade",
+    "sandbox": "Bac à sable",
+    "other": "Autre"
+  },
+  "status": {
+    "available": "Disponible",
+    "unavailable": "Absent",
+    "unknown": "Je ne sais pas"
+  },
+  "statusLabel": {
+    "available": "Disponible",
+    "unavailable": "Absent",
+    "unknown": "Non renseigné",
+    "temporarily_unavailable": "Temporairement indisponible"
+  },
+  "edit": {
+    "target": {
+      "general": "Informations générales",
+      "ages": "Tranche d’âge",
+      "play": "Jeux & équipements",
+      "service": "Services",
+      "accessibility": "Accessibilité",
+      "characteristics": "Caractéristiques du parc",
+      "location": "Localisation",
+      "other": "Autre"
+    },
+    "diff": {
+      "name": "Nom",
+      "description": "Description",
+      "ages": "Tranche d’âge",
+      "location": "Position",
+      "freeText": "Correction proposée"
+    },
+    "notFoundTitle": "Parc introuvable",
+    "notFoundBody": "Impossible d’ouvrir ce parc pour le moment.",
+    "backToMap": "Retour à la carte",
+    "noChanges": "Aucune modification à proposer.",
+    "doneBody": "Votre proposition de correction pour <strong>{{park}}</strong> a bien été reçue. Elle sera vérifiée par notre équipe avant d’être appliquée.",
+    "draftResumed": "Brouillon repris.",
+    "step0Question": "Que souhaitez-vous corriger ?",
+    "currently": "Actuellement : {{value}}",
+    "current": "Actuel : {{value}}",
+    "currentAddress": "Adresse actuelle : {{value}}",
+    "descriptionLabel": "Description",
+    "locationHeading": "Position du parc",
+    "otherLabel": "Quelle information faut-il corriger ?",
+    "playQuestion": "Quels jeux sont présents ?",
+    "playHint": "Sélectionnez ce que vous observez sur place. Les jeux déjà connus de Toboggo sont pré-sélectionnés — décochez-en un pour signaler son absence.",
+    "noteSection": "Précision",
+    "noteLabel": "Un détail à ajouter ? (facultatif)",
+    "needOneChange": "Modifiez au moins une valeur pour continuer.",
+    "verifyTitle": "Vérifiez votre correction",
+    "notePrefix": "Précision : {{value}}",
+    "submit": "Proposer la modification"
+  }
+}

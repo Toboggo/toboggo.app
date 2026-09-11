@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Icon, IconButton, StepDots } from "@toboggo/design-system";
 import { Stepper } from "./Stepper";
 
@@ -22,15 +23,16 @@ export function WizardHeader({
   steps?: string[];
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(14px + var(--safe-top)) 16px 14px" }}>
-      <IconButton aria-label="Retour" onClick={onBack}>
+      <IconButton aria-label={t("action.back")} onClick={onBack}>
         <Icon name="ic-back" size={18} />
       </IconButton>
       <div style={{ flex: 1 }}>
         {steps ? <Stepper steps={steps} current={step} /> : <StepDots total={total} current={step} />}
       </div>
-      <IconButton aria-label="Fermer" onClick={() => (onClose ? onClose() : navigate("/map"))}>
+      <IconButton aria-label={t("action.close")} onClick={() => (onClose ? onClose() : navigate("/map"))}>
         <Icon name="ic-close" size={18} />
       </IconButton>
     </div>

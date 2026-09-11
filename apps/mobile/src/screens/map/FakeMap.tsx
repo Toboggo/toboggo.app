@@ -1,5 +1,7 @@
-import type { Park } from "@toboggo/shared";
+import { getParkDisplayName, type Park } from "@toboggo/shared";
+import { useTranslation } from "react-i18next";
 import { hasRating } from "../../lib/parkDisplay";
+import { useFormat } from "../../i18n/useFormat";
 import { ratingTierColor } from "./markers";
 import styles from "./FakeMap.module.css";
 
@@ -32,6 +34,8 @@ export function FakeMap({
   onSelect: (id: string) => void;
   showUser?: boolean;
 }) {
+  const { t } = useTranslation("map");
+  const f = useFormat();
   return (
     <div className={styles.map}>
       <div className={styles.grid} />
@@ -44,7 +48,7 @@ export function FakeMap({
         return <div key={`blob-${p.id}`} className={styles.blob} style={{ left: `calc(${left}% - 30px)`, top: `calc(${top}% - 58px)` }} />;
       })}
 
-      {showUser && <div className={styles.userDot} aria-label="Votre position" />}
+      {showUser && <div className={styles.userDot} aria-label={t("a11y.userLocation")} />}
 
       {parks.map((p) => {
         const { left, top } = hashPos(p.id);
@@ -62,14 +66,14 @@ export function FakeMap({
               ["--marker-color" as string]: rated ? ratingTierColor(p.rating) : "var(--color-primary)",
             }}
             onClick={() => onSelect(p.id)}
-            aria-label={p.name}
+            aria-label={getParkDisplayName(p, t)}
           >
             <span className={styles.dot}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M4 20c3 0 4-2 5-5l7-9M14 4l4 3M9 15l4 1M3 20h4" />
               </svg>
             </span>
-            {rated && p.rating.toFixed(1).replace(".", ",")}
+            {rated && f.rating(p.rating)}
           </button>
         );
       })}

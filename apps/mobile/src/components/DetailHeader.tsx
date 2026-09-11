@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Icon } from "@toboggo/design-system";
 import styles from "./DetailHeader.module.css";
 
@@ -9,9 +10,10 @@ import styles from "./DetailHeader.module.css";
  */
 export function DetailHeader({ title, onBack, right }: { title: string; onBack?: () => void; right?: ReactNode }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.back} onClick={onBack ?? (() => navigate(-1))} aria-label="Retour">
+      <button type="button" className={styles.back} onClick={onBack ?? (() => navigate(-1))} aria-label={t("action.back")}>
         <Icon name="ic-back" size={16} />
       </button>
       <h2 className={styles.title}>{title}</h2>

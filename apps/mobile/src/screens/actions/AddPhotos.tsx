@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@toboggo/design-system";
-import { addParkPhotos, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
+import { addParkPhotos, getParkDisplayName, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -60,11 +61,14 @@ const pickTileStyle: React.CSSProperties = {
 // Named stepper shared with the other contribution wizards (see AddPark). The
 // three stages are stable across entry points: arriving with `?park=` just
 // starts on "Photos" with "Parc" already checked — the step is never dropped.
-const STEPPER = ["Parc", "Photos", "Confirmation"];
+// Keys resolved against the `contribute` namespace.
+const STEPPER = ["steps.park", "steps.photos", "steps.confirmation"];
 
 export default function AddPhotos() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useTranslation("contribute");
+  const { t: tErr } = useTranslation("errors");
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
@@ -90,7 +94,7 @@ export default function AddPhotos() {
     try {
       validateImageFile(file);
     } catch (err) {
-      showToast(err instanceof ImageValidationError ? err.message : "Image invalide");
+      showToast(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.invalid"));
       return;
     }
     setPicks((p) => [...p, { file, preview: URL.createObjectURL(file) }].slice(0, 4));
@@ -141,7 +145,7 @@ export default function AddPhotos() {
     setSaving(true);
     upload(uid, targetPark, files)
       .then(() => setDone(true))
-      .catch((err) => showToast(err?.message ?? "Échec de l'envoi de la photo"))
+      .catch(() => showToast(tErr("image.uploadFailed")))
       .finally(() => setSaving(false));
   }
 
@@ -166,17 +170,16 @@ export default function AddPhotos() {
         >
           <Icon name="ic-check" size={36} />
         </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>Photo envoyée !</h1>
+        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("addPhotos.doneTitle")}</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 300 }}>
-          Merci ! Votre {picks.length > 1 ? "photos seront visibles" : "photo sera visible"} sur la fiche du parc
-          après vérification par notre équipe.
+          {t("addPhotos.doneBody", { count: picks.length })}
         </p>
         {/* Photos envoyées : on remplace l'entrée d'historique du wizard par la
             fiche parc. Depuis la fiche, Retour ramène au contexte antérieur,
             jamais dans AddPhotos ni sur cette confirmation. Idem AddPark /
             RatePark / ReportProblem / EditInfo. */}
         <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          Voir le parc
+          {t("common.seePark")}
         </Button>
       </div>
     );
@@ -187,7 +190,7 @@ export default function AddPhotos() {
       <WizardHeader
         step={step}
         total={STEPPER.length}
-        steps={STEPPER}
+        steps={STEPPER.map((k) => t(k))}
         onBack={() =>
           step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
         }
@@ -205,7 +208,7 @@ export default function AddPhotos() {
 
       {step === 1 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 16 }}>{park?.name}</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 16 }}>{park && getParkDisplayName(park, t)}</h2>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             {Array.from({ length: 4 }).map((_, i) => (
               <div key={i}>
@@ -214,7 +217,7 @@ export default function AddPhotos() {
                     <div style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${picks[i].preview})`, backgroundSize: "cover", backgroundPosition: "center" }} />
                     <button
                       type="button"
-                      aria-label="Retirer cette photo"
+                      aria-label={t("common.removePhoto")}
                       onClick={() => removePick(i)}
                       style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}
                     >
@@ -238,11 +241,11 @@ export default function AddPhotos() {
           <PhotoTip />
           {!userId && (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
-              Un compte gratuit est demandé pour ajouter des photos.
+              {t("common.accountRequiredPhotos")}
             </p>
           )}
           <Button block loading={saving} disabled={!picks.length} style={{ marginTop: 16 }} onClick={submit}>
-            Envoyer {picks.length || ""} photo{picks.length > 1 ? "s" : ""}
+            {t("addPhotos.submit", { count: picks.length })}
           </Button>
         </div>
       )}

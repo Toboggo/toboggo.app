@@ -1,28 +1,32 @@
 import { useParams } from "react-router-dom";
-import { PLAY_EQUIPMENT_LABEL } from "@toboggo/shared";
+import { useTranslation } from "react-i18next";
 import { Icon, equipmentIcon, serviceIcon, type IconName } from "@toboggo/design-system";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
-import { EQUIPMENT_ICON, SERVICE_ICON, SERVICE_LABEL } from "../../lib/equipmentIcons";
+import { EQUIPMENT_ICON, SERVICE_ICON } from "../../lib/equipmentIcons";
+import { useFeatureLabel } from "../../lib/featureLabel";
 import styles from "./DetailAmenities.module.css";
+
+const SERVICE_KEYS = Object.keys(SERVICE_ICON);
 
 export default function DetailAmenities() {
   const { id } = useParams();
+  const { t } = useTranslation("detail");
+  const featureLabel = useFeatureLabel();
   const { data: park } = usePark(id);
   if (!park) return null;
 
   const equipment = park.play_equipment ?? [];
-  const serviceKeys = Object.keys(SERVICE_LABEL) as (keyof typeof SERVICE_LABEL)[];
 
   const rows: { label: string; iconName?: IconName; emoji?: string; on: boolean }[] = [
     ...equipment.map((eq) => ({
-      label: PLAY_EQUIPMENT_LABEL[eq] ?? eq,
+      label: featureLabel(eq),
       iconName: equipmentIcon(eq),
       emoji: EQUIPMENT_ICON[eq] ?? "🧩",
       on: true,
     })),
-    ...serviceKeys.map((k) => ({
-      label: SERVICE_LABEL[k],
+    ...SERVICE_KEYS.map((k) => ({
+      label: featureLabel(k),
       iconName: serviceIcon(k),
       emoji: SERVICE_ICON[k],
       on: Boolean((park as unknown as Record<string, unknown>)[k]),
@@ -31,11 +35,11 @@ export default function DetailAmenities() {
 
   return (
     <div className={styles.screen}>
-      <DetailHeader title="Équipements" />
+      <DetailHeader title={t("equipment.amenitiesTitle")} />
       <div className={styles.body}>
         {rows.length === 0 && (
           <p style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: 13, marginTop: 40 }}>
-            Aucune information renseignée pour ce parc.
+            {t("equipment.amenitiesEmpty")}
           </p>
         )}
         {rows.map((r) => (

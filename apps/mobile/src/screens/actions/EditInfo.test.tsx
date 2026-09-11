@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { buildDraftKey, readDraft, submitParkEdit, writeDraft, type DraftPrincipal } from "@toboggo/shared";
+import "../../i18n/testInit";
 import EditInfo from "./EditInfo";
 
 vi.mock("maplibre-gl", () => ({
@@ -81,7 +82,7 @@ function renderEdit(search = "?park=p1") {
 /** step 0 → pick "Informations générales" → change the name so `items` is non-empty */
 async function proposeNewName(name: string) {
   fireEvent.click(await screen.findByText("Informations générales"));
-  fireEvent.change(await screen.findByLabelText("Nom du parc"), { target: { value: name } });
+  fireEvent.change(await screen.findByLabelText("Nom"), { target: { value: name } });
 }
 
 beforeEach(() => {
@@ -114,7 +115,7 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
       { schemaVersion: 1 },
     );
     renderEdit();
-    await waitFor(() => expect((screen.getByLabelText("Nom du parc") as HTMLInputElement).value).toBe("Square Repris"));
+    await waitFor(() => expect((screen.getByLabelText("Nom") as HTMLInputElement).value).toBe("Square Repris"));
     expect(screen.getByText("Brouillon repris.")).toBeTruthy();
   });
 
@@ -141,7 +142,9 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
 
     await waitFor(() => expect(submitParkEdit).toHaveBeenCalled());
-    expect(toasts.list).toContain("RLS");
+    // Server error details are never surfaced verbatim — a generic, translated
+    // message is shown instead (see doSubmit's catch).
+    expect(toasts.list).toContain("Une erreur est survenue");
     expect((readDraft(key("p1", { userId: "u1" }), READ) as { name?: string })?.name).toBe("Square Échec");
   });
 

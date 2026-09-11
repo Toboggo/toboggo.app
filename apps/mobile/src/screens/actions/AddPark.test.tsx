@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { buildDraftKey, createPark, readDraft, uploadPhoto, writeDraft, type DraftPrincipal } from "@toboggo/shared";
+import "../../i18n/testInit";
 import AddPark from "./AddPark";
 
 // PinField (step 1) instantiates a real map when VITE_MAP_STYLE_URL is set (it
@@ -178,7 +179,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
       { schemaVersion: 1 },
     );
     renderAdd();
-    expect(screen.getByText("Vérifiez avant d'envoyer")).toBeTruthy();
+    expect(screen.getByText("Vérifiez avant d’envoyer")).toBeTruthy();
     expect(screen.getByText("Square Vérif")).toBeTruthy();
   });
 
@@ -190,7 +191,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     );
     renderAdd();
     expect(screen.getByLabelText("Nom du parc")).toBeTruthy();
-    expect(screen.queryByText("Vérifiez avant d'envoyer")).toBeNull();
+    expect(screen.queryByText("Vérifiez avant d’envoyer")).toBeNull();
   });
 
   it("restoring a position does not trigger a geocoding search", async () => {
@@ -262,7 +263,9 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Envoyer le parc" }));
 
     await waitFor(() => expect(createPark).toHaveBeenCalled());
-    expect(toasts.list).toContain("RLS denied");
+    // Server/network error details are never surfaced verbatim — a generic,
+    // translated message is shown instead (see doPublish's catch).
+    expect(toasts.list).toContain("Une erreur est survenue");
     expect(loc()).toBe("/add");
     expect((readDraft(key({ userId: "u1" }), READ) as { name?: string })?.name).toBe("Square Échec");
   });

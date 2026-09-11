@@ -11,11 +11,20 @@ export interface GeoState {
   setPermission: (p: GeoState["permission"]) => void;
 }
 
+/**
+ * Sentinel `label` value meaning « no explicit place picked » (default centre or
+ * a plain GPS recentre). Never shown to the user — the UI renders the localized
+ * "around you" string instead — so its text stays fixed and is compared, not
+ * displayed. Keeping the historical wording avoids churn in the call sites that
+ * still pass the literal (contribution / onboarding flows, out of i18n scope).
+ */
+export const DEFAULT_GEO_LABEL = "Autour de vous";
+
 // Default center: Lyon (matches seed data) until GPS/city selection resolves.
 export const useGeo = create<GeoState>((set) => ({
   lat: 45.764,
   lng: 4.8357,
-  label: "Autour de vous",
+  label: DEFAULT_GEO_LABEL,
   permission: "unknown",
   hasFix: false,
   setLocation: (lat, lng, label) => set({ lat, lng, label, hasFix: true }),

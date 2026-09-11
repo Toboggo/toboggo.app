@@ -1,10 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Toast } from "@toboggo/design-system";
 import { useToastStore } from "../lib/toast";
 import { useVisitPrompt } from "../lib/visitPrompt";
 
 export function GlobalOverlays() {
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
   const { message, clear } = useToastStore();
   const { visible, parkId, parkName, dismiss } = useVisitPrompt();
 
@@ -31,13 +33,13 @@ export function GlobalOverlays() {
             gap: 12,
           }}
         >
-          <span style={{ fontSize: 13.5 }}>Vous étiez peut-être à {parkName} ? Donnez votre avis.</span>
+          <span style={{ fontSize: 13.5 }}>{t("visitPrompt.message", { park: parkName })}</span>
           <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
             <button
               onClick={dismiss}
               style={{ background: "none", border: "none", color: "var(--color-text-muted)", fontSize: 13, cursor: "pointer" }}
             >
-              Plus tard
+              {t("visitPrompt.later")}
             </button>
             <button
               onClick={() => {
@@ -56,7 +58,7 @@ export function GlobalOverlays() {
                 cursor: "pointer",
               }}
             >
-              Avis
+              {t("visitPrompt.rate")}
             </button>
           </div>
         </div>

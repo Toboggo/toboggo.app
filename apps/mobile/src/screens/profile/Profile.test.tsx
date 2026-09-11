@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { purgeDraftsForPrincipal, signOut } from "@toboggo/shared";
+import "../../i18n/testInit";
 import Profile from "./Profile";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {

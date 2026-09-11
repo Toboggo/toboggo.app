@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "./lib/session";
-import { useTheme, useIconSprite } from "@toboggo/design-system";
+import { useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
 import { takeResumeRoute } from "./lib/resumeRoute";
 
@@ -38,11 +38,13 @@ import EditProfile from "./screens/profile/EditProfile";
 import NotificationPrefs from "./screens/profile/NotificationPrefs";
 import NotifCenter from "./screens/profile/NotifCenter";
 import NotifResolved from "./screens/profile/NotifResolved";
-import Display from "./screens/profile/Display";
-import Privacy from "./screens/profile/Privacy";
+import Language from "./screens/profile/Language";
+import Appearance from "./screens/profile/Appearance";
+import LegalIndex from "./screens/profile/LegalIndex";
 import Legal from "./screens/profile/Legal";
 import Help from "./screens/profile/Help";
 import Contact from "./screens/profile/Contact";
+import About from "./screens/profile/About";
 
 // Legacy intro path for "Donner un avis": the wizard canonique (Parc → Avis →
 // Commentaire) est auto-porteur, comme AddPark. Redirige vers /rate en
@@ -69,19 +71,17 @@ function ReportIntroRedirect() {
 export default function App() {
   const init = useSession((s) => s.init);
   const loading = useSession((s) => s.loading);
-  const profile = useSession((s) => s.profile);
   const userId = useSession((s) => s.userId);
   const navigate = useNavigate();
-  const [, setTheme] = useTheme();
   useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
+
+  // Le thème (Système/Clair/Sombre) est appliqué par useTheme lui-même dès
+  // son import (store module, voir packages/design-system/src/useTheme.ts) —
+  // local à l'appareil, indépendant du profil Supabase et du compte.
 
   useEffect(() => {
     init();
   }, [init]);
-
-  useEffect(() => {
-    if (profile) setTheme(profile.dark_mode ? "dark" : "light");
-  }, [profile, setTheme]);
 
   // A contribution started while signed out stashes a resume route before the
   // just-in-time auth flow (which, for Google OAuth, is a full-page redirect).
@@ -139,11 +139,20 @@ export default function App() {
       <Route path="/notifications" element={<NotificationPrefs />} />
       <Route path="/notifications/center" element={<NotifCenter />} />
       <Route path="/notifications/resolved/:notifId" element={<NotifResolved />} />
-      <Route path="/display" element={<Display />} />
-      <Route path="/privacy" element={<Privacy />} />
+      <Route path="/language" element={<Language />} />
+      <Route path="/appearance" element={<Appearance />} />
+      {/* Ancienne route (langue + apparence mélangées) — alias pour ne pas
+          casser un lien/historique existant, cf. refonte profil/réglages §7. */}
+      <Route path="/display" element={<Navigate to="/appearance" replace />} />
+      <Route path="/legal" element={<LegalIndex />} />
+      {/* Ancien écran Confidentialité (toggles placeholders + liens légaux +
+          suppression de compte) retiré — alias vers le nouvel index léger,
+          cf. refonte profil/réglages §6-7. */}
+      <Route path="/privacy" element={<Navigate to="/legal" replace />} />
       <Route path="/legal/:doc" element={<Legal />} />
       <Route path="/help" element={<Help />} />
       <Route path="/contact" element={<Contact />} />
+      <Route path="/about" element={<About />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

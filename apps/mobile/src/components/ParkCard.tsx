@@ -1,23 +1,27 @@
 import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Icon, StarRating } from "@toboggo/design-system";
-import { formatDistance, walkMinutes, type Park } from "@toboggo/shared";
+import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
-import { ageBandLabel, hasRating, keyAttributes } from "../lib/parkDisplay";
+import { hasRating, keyAttributes } from "../lib/parkDisplay";
+import { useFormat } from "../i18n/useFormat";
 import styles from "./ParkCard.module.css";
 
 function CompactRating({ park }: { park: Park }) {
+  const f = useFormat();
   if (!hasRating(park)) return null;
   return (
     <span className={styles.compactRating}>
       <Icon name="ic-star" size={13} style={{ color: "var(--color-accent)" }} />
-      <strong>{park.rating.toFixed(1).replace(".", ",")}</strong>
-      <span>({park.review_count})</span>
+      <strong>{f.rating(park.rating)}</strong>
+      <span>({f.count(park.review_count)})</span>
     </span>
   );
 }
 
 function FavButton({ favorite, onToggle }: { favorite?: boolean; onToggle: () => void }) {
+  const { t } = useTranslation("detail");
   return (
     <button
       type="button"
@@ -26,7 +30,7 @@ function FavButton({ favorite, onToggle }: { favorite?: boolean; onToggle: () =>
         e.stopPropagation();
         onToggle();
       }}
-      aria-label={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+      aria-label={favorite ? t("a11y.removeFromFavorites") : t("a11y.addToFavorites")}
       aria-pressed={favorite}
     >
       <Icon
@@ -60,8 +64,13 @@ export function ParkCard({
   variant?: "row" | "list" | "carousel";
 }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("features");
+  const f = useFormat();
+  const displayName = getParkDisplayName(park, t);
   const open = () => (onOpen ? onOpen() : navigate(`/park/${park.id}`));
-  const ageBand = ageBandLabel(park);
+  const ageBand = f.ageBand(park.age_min, park.age_max);
+  const walkDistance =
+    distanceM != null ? `${f.distance(distanceM)} · ${f.walk(walkMinutes(distanceM))}` : null;
   // Card is a div (not a button) so the favourite <button> can nest legally.
   const activate = {
     role: "button" as const,
@@ -88,14 +97,8 @@ export function ParkCard({
           )}
         </div>
         <div className={styles.cardBody}>
-          <div className={styles.name}>{park.name}</div>
-          <div className={styles.cardMeta}>
-            {distanceM != null && (
-              <span>
-                {formatDistance(distanceM)} · {walkMinutes(distanceM)} min
-              </span>
-            )}
-          </div>
+          <div className={styles.name}>{displayName}</div>
+          <div className={styles.cardMeta}>{walkDistance && <span>{walkDistance}</span>}</div>
           <CompactRating park={park} />
         </div>
       </div>
@@ -104,19 +107,17 @@ export function ParkCard({
 
   if (variant === "list") {
     const attrs = keyAttributes(park);
-    const chips = [...(ageBand ? [ageBand] : []), ...attrs];
+    const chips = [...(ageBand ? [ageBand] : []), ...attrs.map((a) => t(`attr.${a}`))];
     return (
       <div className={styles.listCard} {...activate}>
         <ParkPhoto park={park} className={styles.listPhoto} markSize={26} />
         <div className={styles.listBody}>
           <div className={styles.listTop}>
-            <div className={styles.name}>{park.name}</div>
+            <div className={styles.name}>{displayName}</div>
             {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} />}
           </div>
           <CompactRating park={park} />
-          <div className={styles.listDist}>
-            {distanceM != null && `${formatDistance(distanceM)} · ${walkMinutes(distanceM)} min`}
-          </div>
+          <div className={styles.listDist}>{walkDistance}</div>
           {chips.length > 0 && (
             <div className={styles.listChips}>
               {chips.map((c) => (
@@ -135,13 +136,15 @@ export function ParkCard({
     <div className={styles.row} {...activate}>
       <ParkPhoto park={park} className={styles.thumb} markSize={22} />
       <div className={styles.body}>
-        <div className={styles.name}>{park.name}</div>
+        <div className={styles.name}>{displayName}</div>
         <div className={styles.meta}>
-          {distanceM != null ? formatDistance(distanceM) : ""}
+          {distanceM != null ? f.distance(distanceM) : ""}
           {distanceM != null && ageBand ? " · " : ""}
           {ageBand ?? ""}
         </div>
-        {hasRating(park) && <StarRating value={park.rating} count={park.review_count} size="sm" />}
+        {hasRating(park) && (
+          <StarRating value={park.rating} valueText={f.rating(park.rating)} count={park.review_count} size="sm" />
+        )}
       </div>
       {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} />}
     </div>

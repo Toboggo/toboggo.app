@@ -1,22 +1,24 @@
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { BottomSheet, Icon, type IconName } from "@toboggo/design-system";
 import { useToastStore } from "../lib/toast";
 import styles from "./QuickMenu.module.css";
 
-type QuickItem = { iconName?: IconName; emoji?: string; label: string; to: string };
+type QuickItem = { iconName?: IconName; emoji?: string; labelKey: string; to: string };
 
 // "Ajouter une photo" et "Plus d'actions" n'ont pas encore de pictogramme validé
 // dans le sprite (docs/DESIGN-SYSTEM.md §7) — emoji conservé en attendant.
 const ITEMS: QuickItem[] = [
-  { iconName: "ic-plus", label: "Ajouter un parc", to: "/action-intro/add" },
-  { iconName: "ic-review", label: "Donner mon avis", to: "/rate" },
-  { iconName: "ic-flag", label: "Signaler un problème", to: "/report" },
-  { emoji: "📷", label: "Ajouter une photo", to: "/photo-add" },
-  { emoji: "➡️", label: "Plus d'actions", to: "/more-actions" },
+  { iconName: "ic-plus", labelKey: "menu.addPark", to: "/action-intro/add" },
+  { iconName: "ic-review", labelKey: "menu.rate", to: "/rate" },
+  { iconName: "ic-flag", labelKey: "menu.report", to: "/report" },
+  { emoji: "📷", labelKey: "menu.addPhoto", to: "/photo-add" },
+  { emoji: "➡️", labelKey: "menu.more", to: "/more-actions" },
 ];
 
 export function QuickMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
+  const { t } = useTranslation("contribute");
   const showToast = useToastStore((s) => s.show);
 
   return (
@@ -24,7 +26,7 @@ export function QuickMenu({ open, onClose }: { open: boolean; onClose: () => voi
       <div className={styles.menu}>
         {ITEMS.map((item) => (
           <button
-            key={item.label}
+            key={item.labelKey}
             className={styles.item}
             onClick={() => {
               onClose();
@@ -36,20 +38,20 @@ export function QuickMenu({ open, onClose }: { open: boolean; onClose: () => voi
             <span className={styles.icon}>
               {item.iconName ? <Icon name={item.iconName} size={18} /> : item.emoji}
             </span>
-            {item.label}
+            {t(item.labelKey)}
           </button>
         ))}
         <button
           className={styles.item}
           onClick={() => {
             onClose();
-            showToast("Bientôt disponible");
+            showToast(t("comingSoon", { ns: "common" }));
           }}
         >
           <span className={styles.icon}>
             <Icon name="ic-question" size={18} />
           </span>
-          Poser une question
+          {t("menu.ask")}
         </button>
       </div>
     </BottomSheet>

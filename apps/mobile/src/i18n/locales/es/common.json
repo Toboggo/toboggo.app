@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "explore": "Explorar",
+    "favorites": "Favoritos",
+    "contributions": "Aportaciones",
+    "profile": "Perfil"
+  },
+  "action": {
+    "add": "Añadir",
+    "back": "Atrás",
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "retry": "Reintentar",
+    "seeAll": "Ver todo",
+    "signIn": "Iniciar sesión"
+  },
+  "guestProfile": {
+    "prompt": "Inicia sesión para recuperar tus favoritos y tus aportaciones."
+  },
+  "settings": {
+    "languageLabel": "Idioma",
+    "languageHint": "Elige el idioma de la aplicación. Independiente de tu ubicación y de tu país.",
+    "appearanceTitle": "Apariencia",
+    "appearanceSystem": "Sistema",
+    "appearanceLight": "Claro",
+    "appearanceDark": "Oscuro"
+  },
+  "age": {
+    "notSpecified": "Edad no indicada",
+    "range_one": "{{min}}–{{max}} año",
+    "range_other": "{{min}}–{{max}} años",
+    "single_one": "{{age}} año",
+    "single_other": "{{age}} años",
+    "from_one": "Desde {{age}} año",
+    "from_other": "Desde {{age}} años",
+    "upTo_one": "Hasta {{age}} año",
+    "upTo_other": "Hasta {{age}} años",
+    "clauseRange_one": "de {{min}} a {{max}} año",
+    "clauseRange_other": "de {{min}} a {{max}} años",
+    "clauseSingle_one": "de {{age}} año",
+    "clauseSingle_other": "de {{age}} años",
+    "clauseFrom_one": "desde {{age}} año",
+    "clauseFrom_other": "desde {{age}} años",
+    "clauseUpTo_one": "hasta {{age}} año",
+    "clauseUpTo_other": "hasta {{age}} años",
+    "band": {
+      "all": "Todas las edades",
+      "under3": "−3 años",
+      "3-6": "3–6 años",
+      "6-12": "6–12 años"
+    }
+  },
+  "a11y": {
+    "noParkPhoto": "Sin foto para este parque"
+  },
+  "comingSoon": "Próximamente",
+  "visitPrompt": {
+    "message": "¿Has estado en {{park}}? Deja tu opinión.",
+    "later": "Más tarde",
+    "rate": "Dar mi opinión"
+  },
+  "park": {
+    "generic": "Área de juegos",
+    "displayName": "{{generic}} • {{qualifier}}"
+  }
+}

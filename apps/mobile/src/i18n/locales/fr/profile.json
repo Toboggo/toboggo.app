@@ -1,0 +1,165 @@
+{
+  "title": "Profil",
+  "edit": "Modifier",
+  "notifications": "Notifications",
+  "notifs": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "filter": { "all": "Toutes", "unread": "Non lues", "read": "Lues" },
+    "empty": "Aucune notification ici.",
+    "seePark": "Voir le parc",
+    "pref": {
+      "reports": "Suivi de mes signalements",
+      "newParks": "Nouveaux parcs à proximité",
+      "reviewReplies": "Réponses à mes avis",
+      "recommendations": "Recommandations personnalisées",
+      "news": "Actualités Toboggo"
+    },
+    "channels": "Canaux",
+    "channelPush": "Notifications push",
+    "channelEmail": "E-mail"
+  },
+  "level": "Niv. {{level}}",
+  "levelProgress": "{{points}} points · {{remaining}} avant le niveau suivant",
+  "myChildren": "Mes enfants",
+  "stats": {
+    "parks": "Parcs ajoutés",
+    "reviews": "Avis",
+    "favorites": "Favoris"
+  },
+  "badgesTitle": "Badges",
+  "badge": {
+    "firstReview": "Premier avis",
+    "contributor": "Contributeur",
+    "explorer": "Explorateur",
+    "grand": "Grand contributeur"
+  },
+  "myToboggoTitle": "Mon Toboggo",
+  "myContributions": "Mes contributions",
+  "groupOuting": "Sortie de groupe",
+  "preferencesTitle": "Préférences",
+  "language": "Langue",
+  "appearance": "Apparence",
+  "helpInfoTitle": "Aide & informations",
+  "contactUs": "Nous contacter",
+  "accountTitle": "Compte",
+  "help": "Aide",
+  "helpScreen": {
+    "title": "Aide",
+    "contactSupport": "Contacter le support",
+    "faq": {
+      "geoloc": {
+        "q": "Comment fonctionne la géolocalisation ?",
+        "a": "Toboggo utilise votre position pour afficher les parcs les plus proches, triés par distance. Vous pouvez aussi chercher une ville manuellement."
+      },
+      "filters": {
+        "q": "Que signifient les filtres (WC, ombre, tranche d’âge) ?",
+        "a": "Ces informations sont fournies par la communauté ou les collectivités partenaires, et vérifiées avant publication."
+      },
+      "addPark": {
+        "q": "Comment ajouter un parc ?",
+        "a": "Depuis l’onglet Ajouter, indiquez le nom, l’adresse et les équipements présents. Votre ajout est vérifié par notre équipe avant d’apparaître sur la carte."
+      },
+      "report": {
+        "q": "Comment signaler un problème ?",
+        "a": "Utilisez le bouton « Signaler un problème » sur la fiche du parc. Notre équipe ou la collectivité concernée met à jour l’information."
+      },
+      "municipality": {
+        "q": "Je suis une collectivité, comment gérer mes parcs ?",
+        "a": "Les collectivités partenaires disposent d’un back-office dédié. Contactez-nous pour l’activer."
+      }
+    }
+  },
+  "contact": {
+    "title": "Contact",
+    "sentTitle": "Message envoyé",
+    "sentBody": "Notre équipe vous répondra sous peu.",
+    "intro": "Pour un parc endommagé ou une information erronée, utilisez plutôt le bouton « Signaler » depuis la fiche du parc.",
+    "nameLabel": "Nom",
+    "emailLabel": "E-mail",
+    "subjectLabel": "Sujet",
+    "messageLabel": "Message",
+    "send": "Envoyer",
+    "subject": {
+      "general": "Question générale",
+      "technical": "Problème technique",
+      "partnership": "Partenariat",
+      "press": "Presse"
+    }
+  },
+  "signOut": "Se déconnecter",
+  "favorites": {
+    "title": "Favoris",
+    "compare": "Comparer",
+    "compareCount": "Comparer ({{count}})",
+    "emptyTitle": "Aucun parc favori pour le moment.",
+    "emptyDesc": "Appuyez sur le cœur d’un parc pour l’ajouter ici."
+  },
+  "compare": {
+    "title": "Comparer",
+    "rating": "Note",
+    "age": "Âge conseillé",
+    "surface": "Sol",
+    "distance": "Distance"
+  },
+  "contributions": {
+    "title": "Contributions",
+    "tabParks": "Parcs ajoutés",
+    "tabReviews": "Avis",
+    "tabReports": "Signalements",
+    "emptyParks": "Vous n’avez pas encore ajouté de parc.",
+    "emptyReviews": "Vous n’avez pas encore laissé d’avis.",
+    "emptyReports": "Vous n’avez pas encore signalé de problème.",
+    "pending": "En attente"
+  },
+  "activity": {
+    "title": "Activité",
+    "loading": "Chargement…",
+    "empty": "Aucune activité ici.",
+    "feed": {
+      "parkAdded": "Nouveau parc ajouté : {{park}}",
+      "reviewAdded": "{{author}} a laissé un avis {{rating}}★ sur {{park}}",
+      "reportResolved": "Un signalement a été résolu sur {{park}}",
+      "somePark": "un parc"
+    }
+  },
+  "editProfile": {
+    "title": "Modifier le profil",
+    "name": "Nom",
+    "email": "E-mail",
+    "save": "Enregistrer",
+    "updated": "Profil mis à jour"
+  },
+  "privacyScreen": {
+    "title": "Confidentialité et conditions",
+    "privacyPolicy": "Politique de confidentialité",
+    "terms": "CGU",
+    "legalNotice": "Mentions légales",
+    "deleteAccount": "Supprimer mon compte",
+    "deleteConfirmTitle": "Supprimer votre compte ?",
+    "deleteConfirmBody": "Cette action est définitive. Votre profil, vos avis et vos parcs ajoutés seront supprimés, conformément à notre politique de confidentialité.",
+    "delete": "Supprimer"
+  },
+  "about": {
+    "title": "À propos de Toboggo",
+    "tagline": "Des milliers de parcs notés\npar des parents comme vous.",
+    "version": "Version {{version}}"
+  },
+  "group": {
+    "title": "Sortie de groupe",
+    "intro": "Créez une sortie pour partager votre position en temps réel avec d’autres parents sur ce parc, ou rejoignez-en une avec un code.",
+    "create": "Créer une sortie",
+    "codePlaceholder": "Code à 5 caractères",
+    "join": "Rejoindre",
+    "invalidCode": "Code invalide",
+    "code": "Code",
+    "shareWhatsApp": "Partager par WhatsApp",
+    "shareText": "Rejoins ma sortie Toboggo ! Code : {{code}}",
+    "leave": "Quitter la sortie",
+    "you": "Vous",
+    "status": {
+      "organizer": "Organisateur",
+      "enRoute": "En route"
+    }
+  }
+}

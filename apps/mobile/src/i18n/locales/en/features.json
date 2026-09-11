@@ -1,0 +1,41 @@
+{
+  "slide": "Slide",
+  "swing": "Swing",
+  "climbing": "Climbing frame",
+  "sandbox": "Sandbox",
+  "springer": "Spring rider",
+  "zipline": "Zip line",
+  "carousel": "Roundabout",
+  "motor_course": "Ride-on track",
+  "multisport": "Multi-sport court",
+  "water_play": "Water play",
+  "play_structure": "Play structure",
+  "toilets": "Toilets",
+  "drinking_water": "Drinking water",
+  "parking": "Parking",
+  "benches": "Benches",
+  "shade_level": "Shade",
+  "fence_status": "Fencing",
+  "wheelchair_access": "Wheelchair access",
+  "attr": {
+    "fenced": "Fenced",
+    "shaded": "Shaded",
+    "toilets": "Toilets",
+    "accessible": "Accessible",
+    "water": "Water"
+  },
+  "surface": {
+    "grass": "Grass",
+    "gazon": "Grass",
+    "sand": "Sand",
+    "sable": "Sand",
+    "rubber": "Soft surface",
+    "sol_souple": "Soft surface",
+    "wood_chips": "Wood chips",
+    "gravel": "Gravel",
+    "concrete": "Concrete",
+    "mixed": "Mixed",
+    "unknown": "Not specified",
+    "non_precise": "Not specified"
+  }
+}

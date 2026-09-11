@@ -20,11 +20,14 @@ export function StarRating({
   count,
   size = "md",
   showValue = true,
+  valueText,
 }: {
   value: number;
   count?: number;
   size?: "sm" | "md";
   showValue?: boolean;
+  /** Pre-formatted value string (e.g. locale-aware "4,5"). Falls back to `value.toFixed(1)`. */
+  valueText?: string;
 }) {
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
@@ -35,7 +38,7 @@ export function StarRating({
       </span>
       {showValue && (
         <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: size === "sm" ? 12 : 13 }}>
-          {value.toFixed(1)}
+          {valueText ?? value.toFixed(1)}
         </span>
       )}
       {count != null && (
@@ -45,14 +48,25 @@ export function StarRating({
   );
 }
 
-export function StarInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+export function StarInput({
+  value,
+  onChange,
+  // Default kept until every caller passes a localized label (see the app's
+  // contribution screens) — avoids a silent a11y-text change meanwhile.
+  starLabel = (n) => `${n} étoiles`,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+  /** a11y label for the "give N stars" button. The app passes a localized one. */
+  starLabel?: (n: number) => string;
+}) {
   return (
     <span style={{ display: "inline-flex", gap: 6 }}>
       {[1, 2, 3, 4, 5].map((i) => (
         <button
           key={i}
           type="button"
-          aria-label={`${i} étoiles`}
+          aria-label={starLabel(i)}
           onClick={() => onChange(i)}
           className={clsx()}
           style={{ background: "none", border: "none", cursor: "pointer", padding: 2 }}

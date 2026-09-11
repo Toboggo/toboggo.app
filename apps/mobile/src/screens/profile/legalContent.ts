@@ -12,7 +12,7 @@ export const LEGAL_DOCS: Record<string, { title: string; sections: { heading: st
       },
       {
         heading: "Finalité et base légale",
-        body: "Exécution du contrat de service et, pour la géolocalisation, votre consentement explicite — révocable à tout moment depuis Confidentialité.",
+        body: "Exécution du contrat de service et, pour la géolocalisation, votre consentement explicite — révocable à tout moment depuis les réglages de localisation de votre appareil.",
       },
       {
         heading: "Conservation",
@@ -20,7 +20,7 @@ export const LEGAL_DOCS: Record<string, { title: string; sections: { heading: st
       },
       {
         heading: "Vos droits",
-        body: "Vous pouvez accéder, corriger, exporter (« Télécharger mes données ») ou supprimer vos données à tout moment depuis Confidentialité. Vous disposez également d'un droit de réclamation auprès de la CNIL.",
+        body: "Vous pouvez accéder à vos données, les corriger ou en demander l'export en nous contactant, et supprimer votre compte à tout moment depuis Profil > Compte. Vous disposez également d'un droit de réclamation auprès de la CNIL.",
       },
       {
         heading: "Partage des données",
@@ -53,7 +53,7 @@ export const LEGAL_DOCS: Record<string, { title: string; sections: { heading: st
       },
       {
         heading: "6. Résiliation",
-        body: "Vous pouvez supprimer votre compte à tout moment depuis Confidentialité, ou en écrivant à contact@toboggo.app.",
+        body: "Vous pouvez supprimer votre compte à tout moment depuis Profil > Compte, ou en écrivant à contact@toboggo.app.",
       },
     ],
   },

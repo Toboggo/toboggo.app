@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useGeo, requestBrowserLocation } from "../../lib/geo";
+import { useTranslation } from "react-i18next";
+import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo";
 import { useSession } from "../../lib/session";
 import { ChevronRight, PinIcon } from "./authIcons";
 import styles from "./Permissions.module.css";
 
 export default function Permissions() {
   const navigate = useNavigate();
+  const { t } = useTranslation("onboarding");
   const [low, setLow] = useState(0);
   const [high, setHigh] = useState(6);
   const [showPermModal, setShowPermModal] = useState(false);
@@ -27,9 +29,9 @@ export default function Permissions() {
     setShowPermModal(false);
     try {
       const pos = await requestBrowserLocation();
-      setLocation(pos.lat, pos.lng, "Autour de vous");
+      setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       setPermission("granted");
-      setZone("Position activée");
+      setZone(t("permissions.zoneActive"));
     } catch {
       setPermission("denied");
     }
@@ -40,14 +42,14 @@ export default function Permissions() {
     <div className={styles.wrap}>
       <div className={styles.body}>
         <div className={styles.head}>
-          <h1>Pour qui cherchez-vous des parcs ? 🛝</h1>
-          <p>Cela nous aide à vous proposer des endroits adaptés.</p>
+          <h1>{t("permissions.title")}</h1>
+          <p>{t("permissions.subtitle")}</p>
         </div>
 
         <div>
-          <h6 className={styles.kicker}>Âge recherché</h6>
+          <h6 className={styles.kicker}>{t("permissions.ageKicker")}</h6>
           <div className={styles.ageLabel}>
-            Adapté de {low} à {maxLabel} ans
+            {t("permissions.ageRange", { low, max: maxLabel })}
           </div>
           <div className={styles.slider}>
             <div className={styles.trackBg} />
@@ -59,7 +61,7 @@ export default function Permissions() {
               step={1}
               value={low}
               onChange={(e) => setLow(Math.min(Number(e.target.value), high))}
-              aria-label="Âge minimum"
+              aria-label={t("permissions.ageMin")}
             />
             <input
               type="range"
@@ -68,20 +70,20 @@ export default function Permissions() {
               step={1}
               value={high}
               onChange={(e) => setHigh(Math.max(Number(e.target.value), low))}
-              aria-label="Âge maximum"
+              aria-label={t("permissions.ageMax")}
             />
           </div>
         </div>
 
         <div>
-          <h6 className={styles.kicker}>Votre zone</h6>
+          <h6 className={styles.kicker}>{t("permissions.zoneKicker")}</h6>
           <button type="button" className={styles.zone} data-active={zone ? "1" : undefined} onClick={() => setShowPermModal(true)}>
             <span className={styles.zoneTile}>
               <PinIcon />
             </span>
             <span className={styles.zoneBody}>
-              <span className={styles.zoneTitle}>Autour de ma position</span>
-              <span className={styles.zoneSub}>{zone ?? "Activez la localisation pour trier par distance"}</span>
+              <span className={styles.zoneTitle}>{t("permissions.zoneTitle")}</span>
+              <span className={styles.zoneSub}>{zone ?? t("permissions.zoneHint")}</span>
             </span>
             <ChevronRight />
           </button>
@@ -89,33 +91,31 @@ export default function Permissions() {
       </div>
 
       <button type="button" className={styles.cta} onClick={finish}>
-        CONTINUER
+        {t("permissions.continue")}
       </button>
       <p className={styles.later}>
-        <span onClick={finish}>Configurer plus tard</span>
+        <span onClick={finish}>{t("permissions.later")}</span>
       </p>
 
       {showPermModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.iosAlert}>
             <div className={styles.iosBody}>
-              <div className={styles.iosTitle}>
-                « Toboggo » aimerait utiliser
-                <br />
-                votre position
+              <div className={styles.iosTitle} style={{ whiteSpace: "pre-line" }}>
+                {t("permissions.iosTitle")}
               </div>
-              <p>Afficher les parcs autour de vous et calculer leur distance.</p>
+              <p>{t("permissions.iosBody")}</p>
             </div>
             <div className={styles.iosActions}>
               <button type="button" className={styles.iosAllow} onClick={grantLocation}>
-                Autoriser
+                {t("permissions.iosAllow")}
               </button>
               <button
                 type="button"
                 className={styles.iosDeny}
                 onClick={() => (setShowPermModal(false), setPermission("denied"))}
               >
-                Ne pas autoriser
+                {t("permissions.iosDeny")}
               </button>
             </div>
           </div>

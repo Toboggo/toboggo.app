@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -18,8 +19,6 @@ import {
   addParkPhotos,
   buildDraftKey,
   createPark,
-  featureLabel,
-  formatAgeRange,
   listFeatures,
   logActivity,
   uploadPhoto,
@@ -30,12 +29,15 @@ import { WizardHeader } from "../../components/WizardHeader";
 import { AddParkSearch } from "../../components/AddParkSearch";
 import { PinField } from "../../components/PinField";
 import { PhotoTip } from "../../components/PhotoTip";
-import { requestBrowserLocation, useGeo } from "../../lib/geo";
+import { useFormat } from "../../i18n/useFormat";
+import { useFeatureLabel } from "../../lib/featureLabel";
+import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../../lib/geo";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { setResumeRoute } from "../../lib/resumeRoute";
 
-const STEPS = ["Parc", "Localisation", "Informations", "Photos", "Vérification"];
+// Stepper keys resolved against the `contribute` namespace.
+const STEPS = ["steps.park", "steps.location", "steps.info", "steps.photos", "steps.verify"];
 const TOTAL_STEPS = STEPS.length;
 
 // Brouillon persistant (LOT 3D.E) — socle partagé `usePersistentDraft`.
@@ -91,12 +93,13 @@ const SERVICE_TO_FEATURE_CODE: Record<string, string> = {
   fenced: "fence_status",
   pmr: "wheelchair_access",
 };
-const SERVICE_GROUPS: { title: string; keys: string[] }[] = [
-  { title: "Services & confort", keys: ["wc", "benches", "water", "parking"] },
-  { title: "Caractéristiques du parc", keys: ["shade", "fenced", "pmr"] },
+const SERVICE_GROUPS: { titleKey: string; keys: string[] }[] = [
+  { titleKey: "addPark.serviceGroup.comfort", keys: ["wc", "benches", "water", "parking"] },
+  { titleKey: "addPark.serviceGroup.characteristics", keys: ["shade", "fenced", "pmr"] },
 ];
 
 function VerifySection({ title, onEdit, children }: { title: string; onEdit: () => void; children: ReactNode }) {
+  const { t } = useTranslation("contribute");
   return (
     <div style={{ background: "var(--color-surface)", borderRadius: 14, padding: 14, marginBottom: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -108,7 +111,7 @@ function VerifySection({ title, onEdit, children }: { title: string; onEdit: () 
           onClick={onEdit}
           style={{ background: "none", border: "none", color: "var(--color-primary)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 12.5, cursor: "pointer", padding: 0 }}
         >
-          Modifier
+          {t("common.edit")}
         </button>
       </div>
       {children}
@@ -120,6 +123,11 @@ export default function AddPark() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const wantsResume = params.get("resume") === "1";
+  const { t } = useTranslation("contribute");
+  const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
+  const f = useFormat();
+  const featureLabel = useFeatureLabel();
   const { lat, lng } = useGeo();
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
@@ -204,7 +212,7 @@ export default function AddPark() {
     setLocating(true);
     try {
       const pos = await requestBrowserLocation();
-      useGeo.getState().setLocation(pos.lat, pos.lng, "Autour de vous");
+      useGeo.getState().setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       useGeo.getState().setPermission("granted");
       patch({ lat: pos.lat, lng: pos.lng });
     } catch {
@@ -223,7 +231,11 @@ export default function AddPark() {
       const url = await uploadPhoto("parkPhotos", file, userId);
       setDraft((d) => ({ ...d, photos: [...d.photos, url].slice(0, 4) }));
     } catch (err) {
-      showToast(err instanceof ImageValidationError ? err.message : "Échec de l'envoi de la photo");
+      showToast(
+        err instanceof ImageValidationError
+          ? tErr(`image.${err.code}`)
+          : tErr("image.uploadFailed"),
+      );
     } finally {
       setUploading(false);
     }
@@ -287,11 +299,13 @@ export default function AddPark() {
       if (photos.length) {
         await addParkPhotos(park.id, photos, { source: "user", userId: uid });
       }
+      // Back-office audit trail (`activity_log`) — internal, not user-facing UI:
+      // kept in French, out of the i18n scope (see i18n audit).
       await logActivity(park.commune_id, "Vous", `Parc ajouté : ${park.name}`, "primary");
       setCreatedId(park.id);
       setDone(true);
-    } catch (err: any) {
-      showToast(err.message ?? "Une erreur est survenue");
+    } catch {
+      showToast(tErr("generic"));
     } finally {
       setSaving(false);
     }
@@ -325,12 +339,12 @@ export default function AddPark() {
         >
           <Icon name="ic-check" size={36} />
         </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>Merci !</h1>
+        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("common.thanks")}</h1>
         <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
-          Votre parc a bien été proposé. Nous allons vérifier les informations avant de le publier sur Toboggo.
+          {t("addPark.doneBody")}
         </p>
         <Tag tone="warning" style={{ marginTop: 12 }}>
-          En cours de vérification
+          {t("addPark.pendingTag")}
         </Tag>
         <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 320, marginTop: 28 }}>
           {/* Contribution terminée : on remplace l'entrée d'historique du wizard
@@ -339,10 +353,10 @@ export default function AddPark() {
               soumises ni à cette confirmation. Voir aussi RatePark / AddPhotos /
               ReportProblem / EditInfo. */}
           <Button block onClick={() => navigate(`/park/${createdId}`, { replace: true })}>
-            Voir le parc
+            {t("common.seePark")}
           </Button>
           <Button variant="secondary" block onClick={() => window.location.reload()}>
-            Ajouter un autre parc
+            {t("addPark.addAnother")}
           </Button>
         </div>
       </div>
@@ -354,7 +368,7 @@ export default function AddPark() {
       <WizardHeader
         step={step}
         total={TOTAL_STEPS}
-        steps={STEPS}
+        steps={STEPS.map((k) => t(k))}
         onBack={() => (step === 0 ? navigate(-1) : setStep(step - 1))}
       />
 
@@ -371,9 +385,9 @@ export default function AddPark() {
 
       {step === 1 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>Où se trouve le parc ?</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.locationTitle")}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            Recherchez un lieu, utilisez votre position ou placez le repère sur la carte.
+            {t("addPark.locationHint")}
           </p>
           <PinField
             lat={draft.lat}
@@ -382,45 +396,45 @@ export default function AddPark() {
             onAddressResolved={(address) => patch({ address })}
           />
           <p style={{ fontSize: 11.5, color: "var(--color-text-faint)", margin: "6px 0 0" }}>
-            Déplacez le repère pour préciser l'emplacement.
+            {t("addPark.pinHint")}
           </p>
           <Input
-            label="Adresse (si vous la connaissez)"
+            label={t("addPark.addressLabel")}
             value={draft.address}
             onChange={(e) => patch({ address: e.target.value })}
-            placeholder="12 rue des Tilleuls, 69000 Lyon"
+            placeholder={t("addPark.addressPlaceholder")}
             style={{ marginTop: 16 }}
           />
           <Button block style={{ marginTop: 24 }} onClick={() => setStep(2)}>
-            Continuer
+            {t("common.continue")}
           </Button>
         </div>
       )}
 
       {step === 2 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>Informations sur le parc</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.infoTitle")}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            Renseignez uniquement ce que vous savez.
+            {t("addPark.infoHint")}
           </p>
 
-          <Input label="Nom du parc" value={draft.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Square Voltaire" />
+          <Input label={t("addPark.nameLabel")} value={draft.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t("addPark.namePlaceholder")} />
 
           <div style={{ marginTop: 20, marginBottom: 20 }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Tranche d'âge</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>{t("field.ageRange")}</div>
             <DualRangeSlider
               min={0}
               max={12}
               low={draft.ageLow}
               high={draft.ageHigh}
-              formatLabel={draft.ageTouched ? undefined : () => "Âge non renseigné"}
+              formatLabel={draft.ageTouched ? (l, h) => f.ageRange(l, h) : () => tCommon("age.notSpecified")}
               onChange={(l, h) => patch({ ageLow: l, ageHigh: h, ageTouched: true })}
             />
           </div>
 
           {SERVICE_GROUPS.map((group) => (
-            <div key={group.title} style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{group.title}</div>
+            <div key={group.titleKey} style={{ marginBottom: 20 }}>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{t(group.titleKey)}</div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                 {group.keys.map((key) => {
                   const ic = serviceIcon(key);
@@ -436,32 +450,32 @@ export default function AddPark() {
           ))}
 
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Jeux & équipements</div>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{t("field.playEquipment")}</div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {playFeatures.map((f) => {
-                const ic = equipmentIcon(f.code);
+              {playFeatures.map((feat) => {
+                const ic = equipmentIcon(feat.code);
                 return (
-                  <Chip key={f.code} active={draft.equipment.has(f.code)} onClick={() => toggle("equipment", f.code)}>
+                  <Chip key={feat.code} active={draft.equipment.has(feat.code)} onClick={() => toggle("equipment", feat.code)}>
                     {ic && <Icon name={ic} size={15} style={{ marginRight: 4, display: "inline-block", verticalAlign: "-2px" }} />}
-                    {featureLabel(f.code)}
+                    {featureLabel(feat.code)}
                   </Chip>
                 );
               })}
             </div>
           </div>
 
-          <Textarea label="Description (facultatif)" value={draft.description} onChange={(e) => patch({ description: e.target.value })} rows={3} />
+          <Textarea label={t("addPark.descriptionLabel")} value={draft.description} onChange={(e) => patch({ description: e.target.value })} rows={3} />
           <Button block style={{ marginTop: 20 }} disabled={!draft.name} onClick={() => setStep(3)}>
-            Continuer
+            {t("common.continue")}
           </Button>
         </div>
       )}
 
       {step === 3 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>Photos</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.photosTitle")}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            Ajoutez une photo pour aider les autres parents à reconnaître le parc.
+            {t("addPark.photosHint")}
           </p>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             {draft.photos.map((p, i) => (
@@ -469,7 +483,7 @@ export default function AddPark() {
                 <div style={{ width: 80, height: 80, borderRadius: 14, backgroundImage: `url(${p})`, backgroundSize: "cover" }} />
                 <button
                   type="button"
-                  aria-label="Retirer cette photo"
+                  aria-label={t("common.removePhoto")}
                   onClick={() => removePhoto(i)}
                   style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.6)", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                 >
@@ -499,7 +513,7 @@ export default function AddPark() {
                   <>
                     <Icon name="ic-plus" size={20} />
                     <span style={{ fontSize: 9.5, fontWeight: 600, textAlign: "center", padding: "0 4px", lineHeight: 1.15 }}>
-                      Ajouter une photo
+                      {t("common.addPhoto")}
                     </span>
                   </>
                 )}
@@ -509,36 +523,36 @@ export default function AddPark() {
           </div>
           <PhotoTip />
           <Button block style={{ marginTop: 24 }} onClick={() => setStep(4)}>
-            {draft.photos.length > 0 ? "Continuer" : "Passer cette étape"}
+            {draft.photos.length > 0 ? t("common.continue") : t("common.skip")}
           </Button>
         </div>
       )}
 
       {step === 4 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>Vérifiez avant d'envoyer</h2>
+          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.verifyTitle")}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            Vous pourrez encore modifier chaque section avant l'envoi.
+            {t("addPark.verifyHint")}
           </p>
 
-          <VerifySection title="Parc" onEdit={() => setStep(2)}>
+          <VerifySection title={t("addPark.section.park")} onEdit={() => setStep(2)}>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>{draft.name || "—"}</div>
           </VerifySection>
 
-          <VerifySection title="Localisation" onEdit={() => setStep(1)}>
+          <VerifySection title={t("steps.location")} onEdit={() => setStep(1)}>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-              {draft.address.trim() || "Emplacement sélectionné sur la carte"}
+              {draft.address.trim() || t("addPark.locationOnMap")}
             </div>
           </VerifySection>
 
           {draft.ageTouched && (
-            <VerifySection title="Tranche d'âge" onEdit={() => setStep(2)}>
-              <Tag>{formatAgeRange(draft.ageLow, draft.ageHigh)}</Tag>
+            <VerifySection title={t("field.ageRange")} onEdit={() => setStep(2)}>
+              <Tag>{f.ageRange(draft.ageLow, draft.ageHigh)}</Tag>
             </VerifySection>
           )}
 
           {draft.equipment.size > 0 && (
-            <VerifySection title="Jeux & équipements" onEdit={() => setStep(2)}>
+            <VerifySection title={t("field.playEquipment")} onEdit={() => setStep(2)}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {Array.from(draft.equipment).map((code) => (
                   <Tag key={code} tone="primary">
@@ -550,7 +564,7 @@ export default function AddPark() {
           )}
 
           {draft.services.size > 0 && (
-            <VerifySection title="Services & caractéristiques" onEdit={() => setStep(2)}>
+            <VerifySection title={t("addPark.section.services")} onEdit={() => setStep(2)}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {Array.from(draft.services).map((key) => (
                   <Tag key={key} tone="primary">
@@ -562,13 +576,13 @@ export default function AddPark() {
           )}
 
           {draft.description.trim() && (
-            <VerifySection title="Description" onEdit={() => setStep(2)}>
+            <VerifySection title={t("addPark.section.description")} onEdit={() => setStep(2)}>
               <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>{draft.description}</p>
             </VerifySection>
           )}
 
           {draft.photos.length > 0 && (
-            <VerifySection title="Photos" onEdit={() => setStep(3)}>
+            <VerifySection title={t("steps.photos")} onEdit={() => setStep(3)}>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {draft.photos.map((p, i) => (
                   <div key={i} style={{ width: 56, height: 56, borderRadius: 10, backgroundImage: `url(${p})`, backgroundSize: "cover" }} />
@@ -578,7 +592,7 @@ export default function AddPark() {
           )}
 
           <Button block loading={saving} style={{ marginTop: 24 }} onClick={publish}>
-            Envoyer le parc
+            {t("addPark.submit")}
           </Button>
         </div>
       )}

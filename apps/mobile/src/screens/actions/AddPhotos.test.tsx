@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { addParkPhotos, uploadPhoto } from "@toboggo/shared";
+import "../../i18n/testInit";
 import AddPhotos from "./AddPhotos";
 
 // jsdom doesn't implement the Blob URL API used for in-memory previews.
@@ -206,13 +207,15 @@ describe("AddPhotos — authenticated flow unchanged", () => {
 
   it("submit error → toast, stays on the form (not the confirmation screen)", async () => {
     sess.userId = "u1";
-    vi.mocked(addParkPhotos).mockRejectedValueOnce(new Error("Échec réseau"));
+    vi.mocked(addParkPhotos).mockRejectedValueOnce(new Error("network down"));
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container);
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
 
-    await waitFor(() => expect(toasts.list).toContain("Échec réseau"));
+    // Server error details are never surfaced verbatim — a generic, translated
+    // message is shown instead (see AddPhotos.tsx submit()'s catch).
+    await waitFor(() => expect(toasts.list).toContain("Échec de l’envoi de la photo"));
     expect(screen.queryByText("Photo envoyée !")).toBeNull();
     expect(screen.getByRole("button", { name: /Envoyer/ })).toHaveProperty("disabled", false);
   });

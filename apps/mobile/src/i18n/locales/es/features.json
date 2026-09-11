@@ -1,0 +1,41 @@
+{
+  "slide": "Tobogán",
+  "swing": "Columpio",
+  "climbing": "Estructura de escalada",
+  "sandbox": "Arenero",
+  "springer": "Balancín de muelle",
+  "zipline": "Tirolina",
+  "carousel": "Carrusel",
+  "motor_course": "Circuito de psicomotricidad",
+  "multisport": "Pista multideporte",
+  "water_play": "Juegos de agua",
+  "play_structure": "Estructura de juegos",
+  "toilets": "Aseos",
+  "drinking_water": "Fuente de agua potable",
+  "parking": "Aparcamiento",
+  "benches": "Bancos",
+  "shade_level": "Sombra",
+  "fence_status": "Valla",
+  "wheelchair_access": "Acceso para silla de ruedas",
+  "attr": {
+    "fenced": "Vallado",
+    "shaded": "Con sombra",
+    "toilets": "Aseos",
+    "accessible": "Accesible",
+    "water": "Fuente"
+  },
+  "surface": {
+    "grass": "Césped",
+    "gazon": "Césped",
+    "sand": "Arena",
+    "sable": "Arena",
+    "rubber": "Suelo blando",
+    "sol_souple": "Suelo blando",
+    "wood_chips": "Virutas de madera",
+    "gravel": "Grava",
+    "concrete": "Hormigón",
+    "mixed": "Mixto",
+    "unknown": "Sin especificar",
+    "non_precise": "Sin especificar"
+  }
+}

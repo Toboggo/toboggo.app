@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { listMyParks, listMyReviews, signOut, deleteOwnAccount } from "@toboggo/shared";
+import { computeChildAge, listMyParks, listMyReviews, signOut, deleteOwnAccount } from "@toboggo/shared";
 import { useTheme, type ThemePreference, Button, Dialog } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
+import { useChildren } from "../../lib/children";
 import { useFormat } from "../../i18n/useFormat";
 import { useLocale } from "../../i18n/useLocale";
 import { LANGUAGE_ENDONYM } from "../../i18n/languageNames";
@@ -48,6 +49,7 @@ export default function Profile() {
 
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
+  const { data: myChildren = [] } = useChildren();
 
   // Guest: no account yet. Still expose the account-independent settings
   // (language above all) and a sign-in entry, instead of a blank screen.
@@ -148,18 +150,21 @@ export default function Profile() {
           </div>
         </div>
 
-        {profile.children.length > 0 && (
-          <>
-            <h6 className={styles.kicker}>{t("myChildren")}</h6>
-            <div className={styles.children}>
-              {profile.children.map((c, i) => (
-                <span key={i} className={styles.child}>
-                  {f.ageRange(c.age, c.age)}
+        <h6 className={styles.kicker}>{t("myChildren")}</h6>
+        <div className={styles.children} onClick={() => navigate("/profile/children")} style={{ cursor: "pointer" }}>
+          {myChildren.length > 0 ? (
+            myChildren.map((c) => {
+              const age = computeChildAge(c);
+              return (
+                <span key={c.id} className={styles.child}>
+                  {age != null ? f.ageRange(age, age) : t("children.ageUnknown")}
                 </span>
-              ))}
-            </div>
-          </>
-        )}
+              );
+            })
+          ) : (
+            <span className={styles.child}>{t("children.add")}</span>
+          )}
+        </div>
 
         <div className={styles.stats}>
           <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>

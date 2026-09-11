@@ -4,6 +4,7 @@ import { type Park } from "@toboggo/shared";
 import { Icon } from "@toboggo/design-system";
 import { ParkCard } from "../../components/ParkCard";
 import { useSession } from "../../lib/session";
+import { useChildAges } from "../../lib/children";
 import { useFilters, type SortMode } from "../../lib/filters";
 import styles from "./ParkList.module.css";
 
@@ -25,7 +26,7 @@ export function ParkList({
   const { t } = useTranslation("map");
   const { sort, setSort } = useFilters();
   const favorites = useSession((s) => s.profile?.favorites ?? []);
-  const childAges = useSession((s) => s.profile?.children ?? []).map((c) => c.age);
+  const childAges = useChildAges();
 
   let rows = [...parks];
   if (forChildren && childAges.length > 0) {

@@ -14,6 +14,7 @@
     "build:backoffice": "npm run build -w @toboggo/backoffice",
     "lint": "npm run lint -w @toboggo/mobile -w @toboggo/backoffice",
     "typecheck": "npm run typecheck -w @toboggo/design-system -w @toboggo/shared -w @toboggo/mobile -w @toboggo/backoffice",
+    "test": "npm run test -w @toboggo/shared",
     "osm:list": "python3 scripts/osm/osm.py list",
     "osm:analyze": "python3 scripts/osm/osm.py analyze",
     "osm:import:local": "python3 scripts/osm/osm.py import-local",

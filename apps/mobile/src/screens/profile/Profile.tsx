@@ -132,21 +132,33 @@ export default function Profile() {
           </div>
         </div>
 
-        <h6 className={styles.kicker}>{t("myChildren")}</h6>
-        <div className={styles.children} onClick={() => navigate("/profile/children")} style={{ cursor: "pointer" }}>
-          {myChildren.length > 0 ? (
-            myChildren.map((c) => {
+        <div className={styles.childrenHeader}>
+          <h6 className={styles.kicker}>{t("myChildren")}</h6>
+          <button type="button" className={styles.manageLink} onClick={() => navigate("/profile/children")}>
+            {t("children.manage")}
+            <Chevron />
+          </button>
+        </div>
+        {myChildren.length > 0 && (
+          <div className={styles.children}>
+            {myChildren.map((c) => {
               const age = computeChildAge(c);
               return (
-                <span key={c.id} className={styles.child}>
+                <button
+                  key={c.id}
+                  type="button"
+                  className={styles.child}
+                  onClick={() => navigate(`/profile/children/${c.id}`)}
+                >
                   {age != null ? f.ageRange(age, age) : t("children.ageUnknown")}
-                </span>
+                </button>
               );
-            })
-          ) : (
-            <span className={styles.child}>{t("children.add")}</span>
-          )}
-        </div>
+            })}
+          </div>
+        )}
+        <button type="button" className={styles.addChild} onClick={() => navigate("/profile/children/new")}>
+          <span aria-hidden>+</span> {t("children.add")}
+        </button>
 
         <div className={styles.stats}>
           <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>

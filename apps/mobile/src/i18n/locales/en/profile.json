@@ -24,6 +24,7 @@
   "myChildren": "My children",
   "children": {
     "title": "My children",
+    "manage": "Manage",
     "emptyBody": "Add your children's ages to more easily find parks that suit them.",
     "add": "Add a child",
     "childLabel": "Child {{index}}",

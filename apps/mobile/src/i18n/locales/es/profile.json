@@ -24,6 +24,7 @@
   "myChildren": "Mis hijos",
   "children": {
     "title": "Mis hijos",
+    "manage": "Gestionar",
     "emptyBody": "Añade la edad de tus hijos para encontrar más fácilmente los parques adecuados para ellos.",
     "add": "Añadir un hijo/a",
     "childLabel": "Hijo/a {{index}}",

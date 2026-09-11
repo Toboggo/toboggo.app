@@ -34,13 +34,15 @@
     "explorer": "Explorer",
     "grand": "Top contributor"
   },
-  "communityTitle": "Community",
+  "myToboggoTitle": "My Toboggo",
+  "myContributions": "My contributions",
   "groupOuting": "Group outing",
-  "activityFeed": "Activity feed",
   "preferencesTitle": "Preferences",
   "language": "Language",
-  "display": "Display",
-  "privacy": "Privacy",
+  "appearance": "Appearance",
+  "helpInfoTitle": "Help & information",
+  "contactUs": "Contact us",
+  "accountTitle": "Account",
   "help": "Help",
   "helpScreen": {
     "title": "Help",
@@ -129,18 +131,19 @@
     "updated": "Profile updated"
   },
   "privacyScreen": {
-    "title": "Privacy",
-    "shareLocation": "Share my location",
-    "publicProfile": "Public profile",
+    "title": "Privacy & terms",
     "privacyPolicy": "Privacy policy",
     "terms": "Terms of use",
     "legalNotice": "Legal notice",
-    "downloadData": "Download my data",
-    "exportSent": "Export sent by email within 48h",
     "deleteAccount": "Delete my account",
     "deleteConfirmTitle": "Delete your account?",
     "deleteConfirmBody": "This action is permanent. Your profile, your reviews and the parks you added will be deleted, in line with our privacy policy.",
     "delete": "Delete"
+  },
+  "about": {
+    "title": "About Toboggo",
+    "tagline": "Thousands of parks rated\nby parents like you.",
+    "version": "Version {{version}}"
   },
   "group": {
     "title": "Group outing",

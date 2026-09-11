@@ -18,12 +18,12 @@
     "prompt": "Inicia sesión para recuperar tus favoritos y tus aportaciones."
   },
   "settings": {
-    "displayTitle": "Visualización",
-    "darkMode": "Modo oscuro",
-    "offlineMode": "Modo sin conexión",
-    "offlineModeHint": "Mapa guardado para usarlo sin conexión.",
     "languageLabel": "Idioma",
-    "languageHint": "Elige el idioma de la aplicación. Independiente de tu ubicación y de tu país."
+    "languageHint": "Elige el idioma de la aplicación. Independiente de tu ubicación y de tu país.",
+    "appearanceTitle": "Apariencia",
+    "appearanceSystem": "Sistema",
+    "appearanceLight": "Claro",
+    "appearanceDark": "Oscuro"
   },
   "age": {
     "notSpecified": "Edad no indicada",

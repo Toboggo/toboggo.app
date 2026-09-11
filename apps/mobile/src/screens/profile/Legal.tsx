@@ -11,7 +11,7 @@ export default function Legal() {
 
   return (
     <div className="screen">
-      <TopBar title={content.title} onBack={() => navigate(params.get("from") === "onboarding" ? "/" : "/privacy")} />
+      <TopBar title={content.title} onBack={() => navigate(params.get("from") === "onboarding" ? "/" : "/legal")} />
       <div style={{ padding: "0 20px 40px" }}>
         {content.sections.map((s) => (
           <div key={s.heading} style={{ marginBottom: 20 }}>

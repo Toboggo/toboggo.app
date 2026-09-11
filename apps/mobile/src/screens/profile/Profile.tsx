@@ -1,11 +1,21 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { listMyParks, listMyReviews, signOut } from "@toboggo/shared";
+import { listMyParks, listMyReviews, signOut, deleteOwnAccount } from "@toboggo/shared";
+import { useTheme, type ThemePreference, Button, Dialog } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useFormat } from "../../i18n/useFormat";
+import { useLocale } from "../../i18n/useLocale";
+import { LANGUAGE_ENDONYM } from "../../i18n/languageNames";
 import styles from "./Profile.module.css";
+
+const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
+  system: "settings.appearanceSystem",
+  light: "settings.appearanceLight",
+  dark: "settings.appearanceDark",
+};
 
 const BADGES: { key: string; icon: string; labelKey: string; earned: (s: Stats) => boolean }[] = [
   { key: "first_review", icon: "⭐", labelKey: "badge.firstReview", earned: (s) => s.reviews >= 1 },
@@ -28,8 +38,13 @@ export default function Profile() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
   const f = useFormat();
+  const { language } = useLocale();
+  const [, appearance] = useTheme();
+  const appearanceLabel = t(APPEARANCE_LABEL_KEY[appearance], { ns: "common" });
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
@@ -47,25 +62,22 @@ export default function Profile() {
           <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", lineHeight: 1.5, margin: "4px 0 16px" }}>
             {t("guestProfile.prompt", { ns: "common" })}
           </p>
-          <button
-            type="button"
-            className={styles.logout}
-            style={{ color: "var(--color-primary)" }}
-            onClick={() => navigate("/login-method")}
-          >
+          <button type="button" className={styles.signInCta} onClick={() => navigate("/login-method")}>
             {t("action.signIn", { ns: "common" })}
           </button>
 
           <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
           <div className={styles.group}>
-            <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-              {t("language")}
-              <Chevron />
-            </button>
-            <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-              {t("display")}
-              <Chevron />
-            </button>
+            <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
+            <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
+          </div>
+
+          <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
+          <div className={styles.group}>
+            <Row label={t("help")} onClick={() => navigate("/help")} />
+            <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
+            <Row label={t("about.title")} onClick={() => navigate("/about")} />
+            <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
           </div>
         </div>
         <BottomTabs />
@@ -81,6 +93,16 @@ export default function Profile() {
   async function logout() {
     await signOut();
     navigate("/");
+  }
+
+  async function onDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteOwnAccount();
+      navigate("/");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
@@ -101,7 +123,7 @@ export default function Profile() {
           </button>
         </div>
 
-        <div className={styles.notifCard} onClick={() => navigate("/notifications/center")}>
+        <button type="button" className={styles.notifCard} onClick={() => navigate("/notifications/center")}>
           <span className={styles.notifIcon}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -112,7 +134,7 @@ export default function Profile() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-faint)" }} aria-hidden>
             <path d="M9 6l6 6-6 6" />
           </svg>
-        </div>
+        </button>
 
         <div className={styles.levelCard}>
           <span className={styles.levelBadge}>{t("level", { level })}</span>
@@ -164,49 +186,77 @@ export default function Profile() {
           ))}
         </div>
 
-        <h6 className={styles.kicker}>{t("communityTitle")}</h6>
+        <h6 className={styles.kicker}>{t("myToboggoTitle")}</h6>
         <div className={styles.group}>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/group")}>
-            {t("groupOuting")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/activity")}>
-            {t("activityFeed")}
-            <Chevron />
-          </button>
+          <Row label={t("favorites.title")} onClick={() => navigate("/favorites")} />
+          <Row label={t("myContributions")} onClick={() => navigate("/contributions")} />
+          <Row label={t("activity.title")} onClick={() => navigate("/activity")} />
+          <Row label={t("groupOuting")} onClick={() => navigate("/group")} />
         </div>
 
         <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
         <div className={styles.group}>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-            {t("language")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/notifications")}>
-            {t("notifications")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-            {t("display")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/privacy")}>
-            {t("privacy")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/help")}>
-            {t("help")}
-            <Chevron />
-          </button>
+          <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
+          <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
         </div>
 
-        <button type="button" className={styles.logout} onClick={logout}>
-          {t("signOut")}
-        </button>
+        <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
+        <div className={styles.group}>
+          <Row label={t("help")} onClick={() => navigate("/help")} />
+          <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
+          <Row label={t("about.title")} onClick={() => navigate("/about")} />
+          <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
+        </div>
+
+        <h6 className={styles.kicker}>{t("accountTitle")}</h6>
+        <div className={styles.group}>
+          <button type="button" className={styles.groupRow} onClick={logout}>
+            <span>{t("signOut")}</span>
+          </button>
+          <button
+            type="button"
+            className={styles.groupRow}
+            onClick={() => setConfirmDeleteOpen(true)}
+          >
+            <span className={styles.groupRowDanger}>{t("privacyScreen.deleteAccount")}</span>
+          </button>
+        </div>
       </div>
+
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        title={t("privacyScreen.deleteConfirmTitle")}
+        actions={
+          <>
+            <Button variant="secondary" block onClick={() => setConfirmDeleteOpen(false)}>
+              {t("action.cancel", { ns: "common" })}
+            </Button>
+            <Button variant="danger" block loading={deleting} onClick={onDeleteAccount}>
+              {t("privacyScreen.delete")}
+            </Button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 14, color: "var(--color-text-muted)" }}>
+          {t("privacyScreen.deleteConfirmBody")}
+        </p>
+      </Dialog>
 
       <BottomTabs />
     </div>
+  );
+}
+
+function Row({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
+  return (
+    <button type="button" className={styles.groupRow} onClick={onClick}>
+      <span>{label}</span>
+      <span className={styles.groupRowTrailing}>
+        {value && <span className={styles.groupRowValue}>{value}</span>}
+        <Chevron />
+      </span>
+    </button>
   );
 }
 

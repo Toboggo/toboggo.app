@@ -34,13 +34,15 @@
     "explorer": "Explorador",
     "grand": "Gran colaborador"
   },
-  "communityTitle": "Comunidad",
+  "myToboggoTitle": "Mi Toboggo",
+  "myContributions": "Mis aportaciones",
   "groupOuting": "Salida en grupo",
-  "activityFeed": "Novedades",
   "preferencesTitle": "Preferencias",
   "language": "Idioma",
-  "display": "Visualización",
-  "privacy": "Privacidad",
+  "appearance": "Apariencia",
+  "helpInfoTitle": "Ayuda e información",
+  "contactUs": "Contáctanos",
+  "accountTitle": "Cuenta",
   "help": "Ayuda",
   "helpScreen": {
     "title": "Ayuda",
@@ -129,18 +131,19 @@
     "updated": "Perfil actualizado"
   },
   "privacyScreen": {
-    "title": "Privacidad",
-    "shareLocation": "Compartir mi ubicación",
-    "publicProfile": "Perfil público",
+    "title": "Privacidad y condiciones",
     "privacyPolicy": "Política de privacidad",
     "terms": "Condiciones de uso",
     "legalNotice": "Aviso legal",
-    "downloadData": "Descargar mis datos",
-    "exportSent": "Exportación enviada por correo en 48 h",
     "deleteAccount": "Eliminar mi cuenta",
     "deleteConfirmTitle": "¿Eliminar tu cuenta?",
     "deleteConfirmBody": "Esta acción es definitiva. Tu perfil, tus opiniones y los parques que has añadido se eliminarán, conforme a nuestra política de privacidad.",
     "delete": "Eliminar"
+  },
+  "about": {
+    "title": "Acerca de Toboggo",
+    "tagline": "Miles de parques valorados\npor padres y madres como tú.",
+    "version": "Versión {{version}}"
   },
   "group": {
     "title": "Salida en grupo",

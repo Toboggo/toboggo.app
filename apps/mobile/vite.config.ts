@@ -2,9 +2,17 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "node:path";
+import { readFileSync } from "node:fs";
+
+// Version réelle du package (affichée sur l'écran "À propos" — jamais une
+// valeur inventée, cf. refonte profil/réglages §4).
+const pkg = JSON.parse(readFileSync(path.resolve(__dirname, "package.json"), "utf-8")) as { version: string };
 
 export default defineConfig({
   envDir: path.resolve(__dirname, "../.."),
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+  },
   resolve: {
     alias: {
       "@toboggo/design-system": path.resolve(__dirname, "../../packages/design-system/src"),

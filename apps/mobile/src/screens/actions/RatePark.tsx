@@ -1,14 +1,15 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Chip, Icon, StarInput, Textarea } from "@toboggo/design-system";
-import { addMedia, createReview, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
+import { Button, Chip, Icon, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
+import { addMedia, buildDraftKey, createReview, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
 import { usePark } from "../../lib/parksQuery";
-import { requireAccount, useSession } from "../../lib/session";
+import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
+import { setResumeRoute } from "../../lib/resumeRoute";
 
 const CRITERIA: { key: keyof ReviewSubRatings; label: string }[] = [
   { key: "clean", label: "Propreté" },
@@ -28,9 +29,26 @@ const AGE_BANDS: { value: AgeBand; label: string }[] = [
   { value: "6-12", label: "6-12 ans" },
 ];
 
+// Brouillon persistant (LOT 3D.E) — socle partagé `usePersistentDraft`.
+const RATE_PARK_DRAFT_VERSION = 1;
+const RATE_PARK_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
+
+interface RateParkDraft {
+  /** 0 = ParkPicker (no data of its own) · 1 = notes · 2 = commentaire. */
+  step: number;
+  stars: number;
+  subRatings: ReviewSubRatings;
+  ageBand: AgeBand;
+  comment: string;
+  /** Already-uploaded photo URL only — onPickFile requires `userId`, so a
+   * guest never has one to persist. */
+  photo: string | null;
+}
+
 export default function RatePark() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const wantsResume = params.get("resume") === "1";
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
@@ -39,19 +57,45 @@ export default function RatePark() {
   // Back from "Avis" leaves the flow — the user never saw the picker.
   const preselected = useRef(Boolean(params.get("park"))).current;
 
-  const [step, setStep] = useState(parkId ? 1 : 0);
-  const [stars, setStars] = useState(0);
-  const [subRatings, setSubRatings] = useState<ReviewSubRatings>({ clean: 2, safety: 2, equipment: 2, comfort: 2 });
-  const [ageBand, setAgeBand] = useState<AgeBand>("3-6");
-  const [comment, setComment] = useState("");
-  const [photo, setPhoto] = useState<string | null>(null);
+  // Draft: scoped to this flow + park + principal, mirrors ReportProblem. No
+  // parkId yet (still on the picker) ⇒ no key ⇒ no persistence — step 0 has no
+  // form data of its own anyway. Guest → signed-in handover runs in an effect
+  // (useAdoptedDraftKey), never during render.
+  const guestDraftKey = parkId
+    ? buildDraftKey({ surface: "mobile", flow: "park.rate", scope: { parkId }, principal: "guest" })
+    : null;
+  const userDraftKey =
+    parkId && userId
+      ? buildDraftKey({ surface: "mobile", flow: "park.rate", scope: { parkId }, principal: { userId } })
+      : null;
+  const draftKey = useAdoptedDraftKey(guestDraftKey, userDraftKey);
+
+  const {
+    value: draft,
+    patch,
+    clear: clearRateDraft,
+    flush: flushRateDraft,
+  } = usePersistentDraft<RateParkDraft>(
+    draftKey,
+    { step: parkId ? 1 : 0, stars: 0, subRatings: { clean: 2, safety: 2, equipment: 2, comfort: 2 }, ageBand: "3-6", comment: "", photo: null },
+    { schemaVersion: RATE_PARK_DRAFT_VERSION, ttlMs: RATE_PARK_DRAFT_TTL_MS, restore: "auto" },
+  );
+
+  // A restored draft claiming step 2 (commentaire) without stars — the one
+  // hard precondition step 1 enforces before letting you past it — falls back
+  // to step 1. Never mutates storage.
+  const clampedStep = Math.min(Math.max(draft.step, 0), 2);
+  const step = clampedStep >= 2 && draft.stars === 0 ? 1 : clampedStep;
+  const setStep = (next: number) => patch({ step: next });
+
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const autoSubmitted = useRef(false);
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
-    setPhoto(await uploadPhoto("parkPhotos", file, userId));
+    patch({ photo: await uploadPhoto("parkPhotos", file, userId) });
   }
 
   function submit() {
@@ -59,48 +103,56 @@ export default function RatePark() {
     const uid = useSession.getState().userId;
     if (uid) {
       setSaving(true);
-      void doSubmit(uid, true);
+      void doSubmit(uid);
       return;
     }
-    // Guest: just-in-time login, then resume (this screen unmounts meanwhile).
-    requireAccount(navigate, () => {
-      const newUid = useSession.getState().userId;
-      if (newUid) void doSubmit(newUid, false);
-    });
+    // Guest: the draft is already autosaved; force the latest to disk before
+    // the full-page sign-in detour, then come back here (?resume=1) after auth.
+    flushRateDraft();
+    setResumeRoute(`/rate?park=${parkId}&resume=1`);
+    navigate("/login", { replace: true });
   }
 
-  async function doSubmit(uid: string, inline: boolean) {
-    const toast = useToastStore.getState().show;
+  async function doSubmit(uid: string) {
     if (!parkId) return;
     try {
       await createReview({
         park_id: parkId,
         user_id: uid,
         author_name: profile?.name ?? "Vous",
-        stars,
-        sub_ratings: subRatings,
-        comment: comment || null,
-        age_band: ageBand,
+        stars: draft.stars,
+        sub_ratings: draft.subRatings,
+        comment: draft.comment || null,
+        age_band: draft.ageBand,
       });
-      if (photo) {
+      // Sent — drop the draft before the secondary call below, so a later
+      // photo-attach failure can never resurrect a form that would call
+      // createReview again and publish a duplicate review.
+      clearRateDraft();
+      if (draft.photo) {
         // A photo attached to a review is a real contributor photo of the park
         // and enters the moderation queue (source = "user" → status pending).
-        await addMedia({ park_id: parkId, url: photo, source: "user", user_id: uid });
+        await addMedia({ park_id: parkId, url: draft.photo, source: "user", user_id: uid });
       }
       void queryClient.invalidateQueries({ queryKey: ["park-reviews", parkId] });
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
-      if (inline) {
-        setDone(true);
-      } else {
-        toast("Avis publié. Merci !");
-        navigate(`/park/${parkId}`);
-      }
+      setDone(true);
     } catch (err: any) {
-      toast(err?.message ?? "Une erreur est survenue");
+      useToastStore.getState().show(err?.message ?? "Une erreur est survenue");
     } finally {
-      if (inline) setSaving(false);
+      setSaving(false);
     }
   }
+
+  // Back from sign-in with the review intact (guest draft now adopted under
+  // the user key and restored): send it once.
+  useEffect(() => {
+    if (!wantsResume || autoSubmitted.current) return;
+    if (!userId || !parkId || draft.stars === 0) return;
+    autoSubmitted.current = true;
+    void doSubmit(userId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wantsResume, userId, parkId, draft.stars]);
 
   if (done) {
     // Écran terminal autonome, aligné sur AddPark / AddPhotos / EditInfo :
@@ -162,7 +214,7 @@ export default function RatePark() {
         <div style={{ padding: "0 20px", textAlign: "center" }}>
           <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park.name}</h2>
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 20 }}>Comment était votre visite ?</p>
-          <StarInput value={stars} onChange={setStars} />
+          <StarInput value={draft.stars} onChange={(stars) => patch({ stars })} />
 
           <div style={{ marginTop: 28, textAlign: "left" }}>
             {CRITERIA.map((c) => (
@@ -172,10 +224,10 @@ export default function RatePark() {
                   {FACES.map((face, i) => (
                     <button
                       key={i}
-                      onClick={() => setSubRatings((s) => ({ ...s, [c.key]: i + 1 }))}
+                      onClick={() => patch({ subRatings: { ...draft.subRatings, [c.key]: i + 1 } })}
                       style={{
                         fontSize: 20,
-                        background: subRatings[c.key] === i + 1 ? "var(--color-primary-tint)" : "none",
+                        background: draft.subRatings[c.key] === i + 1 ? "var(--color-primary-tint)" : "none",
                         border: "none",
                         borderRadius: "50%",
                         width: 36,
@@ -195,14 +247,14 @@ export default function RatePark() {
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Âge de l'enfant</div>
             <div style={{ display: "flex", gap: 8 }}>
               {AGE_BANDS.map((b) => (
-                <Chip key={b.value} active={ageBand === b.value} onClick={() => setAgeBand(b.value)}>
+                <Chip key={b.value} active={draft.ageBand === b.value} onClick={() => patch({ ageBand: b.value })}>
                   {b.label}
                 </Chip>
               ))}
             </div>
           </div>
 
-          <Button block style={{ marginTop: 24 }} disabled={stars === 0} onClick={() => setStep(2)}>
+          <Button block style={{ marginTop: 24 }} disabled={draft.stars === 0} onClick={() => setStep(2)}>
             Continuer
           </Button>
         </div>
@@ -212,13 +264,13 @@ export default function RatePark() {
         <div style={{ padding: "0 20px" }}>
           <Textarea
             label="Votre commentaire (facultatif)"
-            value={comment}
+            value={draft.comment}
             maxLength={200}
-            onChange={(e) => setComment(e.target.value)}
-            help={`${comment.length}/200`}
+            onChange={(e) => patch({ comment: e.target.value })}
+            help={`${draft.comment.length}/200`}
           />
-          {photo ? (
-            <div style={{ width: 90, height: 90, borderRadius: 14, backgroundImage: `url(${photo})`, backgroundSize: "cover", marginTop: 12 }} />
+          {draft.photo ? (
+            <div style={{ width: 90, height: 90, borderRadius: 14, backgroundImage: `url(${draft.photo})`, backgroundSize: "cover", marginTop: 12 }} />
           ) : (
             <label
               style={{

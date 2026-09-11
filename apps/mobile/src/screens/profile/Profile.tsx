@@ -5,6 +5,8 @@ import { listMyParks, listMyReviews, signOut } from "@toboggo/shared";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useFormat } from "../../i18n/useFormat";
+import { useLocale } from "../../i18n/useLocale";
+import { LANGUAGE_ENDONYM } from "../../i18n/languageNames";
 import styles from "./Profile.module.css";
 
 const BADGES: { key: string; icon: string; labelKey: string; earned: (s: Stats) => boolean }[] = [
@@ -28,6 +30,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
   const f = useFormat();
+  const { language } = useLocale();
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
 
@@ -47,25 +50,19 @@ export default function Profile() {
           <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", lineHeight: 1.5, margin: "4px 0 16px" }}>
             {t("guestProfile.prompt", { ns: "common" })}
           </p>
-          <button
-            type="button"
-            className={styles.logout}
-            style={{ color: "var(--color-primary)" }}
-            onClick={() => navigate("/login-method")}
-          >
+          <button type="button" className={styles.signInCta} onClick={() => navigate("/login-method")}>
             {t("action.signIn", { ns: "common" })}
           </button>
 
           <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
           <div className={styles.group}>
-            <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-              {t("language")}
-              <Chevron />
-            </button>
-            <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-              {t("display")}
-              <Chevron />
-            </button>
+            <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/display")} />
+          </div>
+
+          <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
+          <div className={styles.group}>
+            <Row label={t("help")} onClick={() => navigate("/help")} />
+            <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
           </div>
         </div>
         <BottomTabs />
@@ -164,49 +161,48 @@ export default function Profile() {
           ))}
         </div>
 
-        <h6 className={styles.kicker}>{t("communityTitle")}</h6>
+        <h6 className={styles.kicker}>{t("myToboggoTitle")}</h6>
         <div className={styles.group}>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/group")}>
-            {t("groupOuting")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/activity")}>
-            {t("activityFeed")}
-            <Chevron />
-          </button>
+          <Row label={t("favorites.title")} onClick={() => navigate("/favorites")} />
+          <Row label={t("myContributions")} onClick={() => navigate("/contributions")} />
+          <Row label={t("activity.title")} onClick={() => navigate("/activity")} />
+          <Row label={t("groupOuting")} onClick={() => navigate("/group")} />
         </div>
 
         <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
         <div className={styles.group}>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-            {t("language")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/notifications")}>
-            {t("notifications")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/display")}>
-            {t("display")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/privacy")}>
-            {t("privacy")}
-            <Chevron />
-          </button>
-          <button type="button" className={styles.groupRow} onClick={() => navigate("/help")}>
-            {t("help")}
-            <Chevron />
-          </button>
+          <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/display")} />
         </div>
 
-        <button type="button" className={styles.logout} onClick={logout}>
-          {t("signOut")}
-        </button>
+        <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
+        <div className={styles.group}>
+          <Row label={t("help")} onClick={() => navigate("/help")} />
+          <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
+          <Row label={t("privacy")} onClick={() => navigate("/privacy")} />
+        </div>
+
+        <h6 className={styles.kicker}>{t("accountTitle")}</h6>
+        <div className={styles.group}>
+          <button type="button" className={styles.groupRow} onClick={logout}>
+            <span>{t("signOut")}</span>
+          </button>
+        </div>
       </div>
 
       <BottomTabs />
     </div>
+  );
+}
+
+function Row({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
+  return (
+    <button type="button" className={styles.groupRow} onClick={onClick}>
+      <span>{label}</span>
+      <span className={styles.groupRowTrailing}>
+        {value && <span className={styles.groupRowValue}>{value}</span>}
+        <Chevron />
+      </span>
+    </button>
   );
 }
 

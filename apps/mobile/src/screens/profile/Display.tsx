@@ -2,15 +2,8 @@ import { Segmented, Toggle } from "@toboggo/design-system";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "../../components/TopBar";
 import { useSession } from "../../lib/session";
-import { SUPPORTED_LANGUAGES, type Language } from "../../i18n/config";
+import { LANGUAGE_OPTIONS } from "../../i18n/languageNames";
 import { useLocale } from "../../i18n/useLocale";
-
-// Noms de langue affichés dans leur propre langue — non traduits (endonymes).
-const LANGUAGE_ENDONYM: Record<Language, string> = {
-  fr: "Français",
-  es: "Español",
-  en: "English",
-};
 
 export default function Display() {
   const profile = useSession((s) => s.profile);
@@ -30,11 +23,7 @@ export default function Display() {
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "2px 0 10px" }}>
             {t("settings.languageHint")}
           </div>
-          <Segmented
-            options={SUPPORTED_LANGUAGES.map((lng) => ({ value: lng, label: LANGUAGE_ENDONYM[lng] }))}
-            value={language}
-            onChange={setLanguage}
-          />
+          <Segmented options={LANGUAGE_OPTIONS} value={language} onChange={setLanguage} />
         </div>
 
         {profile && (

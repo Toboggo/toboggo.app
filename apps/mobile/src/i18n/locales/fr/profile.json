@@ -34,13 +34,16 @@
     "explorer": "Explorateur",
     "grand": "Grand contributeur"
   },
-  "communityTitle": "Communauté",
+  "myToboggoTitle": "Mon Toboggo",
+  "myContributions": "Mes contributions",
   "groupOuting": "Sortie de groupe",
-  "activityFeed": "Fil d’activité",
   "preferencesTitle": "Préférences",
   "language": "Langue",
   "display": "Affichage",
   "privacy": "Confidentialité",
+  "helpInfoTitle": "Aide & informations",
+  "contactUs": "Nous contacter",
+  "accountTitle": "Compte",
   "help": "Aide",
   "helpScreen": {
     "title": "Aide",

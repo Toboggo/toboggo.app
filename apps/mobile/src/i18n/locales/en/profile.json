@@ -52,8 +52,10 @@
     "firstReview": "First review",
     "contributor": "Contributor",
     "explorer": "Explorer",
-    "grand": "Top contributor"
+    "grand": "Top contributor",
+    "earnedLabel": "Earned"
   },
+  "notificationsCenter": "Notification center",
   "myToboggoTitle": "My Toboggo",
   "myContributions": "My contributions",
   "groupOuting": "Group outing",
@@ -157,12 +159,14 @@
     "legalNotice": "Legal notice",
     "deleteAccount": "Delete my account",
     "deleteConfirmTitle": "Delete your account?",
-    "deleteConfirmBody": "This action is permanent. Your profile, your reviews and the parks you added will be deleted, in line with our privacy policy.",
+    "deleteConfirmBody": "This action is permanent. Your profile and reviews will be deleted. Parks you added will stay online but will no longer be linked to your account.",
     "delete": "Delete"
   },
   "accountScreen": {
     "sessionKicker": "Session",
-    "managementKicker": "Account management"
+    "managementKicker": "Account management",
+    "infoKicker": "Your information",
+    "dangerKicker": "Sensitive zone"
   },
   "about": {
     "title": "About Toboggo",

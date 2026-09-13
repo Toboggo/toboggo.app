@@ -1,33 +1,23 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { signOut, deleteOwnAccount, purgeDraftsForPrincipal } from "@toboggo/shared";
+import { deleteOwnAccount } from "@toboggo/shared";
 import { Button, Dialog } from "@toboggo/design-system";
 import { TopBar } from "../../components/TopBar";
-import { useSession } from "../../lib/session";
 import styles from "./Profile.module.css";
 
 /**
- * Écran Compte — regroupe la gestion de session et la suppression de
- * compte, retirées du premier niveau du Profil pour ne plus exposer
- * l'action destructive directement (cf. refonte compte/paramètres).
- * Dialogue, handler et RPC de suppression inchangés, déplacés tels quels
- * depuis Profile.tsx.
+ * Écran "Gestion du compte" — regroupe les informations personnelles, la
+ * confidentialité et la suppression de compte. La déconnexion vit désormais
+ * au bas de l'écran Profil (action secondaire, hors de cet écran) pour ne
+ * jamais partager le même niveau visuel que la suppression, qui reste ici,
+ * isolée en bas dans une zone clairement séparée.
  */
 export default function Account() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-
-  async function logout() {
-    // Captured before the session is cleared: only this account's local
-    // drafts are purged on a shared device.
-    const uid = useSession.getState().userId;
-    await signOut();
-    if (uid) purgeDraftsForPrincipal({ userId: uid });
-    navigate("/");
-  }
 
   async function onDeleteAccount() {
     setDeleting(true);
@@ -41,24 +31,24 @@ export default function Account() {
 
   return (
     <div className="screen">
-      <TopBar title={t("accountTitle")} />
+      <TopBar title={t("accountScreen.managementKicker")} />
       <div style={{ padding: "0 20px" }}>
-        <h6 className={styles.kicker}>{t("accountScreen.sessionKicker")}</h6>
+        <h6 className={styles.kicker}>{t("accountScreen.infoKicker")}</h6>
         <div className={styles.group}>
-          <button type="button" className={styles.groupRow} onClick={logout}>
-            <span>{t("signOut")}</span>
+          <button type="button" className={styles.groupRow} onClick={() => navigate("/profile/edit")}>
+            <span>{t("editProfile.title")}</span>
+          </button>
+          <button type="button" className={styles.groupRow} onClick={() => navigate("/legal")}>
+            <span>{t("privacyScreen.title")}</span>
           </button>
         </div>
 
-        <h6 className={styles.kicker}>{t("accountScreen.managementKicker")}</h6>
-        <div className={styles.group}>
-          <button
-            type="button"
-            className={styles.groupRow}
-            onClick={() => setConfirmDeleteOpen(true)}
-          >
-            <span className={styles.groupRowDanger}>{t("privacyScreen.deleteAccount")}</span>
-          </button>
+        <div className={styles.dangerZone}>
+          <h6 className={styles.dangerKicker}>{t("accountScreen.dangerKicker")}</h6>
+          <p className={styles.dangerText}>{t("privacyScreen.deleteConfirmBody")}</p>
+          <Button variant="danger" size="sm" onClick={() => setConfirmDeleteOpen(true)}>
+            {t("privacyScreen.deleteAccount")}
+          </Button>
         </div>
       </div>
 

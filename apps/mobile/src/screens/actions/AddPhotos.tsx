@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@toboggo/design-system";
 import { addParkPhotos, getParkDisplayName, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
+import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
 import { usePark } from "../../lib/parksQuery";
@@ -150,38 +151,23 @@ export default function AddPhotos() {
   }
 
   if (done) {
-    // Écran terminal autonome, aligné sur les confirmations AddPark / EditInfo :
-    // pas de WizardHeader (ni Stepper, ni Retour, ni X) — l'envoi est fait et
-    // passé en modération. Même motif visuel : cercle + ic-check, tokens, pas
-    // d'emoji, titre sans bleu legacy, CTA primaire.
+    // Contribution terminée : le wizard ne doit plus rester visible ni
+    // interactif derrière la confirmation. Même motif que AddPark / RatePark /
+    // EditInfo / ReportProblem : Success Sheet, jamais un nouvel écran plein
+    // format. "Voir le parc" / "Retour à la carte" remplacent (jamais
+    // n'empilent) l'entrée d'historique du wizard.
     return (
-      <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div
-          style={{
-            width: 76,
-            height: 76,
-            borderRadius: "50%",
-            background: "var(--color-primary-tint)",
-            color: "var(--color-primary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name="ic-check" size={36} />
-        </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("addPhotos.doneTitle")}</h1>
-        <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 300 }}>
-          {t("addPhotos.doneBody", { count: picks.length })}
-        </p>
-        {/* Photos envoyées : on remplace l'entrée d'historique du wizard par la
-            fiche parc. Depuis la fiche, Retour ramène au contexte antérieur,
-            jamais dans AddPhotos ni sur cette confirmation. Idem AddPark /
-            RatePark / ReportProblem / EditInfo. */}
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          {t("common.seePark")}
-        </Button>
-      </div>
+      <>
+        <div className="screen" />
+        <ContributionSuccessSheet
+          open={done}
+          title={t("addPhotos.doneTitle")}
+          body={t("addPhotos.doneBody", { count: picks.length })}
+          primaryCta={{ label: t("common.seePark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
+          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
+          onDismiss={() => navigate("/map", { replace: true })}
+        />
+      </>
     );
   }
 

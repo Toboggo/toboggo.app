@@ -115,6 +115,26 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
 
+  it("success sheet — primary CTA \"Retour au parc\" replaces the wizard entry with the park page", async () => {
+    renderReport();
+    await fillStep2("à voir");
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
+    await screen.findByText("Signalement envoyé !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour au parc" }));
+    await screen.findByText("FICHE PARC");
+  });
+
+  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+    renderReport();
+    await fillStep2("à la carte");
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
+    await screen.findByText("Signalement envoyé !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
+    await screen.findByText("MAP");
+  });
+
   it("submit failure → the form and the draft are kept", async () => {
     vi.mocked(createReport).mockRejectedValue(new Error("network"));
     renderReport();

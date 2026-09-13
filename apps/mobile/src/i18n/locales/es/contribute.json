@@ -22,6 +22,7 @@
     "thanks": "¡Gracias!",
     "seePark": "Ver el parque",
     "backToPark": "Volver al parque",
+    "backToMap": "Volver al mapa",
     "removePhoto": "Quitar esta foto",
     "addPhoto": "Añadir una foto",
     "useMyLocation": "Usar mi ubicación actual",
@@ -81,7 +82,8 @@
     "commentLabel": "Tu comentario (opcional)",
     "submit": "Publicar mi opinión",
     "published": "Opinión publicada. ¡Gracias!",
-    "doneBody": "Tu opinión se ha publicado y ayuda a otros padres a elegir {{park}}."
+    "doneBody": "Tu opinión se ha publicado y ayuda a otros padres a elegir {{park}}.",
+    "photoPendingNote": "Tu foto aparecerá en la ficha del parque tras la verificación de nuestro equipo."
   },
   "addParkSearch": {
     "title": "¿Qué parque quieres añadir?",
@@ -137,8 +139,7 @@
     "addAnother": "Añadir otro parque",
     "success": {
       "title": "¡Parque añadido!",
-      "body": "Gracias por ayudar a los padres a descubrir nuevos lugares.",
-      "backToMap": "Volver al mapa"
+      "body": "Gracias por ayudar a los padres a descubrir nuevos lugares."
     }
   },
   "addPhotos": {

@@ -77,6 +77,7 @@ function renderPhotos(search = "?park=p1") {
           <Route path="/photo-add" element={<AddPhotos />} />
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
+          <Route path="/map" element={<div>CARTE</div>} />
           <Route path="/action-intro/add" element={<div>ADD</div>} />
         </Routes>
       </MemoryRouter>
@@ -218,6 +219,46 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     await waitFor(() => expect(toasts.list).toContain("Échec de l’envoi de la photo"));
     expect(screen.queryByText("Photo envoyée !")).toBeNull();
     expect(screen.getByRole("button", { name: /Envoyer/ })).toHaveProperty("disabled", false);
+  });
+
+  it("success sheet — primary CTA replaces the wizard entry with the park page", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container, makeFile("a.jpg"));
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
+    await screen.findByText("Photo envoyée !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
+    await screen.findByText("FICHE PARC");
+    expect(loc()).toBe("/park/p1");
+  });
+
+  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container, makeFile("a.jpg"));
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
+    await screen.findByText("Photo envoyée !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
+    await screen.findByText("CARTE");
+    expect(loc()).toBe("/map");
+  });
+
+  it("success sheet — pluralized body is kept: one photo vs several", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container, makeFile("a.jpg"));
+    pick(container, makeFile("b.jpg"));
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
+
+    const heading = await screen.findByText("Photo envoyée !");
+    expect(heading.nextElementSibling?.textContent).toBe(
+      "Merci ! Vos photos seront visibles sur la fiche du parc après vérification par notre équipe.",
+    );
   });
 
   it("no double submission: two rapid clicks only upload once", async () => {

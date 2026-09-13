@@ -6,12 +6,13 @@ import { buildDraftKey, createReview, readDraft, uploadPhoto, writeDraft, type D
 import "../../i18n/testInit";
 import RatePark from "./RatePark";
 
+const addMediaMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 vi.mock("@toboggo/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@toboggo/shared")>();
   return {
     ...actual,
     createReview: vi.fn(),
-    addMedia: vi.fn().mockResolvedValue(undefined),
+    addMedia: addMediaMock,
     uploadPhoto: vi.fn().mockResolvedValue("https://x/photo.jpg"),
     searchParks: vi.fn().mockResolvedValue([]),
   };
@@ -64,6 +65,7 @@ function renderRate(search = "?park=p1") {
           <Route path="/rate" element={<RatePark />} />
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
+          <Route path="/map" element={<div>CARTE</div>} />
           <Route path="/action-intro/add" element={<div>ADD</div>} />
         </Routes>
       </MemoryRouter>
@@ -189,6 +191,70 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
     renderRate();
     expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", true);
     expect(readDraft(key("p1", { userId: "B" }), READ)).toBeNull();
+  });
+});
+
+describe("RatePark — success sheet", () => {
+  it("primary CTA \"Voir le parc\" replaces the wizard entry with the park page", async () => {
+    renderRate();
+    await toStep2();
+    fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
+    await screen.findByText("Merci !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
+    await screen.findByText("FICHE PARC");
+    expect(loc()).toBe("/park/p1");
+  });
+
+  it("secondary CTA \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+    renderRate();
+    await toStep2();
+    fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
+    await screen.findByText("Merci !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
+    await screen.findByText("CARTE");
+    expect(loc()).toBe("/map");
+  });
+
+  it("dismissing the sheet (backdrop) also replaces the wizard entry with the map — never back into the finished wizard", async () => {
+    renderRate();
+    await toStep2();
+    fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
+    await screen.findByText("Merci !");
+
+    const backdrop = document.body.querySelector('[class*="sheetBackdrop"]');
+    expect(backdrop).toBeTruthy();
+    fireEvent.click(backdrop as Element);
+    await screen.findByText("CARTE");
+    expect(loc()).toBe("/map");
+  });
+
+  it("no photo attached → the review is published, no photo-moderation mention", async () => {
+    renderRate();
+    await toStep2();
+    fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
+    const heading = await screen.findByText("Merci !");
+
+    expect(addMediaMock).not.toHaveBeenCalled();
+    expect(heading.nextElementSibling?.textContent).not.toMatch(/vérification/);
+  });
+
+  it("photo attached → the review is published, but the photo is separately called out as pending review", async () => {
+    const { container } = renderRate();
+    await toStep2();
+    const input = container.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["x"], "photo.jpg", { type: "image/jpeg" })] } });
+    await waitFor(() =>
+      expect((readDraft(key("p1", { userId: "u1" }), READ) as { photo?: string })?.photo).toBe("https://x/photo.jpg"),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
+    await waitFor(() =>
+      expect(addMediaMock).toHaveBeenCalledWith({ park_id: "p1", url: "https://x/photo.jpg", source: "user", user_id: "u1" }),
+    );
+    const heading = await screen.findByText("Merci !");
+    expect(heading.nextElementSibling?.textContent).toContain("vérification par notre équipe");
   });
 });
 

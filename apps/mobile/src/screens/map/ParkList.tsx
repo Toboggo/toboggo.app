@@ -16,12 +16,15 @@ export function ParkList({
   forChildren,
   setForChildren,
   header,
+  extra,
 }: {
   parks: (Park & { distance_m: number })[];
   onToggleFavorite: (id: string) => void;
   forChildren: boolean;
   setForChildren: (v: boolean) => void;
   header?: ReactNode;
+  /** Non-sticky content (e.g. the liked-parks strip) shown once, above the list. */
+  extra?: ReactNode;
 }) {
   const { t } = useTranslation("map");
   const { sort, setSort } = useFilters();
@@ -75,6 +78,8 @@ export function ParkList({
           )}
         </div>
       </div>
+
+      {extra}
 
       <div className={styles.list}>
         {rows.length === 0 && <div className={styles.empty}>{t("state.listEmpty")}</div>}

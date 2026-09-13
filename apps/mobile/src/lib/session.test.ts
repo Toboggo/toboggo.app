@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Profile } from "@toboggo/shared";
 
 /**
  * LOT 3D.A — store-level lifecycle of `useSession` (mobile).
@@ -32,6 +33,10 @@ const supa = vi.hoisted(() => ({
   profileCalls: 0,
 }));
 
+const favMock = vi.hoisted(() => ({
+  apiToggleFavorite: vi.fn(),
+}));
+
 vi.mock("@toboggo/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@toboggo/shared")>();
   return {
@@ -46,6 +51,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
       >;
     }),
     updateProfile: vi.fn(async () => ({}) as never),
+    toggleFavorite: favMock.apiToggleFavorite,
   };
 });
 
@@ -58,6 +64,7 @@ beforeEach(() => {
   authMock.reset();
   supa.session = null;
   supa.profileCalls = 0;
+  favMock.apiToggleFavorite.mockReset().mockResolvedValue([]);
   useSession.setState({ userId: null, profile: null, loading: true, guestMode: false, pendingResume: null });
 });
 
@@ -141,5 +148,70 @@ describe("useSession.init", () => {
 
     expect(resume).toHaveBeenCalledTimes(1);
     expect(useSession.getState().pendingResume).toBeNull();
+  });
+});
+
+/**
+ * The map's "Autour de vous" carousel, the park detail page and the
+ * favorites list each used to toggle the heart with their own inline
+ * `includes`/`filter` against the `favorites` array captured at render time,
+ * then `patchProfile`d the result. Two hearts tapped back to back — before
+ * either network round trip resolved — raced: the second write's base array
+ * didn't yet include the first change, so it could persist and silently
+ * revert it. `toggleFavorite` below is the single place every screen now
+ * goes through instead, applied optimistically against live store state.
+ */
+describe("useSession.toggleFavorite", () => {
+  function setProfile(userId: string | null, favorites: string[] | null) {
+    useSession.setState({
+      userId,
+      profile: favorites ? ({ favorites } as unknown as Profile) : null,
+      loading: false,
+    });
+  }
+
+  it("adds a park to favorites immediately, without waiting for the network round trip", () => {
+    setProfile("user-1", []);
+    useSession.getState().toggleFavorite("park-a");
+    expect(useSession.getState().profile?.favorites).toEqual(["park-a"]);
+  });
+
+  it("removes an already-favorited park", () => {
+    setProfile("user-1", ["park-a"]);
+    useSession.getState().toggleFavorite("park-a");
+    expect(useSession.getState().profile?.favorites).toEqual([]);
+  });
+
+  it("two hearts tapped back to back can't race each other's still-pending write", () => {
+    setProfile("user-1", []);
+    // Neither network call resolves during this test — simulates two taps
+    // landing before either PATCH completes (e.g. two cards in a carousel).
+    favMock.apiToggleFavorite.mockReturnValue(new Promise(() => {}));
+
+    useSession.getState().toggleFavorite("park-a");
+    useSession.getState().toggleFavorite("park-b");
+
+    // Both stick locally...
+    expect([...(useSession.getState().profile?.favorites ?? [])].sort()).toEqual(["park-a", "park-b"]);
+    // ...and the second write already carries the first one forward, so
+    // whichever request resolves last still converges on both parks kept —
+    // never the pre-fix bug where the second write's base excluded the first.
+    expect(favMock.apiToggleFavorite).toHaveBeenNthCalledWith(2, "user-1", "park-b", ["park-a"]);
+  });
+
+  it("rolls back only that park's change if its network write fails", async () => {
+    setProfile("user-1", []);
+    favMock.apiToggleFavorite.mockRejectedValueOnce(new Error("network"));
+
+    useSession.getState().toggleFavorite("park-a");
+    expect(useSession.getState().profile?.favorites).toEqual(["park-a"]);
+
+    await vi.waitFor(() => expect(useSession.getState().profile?.favorites).toEqual([]));
+  });
+
+  it("is a no-op for a signed-out user", () => {
+    setProfile(null, null);
+    useSession.getState().toggleFavorite("park-a");
+    expect(favMock.apiToggleFavorite).not.toHaveBeenCalled();
   });
 });

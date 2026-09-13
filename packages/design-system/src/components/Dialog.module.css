@@ -90,3 +90,8 @@
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
+/* Decorative strip behind the floating nav (docked mode) — same surface,
+   just never part of the scrollable viewport above it. */
+.navStrip {
+  flex-shrink: 0;
+}

@@ -8,6 +8,7 @@ import { FiltersSheet } from "./FiltersSheet";
 import { ParkPreview } from "./ParkPreview";
 import { ParkList } from "./ParkList";
 import { ParkCarousel } from "./ParkCarousel";
+import { LikedParksSection } from "./LikedParksSection";
 import { SheetState, SheetLoading } from "./SheetState";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
@@ -18,9 +19,15 @@ import { useWeather } from "../../lib/weather";
 import { useSession } from "../../lib/session";
 import styles from "./MapExplore.module.css";
 
+// Peek height (px): header + hint, then ~30-40% of the first card row height
+// showing through — a real "there's more below" affordance (Maps/Plans-style
+// peek principle, not their visuals) rather than a title-only bar. Fixed, not
+// "fit": we deliberately crop the carousel short instead of hugging it.
+const PEEK_H = 137;
+
 // Snap ladders per sheet mode. "fit" = hug the measured content (no empty panel);
 // 0.9 = near-fullscreen expanded (further clamped so it never covers the header).
-const SNAPS_LIST: Snap[] = ["fit", "fit", 0.9];
+const SNAPS_LIST: Snap[] = [PEEK_H, "fit", 0.9];
 const SNAPS_SINGLE: Snap[] = ["fit"];
 
 function weatherEmoji(condition?: string) {
@@ -45,7 +52,9 @@ export default function MapExplore() {
   const [recenterSignal, setRecenterSignal] = useState(0);
   const [forChildren, setForChildren] = useState(false);
   const [weatherDismissed, setWeatherDismissed] = useState(false);
-  const [snap, setSnap] = useState(1);
+  // Compact by default — the map is the point of this screen, so it opens
+  // with just the "Autour de vous" bar, not the carousel already expanded.
+  const [snap, setSnap] = useState(0);
   const [sheetHeight, setSheetHeight] = useState(280);
   // Real rendered height of the bottom nav (content + iOS home-indicator safe
   // area), from the shared CSS token. Replaces the old `TAB_INSET = 78` guess so
@@ -57,7 +66,7 @@ export default function MapExplore() {
 
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
-  const patchProfile = useSession((s) => s.patchProfile);
+  const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
 
   const {
     data: parks = [],
@@ -86,11 +95,14 @@ export default function MapExplore() {
 
   // Reset the snap position when the mode *changes* so the new ladder starts
   // sane — but don't fight the user's drag while they stay in the same mode.
+  // Landing back on "list" (e.g. after closing a preview, or a fresh search)
+  // goes to the compact bar (0), not the carousel — same "more map, less
+  // chrome" default as the initial mount.
   const prevMode = useRef(mode);
   useEffect(() => {
     if (prevMode.current === mode) return;
     prevMode.current = mode;
-    setSnap(mode === "list" ? 1 : 0);
+    setSnap(0);
   }, [mode]);
 
   function toggleFavorite(parkId: string) {
@@ -98,8 +110,7 @@ export default function MapExplore() {
       navigate("/login");
       return;
     }
-    const next = favorites.includes(parkId) ? favorites.filter((f) => f !== parkId) : [...favorites, parkId];
-    void patchProfile({ favorites: next });
+    toggleFavoriteAction(parkId);
   }
 
   async function handleRecenter() {
@@ -266,19 +277,17 @@ export default function MapExplore() {
       </div>
     );
 
+    // Peek: title + hint, then the same carousel as the intermediate state —
+    // the sheet is just shorter here (see PEEK_H), cropping it to a partial
+    // first row instead of measuring/hugging it ("fit"). No favorites section
+    // at this tier; it only shows once fully expanded (snap 1).
     if (snap === 0) {
       return (
-        <button type="button" className={styles.collapsedBar} onClick={() => setSnap(1)}>
-          <span className={styles.sheetTitle}>{t("sheet.aroundYou")}</span>
-          <span className={styles.count}>{t("sheet.dragHint", { count: parks.length })}</span>
-        </button>
-      );
-    }
-
-    if (snap === 1) {
-      return (
         <div className={styles.intermediate}>
-          {header}
+          <div className={styles.peekHead}>
+            <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
+            <div className={styles.count}>{t("sheet.dragHint", { count: parks.length })}</div>
+          </div>
           <ParkCarousel
             parks={parks}
             favorites={favorites}
@@ -289,6 +298,37 @@ export default function MapExplore() {
       );
     }
 
+    // Rendered from both the intermediate carousel and the full list — a park
+    // favorited while already at the full list (a common path, since "Voir
+    // tout" jumps straight past the intermediate step) must still surface it,
+    // not only the narrower snap where the section first lived.
+    const likedSection = userId ? (
+      <LikedParksSection
+        favoriteIds={favorites}
+        lat={lat}
+        lng={lng}
+        onToggleFavorite={toggleFavorite}
+        onSelect={setSelectedId}
+      />
+    ) : null;
+
+    if (snap === 1) {
+      return (
+        <>
+          <div className={styles.intermediate}>
+            {header}
+            <ParkCarousel
+              parks={parks}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onSelect={setSelectedId}
+            />
+          </div>
+          {likedSection}
+        </>
+      );
+    }
+
     return (
       <ParkList
         parks={parks}
@@ -296,6 +336,7 @@ export default function MapExplore() {
         forChildren={forChildren}
         setForChildren={setForChildren}
         header={header}
+        extra={likedSection}
       />
     );
   }

@@ -23,6 +23,7 @@ import {
   type Json,
 } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
+import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { DiffRow } from "../../components/DiffRow";
 import { PinField } from "../../components/PinField";
 import { useFormat } from "../../i18n/useFormat";
@@ -365,36 +366,24 @@ export default function EditInfo() {
   }
 
   if (done) {
+    // Contribution terminée : le wizard ne doit plus rester visible ni
+    // interactif derrière la confirmation. Même motif que AddPark / RatePark /
+    // AddPhotos / ReportProblem : Success Sheet, jamais un nouvel écran plein
+    // format. Les CTA remplacent (jamais n'empilent) l'entrée d'historique du
+    // wizard. (Ne concerne que l'après-succès : le stepper interne n'est pas
+    // touché.)
     return (
-      <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        {/* Same icon-in-circle motif as ActionIntro's step badges — no emoji, no new asset. */}
-        <div
-          style={{
-            width: 76,
-            height: 76,
-            borderRadius: "50%",
-            background: "var(--color-primary-tint)",
-            color: "var(--color-primary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name="ic-check" size={36} />
-        </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("common.thanks")}</h1>
-        <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 300 }}>
-          <Trans t={t} i18nKey="edit.doneBody" values={{ park: park.name }} components={{ strong: <strong /> }} />
-        </p>
-        {/* Correction envoyée : on remplace l'entrée d'historique du wizard par
-            la fiche parc. Depuis la fiche, Retour ramène au contexte antérieur,
-            jamais dans EditInfo ni sur cette confirmation. Idem AddPark /
-            RatePark / AddPhotos / ReportProblem. (Ne concerne que l'après-succès :
-            le stepper interne n'est pas touché.) */}
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          {t("common.backToPark")}
-        </Button>
-      </div>
+      <>
+        <div className="screen" />
+        <ContributionSuccessSheet
+          open={done}
+          title={t("common.thanks")}
+          body={<Trans t={t} i18nKey="edit.doneBody" values={{ park: park.name }} components={{ strong: <strong /> }} />}
+          primaryCta={{ label: t("common.backToPark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
+          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
+          onDismiss={() => navigate("/map", { replace: true })}
+        />
+      </>
     );
   }
 

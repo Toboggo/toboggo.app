@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, Chip, Icon, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
+import { Button, Chip, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
 import { addMedia, buildDraftKey, createReview, getParkDisplayName, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
+import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
 import { usePark } from "../../lib/parksQuery";
@@ -90,6 +91,10 @@ export default function RatePark() {
 
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  // Snapshot at submit time — `draft.photo` is gone once the draft is cleared,
+  // but the success message still needs to know whether a photo was attached
+  // (it enters moderation separately from the review text/stars, see doSubmit).
+  const [photoPending, setPhotoPending] = useState(false);
   const autoSubmitted = useRef(false);
 
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -132,7 +137,10 @@ export default function RatePark() {
       if (draft.photo) {
         // A photo attached to a review is a real contributor photo of the park
         // and enters the moderation queue (source = "user" → status pending).
+        // The review itself (stars + comment) is published immediately — only
+        // the photo is held back, so the success message must say so.
         await addMedia({ park_id: parkId, url: draft.photo, source: "user", user_id: uid });
+        setPhotoPending(true);
       }
       void queryClient.invalidateQueries({ queryKey: ["park-reviews", parkId] });
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
@@ -155,37 +163,29 @@ export default function RatePark() {
   }, [wantsResume, userId, parkId, draft.stars]);
 
   if (done) {
-    // Écran terminal autonome, aligné sur AddPark / AddPhotos / EditInfo :
-    // pas de WizardHeader (ni Stepper, ni Retour, ni X), même motif visuel
-    // cercle + ic-check, tokens, pas d'emoji.
+    // Contribution terminée : le wizard ne doit plus rester visible ni
+    // interactif derrière la confirmation — remplacé par un fond neutre, la
+    // Success Sheet porte tout le contenu et les CTA. "Voir le parc" et
+    // "Retour à la carte" remplacent (jamais n'empilent) l'entrée d'historique
+    // du wizard : Retour ne ramène jamais aux étapes déjà soumises ni à cette
+    // confirmation. Idem AddPark / AddPhotos / EditInfo / ReportProblem.
     return (
-      <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div
-          style={{
-            width: 76,
-            height: 76,
-            borderRadius: "50%",
-            background: "var(--color-primary-tint)",
-            color: "var(--color-primary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name="ic-check" size={36} />
-        </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("common.thanks")}</h1>
-        <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
-          {t("rate.doneBody", { park: park ? getParkDisplayName(park, t) : "" })}
-        </p>
-        {/* Avis soumis : on remplace l'entrée d'historique du wizard par la
-            fiche parc. Depuis la fiche, Retour ramène au contexte antérieur
-            (fiche parc d'origine / carte), jamais dans RatePark ni sur cette
-            confirmation. Idem AddPark / AddPhotos / ReportProblem / EditInfo. */}
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          {t("common.seePark")}
-        </Button>
-      </div>
+      <>
+        <div className="screen" />
+        <ContributionSuccessSheet
+          open={done}
+          title={t("common.thanks")}
+          body={
+            <>
+              {t("rate.doneBody", { park: park ? getParkDisplayName(park, t) : "" })}
+              {photoPending && ` ${t("rate.photoPendingNote")}`}
+            </>
+          }
+          primaryCta={{ label: t("common.seePark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
+          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
+          onDismiss={() => navigate("/map", { replace: true })}
+        />
+      </>
     );
   }
 

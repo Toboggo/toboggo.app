@@ -22,6 +22,7 @@
     "thanks": "Thank you!",
     "seePark": "View the park",
     "backToPark": "Back to the park",
+    "backToMap": "Back to the map",
     "removePhoto": "Remove this photo",
     "addPhoto": "Add a photo",
     "useMyLocation": "Use my current location",
@@ -81,7 +82,8 @@
     "commentLabel": "Your comment (optional)",
     "submit": "Post my review",
     "published": "Review posted. Thank you!",
-    "doneBody": "Your review has been posted and helps other parents choose {{park}}."
+    "doneBody": "Your review has been posted and helps other parents choose {{park}}.",
+    "photoPendingNote": "Your photo will appear on the park page once our team has reviewed it."
   },
   "addParkSearch": {
     "title": "Which park would you like to add?",
@@ -137,8 +139,7 @@
     "addAnother": "Add another park",
     "success": {
       "title": "Park added!",
-      "body": "Thank you for helping parents discover new places.",
-      "backToMap": "Back to the map"
+      "body": "Thank you for helping parents discover new places."
     }
   },
   "addPhotos": {

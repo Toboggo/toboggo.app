@@ -13,6 +13,7 @@ import {
 } from "@toboggo/design-system";
 import { buildDraftKey, createReport, getParkDisplayName, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
+import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { ParkPicker } from "../../components/ParkPicker";
 import { PhotoTip } from "../../components/PhotoTip";
 import { usePark } from "../../lib/parksQuery";
@@ -184,37 +185,24 @@ export default function ReportProblem() {
   }, [wantsResume, userId, parkId, reason]);
 
   if (done) {
-    // Écran terminal autonome, aligné sur AddPark / AddPhotos / RatePark /
-    // EditInfo : pas de WizardHeader (ni Stepper, ni Retour, ni X), même motif
-    // visuel cercle + ic-check, tokens, pas d'emoji. Message métier conservé.
+    // Contribution terminée : le wizard ne doit plus rester visible ni
+    // interactif derrière la confirmation. Même motif que AddPark / RatePark /
+    // AddPhotos / EditInfo : Success Sheet, jamais un nouvel écran plein
+    // format. Message métier conservé (signalement envoyé, pas du contenu
+    // publié). Les CTA remplacent (jamais n'empilent) l'entrée d'historique du
+    // wizard.
     return (
-      <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div
-          style={{
-            width: 76,
-            height: 76,
-            borderRadius: "50%",
-            background: "var(--color-primary-tint)",
-            color: "var(--color-primary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name="ic-check" size={36} />
-        </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("report.doneTitle")}</h1>
-        <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
-          {t("report.doneBody")}
-        </p>
-        {/* Signalement envoyé : on remplace l'entrée d'historique du wizard par
-            la fiche parc. Depuis la fiche, Retour ramène au contexte antérieur
-            (carte / ParkPreview), jamais dans ReportProblem ni sur cette
-            confirmation. Idem AddPark / RatePark / AddPhotos / EditInfo. */}
-        <Button block style={{ marginTop: 24, maxWidth: 280 }} onClick={() => navigate(`/park/${parkId}`, { replace: true })}>
-          {t("common.backToPark")}
-        </Button>
-      </div>
+      <>
+        <div className="screen" />
+        <ContributionSuccessSheet
+          open={done}
+          title={t("report.doneTitle")}
+          body={t("report.doneBody")}
+          primaryCta={{ label: t("common.backToPark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
+          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
+          onDismiss={() => navigate("/map", { replace: true })}
+        />
+      </>
     );
   }
 

@@ -336,8 +336,11 @@ export default function AddPark() {
         <div className="screen" />
         <ContributionSuccessSheet
           open={done}
-          onSeePark={() => navigate(`/park/${createdId}`, { replace: true })}
-          onBackToMap={() => navigate("/map", { replace: true })}
+          title={t("addPark.success.title")}
+          body={t("addPark.success.body")}
+          primaryCta={{ label: t("common.seePark"), onPress: () => navigate(`/park/${createdId}`, { replace: true }) }}
+          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
+          onDismiss={() => navigate("/map", { replace: true })}
         />
       </>
     );

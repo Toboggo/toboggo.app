@@ -133,6 +133,42 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
 
+  it("success sheet — primary CTA \"Retour au parc\" replaces the wizard entry with the park page", async () => {
+    renderEdit();
+    await proposeNewName("Square Voir");
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
+    await screen.findByText("Merci !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour au parc" }));
+    await screen.findByText("FICHE PARC");
+  });
+
+  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+    renderEdit();
+    await proposeNewName("Square Carte");
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
+    await screen.findByText("Merci !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
+    await screen.findByText("MAP");
+  });
+
+  it("success sheet — <Trans> bold interpolation of the park name is preserved", async () => {
+    renderEdit();
+    await proposeNewName("Square Trans");
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
+    const heading = await screen.findByText("Merci !");
+
+    const strong = heading.nextElementSibling?.querySelector("strong");
+    expect(strong?.textContent).toBe("Square Voltaire");
+    expect(heading.nextElementSibling?.textContent).toBe(
+      "Votre proposition de correction pour Square Voltaire a bien été reçue. Elle sera vérifiée par notre équipe avant d’être appliquée.",
+    );
+  });
+
   it("submit failure → the form and the draft are kept", async () => {
     vi.mocked(submitParkEdit).mockRejectedValue(new Error("RLS"));
     renderEdit();

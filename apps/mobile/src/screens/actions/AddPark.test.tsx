@@ -279,6 +279,19 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(loc()).toBe("/map");
   });
 
+  it("success sheet — dismissing (backdrop) also replaces the wizard entry with the map, same as before the ContributionSuccessSheet generalization", async () => {
+    renderAdd();
+    await toStep4("Square Backdrop");
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer le parc" }));
+    await screen.findByText("Parc ajouté !");
+
+    const backdrop = document.body.querySelector('[class*="sheetBackdrop"]');
+    expect(backdrop).toBeTruthy();
+    fireEvent.click(backdrop as Element);
+    await screen.findByText("CARTE");
+    expect(loc()).toBe("/map");
+  });
+
   it("createPark failure → stays on the form, draft conserved", async () => {
     vi.mocked(createPark).mockRejectedValue(new Error("RLS denied"));
     renderAdd();

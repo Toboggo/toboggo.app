@@ -19,16 +19,32 @@ Run **in order** against your project:
 
 The pre-PDF migrations are kept in `_archive_migrations_pre_pdf/` for reference.
 
-### Applying — clean (recommended, pre-production)
+### ⚠️ Ce fichier décrit une cible from-scratch, pas l'état réel du projet lié
 
-The schema is a full replacement of the old one. On a project that still has the
-old tables:
+Les fichiers listés ci-dessus (`0001_schema.sql` → `0005_fix_signup_trigger.sql`)
+sont un schéma de **référence** (`supabase/migrations-v2-draft/`) — ils ne
+correspondent PAS aux migrations réellement appliquées en production/staging,
+qui vivent dans `supabase/migrations/` (`0001_init.sql`, `0002_rls.sql`, …),
+incrémentales et non destructives. Pour l'état réel et les opérations
+autorisées sur un projet **lié** (production ou staging), lire
+`docs/architecture/database-migration.md` §10 (interdictions) puis §11
+(CHECKPOINT).
+
+**`supabase db reset --linked` DROP et reconstruit tout le schéma `public`
+sur le projet distant lié. Ne JAMAIS l'exécuter contre la production ni
+contre le staging lié — cela efface irréversiblement les données réelles.**
+Elle n'a de sens que contre une base **locale** isolée.
+
+### Applying — clean, LOCAL ONLY (schéma cible, à titre de référence)
+
+Reconstruction from-scratch de ce schéma cible, sur une base **locale**
+isolée uniquement — jamais `--linked` :
 
 ```bash
-supabase db reset --linked      # DROPS and rebuilds public schema from migrations + seed.sql
+supabase db reset      # base LOCALE uniquement — JAMAIS --linked
 ```
 
-or, in the SQL editor, `drop schema public cascade; create schema public;` then
+or, in the SQL editor of a local/disposable project, `drop schema public cascade; create schema public;` then
 paste each migration file in order, then `seed.sql`.
 
 ### Fresh project

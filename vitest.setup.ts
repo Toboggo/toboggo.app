@@ -7,3 +7,15 @@ import { cleanup } from "@testing-library/react";
 afterEach(() => {
   cleanup();
 });
+
+// jsdom has no ResizeObserver — needed by BottomSheet's "fit" content
+// measurement. A no-op stub is enough here: BottomSheet always measures once
+// synchronously before observing, so the initial layout is already correct.
+if (typeof globalThis.ResizeObserver === "undefined") {
+  class ResizeObserverStub {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
+}

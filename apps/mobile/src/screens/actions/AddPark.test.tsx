@@ -103,6 +103,7 @@ function renderAdd(search = "") {
           <Route path="/add" element={<AddPark />} />
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
+          <Route path="/map" element={<div>CARTE</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -250,10 +251,32 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Envoyer le parc" }));
 
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
-    await screen.findByText("Merci !");
+    await screen.findByText("Parc ajouté !");
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
     window.dispatchEvent(new Event("pagehide"));
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
+  });
+
+  it("success sheet — \"Voir le parc\" replaces the wizard entry with the park page", async () => {
+    renderAdd();
+    await toStep4("Square Voir");
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer le parc" }));
+    await screen.findByText("Parc ajouté !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
+    await screen.findByText("FICHE PARC");
+    expect(loc()).toBe("/park/new-1");
+  });
+
+  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+    renderAdd();
+    await toStep4("Square Carte");
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer le parc" }));
+    await screen.findByText("Parc ajouté !");
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
+    await screen.findByText("CARTE");
+    expect(loc()).toBe("/map");
   });
 
   it("createPark failure → stays on the form, draft conserved", async () => {
@@ -309,7 +332,7 @@ describe("AddPark — guest → OAuth → authenticated", () => {
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     expect(vi.mocked(createPark).mock.calls[0][0]).toMatchObject({ name: "Square Après Login" });
     expect(localStorage.getItem(key("guest"))).toBeNull();
-    await screen.findByText("Merci !");
+    await screen.findByText("Parc ajouté !");
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
   });
 });

@@ -26,6 +26,7 @@ import {
   type Park,
 } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
+import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { AddParkSearch } from "../../components/AddParkSearch";
 import { PinField } from "../../components/PinField";
 import { PhotoTip } from "../../components/PhotoTip";
@@ -323,43 +324,22 @@ export default function AddPark() {
   }, [wantsResume, userId, draft.name]);
 
   if (done) {
+    // Contribution terminée : le wizard (formulaire, boutons d'étape) ne doit
+    // plus rester visible ni interactif derrière la confirmation — remplacé
+    // par un fond neutre, la Success Sheet porte tout le contenu et les CTA.
+    // "Voir le parc" et "Retour à la carte" remplacent (jamais n'empilent)
+    // l'entrée d'historique du wizard : Retour ne ramène jamais aux étapes
+    // déjà soumises ni à cette confirmation. Voir aussi RatePark / AddPhotos /
+    // ReportProblem / EditInfo (même pattern, non touché par ce prototype).
     return (
-      <div className="screen" style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32, textAlign: "center" }}>
-        <div
-          style={{
-            width: 76,
-            height: 76,
-            borderRadius: "50%",
-            background: "var(--color-primary-tint)",
-            color: "var(--color-primary)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Icon name="ic-check" size={36} />
-        </div>
-        <h1 style={{ fontSize: 22, marginTop: 12 }}>{t("common.thanks")}</h1>
-        <p style={{ color: "var(--color-text-muted)", marginTop: 8, maxWidth: 280 }}>
-          {t("addPark.doneBody")}
-        </p>
-        <Tag tone="warning" style={{ marginTop: 12 }}>
-          {t("addPark.pendingTag")}
-        </Tag>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, width: "100%", maxWidth: 320, marginTop: 28 }}>
-          {/* Contribution terminée : on remplace l'entrée d'historique du wizard
-              par la fiche parc. Depuis la fiche, Retour ramène à l'origine
-              (carte / QuickMenu / écran précédent), jamais aux étapes déjà
-              soumises ni à cette confirmation. Voir aussi RatePark / AddPhotos /
-              ReportProblem / EditInfo. */}
-          <Button block onClick={() => navigate(`/park/${createdId}`, { replace: true })}>
-            {t("common.seePark")}
-          </Button>
-          <Button variant="secondary" block onClick={() => window.location.reload()}>
-            {t("addPark.addAnother")}
-          </Button>
-        </div>
-      </div>
+      <>
+        <div className="screen" />
+        <ContributionSuccessSheet
+          open={done}
+          onSeePark={() => navigate(`/park/${createdId}`, { replace: true })}
+          onBackToMap={() => navigate("/map", { replace: true })}
+        />
+      </>
     );
   }
 

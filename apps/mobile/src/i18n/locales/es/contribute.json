@@ -134,7 +134,12 @@
     "sentToast": "Parque enviado — en verificación.",
     "doneBody": "Tu parque se ha propuesto correctamente. Vamos a verificar la información antes de publicarlo en Toboggo.",
     "pendingTag": "En verificación",
-    "addAnother": "Añadir otro parque"
+    "addAnother": "Añadir otro parque",
+    "success": {
+      "title": "¡Parque añadido!",
+      "body": "Gracias por ayudar a los padres a descubrir nuevos lugares.",
+      "backToMap": "Volver al mapa"
+    }
   },
   "addPhotos": {
     "doneTitle": "¡Foto enviada!",

@@ -134,7 +134,12 @@
     "sentToast": "Park submitted — under review.",
     "doneBody": "Your park has been submitted. We'll check the information before publishing it on Toboggo.",
     "pendingTag": "Under review",
-    "addAnother": "Add another park"
+    "addAnother": "Add another park",
+    "success": {
+      "title": "Park added!",
+      "body": "Thank you for helping parents discover new places.",
+      "backToMap": "Back to the map"
+    }
   },
   "addPhotos": {
     "doneTitle": "Photo sent!",

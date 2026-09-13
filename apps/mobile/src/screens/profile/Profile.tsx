@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { computeChildAge, listMyParks, listMyReviews } from "@toboggo/shared";
-import { useTheme, type ThemePreference } from "@toboggo/design-system";
+import { computeChildAge, listMyParks, listMyReviews, signOut, purgeDraftsForPrincipal } from "@toboggo/shared";
+import { useTheme, Icon, type ThemePreference, type IconName } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useChildren } from "../../lib/children";
@@ -17,18 +17,36 @@ const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
   dark: "settings.appearanceDark",
 };
 
-const BADGES: { key: string; icon: string; labelKey: string; earned: (s: Stats) => boolean }[] = [
-  { key: "first_review", icon: "⭐", labelKey: "badge.firstReview", earned: (s) => s.reviews >= 1 },
-  { key: "contributor", icon: "🛝", labelKey: "badge.contributor", earned: (s) => s.parks >= 1 },
-  { key: "explorer", icon: "🧭", labelKey: "badge.explorer", earned: (s) => s.favorites >= 5 },
-  { key: "grand", icon: "🏆", labelKey: "badge.grand", earned: (s) => s.parks + s.reviews >= 10 },
-];
-
 interface Stats {
   parks: number;
   reviews: number;
   favorites: number;
 }
+
+const BADGES: {
+  key: string;
+  icon: IconName;
+  labelKey: string;
+  earned: (s: Stats) => boolean;
+  progress?: (s: Stats) => { current: number; target: number };
+}[] = [
+  { key: "first_review", icon: "ic-review", labelKey: "badge.firstReview", earned: (s) => s.reviews >= 1 },
+  { key: "contributor", icon: "ic-slide", labelKey: "badge.contributor", earned: (s) => s.parks >= 1 },
+  {
+    key: "explorer",
+    icon: "ic-explore",
+    labelKey: "badge.explorer",
+    earned: (s) => s.favorites >= 5,
+    progress: (s) => ({ current: Math.min(s.favorites, 5), target: 5 }),
+  },
+  {
+    key: "grand",
+    icon: "ic-star",
+    labelKey: "badge.grand",
+    earned: (s) => s.parks + s.reviews >= 10,
+    progress: (s) => ({ current: Math.min(s.parks + s.reviews, 10), target: 10 }),
+  },
+];
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
@@ -47,6 +65,15 @@ export default function Profile() {
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
   const { data: myChildren = [] } = useChildren();
+
+  async function handleSignOut() {
+    // Captured before the session is cleared: only this account's local
+    // drafts are purged on a shared device.
+    const uid = useSession.getState().userId;
+    await signOut();
+    if (uid) purgeDraftsForPrincipal({ userId: uid });
+    navigate("/");
+  }
 
   // Guest: no account yet. Still expose the account-independent settings
   // (language above all) and a sign-in entry, instead of a blank screen.
@@ -85,9 +112,6 @@ export default function Profile() {
   }
 
   const stats: Stats = { parks: myParks.length, reviews: myReviews.length, favorites: profile.favorites.length };
-  const points = stats.parks * 30 + stats.reviews * 15 + stats.favorites * 5;
-  const level = Math.floor(points / 100) + 1;
-  const progress = points % 100;
 
   return (
     <div className={styles.screen}>
@@ -96,6 +120,7 @@ export default function Profile() {
       </div>
 
       <div className={styles.body}>
+        {/* Identité — avatar, nom, informations et stats essentielles. Zone volontairement sobre. */}
         <div className={styles.idRow}>
           <div className={styles.avatar}>{initials(profile.name)}</div>
           <div className={styles.idText}>
@@ -107,29 +132,57 @@ export default function Profile() {
           </button>
         </div>
 
-        <button type="button" className={styles.notifCard} onClick={() => navigate("/notifications/center")}>
-          <span className={styles.notifIcon}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-          </span>
-          <span className={styles.notifLabel}>{t("notifications")}</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-text-faint)" }} aria-hidden>
-            <path d="M9 6l6 6-6 6" />
-          </svg>
-        </button>
+        <div className={styles.stats}>
+          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
+            <span style={{ color: "var(--color-primary)" }}>{stats.parks}</span>
+            {t("stats.parks")}
+          </button>
+          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
+            <span style={{ color: "var(--color-accent)" }}>{stats.reviews}</span>
+            {t("stats.reviews")}
+          </button>
+          <button type="button" className={styles.stat} onClick={() => navigate("/favorites")}>
+            <span style={{ color: "var(--color-error)" }}>{stats.favorites}</span>
+            {t("stats.favorites")}
+          </button>
+        </div>
 
-        <div className={styles.levelCard}>
-          <span className={styles.levelBadge}>{t("level", { level })}</span>
-          <div className={styles.levelBody}>
-            <div className={styles.levelText}>
-              {t("levelProgress", { points, remaining: 100 - progress })}
-            </div>
-            <div className={styles.levelTrack}>
-              <div style={{ width: `${progress}%` }} />
-            </div>
-          </div>
+        <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
+        <div className={styles.badges}>
+          {BADGES.map((b) => {
+            const earned = b.earned(stats);
+            const prog = !earned ? b.progress?.(stats) : undefined;
+            const iconWrapClass = earned
+              ? b.key === "grand"
+                ? `${styles.badgeIconWrap} ${styles.badgeIconWrapAccent}`
+                : `${styles.badgeIconWrap} ${styles.badgeIconWrapEarned}`
+              : styles.badgeIconWrap;
+            return (
+              <div key={b.key} className={styles.badgeCard}>
+                <div className={iconWrapClass}>
+                  <Icon name={b.icon} size={20} />
+                  {earned && (
+                    <span className={styles.badgeCheck} role="img" aria-label={t("badge.earnedLabel")}>
+                      <Icon name="ic-check" size={10} />
+                    </span>
+                  )}
+                </div>
+                <div className={styles.badgeBody}>
+                  <span className={styles.badgeLabel}>{t(b.labelKey)}</span>
+                  {prog && prog.target > 1 && (
+                    <div className={styles.badgeProgress}>
+                      <div className={styles.badgeProgressTrack}>
+                        <div style={{ width: `${(prog.current / prog.target) * 100}%` }} />
+                      </div>
+                      <span className={styles.badgeFraction}>
+                        {prog.current}/{prog.target}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className={styles.childrenHeader}>
@@ -160,33 +213,9 @@ export default function Profile() {
           <span aria-hidden>+</span> {t("children.add")}
         </button>
 
-        <div className={styles.stats}>
-          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "var(--color-primary)" }}>{stats.parks}</span>
-            {t("stats.parks")}
-          </button>
-          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "var(--color-accent)" }}>{stats.reviews}</span>
-            {t("stats.reviews")}
-          </button>
-          <button type="button" className={styles.stat} onClick={() => navigate("/favorites")}>
-            <span style={{ color: "var(--color-error)" }}>{stats.favorites}</span>
-            {t("stats.favorites")}
-          </button>
-        </div>
-
-        <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
-        <div className={styles.badges}>
-          {BADGES.map((b) => (
-            <div key={b.key} className={styles.badge} style={{ opacity: b.earned(stats) ? 1 : 0.35 }}>
-              <div className={styles.badgeIcon}>{b.icon}</div>
-              <span>{t(b.labelKey)}</span>
-            </div>
-          ))}
-        </div>
-
         <h6 className={styles.kicker}>{t("myToboggoTitle")}</h6>
         <div className={styles.group}>
+          <Row label={t("notificationsCenter")} onClick={() => navigate("/notifications/center")} />
           <Row label={t("favorites.title")} onClick={() => navigate("/favorites")} />
           <Row label={t("myContributions")} onClick={() => navigate("/contributions")} />
           <Row label={t("activity.title")} onClick={() => navigate("/activity")} />
@@ -197,6 +226,7 @@ export default function Profile() {
         <div className={styles.group}>
           <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
           <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
+          <Row label={t("notifications")} onClick={() => navigate("/notifications")} />
         </div>
 
         <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
@@ -204,13 +234,17 @@ export default function Profile() {
           <Row label={t("help")} onClick={() => navigate("/help")} />
           <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
           <Row label={t("about.title")} onClick={() => navigate("/about")} />
-          <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
         </div>
 
         <h6 className={styles.kicker}>{t("accountTitle")}</h6>
         <div className={styles.group}>
-          <Row label={t("accountTitle")} onClick={() => navigate("/profile/account")} />
+          <Row label={t("accountScreen.managementKicker")} onClick={() => navigate("/profile/account")} />
         </div>
+
+        <button type="button" className={styles.signOutBtn} onClick={handleSignOut}>
+          {t("signOut")}
+        </button>
+        <p className={styles.versionText}>{t("about.version", { version: __APP_VERSION__ })}</p>
       </div>
 
       <BottomTabs />

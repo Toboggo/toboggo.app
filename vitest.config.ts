@@ -1,6 +1,14 @@
 import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "node:path";
+import { readFileSync } from "node:fs";
+
+// Same real package version as apps/mobile/vite.config.ts (__APP_VERSION__,
+// shown on the "About" and Profile screens) — kept in sync so components
+// using it render the same way under test as they do in the built app.
+const mobilePkg = JSON.parse(
+  readFileSync(path.resolve(__dirname, "apps/mobile/package.json"), "utf-8"),
+) as { version: string };
 
 // Single root config for the monorepo's test suite (Lot 1 — audit §6 bis /
 // §20). Mirrors the alias setup already used by apps/backoffice/vite.config.ts
@@ -8,6 +16,9 @@ import path from "node:path";
 // apps themselves.
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __APP_VERSION__: JSON.stringify(mobilePkg.version),
+  },
   resolve: {
     alias: {
       "@toboggo/design-system": path.resolve(__dirname, "packages/design-system/src"),

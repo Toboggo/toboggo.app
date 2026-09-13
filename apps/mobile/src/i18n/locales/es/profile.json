@@ -52,8 +52,10 @@
     "firstReview": "Primera opinión",
     "contributor": "Colaborador",
     "explorer": "Explorador",
-    "grand": "Gran colaborador"
+    "grand": "Gran colaborador",
+    "earnedLabel": "Obtenida"
   },
+  "notificationsCenter": "Centro de notificaciones",
   "myToboggoTitle": "Mi Toboggo",
   "myContributions": "Mis aportaciones",
   "groupOuting": "Salida en grupo",
@@ -157,12 +159,14 @@
     "legalNotice": "Aviso legal",
     "deleteAccount": "Eliminar mi cuenta",
     "deleteConfirmTitle": "¿Eliminar tu cuenta?",
-    "deleteConfirmBody": "Esta acción es definitiva. Tu perfil, tus opiniones y los parques que has añadido se eliminarán, conforme a nuestra política de privacidad.",
+    "deleteConfirmBody": "Esta acción es definitiva. Se eliminarán tu perfil y tus opiniones. Los parques que hayas añadido seguirán visibles, pero ya no estarán asociados a tu cuenta.",
     "delete": "Eliminar"
   },
   "accountScreen": {
     "sessionKicker": "Sesión",
-    "managementKicker": "Gestión de la cuenta"
+    "managementKicker": "Gestión de la cuenta",
+    "infoKicker": "Tu información",
+    "dangerKicker": "Zona sensible"
   },
   "about": {
     "title": "Acerca de Toboggo",

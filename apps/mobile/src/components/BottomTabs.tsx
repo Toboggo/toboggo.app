@@ -45,7 +45,7 @@ export function BottomTabs({ centerAdd = true }: { centerAdd?: boolean }) {
         data-active={active ? "1" : undefined}
         onClick={() => navigate(tab.path)}
       >
-        {tab.icon}
+        <span className={styles.tabIcon}>{tab.icon}</span>
         <span>{t(tab.labelKey)}</span>
       </button>
     );

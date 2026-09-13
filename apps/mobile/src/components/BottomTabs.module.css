@@ -1,38 +1,47 @@
-/* Bottom navigation — ported from the Claude Design prototype. */
+/* Bottom navigation — floating dock, detached from the screen edges. */
 
 .wrap {
   position: fixed;
   left: 50%;
   transform: translateX(-50%);
-  bottom: 0;
-  width: 100%;
-  max-width: var(--app-shell-width, 560px);
+  /* Detached from the bottom edge by --bottom-nav-gap, then the home-indicator
+     safe area on top — the safe area is spent here only, never doubled (see
+     --bottom-nav-h in tokens.css, which reserves exactly this much above it). */
+  bottom: calc(var(--bottom-nav-gap) + var(--safe-bottom));
+  width: calc(100% - 32px);
+  max-width: calc(var(--app-shell-width, 560px) - 32px);
+  height: var(--bottom-nav-content-h);
   display: flex;
-  background: var(--color-surface);
-  /* Hauteur = contenu (--bottom-nav-content-h) + safe-area, définie une seule
-     fois dans tokens.css. Le padding bas = petit dégagement de base + la
-     safe-area du home indicator (ajoutée ici uniquement, jamais en double).
-     Avant : `calc(26px + var(--safe-bottom))` → en standalone 26 + 34 ≈ 60px
-     de blanc vide sous les libellés. */
-  min-height: var(--bottom-nav-h);
-  padding: 10px 8px calc(10px + var(--safe-bottom));
-  border-radius: 24px 24px 0 0;
-  /* La nav se lit comme une surface posée au-dessus du bottom sheet (qui glisse
-     derrière elle) : filet de séparation + ombre portée vers le haut légèrement
-     plus marquée. Reste discret — pas de glassmorphism. */
-  border-top: 1px solid var(--color-border);
-  box-shadow: 0 -6px 20px rgba(36, 48, 58, 0.1);
+  align-items: stretch;
+  /* Frosted glass, not a solid slab: the map/sheet stay legible through it.
+     `background-color` (not `background`) so the @supports fallback below
+     can swap only the color and keep this declaration's cascade position. */
+  background-color: var(--color-nav-surface);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--color-nav-border);
+  border-radius: var(--radius-pill);
+  /* Soft, close elevation — a dock resting just above the map, not a slab. */
+  box-shadow: 0 10px 28px -6px rgba(20, 30, 24, 0.16), 0 2px 8px rgba(20, 30, 24, 0.06);
   z-index: var(--z-nav, 50);
 }
+/* Browsers without backdrop-filter support get an opaque dock instead of a
+   see-through one with no blur to make it legible. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .wrap {
+    background-color: var(--color-nav-surface-fallback);
+  }
+}
 .tab {
+  position: relative;
   flex: 1;
   background: none;
   border: none;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
+  justify-content: center;
+  gap: 3px;
   color: var(--color-text-faint);
   font-family: var(--font-heading);
   font-weight: 700;
@@ -40,10 +49,26 @@
 }
 .tab span {
   font-size: 10px;
+  line-height: 1;
 }
 .tab[data-active="1"] {
   color: var(--color-primary);
   font-weight: 800;
+}
+.tabIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Active state: color + a small dot, never a filled pill/button behind the icon. */
+.tab[data-active="1"]::after {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: var(--color-primary);
 }
 
 .centerSlot {
@@ -52,20 +77,23 @@
   justify-content: center;
 }
 .centerFab {
-  width: 56px;
-  height: 56px;
-  margin-top: -26px;
+  width: 48px;
+  height: 48px;
+  margin-top: -16px;
   border-radius: 50%;
-  border: 4px solid var(--color-surface);
+  border: 3px solid var(--color-nav-surface-fallback);
   background: var(--color-primary);
   color: var(--color-on-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.4);
+  box-shadow: 0 8px 18px rgba(47, 163, 124, 0.38);
   cursor: pointer;
 }
 
+:global([data-theme="dark"]) .wrap {
+  box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
 :global([data-theme="dark"]) .tab {
   color: var(--color-text-faint);
 }

@@ -38,7 +38,8 @@
     "count_other": "{{count}} parcs",
     "dragHint_one": "{{count}} parc · Faites glisser pour explorer",
     "dragHint_other": "{{count}} parcs · Faites glisser pour explorer",
-    "loading": "Recherche des parcs autour de vous…"
+    "loading": "Recherche des parcs autour de vous…",
+    "likedParks": "Les parcs que vous avez aimés"
   },
   "state": {
     "errorTitle": "Impossible de charger les parcs",

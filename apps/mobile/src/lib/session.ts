@@ -4,6 +4,7 @@ import {
   getSession,
   isSupabaseConfigured,
   onAuthStateChange,
+  toggleFavorite as apiToggleFavorite,
   updateProfile as apiUpdateProfile,
   type Profile,
 } from "@toboggo/shared";
@@ -20,6 +21,7 @@ interface SessionState {
   setPendingResume: (fn: (() => void) | null) => void;
   refreshProfile: () => Promise<void>;
   patchProfile: (patch: Partial<Profile>) => Promise<void>;
+  toggleFavorite: (parkId: string) => void;
 }
 
 export const useSession = create<SessionState>((set, get) => ({
@@ -95,6 +97,27 @@ export const useSession = create<SessionState>((set, get) => ({
     if (!userId || !profile) return;
     const updated = await apiUpdateProfile(userId, patch);
     set({ profile: updated });
+  },
+  // Single place every screen toggles a favourite through (map, "Autour de
+  // vous", park detail, favorites list) so the heart is always in sync
+  // everywhere it's shown. Applied optimistically against the *current* store
+  // state (not a value captured at render time) so two hearts tapped back to
+  // back — e.g. two cards in the carousel — can't race each other's pending
+  // network write and silently drop one of the changes.
+  toggleFavorite: (parkId) => {
+    const { userId, profile } = get();
+    if (!userId || !profile) return;
+    const current = profile.favorites ?? [];
+    const next = current.includes(parkId) ? current.filter((f) => f !== parkId) : [...current, parkId];
+    set({ profile: { ...profile, favorites: next } });
+    void apiToggleFavorite(userId, parkId, current).catch(() => {
+      set((s) => {
+        if (!s.profile) return s;
+        const cur = s.profile.favorites ?? [];
+        const reverted = next.includes(parkId) ? cur.filter((f) => f !== parkId) : [...cur, parkId];
+        return { profile: { ...s.profile, favorites: reverted } };
+      });
+    });
   },
 }));
 

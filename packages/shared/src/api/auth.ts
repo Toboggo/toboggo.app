@@ -5,7 +5,13 @@ export async function signUp(email: string, password: string, name: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name } },
+    options: {
+      data: { name },
+      // Without this, the confirmation email always links to the Supabase
+      // project's configured Site URL (the Vercel deploy) even when signup
+      // was started from a local dev server — same fix as signInWithGoogle.
+      emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+    },
   });
   if (error) throw error;
   return data;
@@ -53,7 +59,9 @@ export async function signOut() {
 
 export async function sendPasswordReset(email: string) {
   const supabase = getSupabase();
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+  });
   if (error) throw error;
 }
 

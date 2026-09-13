@@ -8,6 +8,7 @@ import { FiltersSheet } from "./FiltersSheet";
 import { ParkPreview } from "./ParkPreview";
 import { ParkList } from "./ParkList";
 import { ParkCarousel } from "./ParkCarousel";
+import { LikedParksSection } from "./LikedParksSection";
 import { SheetState, SheetLoading } from "./SheetState";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
@@ -45,7 +46,9 @@ export default function MapExplore() {
   const [recenterSignal, setRecenterSignal] = useState(0);
   const [forChildren, setForChildren] = useState(false);
   const [weatherDismissed, setWeatherDismissed] = useState(false);
-  const [snap, setSnap] = useState(1);
+  // Compact by default — the map is the point of this screen, so it opens
+  // with just the "Autour de vous" bar, not the carousel already expanded.
+  const [snap, setSnap] = useState(0);
   const [sheetHeight, setSheetHeight] = useState(280);
   // Real rendered height of the bottom nav (content + iOS home-indicator safe
   // area), from the shared CSS token. Replaces the old `TAB_INSET = 78` guess so
@@ -57,7 +60,7 @@ export default function MapExplore() {
 
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
-  const patchProfile = useSession((s) => s.patchProfile);
+  const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
 
   const {
     data: parks = [],
@@ -86,11 +89,14 @@ export default function MapExplore() {
 
   // Reset the snap position when the mode *changes* so the new ladder starts
   // sane — but don't fight the user's drag while they stay in the same mode.
+  // Landing back on "list" (e.g. after closing a preview, or a fresh search)
+  // goes to the compact bar (0), not the carousel — same "more map, less
+  // chrome" default as the initial mount.
   const prevMode = useRef(mode);
   useEffect(() => {
     if (prevMode.current === mode) return;
     prevMode.current = mode;
-    setSnap(mode === "list" ? 1 : 0);
+    setSnap(0);
   }, [mode]);
 
   function toggleFavorite(parkId: string) {
@@ -98,8 +104,7 @@ export default function MapExplore() {
       navigate("/login");
       return;
     }
-    const next = favorites.includes(parkId) ? favorites.filter((f) => f !== parkId) : [...favorites, parkId];
-    void patchProfile({ favorites: next });
+    toggleFavoriteAction(parkId);
   }
 
   async function handleRecenter() {
@@ -275,17 +280,34 @@ export default function MapExplore() {
       );
     }
 
+    // Rendered from both the intermediate carousel and the full list — a park
+    // favorited while already at the full list (a common path, since "Voir
+    // tout" jumps straight past the intermediate step) must still surface it,
+    // not only the narrower snap where the section first lived.
+    const likedSection = userId ? (
+      <LikedParksSection
+        favoriteIds={favorites}
+        lat={lat}
+        lng={lng}
+        onToggleFavorite={toggleFavorite}
+        onSelect={setSelectedId}
+      />
+    ) : null;
+
     if (snap === 1) {
       return (
-        <div className={styles.intermediate}>
-          {header}
-          <ParkCarousel
-            parks={parks}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
-            onSelect={setSelectedId}
-          />
-        </div>
+        <>
+          <div className={styles.intermediate}>
+            {header}
+            <ParkCarousel
+              parks={parks}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+              onSelect={setSelectedId}
+            />
+          </div>
+          {likedSection}
+        </>
       );
     }
 
@@ -296,6 +318,7 @@ export default function MapExplore() {
         forChildren={forChildren}
         setForChildren={setForChildren}
         header={header}
+        extra={likedSection}
       />
     );
   }

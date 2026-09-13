@@ -33,11 +33,21 @@ function FavButton({ favorite, onToggle }: { favorite?: boolean; onToggle: () =>
       aria-label={favorite ? t("a11y.removeFromFavorites") : t("a11y.addToFavorites")}
       aria-pressed={favorite}
     >
-      <Icon
-        name="ic-heart"
-        size={18}
-        style={{ color: favorite ? "var(--color-primary)" : "var(--color-text-faint)" }}
-      />
+      {/* Inline (not the shared <Icon> sprite, whose ic-heart symbol is
+          hardcoded fill="none") so the active state is a solid filled heart,
+          not just a colored outline — matches ParkDetail's favorite button. */}
+      <svg
+        width="18"
+        height="18"
+        viewBox="0 0 24 24"
+        fill={favorite ? "currentColor" : "none"}
+        stroke="currentColor"
+        strokeWidth="2"
+        style={{ color: favorite ? "var(--color-error)" : "var(--color-text-faint)" }}
+        aria-hidden
+      >
+        <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
+      </svg>
     </button>
   );
 }

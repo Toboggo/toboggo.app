@@ -71,7 +71,21 @@ export function ParkPreview({
                 <Icon name="ic-share" size={15} style={{ color: "var(--color-text)" }} />
               </button>
               <button type="button" className={styles.circleBtn} data-on={isFav ? "1" : undefined} onClick={(e) => { stop(e); onToggleFavorite(); }} aria-label={isFav ? t("a11y.removeFromFavorites") : t("a11y.addToFavorites")}>
-                <Icon name="ic-heart" size={15} style={{ color: isFav ? "var(--color-error)" : "var(--color-text)" }} />
+                {/* Inline (not the shared <Icon> sprite, whose ic-heart symbol is
+                    hardcoded fill="none") so the active state is a solid filled
+                    heart, not just a colored outline — matches ParkDetail. */}
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill={isFav ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ color: isFav ? "var(--color-error)" : "var(--color-text-faint)" }}
+                  aria-hidden
+                >
+                  <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
+                </svg>
               </button>
             </div>
           </div>

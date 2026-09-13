@@ -38,7 +38,8 @@
     "count_other": "{{count}} parks",
     "dragHint_one": "{{count}} park · Drag to explore",
     "dragHint_other": "{{count}} parks · Drag to explore",
-    "loading": "Looking for parks around you…"
+    "loading": "Looking for parks around you…",
+    "likedParks": "Parks you've liked"
   },
   "state": {
     "errorTitle": "Couldn’t load the parks",

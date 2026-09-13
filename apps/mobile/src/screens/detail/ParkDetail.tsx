@@ -48,7 +48,7 @@ export default function ParkDetail() {
   const [contribOpen, setContribOpen] = useState(false);
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
-  const patchProfile = useSession((s) => s.patchProfile);
+  const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
 
   useEffect(() => {
     if (id) void incrementParkViews(id);
@@ -68,8 +68,7 @@ export default function ParkDetail() {
 
   function toggleFavorite() {
     if (!userId) return navigate("/login");
-    const next = isFav ? favorites.filter((f) => f !== park!.id) : [...favorites, park!.id];
-    void patchProfile({ favorites: next });
+    toggleFavoriteAction(park!.id);
   }
 
   const ageClause = f.ageClause(park.age_min, park.age_max);
@@ -108,7 +107,7 @@ export default function ParkDetail() {
               <Icon name="ic-share" size={18} style={{ color: "var(--color-text)" }} />
             </CircleBtn>
             <CircleBtn label={t("a11y.favorite")} on={isFav} onClick={toggleFavorite}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-error)" }} aria-hidden>
+              <svg width="17" height="17" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: isFav ? "var(--color-error)" : "var(--color-text-faint)" }} aria-hidden>
                 <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
               </svg>
             </CircleBtn>
@@ -307,7 +306,7 @@ export default function ParkDetail() {
 
       <div className={styles.footer}>
         <button type="button" className={styles.footFav} data-on={isFav ? "1" : undefined} onClick={toggleFavorite} aria-label={t("a11y.favorite")}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-error)" }} aria-hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: isFav ? "var(--color-error)" : "var(--color-text-faint)" }} aria-hidden>
             <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
           </svg>
         </button>

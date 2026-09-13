@@ -13,7 +13,7 @@ export default function Favorites() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
   const favorites = useSession((s) => s.profile?.favorites ?? []);
-  const patchProfile = useSession((s) => s.patchProfile);
+  const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
   const [compareMode, setCompareMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -67,7 +67,7 @@ export default function Favorites() {
                 key={park.id}
                 park={park}
                 favorite
-                onToggleFavorite={() => void patchProfile({ favorites: favorites.filter((f) => f !== park.id) })}
+                onToggleFavorite={() => toggleFavoriteAction(park.id)}
               />
             ),
           )

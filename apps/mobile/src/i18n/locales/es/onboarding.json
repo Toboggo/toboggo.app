@@ -42,7 +42,23 @@
     "haveAccount": "¿Ya tienes una cuenta?",
     "noAccount": "¿Aún no tienes cuenta?",
     "switchToLogin": "Iniciar sesión",
-    "switchToSignup": "Crear una cuenta"
+    "switchToSignup": "Crear una cuenta",
+    "resetPassword": {
+      "title": "Nueva contraseña",
+      "description": "Elige una nueva contraseña para tu cuenta.",
+      "newPasswordLabel": "Nueva contraseña",
+      "newPasswordPlaceholder": "Al menos 6 caracteres",
+      "confirmLabel": "Confirmar contraseña",
+      "confirmPlaceholder": "Vuelve a escribir la contraseña",
+      "submit": "Guardar contraseña",
+      "submitting": "Guardando...",
+      "successTitle": "Contraseña actualizada",
+      "successDescription": "Tu contraseña se ha modificado correctamente.",
+      "continueCta": "Continuar",
+      "invalidTitle": "Enlace no válido o caducado",
+      "invalidDescription": "Este enlace de restablecimiento ya no es válido. Solicita uno nuevo desde la pantalla de inicio de sesión.",
+      "backToLogin": "Volver a iniciar sesión"
+    }
   },
   "permissions": {
     "title": "¿Para quién buscas parques? 🛝",

@@ -159,7 +159,16 @@ site_url = "http://localhost:5174"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:5173", "http://localhost:5174"]
+# `/reset-password` added for the password-recovery flow (Lot 2): without an
+# exact match here, `resetPasswordForEmail`'s `redirectTo` is silently dropped
+# in favour of `site_url` (proven locally — the emailed link landed on the
+# bare origin, not `/reset-password`, until these two entries were added).
+additional_redirect_urls = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5173/reset-password",
+  "http://localhost:5174/reset-password",
+]
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
 # jwt_issuer = ""

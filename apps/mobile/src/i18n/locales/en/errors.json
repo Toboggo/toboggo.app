@@ -12,6 +12,9 @@
     "invalidForm": "Enter a valid email and password (6 characters min).",
     "emailForReset": "Enter your email to receive the link",
     "googleUnavailable": "Google sign-in unavailable right now",
-    "generic": "Sign-in failed. Please try again."
+    "generic": "Sign-in failed. Please try again.",
+    "passwordTooShort": "Password must be at least 6 characters.",
+    "passwordMismatch": "Passwords don't match.",
+    "resetFailed": "Couldn't update your password. Please try again."
   }
 }

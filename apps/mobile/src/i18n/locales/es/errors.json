@@ -12,6 +12,9 @@
     "invalidForm": "Introduce un correo electrónico y una contraseña válidos (mínimo 6 caracteres).",
     "emailForReset": "Introduce tu correo electrónico para recibir el enlace",
     "googleUnavailable": "Inicio de sesión con Google no disponible por ahora",
-    "generic": "El inicio de sesión ha fallado. Inténtalo de nuevo."
+    "generic": "El inicio de sesión ha fallado. Inténtalo de nuevo.",
+    "passwordTooShort": "La contraseña debe tener al menos 6 caracteres.",
+    "passwordMismatch": "Las contraseñas no coinciden.",
+    "resetFailed": "No se pudo actualizar la contraseña. Inténtalo de nuevo."
   }
 }

@@ -42,7 +42,23 @@
     "haveAccount": "Vous avez déjà un compte ?",
     "noAccount": "Pas encore de compte ?",
     "switchToLogin": "Se connecter",
-    "switchToSignup": "Créer un compte"
+    "switchToSignup": "Créer un compte",
+    "resetPassword": {
+      "title": "Nouveau mot de passe",
+      "description": "Choisissez un nouveau mot de passe pour votre compte.",
+      "newPasswordLabel": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Au moins 6 caractères",
+      "confirmLabel": "Confirmer le mot de passe",
+      "confirmPlaceholder": "Ressaisissez le mot de passe",
+      "submit": "Enregistrer le mot de passe",
+      "submitting": "Enregistrement...",
+      "successTitle": "Mot de passe mis à jour",
+      "successDescription": "Votre mot de passe a bien été modifié.",
+      "continueCta": "Continuer",
+      "invalidTitle": "Lien invalide ou expiré",
+      "invalidDescription": "Ce lien de réinitialisation n'est plus valide. Demandez-en un nouveau depuis l'écran de connexion.",
+      "backToLogin": "Retour à la connexion"
+    }
   },
   "permissions": {
     "title": "Pour qui cherchez-vous des parcs ? 🛝",

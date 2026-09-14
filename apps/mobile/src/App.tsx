@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
+import { onPasswordRecovery } from "@toboggo/shared";
 import { useSession } from "./lib/session";
 import { useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
@@ -8,6 +9,7 @@ import { takeResumeRoute } from "./lib/resumeRoute";
 import Splash from "./screens/onboarding/Splash";
 import LoginMethod from "./screens/onboarding/LoginMethod";
 import AuthForm from "./screens/onboarding/AuthForm";
+import ResetPassword from "./screens/onboarding/ResetPassword";
 import Permissions from "./screens/onboarding/Permissions";
 
 import MapExplore from "./screens/map/MapExplore";
@@ -95,6 +97,23 @@ export default function App() {
     if (route) navigate(route, { replace: true });
   }, [userId, navigate]);
 
+  // Password recovery link: `redirectTo` (packages/shared/src/api/auth.ts)
+  // already points the browser at /reset-password, and Supabase only honours
+  // that when the exact URL is in the project's redirect-URL allowlist —
+  // `supabase/config.toml` `additional_redirect_urls` locally (confirmed
+  // during review: without an exact `/reset-password` entry there, the
+  // emailed link silently fell back to the bare `site_url` instead).
+  // Staging/prod have their own dashboard-configured allowlist that this repo
+  // cannot inspect or fix — if it's ever missing that entry, the recovery link
+  // lands on `/` and Splash's "signed in -> /map" redirect would otherwise
+  // fire before the user ever sees a password field. This listener is that
+  // fallback. Registered synchronously (no `await` above this line), same
+  // timing rationale as `ResetPassword.tsx` — see the doc comment on
+  // `onPasswordRecovery`.
+  useEffect(() => {
+    return onPasswordRecovery(() => navigate("/reset-password", { replace: true }));
+  }, [navigate]);
+
   if (loading) return null;
 
   return (
@@ -104,6 +123,7 @@ export default function App() {
       <Route path="/" element={<Splash />} />
       <Route path="/login-method" element={<LoginMethod />} />
       <Route path="/login" element={<AuthForm />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/permissions" element={<Permissions />} />
 
       <Route path="/map" element={<MapExplore />} />

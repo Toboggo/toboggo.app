@@ -42,7 +42,23 @@
     "haveAccount": "Already have an account?",
     "noAccount": "No account yet?",
     "switchToLogin": "Sign in",
-    "switchToSignup": "Create an account"
+    "switchToSignup": "Create an account",
+    "resetPassword": {
+      "title": "New password",
+      "description": "Choose a new password for your account.",
+      "newPasswordLabel": "New password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "confirmLabel": "Confirm password",
+      "confirmPlaceholder": "Re-enter the password",
+      "submit": "Save password",
+      "submitting": "Saving...",
+      "successTitle": "Password updated",
+      "successDescription": "Your password has been changed.",
+      "continueCta": "Continue",
+      "invalidTitle": "Invalid or expired link",
+      "invalidDescription": "This reset link is no longer valid. Request a new one from the sign-in screen.",
+      "backToLogin": "Back to sign in"
+    }
   },
   "permissions": {
     "title": "Who are you looking for parks for? 🛝",

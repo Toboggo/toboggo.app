@@ -77,6 +77,8 @@
     "notifications": "Notifications",
     "recenter": "Recentrer",
     "contribute": "Contribuer",
-    "userLocation": "Votre position"
+    "userLocation": "Votre position",
+    "clusterCount_one": "{{count}} parc dans cette zone, appuyez pour zoomer",
+    "clusterCount_other": "{{count}} parcs dans cette zone, appuyez pour zoomer"
   }
 }

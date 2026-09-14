@@ -61,6 +61,17 @@ function ensureStyles() {
   border: 3px solid var(--color-surface);
   box-shadow: 0 0 0 8px rgba(76, 158, 235, 0.22), var(--shadow-sm);
 }
+.tbg-cluster {
+  cursor: pointer;
+  border: none;
+  width: 34px; height: 34px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 2px solid var(--color-surface);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-heading); font-weight: 700; font-size: 12px;
+}
 `;
   document.head.appendChild(style);
 }
@@ -98,5 +109,18 @@ export function buildUserMarker(label: string): HTMLDivElement {
   const el = document.createElement("div");
   el.className = "tbg-user";
   el.setAttribute("aria-label", label);
+  return el;
+}
+
+/** Cluster pin — a count only, no per-park detail. Same green as an
+ * unrated park pin so it reads as "more Toboggo parks here", not a
+ * generic map-library blob. */
+export function buildClusterMarker(count: number, label: string): HTMLButtonElement {
+  ensureStyles();
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = "tbg-cluster";
+  el.setAttribute("aria-label", label);
+  el.textContent = count > 99 ? "99+" : String(count);
   return el;
 }

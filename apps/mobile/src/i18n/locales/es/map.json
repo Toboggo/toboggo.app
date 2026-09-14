@@ -77,6 +77,8 @@
     "notifications": "Notificaciones",
     "recenter": "Centrar",
     "contribute": "Contribuir",
-    "userLocation": "Tu ubicación"
+    "userLocation": "Tu ubicación",
+    "clusterCount_one": "{{count}} parque en esta zona, toca para acercar",
+    "clusterCount_other": "{{count}} parques en esta zona, toca para acercar"
   }
 }

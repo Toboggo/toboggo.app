@@ -91,3 +91,11 @@ export function StatCard({
 export function Table({ className, ...rest }: TableHTMLAttributes<HTMLTableElement>) {
   return <table className={clsx(styles.table, className)} {...rest} />;
 }
+
+/** Generic loading placeholder bar — same discreet pulse as `DataTable`'s
+ * built-in skeleton rows, factored out so any screen can shape its own
+ * loading state (dashboard tiles, stat strips, …) without duplicating the
+ * animation. Not a layout primitive: callers size it via `width`/`height`. */
+export function Skeleton({ width = "100%", height = 12 }: { width?: number | string; height?: number | string }) {
+  return <span className={styles.skeleton} style={{ width, height }} aria-hidden="true" />;
+}

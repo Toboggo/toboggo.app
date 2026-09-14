@@ -123,6 +123,13 @@
   font-size: 12px;
   color: var(--color-text-muted);
 }
+.statError {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.15;
+  color: var(--color-text-faint);
+}
 
 /* ── Activité récente ──────────────────────────────────────────────────── */
 .activityRow {
@@ -142,6 +149,12 @@
   margin-top: 6px;
   flex-shrink: 0;
 }
+.activityIconWrap {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-text-faint);
+  display: inline-flex;
+}
 .activityText {
   font-size: 13px;
 }
@@ -151,6 +164,17 @@
   margin-top: 1px;
 }
 .activityEmpty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ── États chargement/erreur partagés ───────────────────────────────────── */
+.errorInline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
   font-size: 13px;
   color: var(--color-text-muted);
 }

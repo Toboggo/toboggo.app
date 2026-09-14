@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Icon } from "@toboggo/design-system";
+import { Button, Card, Icon, Skeleton } from "@toboggo/design-system";
 import {
   listParks,
   listReports,
@@ -9,10 +9,12 @@ import {
   listPendingMedia,
   listMaintenance,
   listPendingParkEditsForOrg,
+  listParkEdits,
   type Maintenance,
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { useOrgScope } from "../lib/orgScope";
+import { activityIcon } from "../lib/activityCategory";
 import styles from "./Dashboard.module.css";
 
 const UPCOMING_MAINTENANCE_WINDOW_DAYS = 7;
@@ -38,32 +40,47 @@ interface StatItem {
   value: number;
   label: string;
   onClick: () => void;
+  loading: boolean;
+  error: boolean;
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { isAdmin, communeId } = useOrgScope();
 
-  const { data: parks = [] } = useQuery({ queryKey: ["dash-parks", communeId], queryFn: () => listParks({ communeId }) });
-  const { data: reports = [] } = useQuery({ queryKey: ["dash-reports", communeId], queryFn: () => listReports({ communeId }) });
-  const { data: reviews = [] } = useQuery({ queryKey: ["dash-reviews", communeId], queryFn: () => listReviews({ communeId }) });
-  const { data: activity = [] } = useQuery({ queryKey: ["dash-activity", communeId, isAdmin], queryFn: () => listActivity(isAdmin ? null : communeId!) });
-  const { data: pendingMedia = [] } = useQuery({
+  const parksQ = useQuery({ queryKey: ["dash-parks", communeId], queryFn: () => listParks({ communeId }) });
+  const reportsQ = useQuery({ queryKey: ["dash-reports", communeId], queryFn: () => listReports({ communeId }) });
+  const reviewsQ = useQuery({ queryKey: ["dash-reviews", communeId], queryFn: () => listReviews({ communeId }) });
+  const activityQ = useQuery({ queryKey: ["dash-activity", communeId, isAdmin], queryFn: () => listActivity(isAdmin ? null : communeId!) });
+  const pendingMediaQ = useQuery({
     queryKey: ["dash-pending-media", communeId],
     queryFn: () => listPendingMedia({ communeId }),
   });
-  // Collectivité only: no cross-organisation "entretien" or "infos à
-  // vérifier" screen exists yet for the admin context (hors scope Lot 2).
-  const { data: maintenance = [] } = useQuery({
+  // Collectivité only: no cross-organisation "entretien" screen exists yet
+  // for the admin context (hors scope de ce lot).
+  const maintenanceQ = useQuery({
     queryKey: ["dash-maintenance", communeId],
     queryFn: () => listMaintenance(communeId!),
     enabled: !isAdmin && !!communeId,
   });
-  const { data: pendingEdits = [] } = useQuery({
-    queryKey: ["dash-pending-edits", communeId],
-    queryFn: () => listPendingParkEditsForOrg(communeId!),
-    enabled: !isAdmin && !!communeId,
+  // Admin voit la file cross-organisation : `park_edits_read` (RLS, migration
+  // 0018) autorise `is_toboggo_staff` à tout lire, donc `listParkEdits`
+  // (sans filtre org) est déjà correctement scopé côté serveur. Une
+  // collectivité continue de voir uniquement ses propres parcs via
+  // `listPendingParkEditsForOrg` (résolution par `organization_parks`, Lot 1).
+  const pendingEditsQ = useQuery({
+    queryKey: ["dash-pending-edits", communeId, isAdmin],
+    queryFn: () => (isAdmin ? listParkEdits({ status: ["pending"] }) : listPendingParkEditsForOrg(communeId!)),
+    enabled: isAdmin || !!communeId,
   });
+
+  const parks = parksQ.data ?? [];
+  const reports = reportsQ.data ?? [];
+  const reviews = reviewsQ.data ?? [];
+  const activity = activityQ.data ?? [];
+  const pendingMedia = pendingMediaQ.data ?? [];
+  const maintenance = maintenanceQ.data ?? [];
+  const pendingEdits = pendingEditsQ.data ?? [];
 
   const published = parks.filter((p) => p.status === "published").length;
   const pending = parks.filter((p) => p.status === "pending").length;
@@ -72,17 +89,31 @@ export default function Dashboard() {
   const lowReviews = reviews.filter((r) => r.stars <= 2).length;
   const upcomingMaintenance = maintenance.filter(isUpcoming).length;
 
+  // "À traiter" ne doit jamais retomber sur un faux "rien à faire" pendant
+  // que ses compteurs sont encore à 0 faute de données chargées — la liste
+  // des sources qui le nourrissent pilote son propre loading/error, distinct
+  // du reste de la page.
+  const toTreatSources = isAdmin ? [parksQ, reportsQ, pendingEditsQ] : [reportsQ, pendingMediaQ, pendingEditsQ, maintenanceQ];
+  const toTreatLoading = toTreatSources.some((q) => q.isLoading);
+  const toTreatError = toTreatSources.some((q) => q.isError);
+  function retryToTreat() {
+    toTreatSources.forEach((q) => void q.refetch());
+  }
+
   const actionItems: ActionItem[] = (
     isAdmin
       ? [
           { key: "parks", label: "Parcs en attente de validation", count: pending, onClick: () => navigate("/parks?status=pending") },
           { key: "reports", label: "Signalements ouverts", count: openReports, onClick: () => navigate("/reports") },
+          // File de validation park_edits : DB + API prêtes, écran de revue
+          // pas encore construit (prochain lot) — le volume est montré
+          // honnêtement, sans faire semblant qu'il y a déjà quelque chose à
+          // ouvrir.
+          { key: "edits", label: "Infos à vérifier", count: pendingEdits.length, hint: "Écran dédié à venir" },
         ]
       : [
           { key: "reports", label: "Signalements ouverts", count: openReports, onClick: () => navigate("/reports") },
           { key: "media", label: "Photos en attente", count: pendingMedia.length, onClick: () => navigate("/photos") },
-          // No dedicated screen exists yet (Lot 6) — the volume is shown honestly,
-          // without pretending there is somewhere real to click through to.
           { key: "edits", label: "Infos à vérifier", count: pendingEdits.length, hint: "Écran dédié à venir" },
           { key: "maintenance", label: "Entretien à venir", count: upcomingMaintenance, onClick: () => navigate("/maintenance") },
         ]
@@ -90,16 +121,80 @@ export default function Dashboard() {
 
   const stats: StatItem[] = isAdmin
     ? [
-        { key: "active", value: published, label: "Parcs actifs", onClick: () => navigate("/parks") },
-        { key: "media", value: pendingMedia.length, label: "Photos en attente", onClick: () => navigate("/photos") },
-        { key: "reviews", value: reviews.length, label: "Avis publiés", onClick: () => navigate("/reviews") },
-        { key: "reports", value: openReports, label: "Signalements ouverts", onClick: () => navigate("/reports") },
+        {
+          key: "active",
+          value: published,
+          label: "Parcs actifs",
+          onClick: () => navigate("/parks?status=published"),
+          loading: parksQ.isLoading,
+          error: parksQ.isError,
+        },
+        {
+          key: "pending",
+          value: pending,
+          label: "Parcs en attente",
+          onClick: () => navigate("/parks?status=pending"),
+          loading: parksQ.isLoading,
+          error: parksQ.isError,
+        },
+        {
+          key: "reports",
+          value: openReports,
+          label: "Signalements ouverts",
+          onClick: () => navigate("/reports"),
+          loading: reportsQ.isLoading,
+          error: reportsQ.isError,
+        },
+        {
+          key: "reviews",
+          value: reviews.length,
+          label: "Avis publiés",
+          onClick: () => navigate("/reviews"),
+          loading: reviewsQ.isLoading,
+          error: reviewsQ.isError,
+        },
+        {
+          key: "media",
+          value: pendingMedia.length,
+          label: "Photos en attente",
+          onClick: () => navigate("/photos"),
+          loading: pendingMediaQ.isLoading,
+          error: pendingMediaQ.isError,
+        },
       ]
     : [
-        { key: "published", value: published, label: "Publiés", onClick: () => navigate("/parks?status=published") },
-        { key: "pending", value: pending, label: "En attente", onClick: () => navigate("/parks?status=pending") },
-        { key: "blocked", value: blocked, label: "Bloqués", onClick: () => navigate("/parks?status=blocked") },
-        { key: "total", value: parks.length, label: "Total", onClick: () => navigate("/parks?status=all") },
+        {
+          key: "published",
+          value: published,
+          label: "Publiés",
+          onClick: () => navigate("/parks?status=published"),
+          loading: parksQ.isLoading,
+          error: parksQ.isError,
+        },
+        {
+          key: "pending",
+          value: pending,
+          label: "En attente",
+          onClick: () => navigate("/parks?status=pending"),
+          loading: parksQ.isLoading,
+          error: parksQ.isError,
+        },
+        {
+          key: "blocked",
+          value: blocked,
+          label: "Bloqués",
+          onClick: () => navigate("/parks?status=blocked"),
+          loading: parksQ.isLoading,
+          error: parksQ.isError,
+        },
+        {
+          key: "total",
+          value: parks.length,
+          label: "Total",
+          onClick: () => navigate("/parks?status=all"),
+          loading: parksQ.isLoading,
+          error: parksQ.isError,
+        },
       ];
 
   return (
@@ -109,7 +204,11 @@ export default function Dashboard() {
       <div className={styles.stack}>
         <Card flat>
           <h2 className={styles.sectionTitle}>À traiter</h2>
-          {actionItems.length === 0 ? (
+          {toTreatError ? (
+            <ErrorInline onRetry={retryToTreat} />
+          ) : toTreatLoading ? (
+            <SkeletonActionRows count={2} />
+          ) : actionItems.length === 0 ? (
             <div className={styles.empty}>
               <span className={styles.emptyIcon}>
                 <Icon name="ic-check" size={18} />
@@ -147,7 +246,15 @@ export default function Dashboard() {
           <div className={styles.statStrip}>
             {stats.map((stat) => (
               <button key={stat.key} type="button" className={styles.stat} onClick={stat.onClick}>
-                <span className={styles.statValue}>{stat.value}</span>
+                {stat.error ? (
+                  <span className={styles.statError} title="Indisponible">
+                    —
+                  </span>
+                ) : stat.loading ? (
+                  <Skeleton width={32} height={20} />
+                ) : (
+                  <span className={styles.statValue}>{stat.value}</span>
+                )}
                 <span className={styles.statLabel}>{stat.label}</span>
               </button>
             ))}
@@ -156,8 +263,14 @@ export default function Dashboard() {
 
         <Card flat>
           <h2 className={styles.sectionTitle}>Activité récente</h2>
-          <ActivityList activity={activity} />
-          {!isAdmin && lowReviews > 0 && (
+          {activityQ.isError ? (
+            <ErrorInline onRetry={() => void activityQ.refetch()} />
+          ) : activityQ.isLoading ? (
+            <SkeletonActivityRows count={4} />
+          ) : (
+            <ActivityList activity={activity} />
+          )}
+          {!isAdmin && !reviewsQ.isLoading && !reviewsQ.isError && lowReviews > 0 && (
             <button type="button" className={styles.actionRow} onClick={() => navigate("/reviews")} style={{ marginTop: 8 }}>
               <span className={styles.actionLabel}>Avis ≤2★ à examiner</span>
               <span className={styles.countBadge}>{lowReviews}</span>
@@ -175,17 +288,68 @@ function ActivityList({ activity }: { activity: { id: string; text: string; acto
   }
   return (
     <>
-      {activity.slice(0, 8).map((a) => (
-        <div key={a.id} className={styles.activityRow}>
-          <span className={styles.activityDot} />
-          <div>
-            <div className={styles.activityText}>{a.text}</div>
-            <div className={styles.activityMeta}>
-              {a.actor} · {new Date(a.created_at).toLocaleString("fr-FR")}
+      {activity.slice(0, 8).map((a) => {
+        const icon = activityIcon(a.text);
+        return (
+          <div key={a.id} className={styles.activityRow}>
+            {icon ? (
+              <span className={styles.activityIconWrap}>
+                <Icon name={icon} size={13} />
+              </span>
+            ) : (
+              <span className={styles.activityDot} />
+            )}
+            <div>
+              <div className={styles.activityText}>{a.text}</div>
+              <div className={styles.activityMeta}>
+                {a.actor} · {new Date(a.created_at).toLocaleString("fr-FR")}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function SkeletonActionRows({ count }: { count: number }) {
+  return (
+    <div className={styles.actionList}>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={styles.actionRow} style={{ cursor: "default" }}>
+          <Skeleton width={`${50 + (i % 2) * 15}%`} height={12} />
+          <Skeleton width={22} height={18} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SkeletonActivityRows({ count }: { count: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, i) => (
+        <div key={i} className={styles.activityRow}>
+          <span className={styles.activityDot} style={{ opacity: 0.4 }} />
+          <div style={{ flex: 1 }}>
+            <Skeleton width={`${55 + (i % 3) * 12}%`} height={13} />
+            <div style={{ marginTop: 4 }}>
+              <Skeleton width="35%" height={10} />
             </div>
           </div>
         </div>
       ))}
     </>
+  );
+}
+
+function ErrorInline({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className={styles.errorInline}>
+      <span>Impossible de charger ces données.</span>
+      <Button size="sm" variant="secondary" onClick={onRetry}>
+        Réessayer
+      </Button>
+    </div>
   );
 }

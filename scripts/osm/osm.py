@@ -61,15 +61,33 @@ def main():
         run([sys.executable, ROOT/"scripts/osm/analyze-osm.py", pbf])
         return
 
+    region_cfg = config["regions"][args.region]
+    country_code = region_cfg["country_code"]
+    timezone = region_cfg["timezone"]
+
     if args.cmd == "import-local":
-        cmd = [sys.executable, ROOT/"scripts/osm/import-osm-local.py", pbf]
+        cmd = [
+            sys.executable,
+            ROOT/"scripts/osm/import-osm-local.py",
+            pbf,
+            "--country-code", country_code,
+            "--timezone", timezone,
+        ]
         if args.commit: cmd.append("--commit")
         if args.publish: cmd.append("--publish")
         run(cmd)
         return
 
     env = "staging" if args.cmd == "import-staging" else "prod"
-    cmd = [sys.executable, ROOT/"scripts/osm/import-osm-remote.py", env, pbf]
+
+    cmd = [
+        sys.executable,
+        ROOT/"scripts/osm/import-osm-remote.py",
+        env,
+        pbf,
+        "--country-code", country_code,
+        "--timezone", timezone,
+    ]
     if args.commit: cmd.append("--commit")
     if args.publish: cmd.append("--publish")
     run(cmd)

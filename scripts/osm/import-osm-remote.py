@@ -105,7 +105,7 @@ def build_candidates(pbf, local):
                 })
     return candidates, skipped, enrich
 
-def park_sql(p, publish):
+def park_sql(p, publish, country_code, timezone):
     status = "published" if publish else "pending"
     source_url = f"https://www.openstreetmap.org/{p['osm_type']}/{p['osm_id']}"
     feature_sql = []
@@ -216,7 +216,7 @@ begin
       ages_derived, moderation_status, verification_status{address_insert_cols}
     ) values (
       {q(p['name'])}, {n(p['latitude'])}, {n(p['longitude'])},
-      'FR', 'Europe/Paris', {n(p['min_age'])}, {n(p['max_age'])},
+      {q(country_code)}, {q(timezone)}, {n(p['min_age'])}, {n(p['max_age'])},
       false, '{status}', 'unverified'{address_insert_vals}
     ) returning id into v_park_id;
 
@@ -272,6 +272,8 @@ def main():
     ap.add_argument("pbf")
     ap.add_argument("--commit", action="store_true")
     ap.add_argument("--publish", action="store_true")
+    ap.add_argument("--country-code", required=True)
+    ap.add_argument("--timezone", required=True)
     args = ap.parse_args()
 
     pbf = Path(args.pbf).expanduser().resolve()
@@ -314,7 +316,12 @@ def main():
             sql_path = Path(f.name)
             f.write("begin;\n")
             for p in batch:
-                f.write(park_sql(p, args.publish))
+                f.write(park_sql(
+                    p,
+                    args.publish,
+                    args.country_code,
+                    args.timezone,
+                ))
             f.write("commit;\n")
 
         try:

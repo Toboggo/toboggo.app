@@ -17,6 +17,14 @@
       ],
       "country_code": "FR",
       "timezone": "Europe/Paris"
+    },
+    "spain": {
+      "label": "Espagne",
+      "patterns": [
+        "spain-*.osm.pbf"
+      ],
+      "country_code": "ES",
+      "timezone": "Europe/Madrid"
     }
   }
 }

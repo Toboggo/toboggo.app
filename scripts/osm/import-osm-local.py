@@ -66,6 +66,18 @@ def parse_args():
     )
 
     parser.add_argument(
+        "--country-code",
+        required=True,
+        help="Code pays ISO 3166-1 alpha-2 du parc (ex: FR, ES).",
+    )
+
+    parser.add_argument(
+        "--timezone",
+        required=True,
+        help="Fuseau IANA du parc (ex: Europe/Paris, Europe/Madrid).",
+    )
+
+    parser.add_argument(
         "--commit",
         action="store_true",
         help=(
@@ -1084,8 +1096,8 @@ def main():
                                 %s,
                                 %s,
                                 %s,
-                                'FR',
-                                'Europe/Paris',
+                                %s,
+                                %s,
                                 %s,
                                 %s,
                                 false,
@@ -1101,6 +1113,8 @@ def main():
                                 park["name"],
                                 park["latitude"],
                                 park["longitude"],
+                                args.country_code,
+                                args.timezone,
                                 park["min_age"],
                                 park["max_age"],
                                 (park["address"] or {}).get("address_line"),

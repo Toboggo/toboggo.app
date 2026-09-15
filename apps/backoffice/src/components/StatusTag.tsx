@@ -1,5 +1,5 @@
 import { Tag } from "@toboggo/design-system";
-import type { ParkStatus, ReportStatus, VerificationStatus } from "@toboggo/shared";
+import { REPORT_SEVERITY_LABEL, type ParkStatus, type ReportSeverity, type ReportStatus, type VerificationStatus } from "@toboggo/shared";
 
 const PARK_LABEL: Record<ParkStatus, string> = {
   draft: "Brouillon",
@@ -46,4 +46,20 @@ const REPORT_TONE: Record<ReportStatus, "warning" | "primary" | "neutral"> = { o
 
 export function ReportStatusTag({ status }: { status: ReportStatus }) {
   return <Tag tone={REPORT_TONE[status]}>{REPORT_LABEL[status]}</Tag>;
+}
+
+// `reports.severity` (colonne réelle, toujours renseignée par `createReport` —
+// défaut "medium") n'était affichée nulle part dans le BO. `low`/`medium` ne
+// changent rien à la lecture d'une ligne (tag neutre) ; seul `high`/`critical`
+// portent une vraie couleur d'attention, conformément à « orange = attention,
+// rouge = criticité réelle ».
+const SEVERITY_TONE: Record<ReportSeverity, "neutral" | "warning" | "error"> = {
+  low: "neutral",
+  medium: "neutral",
+  high: "warning",
+  critical: "error",
+};
+
+export function ReportSeverityTag({ severity }: { severity: ReportSeverity }) {
+  return <Tag tone={SEVERITY_TONE[severity]}>{REPORT_SEVERITY_LABEL[severity]}</Tag>;
 }

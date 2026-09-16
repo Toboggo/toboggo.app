@@ -1,6 +1,6 @@
 import { getSupabase } from "../supabaseClient";
 import { listOrgParkIds } from "./parks";
-import type { Json, ParkEdit } from "../types";
+import type { Json, ParkEdit, ParkEditReviewDecision, ParkEditReviewResult } from "../types";
 
 /**
  * §13 — Contributions / change-requests. Parents propose; canonical `parks`
@@ -53,23 +53,38 @@ export async function listPendingParkEditsForOrg(organizationId: string): Promis
   return pending.filter((edit) => edit.park_id != null && parkIds.includes(edit.park_id));
 }
 
+/**
+ * Accepte ou rejette une proposition `park_edits` — SEULE voie applicative
+ * pour cette action (Admin-3A). Appelle exclusivement la RPC transactionnelle
+ * `review_park_edit` (migration 0037) : aucune écriture directe sur
+ * `park_edits`/`parks`/`park_features` ici, la RPC garantit à elle seule la
+ * comparaison live (A/B/C), l'application réelle, le statut final et
+ * l'atomicité (tout ou rien en cas d'erreur technique).
+ *
+ * Pas de `reviewerId` en paramètre : le reviewer est déterminé côté DB par
+ * `auth.uid()`, jamais fourni par le client (0037, §PERMISSIONS).
+ *
+ * `requires_manual_review` et `already_reviewed` sont des résultats MÉTIER
+ * normaux (retournés, pas levés en exception) — seule une vraie erreur
+ * (permissions, type de proposition non supporté, décision invalide, échec
+ * SQL) rejette la promesse, via le `throw error` habituel des wrappers de ce
+ * fichier.
+ */
 export async function reviewParkEdit(
-  id: string,
-  decision: "approved" | "rejected" | "auto_approved",
-  reviewerId: string,
+  editId: string,
+  decision: ParkEditReviewDecision,
   note?: string,
-): Promise<void> {
+): Promise<ParkEditReviewResult> {
   const supabase = getSupabase();
-  const { error } = await supabase
-    .from("park_edits")
-    .update({
-      status: decision,
-      reviewed_by: reviewerId,
-      review_note: note ?? null,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", id);
+  const { data, error } = await supabase.rpc("review_park_edit", {
+    p_edit_id: editId,
+    p_decision: decision,
+    // Omis plutôt que `null` si absent — même convention que `findDuplicateParks`
+    // ci-dessous : le type `Args` généré (`p_note?: string`) rejette `null`.
+    ...(note ? { p_note: note } : {}),
+  });
   if (error) throw error;
+  return data as ParkEditReviewResult;
 }
 
 // ── §11 Worldwide de-duplication ────────────────────────────────────────

@@ -344,6 +344,45 @@ export interface ParkEdit {
   reviewed_at: string | null;
 }
 
+// ── §13 bis — review_park_edit() RPC (migration 0037, Admin-3A) ───────────
+// Contrat EXACT de la fonction SQL — voir supabase/migrations/0037_review_
+// park_edit.sql. `Database["public"]["Functions"]["review_park_edit"]`
+// (database.types.ts) type l'appel RPC lui-même (`Args`/`Returns: Json`) ;
+// ces types-ci décrivent la forme RÉELLE du JSON retourné, pour qu'Admin-3B
+// consomme un résultat typé plutôt qu'un `Json` opaque.
+export type ParkEditItemResult = "APPLICABLE" | "ALREADY_APPLIED" | "CONFLICT" | "NOT_AUTOMATICALLY_APPLICABLE";
+
+/** Une ligne de `changes.items[]` après classification A/B/C par la RPC. */
+export interface ParkEditReviewItem {
+  field: string;
+  label: string;
+  result: ParkEditItemResult;
+  /** true pour APPLICABLE (réellement appliqué) et ALREADY_APPLIED (déjà en
+   * phase) ; false pour CONFLICT et NOT_AUTOMATICALLY_APPLICABLE. */
+  applied: boolean;
+}
+
+/** Décision passée à `reviewParkEdit()` — jamais un `reviewerId` : le
+ * reviewer est déterminé côté DB par `auth.uid()`. */
+export type ParkEditReviewDecision = "approve" | "reject";
+
+/**
+ * Résultat de `review_park_edit()`. Union discriminée sur `outcome` — les 4
+ * valeurs sont des résultats MÉTIER normaux, jamais des exceptions :
+ * `requires_manual_review` et `already_reviewed` doivent rester
+ * consommables tels quels par l'UI, pas transformés en erreurs JS.
+ */
+export type ParkEditReviewResult =
+  | { outcome: "approved"; status: "approved"; items: ParkEditReviewItem[] }
+  | { outcome: "requires_manual_review"; status: "pending"; items: ParkEditReviewItem[] }
+  | { outcome: "rejected"; status: "rejected"; items: [] }
+  | {
+      outcome: "already_reviewed";
+      status: EditStatus;
+      reviewed_by: string | null;
+      reviewed_at: string | null;
+    };
+
 // ── §14 Audit log ────────────────────────────────────────────────────────
 export interface AuditLogEntry {
   id: string;

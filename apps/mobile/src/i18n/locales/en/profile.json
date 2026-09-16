@@ -47,22 +47,28 @@
     "reviews": "Reviews",
     "favorites": "Favorites"
   },
-  "badgesTitle": "Badges",
+  "badgesTitle": "My badges",
   "badge": {
     "firstReview": "First review",
     "contributor": "Contributor",
     "explorer": "Explorer",
     "grand": "Top contributor",
-    "earnedLabel": "Earned"
+    "earnedLabel": "Earned",
+    "more": "+{{count}}"
   },
   "notificationsCenter": "Notification center",
-  "myToboggoTitle": "My Toboggo",
+  "myActivityTitle": "My activity",
   "myContributions": "My contributions",
   "groupOuting": "Group outing",
-  "preferencesTitle": "Preferences",
+  "memberSince": "Toboggo member since {{year}}",
+  "applicationTitle": "Preferences",
   "language": "Language",
   "appearance": "Appearance",
   "helpInfoTitle": "Help & information",
+  "settingsScreen": {
+    "title": "Settings",
+    "open": "Open settings"
+  },
   "contactUs": "Contact us",
   "accountTitle": "Account",
   "help": "Help",
@@ -166,7 +172,8 @@
     "sessionKicker": "Session",
     "managementKicker": "Account management",
     "infoKicker": "Your information",
-    "dangerKicker": "Sensitive zone"
+    "dangerKicker": "Sensitive zone",
+    "personalInfo": "Personal information"
   },
   "about": {
     "title": "About Toboggo",

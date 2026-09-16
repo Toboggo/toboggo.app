@@ -47,22 +47,28 @@
     "reviews": "Avis",
     "favorites": "Favoris"
   },
-  "badgesTitle": "Badges",
+  "badgesTitle": "Mes badges",
   "badge": {
     "firstReview": "Premier avis",
     "contributor": "Contributeur",
     "explorer": "Explorateur",
     "grand": "Grand contributeur",
-    "earnedLabel": "Obtenu"
+    "earnedLabel": "Obtenu",
+    "more": "+{{count}}"
   },
   "notificationsCenter": "Centre de notifications",
-  "myToboggoTitle": "Mon Toboggo",
+  "myActivityTitle": "Mon activité",
   "myContributions": "Mes contributions",
   "groupOuting": "Sortie de groupe",
-  "preferencesTitle": "Préférences",
+  "memberSince": "Membre Toboggo depuis {{year}}",
+  "applicationTitle": "Préférences",
   "language": "Langue",
   "appearance": "Apparence",
   "helpInfoTitle": "Aide & informations",
+  "settingsScreen": {
+    "title": "Réglages",
+    "open": "Ouvrir les réglages"
+  },
   "contactUs": "Nous contacter",
   "accountTitle": "Compte",
   "help": "Aide",
@@ -155,7 +161,7 @@
   "privacyScreen": {
     "title": "Confidentialité et conditions",
     "privacyPolicy": "Politique de confidentialité",
-    "terms": "CGU",
+    "terms": "Conditions d'utilisation",
     "legalNotice": "Mentions légales",
     "deleteAccount": "Supprimer mon compte",
     "deleteConfirmTitle": "Supprimer votre compte ?",
@@ -166,7 +172,8 @@
     "sessionKicker": "Session",
     "managementKicker": "Gestion du compte",
     "infoKicker": "Vos informations",
-    "dangerKicker": "Zone sensible"
+    "dangerKicker": "Zone sensible",
+    "personalInfo": "Informations personnelles"
   },
   "about": {
     "title": "À propos de Toboggo",

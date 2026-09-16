@@ -140,31 +140,25 @@
   /* ============================================================
      Bottom navigation — source de vérité unique
      ------------------------------------------------------------
-     --bottom-nav-content-h : hauteur de la barre flottante elle-même
+     --bottom-nav-content-h : hauteur de la zone d'onglets elle-même
        (icônes + libellés + padding vertical propre à la barre).
        Identique sur toutes les plateformes.
-     --bottom-nav-gap : dégagement entre le bas de la barre flottante et
-       la safe-area (home indicator / bord d'écran) — ce qui la détache
-       visuellement des bords.
+     --bottom-nav-gap : dégagement entre le bas de la barre et la
+       safe-area — 0 : le footer est ancré bord-à-bord (flush), plus un
+       dock détaché. Conservé comme terme nommé de la formule ci-dessous
+       (plutôt qu'une valeur en dur) pour qu'un futur ajustement reste
+       centralisé ici.
      --bottom-nav-h : espace total réellement réservé au-dessus du bas de
        l'écran = contenu + gap + safe-area du home indicator. La safe-area
        est ajoutée ICI et nulle part ailleurs — jamais comptée deux fois.
-     Consommé par : BottomTabs (.wrap bottom offset + hauteur), le
-     dégagement bas des écrans à onglets, MapExplore (insets carte) et
+     Consommé par : BottomTabs (.wrap hauteur + padding-bottom safe-area),
+     le dégagement bas des écrans à onglets, MapExplore (insets carte) et
      BottomSheet (bottomInset) via le hook useBottomNavHeight() — la carte,
      le sheet et la nav ne peuvent donc jamais se désynchroniser.
      ============================================================ */
   --bottom-nav-content-h: 56px;
-  --bottom-nav-gap: 14px;
+  --bottom-nav-gap: 0px;
   --bottom-nav-h: calc(var(--bottom-nav-content-h) + var(--bottom-nav-gap) + var(--safe-bottom));
-
-  /* Floating dock surface — translucent so the map/sheet behind it stays
-     legible through the blur instead of reading as an opaque slab.
-     --color-nav-surface-fallback is the `@supports`-gated opaque swap for
-     browsers without backdrop-filter. */
-  --color-nav-surface: rgba(255, 255, 255, 0.72);
-  --color-nav-surface-fallback: var(--color-surface);
-  --color-nav-border: rgba(20, 30, 24, 0.07);
 }
 
 /*
@@ -208,9 +202,6 @@
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
-
-  --color-nav-surface: rgba(30, 38, 32, 0.72);
-  --color-nav-border: rgba(255, 255, 255, 0.08);
 }
 
 * {

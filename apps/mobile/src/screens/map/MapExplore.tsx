@@ -264,10 +264,17 @@ export default function MapExplore() {
       );
     }
 
+    // One header shape across every snap — same title anchor, same row
+    // layout — only the trailing slot's content changes (hint at peek, the
+    // "Voir tout" jump at medium, the count once expanded). Sharing this
+    // single block is what makes peek → medium → expanded read as one panel
+    // deploying rather than three different headers swapping in.
     const header = (
       <div className={styles.sheetHead}>
         <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
-        {snap < 2 ? (
+        {snap === 0 ? (
+          <span className={styles.count}>{t("sheet.dragHint", { count: parks.length })}</span>
+        ) : snap === 1 ? (
           <button type="button" className={styles.seeAll} onClick={() => setSnap(2)}>
             {t("action.seeAll", { ns: "common" })}
           </button>
@@ -277,17 +284,14 @@ export default function MapExplore() {
       </div>
     );
 
-    // Peek: title + hint, then the same carousel as the intermediate state —
-    // the sheet is just shorter here (see PEEK_H), cropping it to a partial
-    // first row instead of measuring/hugging it ("fit"). No favorites section
-    // at this tier; it only shows once fully expanded (snap 1).
+    // Peek: header + the same carousel as the intermediate state — the sheet
+    // is just shorter here (see PEEK_H), cropping it to a partial first row
+    // instead of measuring/hugging it ("fit"). No favorites section at this
+    // tier; it only shows once fully expanded (snap 1).
     if (snap === 0) {
       return (
         <div className={styles.intermediate}>
-          <div className={styles.peekHead}>
-            <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
-            <div className={styles.count}>{t("sheet.dragHint", { count: parks.length })}</div>
-          </div>
+          {header}
           <ParkCarousel
             parks={parks}
             favorites={favorites}

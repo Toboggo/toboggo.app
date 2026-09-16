@@ -1,8 +1,7 @@
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@toboggo/design-system";
-import { QuickMenu } from "./QuickMenu";
 import styles from "./BottomTabs.module.css";
 
 // "Contributions" n'a pas encore de pictogramme validé dans le sprite Toboggo
@@ -21,19 +20,14 @@ const TABS: { path: string; icon: ReactNode; labelKey: string }[] = [
 ];
 
 /**
- * Bottom navigation. On every screen except the map (which has its own floating
- * "+" FAB), a raised central "+" opens the QuickMenu — matching the Claude
- * Design prototype's Favoris / Profil tab bars.
+ * Bottom navigation — the 4 root destinations only. Contribution actions
+ * ("+") are never part of it; the map's own floating FAB is the sole
+ * "+" entry point (see MapExplore's `fabAdd`).
  */
-export function BottomTabs({ centerAdd = true }: { centerAdd?: boolean }) {
+export function BottomTabs() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const showAdd = centerAdd && pathname !== "/map";
-  const left = TABS.slice(0, 2);
-  const right = TABS.slice(2);
 
   const renderTab = (tab: (typeof TABS)[number]) => {
     const active = pathname === tab.path;
@@ -52,19 +46,8 @@ export function BottomTabs({ centerAdd = true }: { centerAdd?: boolean }) {
   };
 
   return (
-    <>
-      <nav className={styles.wrap}>
-        {left.map(renderTab)}
-        {showAdd && (
-          <div className={styles.centerSlot}>
-            <button type="button" className={styles.centerFab} onClick={() => setMenuOpen(true)} aria-label={t("action.add")}>
-              <Icon name="ic-plus" size={24} />
-            </button>
-          </div>
-        )}
-        {right.map(renderTab)}
-      </nav>
-      {showAdd && <QuickMenu open={menuOpen} onClose={() => setMenuOpen(false)} />}
-    </>
+    <nav className={styles.wrap}>
+      {TABS.map(renderTab)}
+    </nav>
   );
 }

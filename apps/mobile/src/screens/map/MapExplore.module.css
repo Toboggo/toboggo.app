@@ -195,6 +195,7 @@
   padding: var(--space-1) var(--space-4) var(--space-3);
 }
 .sheetTitle {
+  flex: none;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 17px;
@@ -211,17 +212,19 @@
   color: var(--color-primary);
   cursor: pointer;
 }
+/* `flex:1` + `min-width:0` + ellipsis: the trailing slot (peek's longer drag
+   hint, in particular) truncates gracefully on a narrow phone instead of
+   wrapping or pushing the title — same box on every snap regardless of how
+   long its text is. */
 .count {
-  flex: none;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
   font-size: 12.5px;
   color: var(--color-text-muted);
-}
-
-.peekHead {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0 var(--space-4) var(--space-3);
 }
 
 .intermediate {

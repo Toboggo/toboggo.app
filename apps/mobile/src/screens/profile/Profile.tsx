@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { computeChildAge, listMyParks, listMyReviews, signOut, purgeDraftsForPrincipal } from "@toboggo/shared";
-import { useTheme, Icon, type ThemePreference, type IconName } from "@toboggo/design-system";
+import { computeChildAge, listMyParks, listMyReviews } from "@toboggo/shared";
+import { useTheme, LogoMark, Icon, type ThemePreference, type IconName } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useChildren } from "../../lib/children";
@@ -48,6 +48,11 @@ const BADGES: {
   },
 ];
 
+// Preview strip on the hub shows at most this many badges, plus a "+N" tile
+// for the rest — a full "Tous les badges" screen doesn't exist yet, so this
+// cap is what keeps the preview compact rather than a real pagination.
+const BADGES_PREVIEW_COUNT = 3;
+
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 }
@@ -66,15 +71,6 @@ export default function Profile() {
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
   const { data: myChildren = [] } = useChildren();
 
-  async function handleSignOut() {
-    // Captured before the session is cleared: only this account's local
-    // drafts are purged on a shared device.
-    const uid = useSession.getState().userId;
-    await signOut();
-    if (uid) purgeDraftsForPrincipal({ userId: uid });
-    navigate("/");
-  }
-
   // Guest: no account yet. Still expose the account-independent settings
   // (language above all) and a sign-in entry, instead of a blank screen.
   if (!profile) {
@@ -92,7 +88,7 @@ export default function Profile() {
             {t("action.signIn", { ns: "common" })}
           </button>
 
-          <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
+          <h6 className={styles.kicker}>{t("applicationTitle")}</h6>
           <div className={styles.group}>
             <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
             <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
@@ -112,24 +108,37 @@ export default function Profile() {
   }
 
   const stats: Stats = { parks: myParks.length, reviews: myReviews.length, favorites: profile.favorites.length };
+  const memberSinceYear = profile.created_at ? new Date(profile.created_at).getFullYear() : NaN;
+  const previewBadges = BADGES.slice(0, BADGES_PREVIEW_COUNT);
+  const extraBadgeCount = BADGES.length - previewBadges.length;
 
   return (
     <div className={styles.screen}>
-      <div className={styles.titleBar}>
-        <h2>{t("title")}</h2>
+      {/* Header hub — logo + titre + accès Réglages. L'édition du profil et
+          les préférences vivent désormais dans /settings (sous-écran) : ce
+          header n'est plus qu'une identité, pas un centre d'actions. */}
+      <div className={styles.hubHeader}>
+        <LogoMark size={28} />
+        <h2 className={styles.hubTitle}>{t("title")}</h2>
+        <button
+          type="button"
+          className={styles.settingsBtn}
+          onClick={() => navigate("/settings")}
+          aria-label={t("settingsScreen.open")}
+        >
+          <Icon name="ic-settings" size={18} />
+        </button>
       </div>
 
       <div className={styles.body}>
-        {/* Identité — avatar, nom, informations et stats essentielles. Zone volontairement sobre. */}
         <div className={styles.idRow}>
           <div className={styles.avatar}>{initials(profile.name)}</div>
           <div className={styles.idText}>
             <div className={styles.idName}>{profile.name}</div>
-            <div className={styles.idEmail}>{profile.email}</div>
+            {!Number.isNaN(memberSinceYear) && (
+              <div className={styles.idMeta}>{t("memberSince", { year: memberSinceYear })}</div>
+            )}
           </div>
-          <button type="button" className={styles.editBtn} onClick={() => navigate("/profile/edit")}>
-            {t("edit")}
-          </button>
         </div>
 
         <div className={styles.stats}>
@@ -147,9 +156,55 @@ export default function Profile() {
           </button>
         </div>
 
+        {/* Famille — encart teinté (univers Toboggo), délibérément plus
+            visible que le reste du hub : c'est le cœur du produit. */}
+        <div className={styles.familyCard}>
+          <div className={styles.familyHeader}>
+            <h6 className={styles.familyKicker}>{t("myChildren")}</h6>
+            <button type="button" className={styles.manageLink} onClick={() => navigate("/profile/children")}>
+              {t("children.manage")}
+              <Chevron />
+            </button>
+          </div>
+          <p className={styles.familyIntro}>{t("children.formIntro")}</p>
+          {myChildren.length > 0 && (
+            <div className={styles.children}>
+              {myChildren.map((c) => {
+                const age = computeChildAge(c);
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={styles.child}
+                    onClick={() => navigate(`/profile/children/${c.id}`)}
+                  >
+                    {age != null ? f.ageRange(age, age) : t("children.ageUnknown")}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <button type="button" className={styles.addChild} onClick={() => navigate("/profile/children/new")}>
+            <span aria-hidden>+</span> {t("children.add")}
+          </button>
+        </div>
+
+        {/* Mon activité — uniquement des éléments personnels réels ; jamais
+            le fil communautaire (/activity), qui n'est pas "mon" historique. */}
+        <h6 className={styles.kicker}>{t("myActivityTitle")}</h6>
+        <div className={styles.group}>
+          <Row icon="ic-heart" label={t("favorites.title")} value={String(stats.favorites)} onClick={() => navigate("/favorites")} />
+          <Row icon="ic-list" label={t("myContributions")} onClick={() => navigate("/contributions")} />
+          <Row icon="ic-users" label={t("groupOuting")} onClick={() => navigate("/group")} />
+        </div>
+
+        {/* Mes badges — aperçu compact, jamais la grille de grosses cartes.
+            Pas d'affordance "Voir tout" : aucun écran "Tous les badges"
+            n'existe, on n'en crée pas un juste pour la maquette — ni un
+            texte qui ferait croire à une destination qui n'existe pas. */}
         <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
-        <div className={styles.badges}>
-          {BADGES.map((b) => {
+        <div className={styles.badgesStrip}>
+          {previewBadges.map((b) => {
             const earned = b.earned(stats);
             const prog = !earned ? b.progress?.(stats) : undefined;
             const iconWrapClass = earned
@@ -157,94 +212,31 @@ export default function Profile() {
                 ? `${styles.badgeIconWrap} ${styles.badgeIconWrapAccent}`
                 : `${styles.badgeIconWrap} ${styles.badgeIconWrapEarned}`
               : styles.badgeIconWrap;
+            const a11yLabel = `${t(b.labelKey)}${
+              earned ? ` — ${t("badge.earnedLabel")}` : prog ? ` — ${prog.current}/${prog.target}` : ""
+            }`;
             return (
-              <div key={b.key} className={styles.badgeCard}>
+              <div key={b.key} className={styles.badgeItem} role="img" aria-label={a11yLabel}>
                 <div className={iconWrapClass}>
-                  <Icon name={b.icon} size={20} />
+                  <Icon name={b.icon} size={17} />
                   {earned && (
-                    <span className={styles.badgeCheck} role="img" aria-label={t("badge.earnedLabel")}>
-                      <Icon name="ic-check" size={10} />
+                    <span className={styles.badgeCheck} aria-hidden>
+                      <Icon name="ic-check" size={9} />
                     </span>
                   )}
                 </div>
-                <div className={styles.badgeBody}>
-                  <span className={styles.badgeLabel}>{t(b.labelKey)}</span>
-                  {prog && prog.target > 1 && (
-                    <div className={styles.badgeProgress}>
-                      <div className={styles.badgeProgressTrack}>
-                        <div style={{ width: `${(prog.current / prog.target) * 100}%` }} />
-                      </div>
-                      <span className={styles.badgeFraction}>
-                        {prog.current}/{prog.target}
-                      </span>
-                    </div>
-                  )}
-                </div>
+                <span className={styles.badgeItemLabel}>{t(b.labelKey)}</span>
               </div>
             );
           })}
+          {extraBadgeCount > 0 && (
+            <div className={styles.badgeItem} aria-hidden>
+              <div className={styles.badgeIconWrap}>
+                <span className={styles.badgeMoreText}>{t("badge.more", { count: extraBadgeCount })}</span>
+              </div>
+            </div>
+          )}
         </div>
-
-        <div className={styles.childrenHeader}>
-          <h6 className={styles.kicker}>{t("myChildren")}</h6>
-          <button type="button" className={styles.manageLink} onClick={() => navigate("/profile/children")}>
-            {t("children.manage")}
-            <Chevron />
-          </button>
-        </div>
-        {myChildren.length > 0 && (
-          <div className={styles.children}>
-            {myChildren.map((c) => {
-              const age = computeChildAge(c);
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={styles.child}
-                  onClick={() => navigate(`/profile/children/${c.id}`)}
-                >
-                  {age != null ? f.ageRange(age, age) : t("children.ageUnknown")}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <button type="button" className={styles.addChild} onClick={() => navigate("/profile/children/new")}>
-          <span aria-hidden>+</span> {t("children.add")}
-        </button>
-
-        <h6 className={styles.kicker}>{t("myToboggoTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("notificationsCenter")} onClick={() => navigate("/notifications/center")} />
-          <Row label={t("favorites.title")} onClick={() => navigate("/favorites")} />
-          <Row label={t("myContributions")} onClick={() => navigate("/contributions")} />
-          <Row label={t("activity.title")} onClick={() => navigate("/activity")} />
-          <Row label={t("groupOuting")} onClick={() => navigate("/group")} />
-        </div>
-
-        <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
-          <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
-          <Row label={t("notifications")} onClick={() => navigate("/notifications")} />
-        </div>
-
-        <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("help")} onClick={() => navigate("/help")} />
-          <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
-          <Row label={t("about.title")} onClick={() => navigate("/about")} />
-        </div>
-
-        <h6 className={styles.kicker}>{t("accountTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("accountScreen.managementKicker")} onClick={() => navigate("/profile/account")} />
-        </div>
-
-        <button type="button" className={styles.signOutBtn} onClick={handleSignOut}>
-          {t("signOut")}
-        </button>
-        <p className={styles.versionText}>{t("about.version", { version: __APP_VERSION__ })}</p>
       </div>
 
       <BottomTabs />
@@ -252,10 +244,27 @@ export default function Profile() {
   );
 }
 
-function Row({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
+function Row({
+  icon,
+  label,
+  value,
+  onClick,
+}: {
+  icon?: IconName;
+  label: string;
+  value?: string;
+  onClick: () => void;
+}) {
   return (
     <button type="button" className={styles.groupRow} onClick={onClick}>
-      <span>{label}</span>
+      <span className={styles.groupRowMain}>
+        {icon && (
+          <span className={styles.groupRowIcon}>
+            <Icon name={icon} size={15} />
+          </span>
+        )}
+        <span>{label}</span>
+      </span>
       <span className={styles.groupRowTrailing}>
         {value && <span className={styles.groupRowValue}>{value}</span>}
         <Chevron />

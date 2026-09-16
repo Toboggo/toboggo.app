@@ -393,7 +393,15 @@ export function BottomSheet({
             flex: docked ? "0 0 auto" : 1,
             height: docked ? height - GRAB_H : undefined,
             overflowY: canScroll ? "auto" : "hidden",
-            touchAction: lockScroll ? "none" : undefined,
+            // Below the tallest snap, `pan-y` lets the browser commit to a native
+            // vertical scroll before the pointermove handler's `preventDefault()`
+            // can claim the gesture (touch-action is decided at touchstart, ahead
+            // of any JS). `pan-x` blocks that vertical fast-path so the drag logic
+            // above always owns upward/downward gestures here, while still letting
+            // a horizontal child (e.g. the park carousel) pan natively — `none`
+            // would also block that, since a descendant can't re-widen an
+            // ancestor's touch-action.
+            touchAction: lockScroll ? "none" : index < lastIdx ? "pan-x" : undefined,
           }}
         >
           <div ref={contentRef}>{children}</div>

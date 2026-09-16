@@ -34,6 +34,7 @@ import Contributions from "./screens/contributions/Contributions";
 import Activity from "./screens/contributions/Activity";
 
 import Profile from "./screens/profile/Profile";
+import Settings from "./screens/profile/Settings";
 import EditProfile from "./screens/profile/EditProfile";
 import Children from "./screens/profile/Children";
 import ChildForm from "./screens/profile/ChildForm";
@@ -138,6 +139,7 @@ export default function App() {
       <Route path="/activity" element={<Activity />} />
 
       <Route path="/profile" element={<Profile />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="/profile/edit" element={<EditProfile />} />
       <Route path="/profile/children" element={<Children />} />
       <Route path="/profile/children/new" element={<ChildForm />} />

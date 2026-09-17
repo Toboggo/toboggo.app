@@ -121,6 +121,25 @@ Cette section consolide, sous forme de règles d'implémentation actionnables, l
 justifiés en détail dans les sections précédentes (§2–§5). C'est la checklist à cocher au moment
 de configurer le SDK, pas un nouveau principe :
 
+**Statut : implémenté.** Le socle (`posthog-js` + `@posthog/react`, sans aucun événement métier
+câblé) vit dans `apps/mobile/src/lib/analytics/` :
+- `config.ts` — la configuration PostHog exacte (source unique à relire pour auditer ce qui est
+  réellement envoyé/désactivé) : `autocapture: false`, `capture_pageview: false`,
+  `capture_pageleave: false`, `disable_session_recording: true`, `disable_surveys: true`,
+  `disable_web_experiments: true`, `disable_product_tours: true`, `disable_conversations: true`,
+  `disable_external_dependency_loading: true`, `capture_exceptions: false`,
+  `capture_heatmaps: false`, `capture_performance: false`, `capture_dead_clicks: false`, et
+  `persistence: "memory"` + `disable_persistence: true` (voir §7bis, décision explicite).
+- `events.ts` — les 26 noms d'événements et leurs propriétés typées, + une allowlist runtime des
+  clés par événement (`EVENT_PROPERTY_ALLOWLIST`) appliquée à l'envoi, indépendamment de ce que
+  TypeScript a laissé passer à la compilation — voir la règle "spread arbitraire" ci-dessous.
+- `client.ts` — `isAnalyticsConfigured()`/`trackEvent()`, no-op complet sans `VITE_POSTHOG_KEY`/
+  `VITE_POSTHOG_HOST` (voir §7).
+- `AnalyticsProvider.tsx`/`index.ts` — provider et surface d'API publique minimale.
+
+Aucun des 26 événements n'est encore appelé depuis un écran — le socle est prêt, l'instrumentation
+est une phase ultérieure.
+
 - **Autocapture PostHog = OFF par défaut** (justifié §4 : formulaires email/mot de passe,
   contact, enfant, avis, signalement, note de modération listés en §2 sont trop nombreux et trop
   sensibles pour un masquage partiel fiable).
@@ -137,10 +156,16 @@ de configurer le SDK, pas un nouveau principe :
   complet** (ex. `posthog.capture("x", { ...profile })` est interdit) — chaque propriété doit être
   extraite et nommée individuellement, jamais un objet entier passé en spread, précisément pour
   éviter qu'un champ sensible ajouté plus tard à `profiles`/`children` (nom, email, etc.) ne se
-  retrouve capturé automatiquement sans revue.
+  retrouve capturé automatiquement sans revue. **Implémenté en deux couches** dans
+  `lib/analytics/` : le typage par événement (`AnalyticsEventProperties`) décourage un appel
+  correct, mais TypeScript ne bloque pas toujours un spread élargi (les propriétés en excès d'un
+  littéral avec spread échappent à la vérification stricte du compilateur) — `client.ts` filtre
+  donc *aussi* le payload au runtime avant tout envoi, ce qui est la garantie réelle. Testé
+  explicitement dans `client.test.ts`.
 - **Allowlist de propriétés par événement** — la liste de propriétés de chaque fiche
   `EVENT-TAXONOMY.md` est une liste fermée (allowlist), pas un exemple indicatif ; toute propriété
-  hors liste nécessite une mise à jour documentée de la taxonomie avant d'être envoyée.
+  hors liste nécessite une mise à jour documentée de la taxonomie avant d'être envoyée. Implémentée
+  au runtime via `EVENT_PROPERTY_ALLOWLIST` (`lib/analytics/events.ts`).
 - **Aucun texte libre** dans aucune propriété d'événement (§2.4) — ni commentaire d'avis, ni
   description de signalement, ni note de modérateur, ni requête de recherche en clair, ni prénom.
 - **Aucune latitude/longitude utilisateur précise** (§2.3) — `distance_bucket` catégoriel
@@ -156,21 +181,27 @@ de configurer le SDK, pas un nouveau principe :
 locaux, les sessions Simulator et les sessions Claude Code ne doivent jamais faire remonter
 d'événement dans le même espace de données que les utilisateurs réels de production.
 
-**Stratégie proposée — non implémentée à cette phase, à valider par le fondateur avant
-implémentation.** Le repo a déjà un précédent directement transposable : `CLAUDE.md` §4 impose une
+**Statut : le mécanisme no-op est implémenté (voir ci-dessous) ; la séparation Staging (projet
+PostHog distinct) reste, elle, non créée — un projet PostHog "Production" a été créé manuellement
+en dehors de ce repo, aucun projet Staging n'existe encore.**
+
+Le repo a déjà un précédent directement transposable : `CLAUDE.md` §4 impose une
 séparation stricte entre le projet Supabase de **production** (lié en CLI) et le projet
 **Staging** (`Toboggo Staging`, ref distincte, jamais lié en `--linked`), et `.env.local`
 (gitignoré, prioritaire en dev) sépare déjà la configuration locale de la configuration commitée
 (`CLAUDE.md` §3). La même logique s'applique naturellement à PostHog :
 
-- **Local / Simulator / Claude Code (dev)** : **aucune clé PostHog par défaut** dans
-  `.env.example` ni dans le code commité — exactement le même pattern déjà en place dans ce repo
-  pour `VITE_MAP_STYLE_URL` (absence ⇒ `FakeMap`, `ANALYTICS-AUDIT.md` §4) et `VITE_MAPTILER_KEY`
-  (absence ⇒ `searchPlaces` renvoie `[]` silencieusement, `ANALYTICS-AUDIT.md` §6) : si la clé
-  PostHog est absente de l'environnement, le SDK s'initialise en mode no-op et n'envoie rien,
-  plutôt que d'exiger une action explicite de chaque développeur pour désactiver le tracking.
-  Un développeur qui a besoin de vérifier ses événements en local doit explicitement renseigner
-  une clé de test dans son `.env.local` personnel (jamais commité).
+- **Local / Simulator / Claude Code (dev) — implémenté** : `.env.example` ne contient que
+  `VITE_POSTHOG_KEY=`/`VITE_POSTHOG_HOST=` vides, avec un commentaire explicite interdisant d'y
+  mettre une clé réelle — exactement le même pattern déjà en place dans ce repo pour
+  `VITE_MAP_STYLE_URL` (absence ⇒ `FakeMap`, `ANALYTICS-AUDIT.md` §4) et `VITE_MAPTILER_KEY`
+  (absence ⇒ `searchPlaces` renvoie `[]` silencieusement, `ANALYTICS-AUDIT.md` §6).
+  `isAnalyticsConfigured()` (`lib/analytics/client.ts`) revérifie les deux variables à chaque
+  appel : si absentes, `trackEvent()` ne fait rien, `posthog.init()` n'est jamais appelé, et
+  `AnalyticsProvider` rend ses enfants sans jamais monter `PostHogProvider` — testé explicitement
+  (`client.test.ts`, `AnalyticsProvider.test.tsx`). Un développeur qui a besoin de vérifier ses
+  événements en local doit explicitement renseigner une clé de test dans son `.env.local`
+  personnel (jamais commité).
 - **Staging** : projet PostHog **distinct** de la production (nouveau projet, pas juste une
   propriété `environment: "staging"` sur un même projet) — c'est le choix le plus sûr et le plus
   cohérent avec la séparation déjà actée pour Supabase Staging, quitte à être un peu plus de
@@ -185,8 +216,25 @@ séparation stricte entre le projet Supabase de **production** (lié en CLI) et 
   du traitement déjà réservé à `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` de production
   (`CLAUDE.md` §4).
 
-Cette stratégie n'est qu'une proposition à valider — aucune configuration n'a été créée ni
-modifiée dans le cadre de cet audit.
+La partie Staging reste une proposition à valider — aucun projet PostHog Staging n'a été créé.
+
+## 7bis. Persistance PostHog — décision prise pour le socle, à confirmer avant les événements P0
+
+`lib/analytics/config.ts` fixe `persistence: "memory"` et `disable_persistence: true` : PostHog
+n'écrit **rien** dans le navigateur (ni cookie, ni localStorage), et purge toute donnée qu'une
+configuration antérieure aurait pu y laisser. Ce n'est **pas** le défaut de la librairie
+(`localStorage+cookie`) — c'est un choix délibéré, dicté par l'absence actuelle de mécanisme de
+consentement cookie dans l'app (§8 ci-dessous) : tant que cette décision RGPD n'est pas tranchée,
+aucune configuration de persistance impliquant un stockage navigateur ne peut être choisie
+arbitrairement ici.
+
+**Conséquence assumée, à ne pas découvrir en prod** : le `distinct_id` anonyme de PostHog ne
+survit pas à un rechargement de page ou à la fermeture de l'app — chaque nouvelle visite d'un
+utilisateur non connecté est vue comme un nouvel anonyme. Les KPI reposant sur des utilisateurs
+anonymes uniques dans la durée (nouveaux vs returning avant inscription, funnels multi-sessions
+pour un invité) seront sous-évalués jusqu'à ce que ce point soit tranché. Un utilisateur connecté
+reste, lui, correctement identifié (Supabase `userId` comme `distinct_id`), pas affecté par cette
+limite.
 
 ## 8. Points nécessitant une validation RGPD/CNIL — ne pas trancher seul
 
@@ -195,7 +243,11 @@ modifiée dans le cadre de cet audit.
   d'information statique, pas des gestionnaires de consentement). Avant toute mise en prod de
   PostHog, il faut valider si un consentement explicite est requis (analytics non strictement
   nécessaire = généralement oui, sous réserve d'exemption "mesure d'audience" CNIL selon
-  configuration) et, si oui, l'implémenter avant collecte — pas après.
+  configuration) et, si oui, l'implémenter avant collecte — pas après. **Tant que ce point n'est
+  pas tranché, la persistance PostHog reste volontairement en `memory` (§7bis)** — c'est la
+  configuration la plus restrictive compatible avec un socle fonctionnel, pas une solution
+  définitive : si le consentement est obtenu, `persistence`/`disable_persistence` devront être
+  revus en conséquence (ex. `localStorage` uniquement après consentement explicite).
 - **Produit destiné à des parents d'enfants** : bien que les données *sur* les enfants
   (mois/année de naissance, cf. §2.1) ne soient volontairement jamais envoyées au tracking
   analytics selon ce document, le simple fait que le produit collecte ce type de donnée (même

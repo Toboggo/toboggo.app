@@ -7,6 +7,7 @@ import { buildNavGroups } from "./Shell";
 const REGISTERED_ROUTES = new Set([
   "/",
   "/parks",
+  "/validation",
   "/reports",
   "/reviews",
   "/photos",
@@ -27,7 +28,7 @@ function flatten(opts: Parameters<typeof buildNavGroups>[0]) {
 }
 
 describe("buildNavGroups — Lot 2 sidebar", () => {
-  const base = { pendingParks: 0, openReports: 0, pendingMedia: 0 };
+  const base = { pendingParks: 0, openReports: 0, pendingMedia: 0, pendingEdits: 0 };
 
   it("every commune nav item points to a real, registered route", () => {
     for (const item of flatten({ isAdmin: false, ...base })) {
@@ -67,7 +68,7 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
     const adminGroups = buildNavGroups({ isAdmin: true, ...base });
     expect(adminGroups.map((g) => [g.title, g.items.map((i) => i.label)])).toEqual([
       ["Pilotage", ["Tableau de bord"]],
-      ["Parcs", ["Parcs"]],
+      ["Parcs", ["Parcs", "File de validation"]],
       ["Exploitation", ["Signalements"]],
       ["Échanges / Qualité", ["Avis", "Photos"]],
       ["Organisation", ["Équipe & Réglages"]],
@@ -77,11 +78,22 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
   });
 
   it("carries the real pending counts through as badges", () => {
-    const groups = buildNavGroups({ isAdmin: false, pendingParks: 3, openReports: 5, pendingMedia: 2 });
+    const groups = buildNavGroups({ isAdmin: false, pendingParks: 3, openReports: 5, pendingMedia: 2, pendingEdits: 0 });
     const byLabel = Object.fromEntries(groups.flatMap((g) => g.items).map((i) => [i.label, i.badge]));
     expect(byLabel["Mes parcs"]).toBe(3);
     expect(byLabel["Signalements"]).toBe(5);
     expect(byLabel["Photos"]).toBe(2);
     expect(byLabel["Carte"]).toBeUndefined();
+  });
+
+  it("carries the pending park_edits count as the admin-only 'File de validation' badge", () => {
+    const groups = buildNavGroups({ isAdmin: true, pendingParks: 0, openReports: 0, pendingMedia: 0, pendingEdits: 7 });
+    const byLabel = Object.fromEntries(groups.flatMap((g) => g.items).map((i) => [i.label, i.badge]));
+    expect(byLabel["File de validation"]).toBe(7);
+  });
+
+  it("never exposes 'File de validation' to a Collectivité session (Admin-3B-1 §11)", () => {
+    const communeLabels = flatten({ isAdmin: false, ...base }).map((i) => i.label);
+    expect(communeLabels).not.toContain("File de validation");
   });
 });

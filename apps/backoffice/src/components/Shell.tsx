@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Icon, Logo, type IconName } from "@toboggo/design-system";
-import { listParks, listPendingMedia, listReports } from "@toboggo/shared";
+import { listParkEdits, listParks, listPendingMedia, listReports } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
 import { AppHeader } from "./AppHeader";
@@ -44,13 +44,20 @@ export function buildNavGroups(opts: {
   pendingParks: number;
   openReports: number;
   pendingMedia: number;
+  pendingEdits: number;
 }): NavGroup[] {
-  const { isAdmin, pendingParks, openReports, pendingMedia } = opts;
+  const { isAdmin, pendingParks, openReports, pendingMedia, pendingEdits } = opts;
 
   if (isAdmin) {
     return [
       { title: "Pilotage", items: [{ to: "/", label: "Tableau de bord", icon: "ic-dashboard" }] },
-      { title: "Parcs", items: [{ to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks }] },
+      {
+        title: "Parcs",
+        items: [
+          { to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks },
+          { to: "/validation", label: "File de validation", icon: "ic-check", badge: pendingEdits },
+        ],
+      },
       { title: "Exploitation", items: [{ to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports }] },
       {
         title: "Échanges / Qualité",
@@ -118,8 +125,17 @@ export function Shell({ children }: { children: ReactNode }) {
     queryKey: ["shell-pending-media", communeId, isAdmin],
     queryFn: async () => (await listPendingMedia({ communeId })).length,
   });
+  // File de validation : Admin uniquement pour ce lot (Admin-3B-1 §11) — même
+  // mécanisme que les 3 badges ci-dessus, pas de nouvelle architecture de
+  // fetching. `enabled: isAdmin` seul (contrairement aux autres) car aucune
+  // UI collectivité n'existe encore pour cette file.
+  const { data: pendingEdits = 0 } = useQuery({
+    queryKey: ["shell-pending-edits", isAdmin],
+    queryFn: async () => (await listParkEdits({ status: ["pending"] })).length,
+    enabled: isAdmin,
+  });
 
-  const groups = buildNavGroups({ isAdmin, pendingParks, openReports, pendingMedia });
+  const groups = buildNavGroups({ isAdmin, pendingParks, openReports, pendingMedia, pendingEdits });
   const allItems = groups.flatMap((g) => g.items);
   const currentLabel = allItems.find((item) => item.to === location.pathname)?.label;
 

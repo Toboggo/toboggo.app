@@ -1,0 +1,119 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+.breadcrumb a {
+  color: var(--color-primary-hover);
+  font-weight: 600;
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+.crumbSep {
+  color: var(--color-text-faint);
+}
+.crumbCurrent {
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stateBox {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.title {
+  font-size: 20px;
+}
+.tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.parkLink {
+  color: var(--color-primary-hover);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+}
+.parkLink:hover {
+  text-decoration: underline;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+.metaLabel {
+  color: var(--color-text-muted);
+  margin-right: 4px;
+}
+
+.futureNote {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 20px;
+}
+
+.itemsTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.item:last-child {
+  border-bottom: none;
+}
+.itemLabel {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+}
+.itemDiff {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.itemCurrent {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+.itemArrow {
+  color: var(--color-text-faint);
+}
+.itemProposed {
+  color: var(--color-primary);
+  font-weight: 700;
+}

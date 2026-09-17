@@ -344,6 +344,18 @@ export interface ParkEdit {
   reviewed_at: string | null;
 }
 
+/**
+ * `ParkEdit` enrichie pour la file de validation (Admin-3B-1) : le nom du
+ * parc (join `parks`, résolu en une seule requête — pas de `getPark()` par
+ * ligne) et un nom d'auteur si `profiles` est lisible pour l'appelant
+ * (`profiles_staff_read`, migration 0006 — vrai pour le staff, pas pour une
+ * collectivité, qui reçoit `proposedByName: null` sans erreur).
+ */
+export interface ParkEditWithDetails extends ParkEdit {
+  parks: { name: string; formatted_address: string | null } | null;
+  proposedByName: string | null;
+}
+
 // ── §13 bis — review_park_edit() RPC (migration 0037, Admin-3A) ───────────
 // Contrat EXACT de la fonction SQL — voir supabase/migrations/0037_review_
 // park_edit.sql. `Database["public"]["Functions"]["review_park_edit"]`

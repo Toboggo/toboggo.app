@@ -10,6 +10,8 @@ import Dashboard from "./screens/Dashboard";
 import Parks from "./screens/Parks";
 import ParkNew from "./screens/parkNew/ParkNew";
 import ParkDetail from "./screens/ParkDetail";
+import Validation from "./screens/Validation";
+import ValidationDetail from "./screens/ValidationDetail";
 import Reports from "./screens/Reports";
 import Reviews from "./screens/Reviews";
 import Photos from "./screens/Photos";
@@ -32,6 +34,8 @@ function RoutedContent() {
         <Route path="/parks" element={<Parks />} />
         <Route path="/parks/new" element={<ParkNew />} />
         <Route path="/parks/:id" element={<ParkDetail />} />
+        <Route path="/validation" element={<Validation />} />
+        <Route path="/validation/:editId" element={<ValidationDetail />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/photos" element={<Photos />} />

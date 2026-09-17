@@ -1,5 +1,12 @@
 import { Tag } from "@toboggo/design-system";
-import { REPORT_SEVERITY_LABEL, type ParkStatus, type ReportSeverity, type ReportStatus, type VerificationStatus } from "@toboggo/shared";
+import {
+  REPORT_SEVERITY_LABEL,
+  type EditStatus,
+  type ParkStatus,
+  type ReportSeverity,
+  type ReportStatus,
+  type VerificationStatus,
+} from "@toboggo/shared";
 
 const PARK_LABEL: Record<ParkStatus, string> = {
   draft: "Brouillon",
@@ -62,4 +69,21 @@ const SEVERITY_TONE: Record<ReportSeverity, "neutral" | "warning" | "error"> = {
 
 export function ReportSeverityTag({ severity }: { severity: ReportSeverity }) {
   return <Tag tone={SEVERITY_TONE[severity]}>{REPORT_SEVERITY_LABEL[severity]}</Tag>;
+}
+
+const EDIT_LABEL: Record<EditStatus, string> = {
+  pending: "En attente",
+  approved: "Approuvée",
+  rejected: "Rejetée",
+  auto_approved: "Auto-approuvée",
+};
+const EDIT_TONE: Record<EditStatus, "warning" | "primary" | "error"> = {
+  pending: "warning",
+  approved: "primary",
+  rejected: "error",
+  auto_approved: "primary",
+};
+
+export function ParkEditStatusTag({ status }: { status: EditStatus }) {
+  return <Tag tone={EDIT_TONE[status]}>{EDIT_LABEL[status]}</Tag>;
 }

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSupabase } from "../supabaseClient";
-import { listPendingParkEditsForOrg, reviewParkEdit } from "./contributions";
+import { listPendingParkEditsForOrg, listParkEditsWithDetails, getParkEditWithDetails, reviewParkEdit } from "./contributions";
 import { makeFakeSupabase } from "../testUtils/fakeSupabase";
 import type { ParkEditReviewResult } from "../types";
 
@@ -38,6 +38,78 @@ describe("listPendingParkEditsForOrg — dashboard \"infos à vérifier\" count 
 
     expect(result).toEqual([]);
     expect(queriesByTable["park_edits"]).toBeUndefined();
+  });
+});
+
+describe("listParkEditsWithDetails — file de validation, sans N+1 (Admin-3B-1)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  it("résout parcs + auteurs en 2 requêtes au total, quel que soit le nombre de lignes", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_edits: {
+        data: [
+          { id: "e1", park_id: "p1", user_id: "u1", status: "pending", changes: {}, parks: { name: "Parc A", formatted_address: null } },
+          { id: "e2", park_id: "p2", user_id: "u2", status: "pending", changes: {}, parks: { name: "Parc B", formatted_address: null } },
+          { id: "e3", park_id: "p3", user_id: "u1", status: "pending", changes: {}, parks: { name: "Parc C", formatted_address: null } },
+        ],
+        error: null,
+      },
+      profiles: { data: [{ id: "u1", name: "Alice" }, { id: "u2", name: "Bob" }], error: null },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const result = await listParkEditsWithDetails({ status: ["pending"] });
+
+    // 1 requête park_edits (avec le join parks embarqué) + 1 requête profiles
+    // en lot sur les user_id distincts — jamais un lookup par ligne.
+    expect(queriesByTable["park_edits"]).toHaveLength(1);
+    expect(queriesByTable["profiles"]).toHaveLength(1);
+    const inCall = queriesByTable["profiles"][0].calls.find((c) => c.method === "in");
+    expect(inCall?.args[0]).toBe("id");
+    expect(new Set(inCall?.args[1] as string[])).toEqual(new Set(["u1", "u2"]));
+
+    expect(result.map((r) => [r.id, r.proposedByName])).toEqual([
+      ["e1", "Alice"],
+      ["e2", "Bob"],
+      ["e3", "Alice"],
+    ]);
+  });
+
+  it("ne fait aucun appel profiles quand la liste est vide", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({ park_edits: { data: [], error: null } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const result = await listParkEditsWithDetails({});
+
+    expect(result).toEqual([]);
+    expect(queriesByTable["profiles"]).toBeUndefined();
+  });
+
+  it("retourne proposedByName=null quand profiles n'est pas lisible (RLS collectivité) au lieu d'inventer un nom", async () => {
+    const { client } = makeFakeSupabase({
+      park_edits: {
+        data: [{ id: "e1", park_id: "p1", user_id: "u1", status: "pending", changes: {}, parks: null }],
+        error: null,
+      },
+      profiles: { data: [], error: null }, // RLS filtre tout pour un appelant non-staff
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const result = await listParkEditsWithDetails({});
+
+    expect(result[0].proposedByName).toBeNull();
+    expect(result[0].parks).toBeNull();
+  });
+});
+
+describe("getParkEditWithDetails — détail d'une proposition (Admin-3B-1)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  it("retourne null quand la proposition n'existe pas (ou est hors RLS)", async () => {
+    const { client } = makeFakeSupabase({ park_edits: { data: null, error: null } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await getParkEditWithDetails("missing")).toBeNull();
   });
 });
 

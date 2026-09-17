@@ -4,10 +4,14 @@
  * `@posthog/react`, `usePostHog` ou `posthog.capture` directement ailleurs
  * dans `apps/mobile/src` : passer par `trackEvent` ci-dessous.
  *
- * Aucun événement métier n'est câblé dans un écran à ce stade — ce module
- * fournit le socle (typage, no-op, provider), pas encore l'instrumentation
- * des 14 événements P0 (phase ultérieure).
+ * `registerIsAuthenticated` est une exception : ce n'est pas un événement,
+ * c'est le câblage — appelé UNE FOIS, uniquement par `lib/session.ts` (voir
+ * `commonProperties.ts` pour la justification complète : évite un import
+ * circulaire `session.ts` → `analytics` → `session.ts`). Aucun autre fichier
+ * ne doit l'appeler.
  */
 export { AnalyticsProvider } from "./AnalyticsProvider";
 export { trackEvent, isAnalyticsConfigured } from "./client";
+export { registerIsAuthenticated } from "./commonProperties";
+export { distanceBucket } from "./events";
 export type { AnalyticsEventName, AnalyticsEventProperties } from "./events";

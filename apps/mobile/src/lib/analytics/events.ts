@@ -43,9 +43,27 @@ export type DiscoverySource =
   | "share_link"
   | "notification"
   | "contribution_success"
-  | "other";
+  /** Une source réelle existe mais n'entre dans aucune des catégories
+   * ci-dessus (catch-all documenté, pas un synonyme d'"inconnu"). */
+  | "other"
+  /** La provenance n'a pas pu être déterminée de façon fiable par le code
+   * appelant — à distinguer de `other` : ici, on ne sait *pas* d'où vient
+   * la vue, on ne prétend pas juste qu'elle vient d'ailleurs. Utilisé par
+   * `park_viewed` tant que la provenance n'est pas propagée à travers les
+   * écrans (voir ANALYTICS-AUDIT.md / le commentaire dans ParkDetail.tsx). */
+  | "unknown";
 
 export type DistanceBucket = "<1km" | "1-3km" | "3-10km" | "10-20km" | ">20km";
+
+/** Catégorise une distance en mètres — jamais de coordonnées ni de distance
+ * précise en propriété d'événement (`PRIVACY-RULES.md` §2.3). */
+export function distanceBucket(distanceM: number): DistanceBucket {
+  if (distanceM < 1000) return "<1km";
+  if (distanceM < 3000) return "1-3km";
+  if (distanceM < 10000) return "3-10km";
+  if (distanceM < 20000) return "10-20km";
+  return ">20km";
+}
 
 export type ContributionType = "add_park" | "add_photo" | "edit_info" | "report" | "review";
 
@@ -167,12 +185,21 @@ export interface AnalyticsEventProperties {
   contribution_started: {
     contribution_type: ContributionType;
     park_id?: string;
-    entry_point: "park_detail_contribute_sheet" | "more_actions" | "direct_link" | "contribution_resume";
+    /** `unknown` : plusieurs écrans distincts peuvent mener au même wizard
+     * avec la même URL (`?park=` sans marqueur de provenance) sans qu'on
+     * puisse les distinguer depuis le wizard lui-même — ex. RatePark est
+     * atteint à la fois depuis ParkDetail/DetailReviews ET depuis le rappel
+     * de visite (`GlobalOverlays.tsx`), tous deux en `/rate?park=`. Préférer
+     * `unknown` à une valeur affirmée à tort — voir RatePark.tsx. */
+    entry_point: "park_detail_contribute_sheet" | "more_actions" | "direct_link" | "contribution_resume" | "unknown";
   };
   contribution_completed: {
     contribution_type: ContributionType;
     park_id?: string;
-    had_just_in_time_auth: boolean;
+    /** Optionnelle : certains wizards (AddPhotos, voir son commentaire) ne
+     * peuvent structurellement pas distinguer une auth déjà présente d'une
+     * auth juste complétée — omettre plutôt qu'affirmer `false` à tort. */
+    had_just_in_time_auth?: boolean;
     has_photo?: boolean;
   };
   contribution_abandoned: {

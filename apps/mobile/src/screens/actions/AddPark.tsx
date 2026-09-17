@@ -36,6 +36,7 @@ import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../../lib/geo
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { setResumeRoute } from "../../lib/resumeRoute";
+import { trackEvent } from "../../lib/analytics";
 
 // Stepper keys resolved against the `contribute` namespace.
 const STEPS = ["steps.park", "steps.location", "steps.info", "steps.photos", "steps.verify"];
@@ -192,6 +193,21 @@ export default function AddPark() {
   const [uploading, setUploading] = useState(false);
   const autoSubmitted = useRef(false);
 
+  // `contribution_started` — une fois par montage, quelle que soit l'étape.
+  // Pas de `?park=` possible pour ce wizard (il en crée un), donc pas de cas
+  // "park_detail_contribute_sheet" ici — voir RatePark.tsx pour la
+  // justification complète de cette heuristique d'entry_point.
+  const contributionStartedTracked = useRef(false);
+  useEffect(() => {
+    if (contributionStartedTracked.current) return;
+    contributionStartedTracked.current = true;
+    trackEvent("contribution_started", {
+      contribution_type: "add_park",
+      entry_point: wantsResume ? "contribution_resume" : "direct_link",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const { data: featureCatalogue = [] } = useQuery({ queryKey: ["features"], queryFn: () => listFeatures() });
   const playFeatures = useMemo(
     () => featureCatalogue.filter((f) => f.category === "play").sort((a, b) => a.sort_order - b.sort_order),
@@ -303,6 +319,12 @@ export default function AddPark() {
       // Back-office audit trail (`activity_log`) — internal, not user-facing UI:
       // kept in French, out of the i18n scope (see i18n audit).
       await logActivity(park.commune_id, "Vous", `Parc ajouté : ${park.name}`, "primary");
+      trackEvent("contribution_completed", {
+        contribution_type: "add_park",
+        park_id: park.id,
+        had_just_in_time_auth: wantsResume,
+        has_photo: photos.length > 0,
+      });
       setCreatedId(park.id);
       setDone(true);
     } catch {

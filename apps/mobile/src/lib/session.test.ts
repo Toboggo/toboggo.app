@@ -37,6 +37,16 @@ const favMock = vi.hoisted(() => ({
   apiToggleFavorite: vi.fn(),
 }));
 
+const analyticsMock = vi.hoisted(() => ({
+  trackEvent: vi.fn(),
+  registerIsAuthenticated: vi.fn(),
+}));
+
+vi.mock("./analytics", () => ({
+  trackEvent: analyticsMock.trackEvent,
+  registerIsAuthenticated: analyticsMock.registerIsAuthenticated,
+}));
+
 vi.mock("@toboggo/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@toboggo/shared")>();
   return {
@@ -60,11 +70,30 @@ import { useSession } from "./session";
 const SESSION = { user: { id: "user-1", email: "alice@parents.fr", user_metadata: { name: "Alice" } } };
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
+// Câblage `is_authenticated` (voir `lib/analytics/commonProperties.ts`) —
+// `session.ts` doit enregistrer, une fois au chargement du module, une
+// fonction qui relit `useSession.getState().userId` à chaque appel (jamais
+// une valeur figée), pour que `lib/analytics` n'ait jamais besoin d'importer
+// ce fichier (évite le cycle session → analytics → session).
+describe("registerIsAuthenticated wiring", () => {
+  it("registers exactly once at module load, with a getter reflecting the live userId", () => {
+    expect(analyticsMock.registerIsAuthenticated).toHaveBeenCalledTimes(1);
+    const getter = analyticsMock.registerIsAuthenticated.mock.calls[0][0] as () => boolean;
+
+    useSession.setState({ userId: null });
+    expect(getter()).toBe(false);
+
+    useSession.setState({ userId: "user-1" });
+    expect(getter()).toBe(true);
+  });
+});
+
 beforeEach(() => {
   authMock.reset();
   supa.session = null;
   supa.profileCalls = 0;
   favMock.apiToggleFavorite.mockReset().mockResolvedValue([]);
+  analyticsMock.trackEvent.mockReset();
   useSession.setState({ userId: null, profile: null, loading: true, guestMode: false, pendingResume: null });
 });
 
@@ -213,5 +242,48 @@ describe("useSession.toggleFavorite", () => {
     setProfile(null, null);
     useSession.getState().toggleFavorite("park-a");
     expect(favMock.apiToggleFavorite).not.toHaveBeenCalled();
+  });
+
+  // Product Analytics — `park_favorited` (P0) doit refléter une action
+  // confirmée par le serveur, jamais le seul état optimiste (qui peut encore
+  // être annulé par le `.catch` ci-dessus). `park_unfavorited` est P1 :
+  // volontairement non câblé dans cette passe (consigne explicite "aucun
+  // événement P1/P2") — vérifié explicitement ci-dessous.
+  describe("analytics — park_favorited", () => {
+    it("does NOT track park_favorited immediately (before the network write resolves)", () => {
+      setProfile("user-1", []);
+      favMock.apiToggleFavorite.mockReturnValue(new Promise(() => {})); // never resolves in this test
+      useSession.getState().toggleFavorite("park-a");
+      expect(analyticsMock.trackEvent).not.toHaveBeenCalled();
+    });
+
+    it("tracks park_favorited only after the write confirms success", async () => {
+      setProfile("user-1", []);
+      useSession.getState().toggleFavorite("park-a");
+      await vi.waitFor(() => expect(analyticsMock.trackEvent).toHaveBeenCalled());
+      expect(analyticsMock.trackEvent).toHaveBeenCalledWith("park_favorited", { park_id: "park-a" });
+    });
+
+    it("never tracks park_unfavorited (P1, out of scope) when removing an already-favorited park", async () => {
+      setProfile("user-1", ["park-a"]);
+      useSession.getState().toggleFavorite("park-a");
+      await vi.waitFor(() => expect(favMock.apiToggleFavorite).toHaveBeenCalled());
+      expect(analyticsMock.trackEvent).not.toHaveBeenCalled();
+    });
+
+    it("never tracks park_favorited when the write fails and the optimistic change is rolled back", async () => {
+      setProfile("user-1", []);
+      favMock.apiToggleFavorite.mockRejectedValueOnce(new Error("network"));
+      useSession.getState().toggleFavorite("park-a");
+
+      await vi.waitFor(() => expect(useSession.getState().profile?.favorites).toEqual([]));
+      expect(analyticsMock.trackEvent).not.toHaveBeenCalled();
+    });
+
+    it("does not track anything for a signed-out user (no-op path)", () => {
+      setProfile(null, null);
+      useSession.getState().toggleFavorite("park-a");
+      expect(analyticsMock.trackEvent).not.toHaveBeenCalled();
+    });
   });
 });

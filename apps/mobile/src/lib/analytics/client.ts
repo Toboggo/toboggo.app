@@ -1,5 +1,6 @@
 import posthog, { type PostHog } from "posthog-js";
 import { ANALYTICS_PRIVACY_OPTIONS } from "./config";
+import { getCommonProperties } from "./commonProperties";
 import { EVENT_PROPERTY_ALLOWLIST, type AnalyticsEventName, type AnalyticsEventProperties } from "./events";
 
 function readEnvVar(name: "VITE_POSTHOG_KEY" | "VITE_POSTHOG_HOST"): string | null {
@@ -65,7 +66,9 @@ function filterToAllowlist<E extends AnalyticsEventName>(
  * `isAnalyticsConfigured()` est faux (aucune trace posthog-js exécutée,
  * aucun réseau). `event` est restreint aux 26 noms de
  * docs/analytics/EVENT-TAXONOMY.md ; `properties` est typé et filtré à
- * l'allowlist de cet événement avant l'envoi.
+ * l'allowlist de cet événement avant l'envoi. Les propriétés communes
+ * (`is_authenticated`/`app_version`/`locale`, `commonProperties.ts`) sont
+ * ajoutées automatiquement à chaque appel — jamais à fournir par l'appelant.
  *
  * Aucun composant ne doit importer `posthog-js`/`@posthog/react` ni appeler
  * `posthog.capture()` directement — uniquement cette fonction.
@@ -73,5 +76,6 @@ function filterToAllowlist<E extends AnalyticsEventName>(
 export function trackEvent<E extends AnalyticsEventName>(event: E, properties: AnalyticsEventProperties[E]): void {
   const posthogClient = getAnalyticsClient();
   if (!posthogClient) return;
-  posthogClient.capture(event, filterToAllowlist(event, properties));
+  const payload = { ...getCommonProperties(), ...filterToAllowlist(event, properties) };
+  posthogClient.capture(event, payload);
 }

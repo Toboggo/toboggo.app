@@ -207,9 +207,16 @@ ci-dessous (traçables au code) :
 - **Écran/source** : `ParkDetail.tsx`.
 - **Propriétés** : `park_id`, `discovery_source` (`map_marker` | `cluster` | `list` | `carousel` |
   `search_park` | `search_place` | `favorites` | `share_link` | `notification` |
-  `contribution_success` | `other`), `has_photos` (bool), `has_reviews` (bool),
+  `contribution_success` | `other` | `unknown`), `has_photos` (bool), `has_reviews` (bool),
   `distance_bucket` (`<1km` | `1-3km` | `3-10km` | `10-20km` | `>20km` — jamais de coordonnées
   précises, voir `PRIVACY-RULES.md`).
+- **`other` vs `unknown`** (ajouté lors du hardening post-instrumentation) : `other` désigne une
+  source réelle mais non catégorisée dans la liste ; `unknown` signifie que la provenance n'a pas
+  pu être déterminée par le code appelant — ce n'est **pas** un synonyme. L'implémentation actuelle
+  de `ParkDetail.tsx` envoie systématiquement `unknown` : déterminer la vraie source demanderait de
+  faire transiter un paramètre à travers de nombreux points de navigation (marker, liste, carrousel,
+  recherche, favoris, partage, notification) — hors périmètre de l'instrumentation P0 actuelle.
+  Une valeur inconnue explicite est préférable à une valeur affirmée sans fondement.
 - **KPI/funnel** : parks viewed, parks viewed/user, taux de conversion vers favori/partage/
   itinéraire, corrélation photos × engagement (question produit explicite).
 - **Priorité** : P0.
@@ -320,7 +327,15 @@ ci-dessous (traçables au code) :
 - **Propriétés** : `contribution_type` (`add_park` | `add_photo` | `edit_info` | `report` |
   `review`), `park_id` (nullable — absent si le wizard démarre sans parc préselectionné, ex.
   `AddPark` ou `AddPhotos`/`ReportProblem`/`RatePark` sans `?park=`), `entry_point`
-  (`park_detail_contribute_sheet` | `more_actions` | `direct_link` | `contribution_resume`).
+  (`park_detail_contribute_sheet` | `more_actions` | `direct_link` | `contribution_resume` |
+  `unknown`).
+- **`entry_point: "unknown"`** (ajouté lors du hardening post-instrumentation) : pour `RatePark`
+  spécifiquement, `/rate?park=` (hors reprise) n'implique PAS de façon fiable "depuis la fiche
+  parc" — `GlobalOverlays.tsx` (rappel de visite post-itinéraire, cf. `useVisitPrompt`) navigue
+  vers la même URL sans marqueur distinctif, et le wizard ne peut pas distinguer les deux origines.
+  `RatePark.tsx` envoie donc `unknown` dans ce cas plutôt que d'affirmer `park_detail_contribute_sheet`
+  à tort. Les 4 autres wizards (parcours `?park=` à origine unique vérifiée) gardent
+  `park_detail_contribute_sheet` de façon fiable.
 - **KPI/funnel** : volume de contribution par type, base du funnel started → completed →
   abandoned.
 - **Priorité** : P0.
@@ -335,9 +350,14 @@ ci-dessous (traçables au code) :
   (`RatePark.tsx:124`) — juste avant l'affichage de `ContributionSuccessSheet` (composant
   générique partagé par les 5 wizards).
 - **Écran/source** : les 5 écrans wizard.
-- **Propriétés** : `contribution_type`, `park_id`, `had_just_in_time_auth` (bool — la soumission
-  a-t-elle nécessité une interruption pour connexion, cf. audit §17), `has_photo` (bool,
-  pertinent pour `add_park`/`review`).
+- **Propriétés** : `contribution_type`, `park_id`, `had_just_in_time_auth?` (bool, **optionnelle**
+  — la soumission a-t-elle nécessité une interruption pour connexion, cf. audit §17), `has_photo`
+  (bool, pertinent pour `add_park`/`review`).
+- **`had_just_in_time_auth` rendue optionnelle** (hardening post-instrumentation) : `AddPhotos.tsx`
+  n'a pas de marqueur `?resume=1` (son auth passe par `requireAccount`, pas `resumeRoute` — voir
+  audit §17) et ne peut donc pas distinguer de façon fiable "déjà connecté à l'entrée" de "vient de
+  se connecter" — il omet la propriété plutôt que d'envoyer `false` à tort. Les 4 autres wizards
+  continuent d'envoyer une valeur fiable (`wantsResume`, marqueur explicite).
 - **KPI/funnel** : taux de complétion, contributeurs actifs, contributions par type.
 - **Priorité** : P0.
 

@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getParkDisplayName, incrementParkViews } from "@toboggo/shared";
+import { getParkDisplayName, haversineMeters, incrementParkViews } from "@toboggo/shared";
 import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
@@ -10,9 +10,11 @@ import { useFeatureLabel } from "../../lib/featureLabel";
 import { useFormat } from "../../i18n/useFormat";
 import { useSession } from "../../lib/session";
 import { useDirections } from "../../lib/directions";
+import { useGeo } from "../../lib/geo";
 import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
 import { DirectionsSheet } from "../../components/DirectionsSheet";
+import { trackEvent, distanceBucket } from "../../lib/analytics";
 import styles from "./Detail.module.css";
 
 function Stars({ value, size = 15 }: { value: number; size?: number }) {
@@ -44,7 +46,8 @@ export default function ParkDetail() {
   const featureLabel = useFeatureLabel();
   const [params] = useSearchParams();
   const { data: park, isLoading } = usePark(id);
-  const { data: reviews = [] } = useParkReviews(id);
+  const { data: reviews = [], isLoading: reviewsLoading } = useParkReviews(id);
+  const { lat, lng } = useGeo();
   const [photoIndex, setPhotoIndex] = useState(0);
   const [shareOpen, setShareOpen] = useState(params.get("share") === "1");
   const [contribOpen, setContribOpen] = useState(false);
@@ -56,6 +59,30 @@ export default function ParkDetail() {
   useEffect(() => {
     if (id) void incrementParkViews(id);
   }, [id]);
+
+  // `park_viewed` — une fois par ouverture logique de la fiche (par `id`),
+  // pas à chaque render. On attend que `park` ET `reviews` aient fini de
+  // charger avant d'émettre, sinon `has_reviews` figerait à `false` si les
+  // avis chargent après le parc. `discovery_source: "unknown"` (pas
+  // `"other"` — voir events.ts) : la déterminer fiablement demanderait de
+  // faire transiter une info de source à travers de nombreux points de
+  // navigation (marker, liste, carrousel, recherche, favoris, partage,
+  // notification) — hors périmètre de cette passe. `"unknown"` dit
+  // honnêtement qu'on ne sait pas, plutôt que de prétendre une source
+  // précise qu'on ne peut pas garantir.
+  const parkViewedTrackedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!id || !park || reviewsLoading) return;
+    if (parkViewedTrackedFor.current === id) return;
+    parkViewedTrackedFor.current = id;
+    trackEvent("park_viewed", {
+      park_id: id,
+      discovery_source: "unknown",
+      has_photos: park.photos.length > 0,
+      has_reviews: reviews.length > 0,
+      distance_bucket: distanceBucket(haversineMeters(lat, lng, park.lat, park.lng)),
+    });
+  }, [id, park, reviews, reviewsLoading, lat, lng]);
 
   if (isLoading || !park) {
     return <div className="screen" style={{ padding: 40, textAlign: "center" }}>{t("loading")}</div>;

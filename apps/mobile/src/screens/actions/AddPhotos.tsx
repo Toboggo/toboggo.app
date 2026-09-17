@@ -11,6 +11,7 @@ import { usePark } from "../../lib/parksQuery";
 import { requireAccount, useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
+import { trackEvent } from "../../lib/analytics";
 
 interface PhotoPick {
   file: File;
@@ -81,6 +82,24 @@ export default function AddPhotos() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
 
+  // `contribution_started` — une fois par montage. Limite documentée : ce
+  // wizard n'a pas de marqueur `?resume=1` (il utilise `requireAccount`, pas
+  // `resumeRoute` — voir le commentaire de tête de fichier) : un retour post-
+  // auth juste-à-temps remonte ce composant à l'identique d'une entrée
+  // fraîche avec `?park=`, donc `entry_point` ne peut pas distinguer
+  // "contribution_resume" ici, contrairement aux 4 autres wizards.
+  const contributionStartedTracked = useRef(false);
+  useEffect(() => {
+    if (contributionStartedTracked.current) return;
+    contributionStartedTracked.current = true;
+    trackEvent("contribution_started", {
+      contribution_type: "add_photo",
+      park_id: parkId ?? undefined,
+      entry_point: preselected ? "park_detail_contribute_sheet" : "direct_link",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Browsing (picking a park) stays anonymous; the account is required before
   // the file picker itself opens (see `requirePhotoAuth`). Keep the object
   // URLs alive until unmount.
@@ -145,7 +164,20 @@ export default function AddPhotos() {
 
     setSaving(true);
     upload(uid, targetPark, files)
-      .then(() => setDone(true))
+      .then(() => {
+        // `had_just_in_time_auth` est volontairement OMISE (propriété
+        // optionnelle, voir events.ts) : ce wizard ne peut pas distinguer de
+        // manière fiable "déjà connecté à l'entrée" de "vient de se connecter
+        // via requireAccount" (voir commentaire de tête de fichier — pas de
+        // marqueur `?resume=1` ici, contrairement aux 4 autres wizards).
+        // Mieux vaut omettre l'info que d'affirmer `false` à tort.
+        trackEvent("contribution_completed", {
+          contribution_type: "add_photo",
+          park_id: targetPark,
+          has_photo: true,
+        });
+        setDone(true);
+      })
       .catch(() => showToast(tErr("image.uploadFailed")))
       .finally(() => setSaving(false));
   }

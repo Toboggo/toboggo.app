@@ -21,6 +21,7 @@ import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
 import { setResumeRoute } from "../../lib/resumeRoute";
+import { trackEvent } from "../../lib/analytics";
 
 interface ReportDraft {
   reason: ReportReason | null;
@@ -110,6 +111,21 @@ export default function ReportProblem() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
   const autoSubmitted = useRef(false);
+
+  // `contribution_started` — une fois par montage, quelle que soit l'étape
+  // interne (même le préambule ParkPicker, step 0, sans stepper visible).
+  const contributionStartedTracked = useRef(false);
+  useEffect(() => {
+    if (contributionStartedTracked.current) return;
+    contributionStartedTracked.current = true;
+    trackEvent("contribution_started", {
+      contribution_type: "report",
+      park_id: parkId ?? undefined,
+      entry_point: wantsResume ? "contribution_resume" : preselected ? "park_detail_contribute_sheet" : "direct_link",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // The draft key can resolve a render after mount (guest → user handover, or a
   // signed-in user's own draft loading once the key is held-then-settled) —
   // resume on the details step the first time a reason shows up, without
@@ -145,6 +161,12 @@ export default function ReportProblem() {
       // cannot come back on the way out.
       clearReportDraft();
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
+      trackEvent("contribution_completed", {
+        contribution_type: "report",
+        park_id: parkId,
+        had_just_in_time_auth: wantsResume,
+        has_photo: Boolean(photo),
+      });
       setDone(true);
     } catch {
       // Failed — keep the form and the (autosaved) draft, surface the error.

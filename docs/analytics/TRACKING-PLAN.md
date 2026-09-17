@@ -143,3 +143,58 @@ déjà affichés dans `Statistiques.tsx`, cf. `ANALYTICS-AUDIT.md` §18, et dét
 mesure le comportement utilisateur (funnels, intentions, rétention) ; Supabase reste et demeure
 la source de vérité des données métier et de l'état du catalogue. Un événement PostHog ne doit
 jamais dupliquer un chiffre déjà disponible par une requête Supabase.
+
+---
+
+## 5. État réel de l'instrumentation (mis à jour après la passe de câblage + hardening)
+
+Ce tracking plan a été écrit avant l'implémentation ; cette section reflète ce qui est
+**effectivement câblé dans le code** à ce jour, pour éviter toute ambiguïté de comptage.
+
+**12 des 13 événements P0 instrumentés, aucun câblage partiel autre que `login_completed` :**
+`app_opened`, `signup_completed`, `login_completed` (**email uniquement**, voir ci-dessous),
+`map_viewed`, `search_performed`, `search_results_viewed`, `zero_results`, `filter_applied`,
+`park_viewed`, `park_favorited`, `park_shared`, `contribution_started`, `contribution_completed`.
+
+### `login_completed` — email instrumenté, Google OAuth non instrumenté
+
+- **Email/mot de passe** : instrumenté, déclenché juste après le succès de `signIn()` dans
+  `AuthForm.tsx` — signal fiable, un seul point de code, pas de risque de double comptage.
+- **Google OAuth** : **non instrumenté**, délibérément. Raison : `signInWithGoogle()` déclenche une
+  redirection pleine page vers Google — la fonction ne "voit" jamais le succès (l'exécution JS
+  s'arrête à la redirection). Le succès n'est observable qu'au retour, dans le gestionnaire
+  `onAuthStateChange` de `session.ts` — mais ce même gestionnaire traite AUSSI la restauration
+  d'une session déjà existante au démarrage normal de l'app, sans marqueur permettant de
+  distinguer les deux cas de façon fiable. Instrumenter ce chemin sans un vrai correctif
+  risquerait un double comptage (ou un comptage de faux positifs sur chaque reload d'un
+  utilisateur déjà connecté) — pire que ne pas mesurer du tout.
+- **Correctif futur envisageable** (non implémenté ici) : introduire un marqueur explicite avant
+  le redirect (ex. un flag `localStorage` posé juste avant `signInWithGoogle()`, consommé une
+  seule fois par le gestionnaire au retour) ou un callback OAuth dédié qui court-circuite le
+  chemin de restauration normale. Aucune donnée personnelle supplémentaire requise pour cela — un
+  simple marqueur technique, pas une info utilisateur.
+- **Conséquence sur les KPI** : "taux d'usage réel Google vs e-mail" (question produit explicite,
+  §1) reste **partiellement répondue** — seul le volume `email` est fiable tant que ce correctif
+  n'est pas fait. Ne pas présenter un taux Google/email calculé sur les seules données actuelles
+  comme complet.
+
+### `route_requested` — différé, non un échec d'instrumentation
+
+Prévu P0 dans la taxonomie mais **volontairement non câblé** dans aucun écran : `Directions.tsx`
+reste un mock (`ANALYTICS-AUDIT.md` §9ter). Vérifié explicitement absent de tout site d'appel
+(`grep trackEvent` sur `apps/mobile/src`). Sera instrumenté avec le chantier fonctionnel de
+l'itinéraire réel, pas avant.
+
+### Propriétés approximatives corrigées (hardening)
+
+Deux propriétés pouvaient produire une valeur **affirmée à tort** plutôt qu'une valeur manquante —
+corrigées pour préférer l'inconnu explicite :
+- `park_viewed.discovery_source` envoie `"unknown"` (pas `"other"`, qui a un sens documentaire
+  différent — voir la fiche de l'événement) : la vraie provenance n'est pas propagée à travers les
+  écrans de découverte dans cette passe.
+- `contribution_started.entry_point` envoie `"unknown"` pour `RatePark.tsx` spécifiquement quand
+  `?park=` est présent sans reprise — `GlobalOverlays.tsx` (rappel de visite) mène à la même URL
+  que la fiche parc, sans marqueur distinctif. Les 4 autres wizards gardent une valeur fiable.
+- `contribution_completed.had_just_in_time_auth` est désormais **optionnelle** dans la taxonomie et
+  omise par `AddPhotos.tsx` (pas de marqueur `?resume=1` sur ce wizard, contrairement aux 4
+  autres) — plutôt que d'envoyer `false` sans pouvoir le garantir.

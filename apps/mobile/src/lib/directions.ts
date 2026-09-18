@@ -25,6 +25,12 @@ export function useOpenDirections() {
     // Toboggo has no reliable way to know the trip happened.
     schedule(park.id, displayName);
     const url = getDirectionsUrl(park.latitude as number, park.longitude as number);
-    window.open(url, "_blank", "noopener,noreferrer");
+    // Same-tab navigation, not `window.open(url, "_blank")`: on iOS Safari/PWA,
+    // `_blank` opens a new browsing context that the maps.apple.com universal
+    // link then hijacks into the Apple Maps app, leaving the blank tab behind
+    // for the user to close by hand. `location.assign` navigates the current
+    // tab (still pushes a history entry, so the back gesture returns here) —
+    // no extra context is ever created, on any platform.
+    window.location.assign(url);
   };
 }

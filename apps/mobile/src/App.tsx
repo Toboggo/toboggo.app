@@ -16,7 +16,6 @@ import ScoreDetail from "./screens/detail/ScoreDetail";
 import DetailPhotos from "./screens/detail/DetailPhotos";
 import DetailAmenities from "./screens/detail/DetailAmenities";
 import DetailReviews from "./screens/detail/DetailReviews";
-import Directions from "./screens/detail/Directions";
 
 import ActionIntro from "./screens/actions/ActionIntro";
 import AddPark from "./screens/actions/AddPark";
@@ -113,7 +112,6 @@ export default function App() {
       <Route path="/park/:id/photos" element={<DetailPhotos />} />
       <Route path="/park/:id/amenities" element={<DetailAmenities />} />
       <Route path="/park/:id/reviews" element={<DetailReviews />} />
-      <Route path="/park/:id/directions" element={<Directions />} />
 
       {/* AddPark / RatePark / ReportProblem n'ont plus d'écran d'intro : le
           wizard canonique est auto-porteur. `/action-intro/{add,rate,report}`

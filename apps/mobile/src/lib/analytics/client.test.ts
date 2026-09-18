@@ -35,6 +35,15 @@ afterEach(() => {
   captureMock.mockClear();
 });
 
+// Un seul projet PostHog (Staging + Production) — les 3 variables (clé,
+// host, environnement) doivent toutes être valides ensemble, jamais
+// seulement 2 sur 3.
+function stubFullyConfigured(environment: "staging" | "production" = "staging") {
+  vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key");
+  vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+  vi.stubEnv("VITE_APP_ENV", environment);
+}
+
 describe("isAnalyticsConfigured", () => {
   it("is false with no env vars — the default for local dev, CI, Simulator and Claude Code sessions", () => {
     expect(isAnalyticsConfigured()).toBe(false);
@@ -50,21 +59,56 @@ describe("isAnalyticsConfigured", () => {
     expect(isAnalyticsConfigured()).toBe(false);
   });
 
-  it("is true once both vars are set and non-blank", () => {
+  it("is false if VITE_POSTHOG_KEY and VITE_POSTHOG_HOST are set but VITE_APP_ENV is absent", () => {
     vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key");
     vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+    expect(isAnalyticsConfigured()).toBe(false);
+  });
+
+  it("is false if VITE_APP_ENV is set to an invalid/misspelled value (never falls back to a default environment)", () => {
+    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key");
+    vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+    vi.stubEnv("VITE_APP_ENV", "prod"); // typo/short form — must NOT be accepted
+    expect(isAnalyticsConfigured()).toBe(false);
+  });
+
+  it("is true once all three vars are set and valid, with VITE_APP_ENV=staging", () => {
+    stubFullyConfigured("staging");
+    expect(isAnalyticsConfigured()).toBe(true);
+  });
+
+  it("is true once all three vars are set and valid, with VITE_APP_ENV=production", () => {
+    stubFullyConfigured("production");
     expect(isAnalyticsConfigured()).toBe(true);
   });
 
   it("treats a blank/whitespace-only value as not configured", () => {
     vi.stubEnv("VITE_POSTHOG_KEY", "   ");
     vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+    vi.stubEnv("VITE_APP_ENV", "staging");
     expect(isAnalyticsConfigured()).toBe(false);
   });
 });
 
 describe("trackEvent — no-op without configuration", () => {
   it("never initializes nor calls posthog.capture when unconfigured", () => {
+    trackEvent("app_opened", {});
+    expect(initMock).not.toHaveBeenCalled();
+    expect(captureMock).not.toHaveBeenCalled();
+  });
+
+  it("stays a no-op when the key/host are valid but VITE_APP_ENV is absent", () => {
+    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key");
+    vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+    trackEvent("app_opened", {});
+    expect(initMock).not.toHaveBeenCalled();
+    expect(captureMock).not.toHaveBeenCalled();
+  });
+
+  it("stays a no-op when VITE_APP_ENV is set but invalid", () => {
+    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key");
+    vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
+    vi.stubEnv("VITE_APP_ENV", "not-a-real-environment");
     trackEvent("app_opened", {});
     expect(initMock).not.toHaveBeenCalled();
     expect(captureMock).not.toHaveBeenCalled();
@@ -97,10 +141,7 @@ describe("trackEvent — no-op without configuration", () => {
 });
 
 describe("trackEvent — allowlist filtering once configured", () => {
-  beforeEach(() => {
-    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key");
-    vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
-  });
+  beforeEach(() => stubFullyConfigured());
 
   it("initializes the client exactly once even across several trackEvent calls", () => {
     trackEvent("app_opened", {});
@@ -152,11 +193,8 @@ describe("trackEvent — allowlist filtering once configured", () => {
   });
 });
 
-describe("trackEvent — common properties (is_authenticated / app_version / locale)", () => {
-  beforeEach(() => {
-    vi.stubEnv("VITE_POSTHOG_KEY", "phc_test_key");
-    vi.stubEnv("VITE_POSTHOG_HOST", "https://eu.i.posthog.com");
-  });
+describe("trackEvent — common properties (is_authenticated / app_version / locale / environment)", () => {
+  beforeEach(() => stubFullyConfigured());
 
   it("attaches is_authenticated: false when registerIsAuthenticated was never called (safe default)", () => {
     trackEvent("app_opened", {});
@@ -191,6 +229,20 @@ describe("trackEvent — common properties (is_authenticated / app_version / loc
     expect(sentProps).not.toHaveProperty("name");
   });
 
+  it("attaches environment: 'staging' when VITE_APP_ENV=staging", () => {
+    trackEvent("app_opened", {}); // stubFullyConfigured() default is "staging"
+    const [, sentProps] = captureMock.mock.calls[0];
+    expect(sentProps).toMatchObject({ environment: "staging" });
+  });
+
+  it("attaches environment: 'production' when VITE_APP_ENV=production", () => {
+    vi.unstubAllEnvs();
+    stubFullyConfigured("production");
+    trackEvent("app_opened", {});
+    const [, sentProps] = captureMock.mock.calls[0];
+    expect(sentProps).toMatchObject({ environment: "production" });
+  });
+
   it("never lets a common property be overridden by a spread of arbitrary caller data", () => {
     registerIsAuthenticated(() => true);
     trackEvent(
@@ -201,6 +253,21 @@ describe("trackEvent — common properties (is_authenticated / app_version / loc
     const [, sentProps] = captureMock.mock.calls[0];
     expect(sentProps.is_authenticated).toBe(true);
     expect(sentProps).not.toHaveProperty("email");
+  });
+
+  it("never lets a caller override environment, even via a spread of arbitrary data", () => {
+    trackEvent(
+      "app_opened",
+      // @ts-expect-error — same "excess via spread" scenario as above: no event
+      // in the taxonomy declares `environment` as one of its own properties,
+      // so this can only reach the payload if the allowlist filter failed to
+      // drop it.
+      { ...({ environment: "production" } as Record<string, unknown>) },
+    );
+    const [, sentProps] = captureMock.mock.calls[0];
+    // stubFullyConfigured() default is "staging" — if the caller's bogus
+    // "production" leaked through, this would read "production" instead.
+    expect(sentProps.environment).toBe("staging");
   });
 
   it("re-invokes the registered getter on every trackEvent call — never caches the value at registration time", () => {

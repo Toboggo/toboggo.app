@@ -181,42 +181,42 @@ est une phase ultérieure.
 locaux, les sessions Simulator et les sessions Claude Code ne doivent jamais faire remonter
 d'événement dans le même espace de données que les utilisateurs réels de production.
 
-**Statut : le mécanisme no-op est implémenté (voir ci-dessous) ; la séparation Staging (projet
-PostHog distinct) reste, elle, non créée — un projet PostHog "Production" a été créé manuellement
-en dehors de ce repo, aucun projet Staging n'existe encore.**
-
-Le repo a déjà un précédent directement transposable : `CLAUDE.md` §4 impose une
-séparation stricte entre le projet Supabase de **production** (lié en CLI) et le projet
-**Staging** (`Toboggo Staging`, ref distincte, jamais lié en `--linked`), et `.env.local`
-(gitignoré, prioritaire en dev) sépare déjà la configuration locale de la configuration commitée
-(`CLAUDE.md` §3). La même logique s'applique naturellement à PostHog :
+**Statut : implémenté, stratégie révisée.** Le plan PostHog retenu ne permet qu'**un seul
+projet** — la séparation Staging/Production initialement envisagée par projet distinct (cf.
+versions précédentes de cette section) n'est donc plus possible et est **abandonnée**. Toboggo
+utilise un unique projet PostHog, Staging et Production séparés par la propriété commune
+`environment` (`"staging"` | `"production"`, jamais une troisième valeur), ajoutée automatiquement
+à chaque événement par `lib/analytics/commonProperties.ts`.
 
 - **Local / Simulator / Claude Code (dev) — implémenté** : `.env.example` ne contient que
-  `VITE_POSTHOG_KEY=`/`VITE_POSTHOG_HOST=` vides, avec un commentaire explicite interdisant d'y
-  mettre une clé réelle — exactement le même pattern déjà en place dans ce repo pour
+  `VITE_POSTHOG_KEY=`/`VITE_POSTHOG_HOST=`/`VITE_APP_ENV=` vides, avec un commentaire explicite
+  interdisant d'y mettre une clé réelle — même pattern déjà en place dans ce repo pour
   `VITE_MAP_STYLE_URL` (absence ⇒ `FakeMap`, `ANALYTICS-AUDIT.md` §4) et `VITE_MAPTILER_KEY`
   (absence ⇒ `searchPlaces` renvoie `[]` silencieusement, `ANALYTICS-AUDIT.md` §6).
-  `isAnalyticsConfigured()` (`lib/analytics/client.ts`) revérifie les deux variables à chaque
-  appel : si absentes, `trackEvent()` ne fait rien, `posthog.init()` n'est jamais appelé, et
+  `isAnalyticsConfigured()` (`lib/analytics/client.ts`) exige désormais **les trois** variables
+  (clé, host, ET `VITE_APP_ENV` strictement `"staging"` ou `"production"`) : si l'une des trois
+  est absente ou invalide, `trackEvent()` ne fait rien, `posthog.init()` n'est jamais appelé, et
   `AnalyticsProvider` rend ses enfants sans jamais monter `PostHogProvider` — testé explicitement
-  (`client.test.ts`, `AnalyticsProvider.test.tsx`). Un développeur qui a besoin de vérifier ses
-  événements en local doit explicitement renseigner une clé de test dans son `.env.local`
+  (`client.test.ts`, `AnalyticsProvider.test.tsx`), y compris le cas d'une valeur mal orthographiée
+  (`"prod"` au lieu de `"production"`, etc.) qui doit rester un no-op complet, pas un repli
+  silencieux vers un environnement par défaut. Un développeur qui a besoin de vérifier ses
+  événements en local doit explicitement renseigner les trois variables dans son `.env.local`
   personnel (jamais commité).
-- **Staging** : projet PostHog **distinct** de la production (nouveau projet, pas juste une
-  propriété `environment: "staging"` sur un même projet) — c'est le choix le plus sûr et le plus
-  cohérent avec la séparation déjà actée pour Supabase Staging, quitte à être un peu plus de
-  configuration initiale : il rend structurellement impossible qu'un événement de staging
-  apparaisse dans un dashboard de production, même en cas d'erreur de configuration d'une
-  propriété. Une alternative plus légère (un seul projet PostHog, propriété `environment` sur
-  chaque événement, filtrée dans les dashboards) est possible si le plan PostHog choisi ne permet
-  qu'un seul projet, mais elle est moins sûre et dépend de la discipline de filtrage dans chaque
-  dashboard — à documenter comme un compromis assumé si retenue.
-- **Production** : clé PostHog dédiée, injectée uniquement via les variables d'environnement de
-  build de production (jamais présente dans `.env.local` ni dans un fichier commité), miroir exact
-  du traitement déjà réservé à `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` de production
-  (`CLAUDE.md` §4).
+- **Staging** : même projet PostHog que Production, `VITE_APP_ENV=staging` injecté par le
+  déploiement Staging. **Volontairement pas déduit** de `import.meta.env.MODE`/`PROD`/`DEV` (le
+  mode de build Vite) : un build Vite "production" peut parfaitement être déployé sur
+  l'environnement Staging, donc le mode de build ne garantit rien sur l'environnement réel — voir
+  `lib/analytics/environment.ts`.
+- **Production** : même projet PostHog, `VITE_APP_ENV=production` injecté par le déploiement
+  Production. Clé/host/env injectés uniquement via les variables d'environnement du déploiement
+  (jamais dans `.env.local` ni un fichier commité), miroir du traitement déjà réservé à
+  `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` de production (`CLAUDE.md` §4).
 
-La partie Staging reste une proposition à valider — aucun projet PostHog Staging n'a été créé.
+**Conséquence pour les dashboards** : tout dashboard "Founder/Product" ou toute analyse de
+comportement utilisateur réel doit **systématiquement filtrer `environment = production`** — voir
+`DASHBOARDS.md`. Les événements `environment = staging` (tests, QA, démonstrations) doivent être
+exclus des analyses produit réelles, mais restent disponibles pour vérifier que l'instrumentation
+fonctionne avant un déploiement en production.
 
 ## 7bis. Persistance PostHog — décision prise pour le socle, à confirmer avant les événements P0
 

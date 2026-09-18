@@ -1,6 +1,6 @@
 import i18n from "i18next";
 import { normalizeLanguage } from "../../i18n/config";
-import type { CommonProperties } from "./events";
+import type { AppEnvironment, CommonProperties } from "./events";
 
 /**
  * Source de `is_authenticated` — une simple fonction injectée UNE FOIS par
@@ -45,11 +45,18 @@ export function registerIsAuthenticated(getter: () => boolean): void {
  *   (`apps/mobile/vite.config.ts`) depuis `package.json`, et par
  *   `vitest.config.ts` en test — fiable dans les deux cas (déjà utilisé par
  *   `About.tsx`), donc utilisé tel quel plutôt qu'une valeur inventée.
+ * - `environment` : reçue en paramètre, PAS relue ici depuis `VITE_APP_ENV`.
+ *   `client.ts` a déjà validé cette même valeur via `getAppEnvironment()`
+ *   avant même d'appeler cette fonction (`isAnalyticsConfigured()` l'exige) —
+ *   la recevoir en paramètre garantit qu'un seul et même appel de lecture/
+ *   validation sert à la fois de porte d'entrée et de valeur envoyée, sans
+ *   risque de divergence entre deux lectures indépendantes de la variable.
  */
-export function getCommonProperties(): CommonProperties {
+export function getCommonProperties(environment: AppEnvironment): CommonProperties {
   return {
     is_authenticated: getIsAuthenticated(),
     app_version: __APP_VERSION__,
     locale: normalizeLanguage(i18n.resolvedLanguage ?? i18n.language),
+    environment,
   };
 }

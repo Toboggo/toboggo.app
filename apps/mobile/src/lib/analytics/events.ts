@@ -4,9 +4,6 @@
  * Ce fichier est la SEULE source de vérité pour les noms d'événements et leurs
  * propriétés côté code. Toute évolution doit d'abord être actée dans
  * docs/analytics/EVENT-TAXONOMY.md, puis répercutée ici — jamais l'inverse.
- * Aucun événement ci-dessous n'est encore câblé dans un écran (socle
- * uniquement, cf. audit — l'instrumentation des 14 P0 est une phase
- * ultérieure).
  *
  * `EVENT_PROPERTY_ALLOWLIST` liste, pour chaque événement, les clés
  * effectivement autorisées à quitter ce module. `client.ts` s'en sert pour
@@ -19,17 +16,29 @@
  * chaque entrée doivent correspondre exactement).
  *
  * Les propriétés communes (`is_authenticated`, `app_version`, `locale`,
- * distinct_id — cf. EVENT-TAXONOMY.md "Propriétés communes") ne sont PAS
- * incluses dans les types par-événement ci-dessous : leur auto-attachement
- * dépend de l'état de session/i18n de l'app, ce qui est de l'instrumentation,
- * pas du socle. `CommonProperties` est déclaré pour la compatibilité future
- * mais n'est pas encore câblé — voir le commentaire dans `client.ts`.
+ * `environment` — cf. EVENT-TAXONOMY.md "Propriétés communes") ne sont PAS
+ * incluses dans les types par-événement ci-dessous : `client.ts` les ajoute
+ * automatiquement à chaque `trackEvent()` (voir `commonProperties.ts`), et
+ * elles ne passent jamais par `EVENT_PROPERTY_ALLOWLIST` — un appelant ne peut
+ * donc structurellement pas les écraser en les glissant dans les propriétés
+ * d'un événement (filtrées avant d'être fusionnées).
  */
+
+/**
+ * Un seul projet PostHog pour Toboggo (Staging + Production) — les données
+ * sont séparées par cette propriété commune, pas par projet. Lue depuis
+ * `VITE_APP_ENV` (voir `environment.ts`), jamais déduite de
+ * `import.meta.env.MODE`/`PROD`/`DEV` : un build Vite "production" peut être
+ * déployé sur l'environnement Staging, donc le mode de build ne dit rien sur
+ * l'environnement applicatif réel.
+ */
+export type AppEnvironment = "staging" | "production";
 
 export interface CommonProperties {
   is_authenticated: boolean;
   app_version: string;
   locale: string;
+  environment: AppEnvironment;
 }
 
 export type DiscoverySource =

@@ -24,6 +24,17 @@ vérité unique des données métier et de l'état du catalogue. Si un besoin de
 une question déjà répondue par une requête Supabase, la réponse est cette requête, pas un nouvel
 événement analytics.
 
+**Filtre obligatoire sur les 4 dashboards Product Analytics ci-dessous (§3-§6)** : Toboggo utilise
+**un seul projet PostHog** pour Staging et Production (le plan actuel n'en permet qu'un) —
+Staging et Production ne sont PAS séparés par projet, mais par la propriété commune `environment`
+(`"staging"` | `"production"`, ajoutée automatiquement à chaque événement, voir
+`EVENT-TAXONOMY.md` "Propriétés communes"). **Tout dashboard Founder/Product ou toute analyse de
+comportement utilisateur réel doit systématiquement filtrer `environment = production`** — sans
+ce filtre, les événements générés par les tests, la QA ou des démonstrations en Staging fausseront
+les chiffres. Les événements `environment = staging` restent disponibles séparément pour vérifier
+que l'instrumentation fonctionne avant un déploiement, mais doivent être exclus de toute analyse
+produit réelle.
+
 ## 2. KPI Data Quality calculables depuis le schéma Supabase existant
 
 Colonnes confirmées par lecture des migrations réelles (`supabase/migrations/*.sql`) et du schéma

@@ -424,6 +424,7 @@ Total : 26 événements (14 + 5 + 7).
 | `is_authenticated` | bool | true dès qu'un `userId` Supabase existe |
 | `app_version` | string | `__APP_VERSION__` (build), déjà utilisé dans `About.tsx` |
 | `locale` | string | langue active (`useLocale`), indépendante du compte |
+| `environment` | `"staging"` \| `"production"` | Lue depuis `VITE_APP_ENV` (`lib/analytics/environment.ts`), jamais déduite du mode de build Vite. **Un seul projet PostHog** (Staging + Production) : cette propriété est le seul mécanisme de séparation — tout dashboard Founder/Product doit filtrer `environment = production` (voir `DASHBOARDS.md`). Absente/invalide ⇒ analytics intégralement no-op, jamais un repli implicite vers `"production"`. |
 | distinct_id / anonymous_id | géré par PostHog | réconciliation anonyme→identifié requise (cf. `TRACKING-PLAN.md` §2) dès l'implémentation |
 
 ## Propriétés spécifiques (déjà listées par événement ci-dessus, récapitulatif)

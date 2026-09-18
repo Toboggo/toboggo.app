@@ -6,6 +6,7 @@
   "directionsUnavailable": "Itinéraire indisponible : coordonnées du parc manquantes.",
   "directionsSheet": {
     "title": "Ouvrir l’itinéraire avec",
+    "subtitle": "Choisissez votre application de navigation",
     "apple": "Plans",
     "google": "Google Maps",
     "waze": "Waze"

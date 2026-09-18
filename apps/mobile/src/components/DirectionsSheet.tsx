@@ -1,15 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { BottomSheet } from "@toboggo/design-system";
+import { BottomSheet, Button, Icon } from "@toboggo/design-system";
 import { getAvailableMapProviders, type MapProvider } from "@toboggo/shared";
-import styles from "./QuickMenu.module.css";
-
-// Pas de pictogramme "Plans"/"Google Maps"/"Waze" validé dans le sprite
-// (marques tierces) — emoji conservé, comme QuickMenu/ContributeSheet.
-const PROVIDER_ICON: Record<MapProvider, string> = {
-  apple: "🧭",
-  google: "🗺️",
-  waze: "🚗",
-};
+import styles from "./DirectionsSheet.module.css";
 
 export function DirectionsSheet({
   open,
@@ -25,24 +17,40 @@ export function DirectionsSheet({
 
   return (
     <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop>
-      <div className={styles.menu}>
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: "var(--color-text-muted)", padding: "2px 6px 10px" }}>
-          {t("directionsSheet.title")}
+      <div className={styles.sheet}>
+        <div className={styles.header}>
+          <div className={styles.title}>{t("directionsSheet.title")}</div>
+          <div className={styles.subtitle}>{t("directionsSheet.subtitle")}</div>
         </div>
-        {providers.map((provider) => (
-          <button key={provider} type="button" className={styles.item} onClick={() => onChoose(provider)}>
-            <span className={styles.icon}>{PROVIDER_ICON[provider]}</span>
-            {t(`directionsSheet.${provider}`)}
-          </button>
-        ))}
-        <button
-          type="button"
-          className={styles.item}
-          onClick={onClose}
-          style={{ color: "var(--color-text-muted)", borderBottom: "none" }}
-        >
+
+        <div className={styles.list}>
+          {providers.map((provider) => (
+            <button key={provider} type="button" className={styles.row} onClick={() => onChoose(provider)}>
+              <span className={styles.rowIcon}>
+                <Icon name="ic-route" size={18} />
+              </span>
+              <span className={styles.rowLabel}>{t(`directionsSheet.${provider}`)}</span>
+              <svg
+                className={styles.chevron}
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M9 6l6 6-6 6" />
+              </svg>
+            </button>
+          ))}
+        </div>
+
+        <Button type="button" variant="secondary" block onClick={onClose}>
           {t("action.cancel", { ns: "common" })}
-        </button>
+        </Button>
       </div>
     </BottomSheet>
   );

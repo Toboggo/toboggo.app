@@ -12,11 +12,15 @@ export function ParkCarousel({
   favorites,
   onToggleFavorite,
   onSelect,
+  cardVariant = "carousel",
 }: {
   parks: (Park & { distance_m: number })[];
   favorites: string[];
   onToggleFavorite: (id: string) => void;
   onSelect: (id: string) => void;
+  /** `peek` — a lighter card (photo strip + name only) for the sheet's peek
+   *  snap, deliberately cropped shorter than `carousel`. */
+  cardVariant?: "carousel" | "peek";
 }) {
   return (
     <div className={styles.strip}>
@@ -28,7 +32,7 @@ export function ParkCarousel({
           favorite={favorites.includes(p.id)}
           onToggleFavorite={() => onToggleFavorite(p.id)}
           onOpen={() => onSelect(p.id)}
-          variant="carousel"
+          variant={cardVariant}
         />
       ))}
     </div>

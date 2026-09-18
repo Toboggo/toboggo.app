@@ -6,6 +6,7 @@ import { ParkCard } from "../../components/ParkCard";
 import { useSession } from "../../lib/session";
 import { useChildAges } from "../../lib/children";
 import { useFilters, type SortMode } from "../../lib/filters";
+import { pushShownToEnd } from "./parkListOrder";
 import styles from "./ParkList.module.css";
 
 const SORT_VALUES: SortMode[] = ["distance", "rating", "recent"];
@@ -16,15 +17,16 @@ export function ParkList({
   forChildren,
   setForChildren,
   header,
-  extra,
+  contextualIds,
 }: {
   parks: (Park & { distance_m: number })[];
   onToggleFavorite: (id: string) => void;
   forChildren: boolean;
   setForChildren: (v: boolean) => void;
   header?: ReactNode;
-  /** Non-sticky content (e.g. the liked-parks strip) shown once, above the list. */
-  extra?: ReactNode;
+  /** Ids already shown in the carousel above — pushed after the rest here
+   *  instead of removed, so "all the parks" still means all of them. */
+  contextualIds?: string[];
 }) {
   const { t } = useTranslation("map");
   const { sort, setSort } = useFilters();
@@ -46,6 +48,7 @@ export function ParkList({
     if (sort === "recent") return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     return a.distance_m - b.distance_m;
   });
+  rows = pushShownToEnd(rows, contextualIds ?? []);
 
   return (
     <div className={styles.wrap}>
@@ -78,8 +81,6 @@ export function ParkList({
           )}
         </div>
       </div>
-
-      {extra}
 
       <div className={styles.list}>
         {rows.length === 0 && <div className={styles.empty}>{t("state.listEmpty")}</div>}

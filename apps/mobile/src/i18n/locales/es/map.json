@@ -39,7 +39,13 @@
     "dragHint_one": "{{count}} parque · Desliza para explorar",
     "dragHint_other": "{{count}} parques · Desliza para explorar",
     "loading": "Buscando parques cerca de ti…",
-    "likedParks": "Parques que te han gustado"
+    "forChildrenNearby": "Para tus hijos, cerca de ti",
+    "forChildrenNearbySubtitle": "Parques adaptados a su edad",
+    "favoritesNearby": "Tus favoritos cerca de ti ❤️",
+    "favoritesNearbySubtitle": "Tus parques guardados cerca de ti",
+    "discoverNearby": "Para descubrir cerca de ti ✨",
+    "discoverNearbySubtitle": "Parques por descubrir cerca de ti",
+    "allNearby": "Todos los parques cerca de ti"
   },
   "state": {
     "errorTitle": "No se pueden cargar los parques",

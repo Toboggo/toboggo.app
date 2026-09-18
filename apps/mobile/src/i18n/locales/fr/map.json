@@ -39,7 +39,13 @@
     "dragHint_one": "{{count}} parc · Faites glisser pour explorer",
     "dragHint_other": "{{count}} parcs · Faites glisser pour explorer",
     "loading": "Recherche des parcs autour de vous…",
-    "likedParks": "Les parcs que vous avez aimés"
+    "forChildrenNearby": "Pour vos enfants, près d’ici",
+    "forChildrenNearbySubtitle": "Des parcs adaptés à leur âge",
+    "favoritesNearby": "Vos favoris à proximité ❤️",
+    "favoritesNearbySubtitle": "Vos parcs enregistrés près d’ici",
+    "discoverNearby": "À découvrir près d’ici ✨",
+    "discoverNearbySubtitle": "Des parcs à découvrir autour de vous",
+    "allNearby": "Tous les parcs autour de vous"
   },
   "state": {
     "errorTitle": "Impossible de charger les parcs",

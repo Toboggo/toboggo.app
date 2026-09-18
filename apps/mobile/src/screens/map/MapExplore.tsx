@@ -1,19 +1,20 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, Icon, useBottomNavHeight, type Snap } from "@toboggo/design-system";
+import { BottomSheet, Icon, useBottomNavHeight, useViewportHeight, type Snap } from "@toboggo/design-system";
 import { MapCanvas } from "./MapCanvas";
 import { SearchOverlay } from "./SearchOverlay";
 import { FiltersSheet } from "./FiltersSheet";
 import { ParkPreview } from "./ParkPreview";
 import { ParkList } from "./ParkList";
 import { ParkCarousel } from "./ParkCarousel";
-import { LikedParksSection } from "./LikedParksSection";
+import { selectContextualCarousel } from "./contextualCarousel";
 import { SheetState, SheetLoading } from "./SheetState";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
 import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo";
 import { useFilters } from "../../lib/filters";
+import { useChildAges } from "../../lib/children";
 import { useNearbyParks } from "../../lib/parksQuery";
 import { useWeather } from "../../lib/weather";
 import { useSession } from "../../lib/session";
@@ -25,9 +26,13 @@ import styles from "./MapExplore.module.css";
 // "fit": we deliberately crop the carousel short instead of hugging it.
 const PEEK_H = 137;
 
-// Snap ladders per sheet mode. "fit" = hug the measured content (no empty panel);
-// 0.9 = near-fullscreen expanded (further clamped so it never covers the header).
-const SNAPS_LIST: Snap[] = [PEEK_H, "fit", 0.9];
+// Medium is a real "map + discovery" balance, not a near-full sheet: a fixed
+// share of the zone actually available between the header and the bottom nav
+// (not of the raw viewport — a fraction snap resolves against the full screen
+// height, see `BottomSheet.resolve`), so it stays proportionate across phones
+// instead of hardcoding one device's numbers.
+const MEDIUM_RATIO = 0.48;
+
 const SNAPS_SINGLE: Snap[] = ["fit"];
 
 function weatherEmoji(condition?: string) {
@@ -60,6 +65,7 @@ export default function MapExplore() {
   // area), from the shared CSS token. Replaces the old `TAB_INSET = 78` guess so
   // the sheet, the map camera insets and the nav can't disagree.
   const navH = useBottomNavHeight();
+  const vpH = useViewportHeight();
   const [headerBottom, setHeaderBottom] = useState(72);
   const headerRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -67,6 +73,7 @@ export default function MapExplore() {
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
+  const childAges = useChildAges();
 
   const {
     data: parks = [],
@@ -80,6 +87,13 @@ export default function MapExplore() {
   const filterCount = activeCount();
   const hasResults = parks.length > 0;
 
+  // The one carousel shown under the filters — same selection at every list
+  // snap, see `renderSheet`.
+  const contextual = useMemo(
+    () => selectContextualCarousel(parks, favorites, forChildren, childAges),
+    [parks, favorites, forChildren, childAges],
+  );
+
   const mode: "preview" | "loading" | "state" | "list" = selectedPark
     ? "preview"
     : isLoading
@@ -91,7 +105,16 @@ export default function MapExplore() {
   // Each mode has its own snap ladder so the sheet is always sized to its
   // content — a one-line status or a short carousel never leaves an empty
   // panel, and the list mode can still be pulled up to (near-)fullscreen.
-  const snapPoints = useMemo<Snap[]>(() => (mode === "list" ? SNAPS_LIST : SNAPS_SINGLE), [mode]);
+  // Medium is a fixed px share of the zone actually available to the sheet
+  // (viewport minus the header/search-bar strip minus the bottom nav) — the
+  // same ingredients `BottomSheet`'s own `maxH` clamps against (`topInset` /
+  // `bottomInset` below), so it tracks every device instead of one phone.
+  const snapPoints = useMemo<Snap[]>(() => {
+    if (mode !== "list") return SNAPS_SINGLE;
+    const usefulZoneH = vpH - (headerBottom + 12) - navH;
+    const mediumH = Math.round(usefulZoneH * MEDIUM_RATIO);
+    return [PEEK_H, mediumH, 0.9];
+  }, [mode, vpH, headerBottom, navH]);
 
   // Reset the snap position when the mode *changes* so the new ladder starts
   // sane — but don't fight the user's drag while they stay in the same mode.
@@ -284,64 +307,70 @@ export default function MapExplore() {
       </div>
     );
 
-    // Peek: header + the same carousel as the intermediate state — the sheet
-    // is just shorter here (see PEEK_H), cropping it to a partial first row
-    // instead of measuring/hugging it ("fit"). No favorites section at this
-    // tier; it only shows once fully expanded (snap 1).
+    // `contextual` is never null here — `hasResults` above already guarantees
+    // `parks.length > 0`, the only case `selectContextualCarousel` returns null.
+    // Peek: a minimal, coherent preview — the same contextual selection medium
+    // and expanded show (not a different "every nearby park" strip), but
+    // without stacking a second title in an already tight crop (PEEK_H).
     if (snap === 0) {
       return (
         <div className={styles.intermediate}>
           {header}
           <ParkCarousel
-            parks={parks}
+            parks={contextual?.parks ?? []}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
             onSelect={setSelectedId}
+            cardVariant="peek"
           />
         </div>
       );
     }
 
-    // Rendered from both the intermediate carousel and the full list — a park
-    // favorited while already at the full list (a common path, since "Voir
-    // tout" jumps straight past the intermediate step) must still surface it,
-    // not only the narrower snap where the section first lived.
-    const likedSection = userId ? (
-      <LikedParksSection
-        favoriteIds={favorites}
-        lat={lat}
-        lng={lng}
-        onToggleFavorite={toggleFavorite}
-        onSelect={setSelectedId}
-      />
-    ) : null;
+    // Medium and expanded both lead with the full contextual block (children >
+    // favorites nearby > discover) under its own title — so opening the sheet
+    // further reads as more of the same view, not a jump to a different screen.
+    const contextualBlock = contextual && (
+      <div className={styles.intermediate}>
+        {header}
+        <div className={styles.contextualHead}>
+          <div className={styles.sheetTitle}>{t(contextual.titleKey)}</div>
+          <div className={styles.contextualSubtitle}>{t(contextual.subtitleKey)}</div>
+        </div>
+        <ParkCarousel
+          parks={contextual.parks}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+          onSelect={setSelectedId}
+        />
+      </div>
+    );
 
-    if (snap === 1) {
-      return (
-        <>
-          <div className={styles.intermediate}>
-            {header}
-            <ParkCarousel
-              parks={parks}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
-              onSelect={setSelectedId}
-            />
-          </div>
-          {likedSection}
-        </>
-      );
-    }
+    // Medium: just the contextual block, cropped to the medium snap height —
+    // no vertical list yet.
+    if (snap === 1) return contextualBlock;
 
+    // Expanded: the same contextual block stays visible above a distinct
+    // "Tous les parcs autour de vous" list — parks already shown in the
+    // carousel are pushed after the rest there (never removed), so a park
+    // isn't immediately repeated in the first rows.
+    const contextualIds = contextual ? contextual.parks.map((p) => p.id) : [];
     return (
-      <ParkList
-        parks={parks}
-        onToggleFavorite={toggleFavorite}
-        forChildren={forChildren}
-        setForChildren={setForChildren}
-        header={header}
-        extra={likedSection}
-      />
+      <>
+        {contextualBlock}
+        <ParkList
+          parks={parks}
+          onToggleFavorite={toggleFavorite}
+          forChildren={forChildren}
+          setForChildren={setForChildren}
+          header={
+            <div className={styles.sheetHead}>
+              <div className={styles.sheetTitle}>{t("sheet.allNearby")}</div>
+            </div>
+          }
+          contextualIds={contextualIds}
+        />
+      </>
     );
   }
 

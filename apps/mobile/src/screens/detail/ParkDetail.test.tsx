@@ -117,32 +117,43 @@ function renderDetail(overrides: Partial<Park> = {}) {
 }
 
 describe("ParkDetail — Itinéraire CTA", () => {
+  // `Location.assign` is spec-"unforgeable" (own, non-configurable) in jsdom —
+  // `vi.spyOn` can't touch it, so the whole `window.location` is swapped for a
+  // plain mock object instead.
+  let originalLocation: Location;
+
   beforeEach(() => {
     toasts.list = [];
     visits.calls = [];
-    vi.spyOn(window, "open").mockImplementation(() => null);
+    originalLocation = window.location;
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      writable: true,
+      value: { ...originalLocation, assign: vi.fn() },
+    });
   });
 
   afterEach(() => {
+    Object.defineProperty(window, "location", { configurable: true, writable: true, value: originalLocation });
     vi.restoreAllMocks();
   });
 
-  it("valid coordinates: opens external maps directly, no internal navigation to /directions", () => {
+  it("valid coordinates: navigates the current tab to external maps, no internal navigation to /directions", () => {
     renderDetail();
     fireEvent.click(screen.getByText("Itinéraire"));
 
-    expect(window.open).toHaveBeenCalledTimes(1);
-    const [url] = (window.open as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(window.location.assign).toHaveBeenCalledTimes(1);
+    const [url] = (window.location.assign as ReturnType<typeof vi.fn>).mock.calls[0];
     expect(url).toMatch(/^https:\/\/(maps\.apple\.com|www\.google\.com\/maps\/dir)\//);
     expect(screen.queryByText("ANCIEN ÉCRAN FACTICE")).toBeNull();
     expect(visits.calls).toEqual([["p1", "Square Voltaire"]]);
   });
 
-  it("missing coordinates: shows a toast, opens nothing, does not crash", () => {
+  it("missing coordinates: shows a toast, navigates nowhere, does not crash", () => {
     renderDetail({ latitude: null as unknown as number, longitude: null as unknown as number });
     expect(() => fireEvent.click(screen.getByText("Itinéraire"))).not.toThrow();
 
-    expect(window.open).not.toHaveBeenCalled();
+    expect(window.location.assign).not.toHaveBeenCalled();
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
   });
 });

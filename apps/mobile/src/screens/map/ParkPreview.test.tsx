@@ -120,21 +120,38 @@ describe("ParkPreview — Itinéraire CTA", () => {
     vi.restoreAllMocks();
   });
 
-  it("valid coordinates: navigates the current tab to external maps, no internal navigation to /directions", () => {
+  it("valid coordinates: opens the app picker, navigates only once a provider is chosen, no internal navigation to /directions", () => {
     renderPreview(PARK);
     fireEvent.click(screen.getByText("Itinéraire"));
 
+    // The sheet opens first — no external navigation before a real choice.
+    expect(screen.getByText("Ouvrir l’itinéraire avec")).toBeTruthy();
+    expect(window.location.assign).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText("Google Maps"));
+
     expect(window.location.assign).toHaveBeenCalledTimes(1);
     const [url] = (window.location.assign as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(url).toMatch(/^https:\/\/(maps\.apple\.com|www\.google\.com\/maps\/dir)\//);
+    expect(url).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\//);
     expect(screen.queryByText("ANCIEN ÉCRAN FACTICE")).toBeNull();
     expect(visits.calls).toEqual([["p1", "Square Voltaire"]]);
   });
 
-  it("missing coordinates: shows a toast, navigates nowhere, does not crash", () => {
+  it("Annuler: closes the sheet, navigates nowhere, no visit prompt", () => {
+    renderPreview(PARK);
+    fireEvent.click(screen.getByText("Itinéraire"));
+    fireEvent.click(screen.getByText("Annuler"));
+
+    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(visits.calls).toEqual([]);
+    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
+  });
+
+  it("missing coordinates: shows a toast, sheet never opens, navigates nowhere, does not crash", () => {
     renderPreview({ ...PARK, latitude: null as unknown as number, longitude: null as unknown as number });
     expect(() => fireEvent.click(screen.getByText("Itinéraire"))).not.toThrow();
 
+    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
     expect(screen.queryByText("ANCIEN ÉCRAN FACTICE")).toBeNull();
@@ -144,6 +161,7 @@ describe("ParkPreview — Itinéraire CTA", () => {
     renderPreview({ ...PARK, latitude: 0, longitude: 0 });
     fireEvent.click(screen.getByText("Itinéraire"));
 
+    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
   });

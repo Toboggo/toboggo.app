@@ -4,6 +4,12 @@
   "openDetail": "View details",
   "directions": "Directions",
   "directionsUnavailable": "Directions unavailable: missing park coordinates.",
+  "directionsSheet": {
+    "title": "Open directions with",
+    "apple": "Maps",
+    "google": "Google Maps",
+    "waze": "Waze"
+  },
   "photos": "Photos",
   "reportProblem": "Report a problem",
   "walkDistance": "{{minutes}} · {{distance}}",

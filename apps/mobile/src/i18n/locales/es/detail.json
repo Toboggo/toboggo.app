@@ -4,6 +4,12 @@
   "openDetail": "Ver la ficha",
   "directions": "Cómo llegar",
   "directionsUnavailable": "Ruta no disponible: faltan las coordenadas del parque.",
+  "directionsSheet": {
+    "title": "Abrir la ruta con",
+    "apple": "Mapas",
+    "google": "Google Maps",
+    "waze": "Waze"
+  },
   "photos": "Fotos",
   "reportProblem": "Informar de un problema",
   "walkDistance": "{{minutes}} · {{distance}}",

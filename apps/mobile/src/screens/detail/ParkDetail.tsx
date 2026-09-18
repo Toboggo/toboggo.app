@@ -9,9 +9,10 @@ import { hasRating } from "../../lib/parkDisplay";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { useFormat } from "../../i18n/useFormat";
 import { useSession } from "../../lib/session";
-import { useOpenDirections } from "../../lib/directions";
+import { useDirections } from "../../lib/directions";
 import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
+import { DirectionsSheet } from "../../components/DirectionsSheet";
 import styles from "./Detail.module.css";
 
 function Stars({ value, size = 15 }: { value: number; size?: number }) {
@@ -50,7 +51,7 @@ export default function ParkDetail() {
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
-  const openDirections = useOpenDirections();
+  const { openDirections, directionsSheetProps } = useDirections();
 
   useEffect(() => {
     if (id) void incrementParkViews(id);
@@ -322,6 +323,7 @@ export default function ParkDetail() {
 
       <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} park={park} />
       <ContributeSheet open={contribOpen} onClose={() => setContribOpen(false)} parkId={park.id} />
+      <DirectionsSheet {...directionsSheetProps} />
     </div>
   );
 }

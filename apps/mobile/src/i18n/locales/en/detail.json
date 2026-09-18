@@ -3,6 +3,7 @@
   "allParks": "All parks",
   "openDetail": "View details",
   "directions": "Directions",
+  "directionsUnavailable": "Directions unavailable: missing park coordinates.",
   "photos": "Photos",
   "reportProblem": "Report a problem",
   "walkDistance": "{{minutes}} · {{distance}}",
@@ -36,21 +37,6 @@
     "flagThanks": "Review reported, thank you.",
     "empty": "No reviews yet.",
     "write": "Write a review"
-  },
-  "route": {
-    "title": "Directions",
-    "mode": "Travel mode",
-    "modeWalk": "Walking",
-    "modeBike": "Cycling",
-    "modeCar": "Driving",
-    "addStop": "Add a stop along the way",
-    "stopBakery": "Bakery",
-    "stopParking": "Parking",
-    "stopWater": "Water fountain",
-    "started": "Navigation started",
-    "inProgress": "Navigation in progress…",
-    "start": "Start navigation · {{eta}}",
-    "backToPark": "Back to the park page"
   },
   "score": {
     "title": "Toboggo Score",

@@ -21,6 +21,7 @@ export * from "./draft/persistentDraft";
 export * from "./utils/age";
 export * from "./utils/childAge";
 export * from "./utils/distance";
+export * from "./utils/externalNav";
 export * from "./utils/format";
 export * from "./utils/parkName";
 export * from "./utils/csv";

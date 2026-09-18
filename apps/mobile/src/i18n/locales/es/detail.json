@@ -3,6 +3,7 @@
   "allParks": "Todos los parques",
   "openDetail": "Ver la ficha",
   "directions": "Cómo llegar",
+  "directionsUnavailable": "Ruta no disponible: faltan las coordenadas del parque.",
   "photos": "Fotos",
   "reportProblem": "Informar de un problema",
   "walkDistance": "{{minutes}} · {{distance}}",
@@ -36,21 +37,6 @@
     "flagThanks": "Opinión señalada, gracias.",
     "empty": "Todavía no hay opiniones.",
     "write": "Escribir una opinión"
-  },
-  "route": {
-    "title": "Cómo llegar",
-    "mode": "Medio de transporte",
-    "modeWalk": "A pie",
-    "modeBike": "Bici",
-    "modeCar": "Coche",
-    "addStop": "Añadir una parada por el camino",
-    "stopBakery": "Panadería",
-    "stopParking": "Aparcamiento",
-    "stopWater": "Fuente",
-    "started": "Navegación iniciada",
-    "inProgress": "Navegación en curso…",
-    "start": "Iniciar la navegación · {{eta}}",
-    "backToPark": "Volver a la ficha del parque"
   },
   "score": {
     "title": "Toboggo Score",

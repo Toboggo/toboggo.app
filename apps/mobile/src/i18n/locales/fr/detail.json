@@ -3,6 +3,7 @@
   "allParks": "Tous les parcs",
   "openDetail": "Voir la fiche",
   "directions": "Itinéraire",
+  "directionsUnavailable": "Itinéraire indisponible : coordonnées du parc manquantes.",
   "photos": "Photos",
   "reportProblem": "Signaler un problème",
   "walkDistance": "{{minutes}} · {{distance}}",
@@ -36,21 +37,6 @@
     "flagThanks": "Avis signalé, merci.",
     "empty": "Aucun avis pour l’instant.",
     "write": "Écrire un avis"
-  },
-  "route": {
-    "title": "Itinéraire",
-    "mode": "Mode de déplacement",
-    "modeWalk": "À pied",
-    "modeBike": "Vélo",
-    "modeCar": "Voiture",
-    "addStop": "Ajouter une étape en chemin",
-    "stopBakery": "Boulangerie",
-    "stopParking": "Parking",
-    "stopWater": "Point d’eau",
-    "started": "Navigation démarrée",
-    "inProgress": "Navigation en cours…",
-    "start": "Démarrer la navigation · {{eta}}",
-    "backToPark": "Retour à la fiche du parc"
   },
   "score": {
     "title": "Toboggo Score",

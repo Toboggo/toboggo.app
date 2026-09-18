@@ -4,6 +4,12 @@
   "openDetail": "Voir la fiche",
   "directions": "Itinéraire",
   "directionsUnavailable": "Itinéraire indisponible : coordonnées du parc manquantes.",
+  "directionsSheet": {
+    "title": "Ouvrir l’itinéraire avec",
+    "apple": "Plans",
+    "google": "Google Maps",
+    "waze": "Waze"
+  },
   "photos": "Photos",
   "reportProblem": "Signaler un problème",
   "walkDistance": "{{minutes}} · {{distance}}",

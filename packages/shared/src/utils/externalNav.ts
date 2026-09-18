@@ -1,12 +1,12 @@
 /**
- * External navigation (Itinéraire — V1): deep-links to the platform's own
- * maps app for a park's exact GPS coordinates. Toboggo does not embed a
- * routing engine — this only validates coordinates and builds an HTTPS URL;
- * the caller (app layer) is responsible for opening it.
+ * External navigation (Itinéraire — V1): deep-links to a maps app the user
+ * picks for a park's exact GPS coordinates. Toboggo does not embed a routing
+ * engine — this only validates coordinates and builds an HTTPS URL per
+ * provider; the caller (app layer) opens it, in the current tab.
  *
- * HTTPS only (never `maps://`/`geo:`): those schemes fail silently with no
- * app installed, whereas the map provider's own site is a reliable fallback
- * in a browser or an installed PWA.
+ * HTTPS only (never `maps://`/`geo:`/`waze://`): those schemes fail silently
+ * with no app installed, whereas each provider's own site is a reliable
+ * fallback in a browser or an installed PWA.
  */
 
 export function hasValidCoordinates(
@@ -22,6 +22,8 @@ export function hasValidCoordinates(
   return true;
 }
 
+export type MapProvider = "apple" | "google" | "waze";
+
 function isApplePlatform(userAgent: string, maxTouchPoints: number): boolean {
   if (/iPhone|iPad|iPod/.test(userAgent)) return true;
   // iPadOS 13+ identifies as "Macintosh" in its UA string but, unlike a real
@@ -29,28 +31,40 @@ function isApplePlatform(userAgent: string, maxTouchPoints: number): boolean {
   return /Macintosh/.test(userAgent) && maxTouchPoints > 1;
 }
 
-export interface DirectionsUrlOptions {
+export interface PlatformOptions {
   userAgent?: string;
   maxTouchPoints?: number;
 }
 
-/**
- * Builds an HTTPS directions URL to `latitude,longitude`: Apple Maps on
- * iOS/iPadOS, Google Maps everywhere else (Android and desktop). Caller must
- * validate coordinates first with `hasValidCoordinates`.
- */
-export function getDirectionsUrl(
-  latitude: number,
-  longitude: number,
-  options: DirectionsUrlOptions = {},
-): string {
-  const userAgent = options.userAgent ?? (typeof navigator !== "undefined" ? navigator.userAgent : "");
-  const maxTouchPoints =
-    options.maxTouchPoints ?? (typeof navigator !== "undefined" ? navigator.maxTouchPoints : 0);
-  const destination = `${latitude},${longitude}`;
+function resolvePlatform(options: PlatformOptions): { userAgent: string; maxTouchPoints: number } {
+  return {
+    userAgent: options.userAgent ?? (typeof navigator !== "undefined" ? navigator.userAgent : ""),
+    maxTouchPoints: options.maxTouchPoints ?? (typeof navigator !== "undefined" ? navigator.maxTouchPoints : 0),
+  };
+}
 
-  if (isApplePlatform(userAgent, maxTouchPoints)) {
-    return `https://maps.apple.com/?${new URLSearchParams({ daddr: destination })}`;
+/**
+ * Which map apps make sense to offer, in display order. Apple Maps ("Plans")
+ * only where it actually comes preinstalled (iOS/iPadOS) — Google Maps and
+ * Waze are offered everywhere else (Android, desktop).
+ */
+export function getAvailableMapProviders(options: PlatformOptions = {}): MapProvider[] {
+  const { userAgent, maxTouchPoints } = resolvePlatform(options);
+  const providers: MapProvider[] = [];
+  if (isApplePlatform(userAgent, maxTouchPoints)) providers.push("apple");
+  providers.push("google", "waze");
+  return providers;
+}
+
+/** Builds an HTTPS directions URL to `latitude,longitude` for one specific provider. */
+export function getDirectionsUrl(provider: MapProvider, latitude: number, longitude: number): string {
+  const destination = `${latitude},${longitude}`;
+  switch (provider) {
+    case "apple":
+      return `https://maps.apple.com/?${new URLSearchParams({ daddr: destination })}`;
+    case "google":
+      return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", destination })}`;
+    case "waze":
+      return `https://waze.com/ul?${new URLSearchParams({ ll: destination, navigate: "yes" })}`;
   }
-  return `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", destination })}`;
 }

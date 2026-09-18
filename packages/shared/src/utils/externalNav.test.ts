@@ -1,12 +1,13 @@
 /**
- * `hasValidCoordinates` / `getDirectionsUrl` — targeted tests, no framework:
- * Node's built-in test runner + TS stripping, same as this directory's other
- * `*.test.ts` files. Run: `npm run test -w @toboggo/shared`.
+ * `hasValidCoordinates` / `getAvailableMapProviders` / `getDirectionsUrl` —
+ * targeted tests, no framework: Node's built-in test runner + TS stripping,
+ * same as this directory's other `*.test.ts` files.
+ * Run: `npm run test -w @toboggo/shared`.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { getDirectionsUrl, hasValidCoordinates } from "./externalNav.ts";
+import { getAvailableMapProviders, getDirectionsUrl, hasValidCoordinates } from "./externalNav.ts";
 
 const IPHONE_UA =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1";
@@ -61,43 +62,60 @@ test("hasValidCoordinates: a real park that merely has one zero coordinate stays
   assert.equal(hasValidCoordinates(48.8566, 0), true);
 });
 
+// ── getAvailableMapProviders ─────────────────────────────────────────────
+
+test("getAvailableMapProviders: iPhone → Plans (Apple), Google Maps, Waze — in that order", () => {
+  assert.deepEqual(getAvailableMapProviders({ userAgent: IPHONE_UA, maxTouchPoints: 5 }), ["apple", "google", "waze"]);
+});
+
+test("getAvailableMapProviders: iPadOS (Mac UA + multi-touch) → Plans included", () => {
+  assert.deepEqual(getAvailableMapProviders({ userAgent: IPADOS_UA, maxTouchPoints: 5 }), ["apple", "google", "waze"]);
+});
+
+test("getAvailableMapProviders: Android → no Plans, only Google Maps + Waze", () => {
+  assert.deepEqual(getAvailableMapProviders({ userAgent: ANDROID_UA, maxTouchPoints: 5 }), ["google", "waze"]);
+});
+
+test("getAvailableMapProviders: a real Mac desktop (no touch points) → no Plans, only Google Maps + Waze", () => {
+  assert.deepEqual(getAvailableMapProviders({ userAgent: DESKTOP_MAC_UA, maxTouchPoints: 0 }), ["google", "waze"]);
+});
+
+test("getAvailableMapProviders: Windows desktop → Google Maps + Waze", () => {
+  assert.deepEqual(getAvailableMapProviders({ userAgent: DESKTOP_WINDOWS_UA, maxTouchPoints: 0 }), ["google", "waze"]);
+});
+
 // ── getDirectionsUrl ─────────────────────────────────────────────────────
 
-test("getDirectionsUrl: iPhone → Apple Maps HTTPS URL", () => {
-  const url = getDirectionsUrl(48.8566, 2.3522, { userAgent: IPHONE_UA, maxTouchPoints: 5 });
+test("getDirectionsUrl: apple → Apple Maps HTTPS URL", () => {
+  const url = getDirectionsUrl("apple", 48.8566, 2.3522);
   assert.equal(url, "https://maps.apple.com/?daddr=48.8566%2C2.3522");
 });
 
-test("getDirectionsUrl: iPadOS (Mac UA + multi-touch) → Apple Maps", () => {
-  const url = getDirectionsUrl(48.8566, 2.3522, { userAgent: IPADOS_UA, maxTouchPoints: 5 });
-  assert.match(url, /^https:\/\/maps\.apple\.com\/\?/);
-});
-
-test("getDirectionsUrl: a real Mac desktop (no touch points) → Google Maps, not Apple Maps", () => {
-  const url = getDirectionsUrl(48.8566, 2.3522, { userAgent: DESKTOP_MAC_UA, maxTouchPoints: 0 });
-  assert.match(url, /^https:\/\/www\.google\.com\/maps\/dir\/\?/);
-});
-
-test("getDirectionsUrl: Android → Google Maps HTTPS URL", () => {
-  const url = getDirectionsUrl(45.764, 4.8357, { userAgent: ANDROID_UA, maxTouchPoints: 5 });
+test("getDirectionsUrl: google → Google Maps HTTPS URL", () => {
+  const url = getDirectionsUrl("google", 45.764, 4.8357);
   assert.equal(url, "https://www.google.com/maps/dir/?api=1&destination=45.764%2C4.8357");
 });
 
-test("getDirectionsUrl: Windows desktop → Google Maps HTTPS URL", () => {
-  const url = getDirectionsUrl(45.764, 4.8357, { userAgent: DESKTOP_WINDOWS_UA, maxTouchPoints: 0 });
-  assert.equal(url, "https://www.google.com/maps/dir/?api=1&destination=45.764%2C4.8357");
+test("getDirectionsUrl: waze → Waze HTTPS URL", () => {
+  const url = getDirectionsUrl("waze", 45.764, 4.8357);
+  assert.equal(url, "https://waze.com/ul?ll=45.764%2C4.8357&navigate=yes");
 });
 
-test("getDirectionsUrl: negative longitude is encoded correctly, not mangled", () => {
-  const url = getDirectionsUrl(44.8378, -0.5792, { userAgent: ANDROID_UA, maxTouchPoints: 5 });
-  assert.equal(url, "https://www.google.com/maps/dir/?api=1&destination=44.8378%2C-0.5792");
+test("getDirectionsUrl: negative longitude is encoded correctly, not mangled, for every provider", () => {
+  assert.equal(getDirectionsUrl("apple", 44.8378, -0.5792), "https://maps.apple.com/?daddr=44.8378%2C-0.5792");
+  assert.equal(
+    getDirectionsUrl("google", 44.8378, -0.5792),
+    "https://www.google.com/maps/dir/?api=1&destination=44.8378%2C-0.5792",
+  );
+  assert.equal(getDirectionsUrl("waze", 44.8378, -0.5792), "https://waze.com/ul?ll=44.8378%2C-0.5792&navigate=yes");
 });
 
 test("getDirectionsUrl: the coordinate separator is percent-encoded (no raw comma leaks into the query string)", () => {
-  const appleUrl = getDirectionsUrl(48.8566, 2.3522, { userAgent: IPHONE_UA, maxTouchPoints: 5 });
-  const googleUrl = getDirectionsUrl(48.8566, 2.3522, { userAgent: ANDROID_UA, maxTouchPoints: 5 });
-  assert.equal(appleUrl.includes(","), false);
-  assert.equal(googleUrl.includes(","), false);
-  assert.equal(new URL(appleUrl).searchParams.get("daddr"), "48.8566,2.3522");
-  assert.equal(new URL(googleUrl).searchParams.get("destination"), "48.8566,2.3522");
+  for (const provider of ["apple", "google", "waze"] as const) {
+    const url = getDirectionsUrl(provider, 48.8566, 2.3522);
+    assert.equal(url.includes(","), false);
+    const parsed = new URL(url);
+    const coordParam = provider === "apple" ? "daddr" : provider === "google" ? "destination" : "ll";
+    assert.equal(parsed.searchParams.get(coordParam), "48.8566,2.3522");
+  }
 });

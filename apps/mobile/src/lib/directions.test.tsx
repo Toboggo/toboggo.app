@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import "../i18n/testInit";
-import { useOpenDirections } from "./directions";
+import { useDirections } from "./directions";
 
 const toasts = vi.hoisted(() => ({ list: [] as string[] }));
 vi.mock("./toast", () => ({
@@ -19,10 +19,10 @@ vi.mock("./visitPrompt", () => ({
   },
 }));
 
-describe("useOpenDirections", () => {
+describe("useDirections", () => {
   // `Location.assign` is spec-"unforgeable" (own, non-configurable) in jsdom —
   // `vi.spyOn` can't touch it, so the whole `window.location` is swapped for a
-  // plain mock object instead, same pattern in all 3 test files below.
+  // plain mock object instead.
   let originalLocation: Location;
 
   beforeEach(() => {
@@ -41,42 +41,81 @@ describe("useOpenDirections", () => {
     vi.restoreAllMocks();
   });
 
-  it("valid coordinates: navigates the current tab to the external maps URL and schedules the visit prompt, no toast", () => {
-    const { result } = renderHook(() => useOpenDirections());
-    result.current({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
+  it("valid coordinates: opens the sheet, no toast, no navigation yet", () => {
+    const { result } = renderHook(() => useDirections());
+    act(() => {
+      result.current.openDirections({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
+    });
 
-    // Same-tab navigation (`location.assign`), never `window.open(..., "_blank")` —
-    // a new tab is exactly what left a blank tab behind on iOS after the
-    // maps.apple.com universal link handed off to the Apple Maps app.
-    expect(window.location.assign).toHaveBeenCalledTimes(1);
-    const [url] = (window.location.assign as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(url).toMatch(/^https:\/\/(maps\.apple\.com|www\.google\.com\/maps\/dir)\//);
-    expect(visits.calls).toEqual([["p1", "Square Voltaire"]]);
+    expect(result.current.directionsSheetProps.open).toBe(true);
+    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(visits.calls).toEqual([]);
     expect(toasts.list).toEqual([]);
   });
 
-  it("missing coordinates: shows a toast, never navigates, never crashes", () => {
-    const { result } = renderHook(() => useOpenDirections());
-    expect(() => result.current({ id: "p1", latitude: null, longitude: null }, "Square Voltaire")).not.toThrow();
+  it("choosing a provider: schedules the visit prompt, navigates the current tab, closes the sheet", () => {
+    const { result } = renderHook(() => useDirections());
+    act(() => {
+      result.current.openDirections({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
+    });
+    act(() => {
+      result.current.directionsSheetProps.onChoose("waze");
+    });
 
+    expect(window.location.assign).toHaveBeenCalledTimes(1);
+    const [url] = (window.location.assign as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(url).toBe("https://waze.com/ul?ll=45.764%2C4.8357&navigate=yes");
+    expect(visits.calls).toEqual([["p1", "Square Voltaire"]]);
+    expect(result.current.directionsSheetProps.open).toBe(false);
+  });
+
+  it("choosing Apple Maps builds the right URL", () => {
+    const { result } = renderHook(() => useDirections());
+    act(() => {
+      result.current.openDirections({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
+    });
+    act(() => {
+      result.current.directionsSheetProps.onChoose("apple");
+    });
+
+    expect(window.location.assign).toHaveBeenCalledWith("https://maps.apple.com/?daddr=45.764%2C4.8357");
+  });
+
+  it("closing the sheet without choosing: no navigation, no visit prompt", () => {
+    const { result } = renderHook(() => useDirections());
+    act(() => {
+      result.current.openDirections({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
+    });
+    act(() => {
+      result.current.directionsSheetProps.onClose();
+    });
+
+    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(visits.calls).toEqual([]);
+    expect(result.current.directionsSheetProps.open).toBe(false);
+  });
+
+  it("missing coordinates: shows a toast, sheet never opens, never crashes", () => {
+    const { result } = renderHook(() => useDirections());
+    expect(() =>
+      act(() => {
+        result.current.openDirections({ id: "p1", latitude: null, longitude: null }, "Square Voltaire");
+      }),
+    ).not.toThrow();
+
+    expect(result.current.directionsSheetProps.open).toBe(false);
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(visits.calls).toEqual([]);
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
   });
 
   it("(0, 0) coordinates: treated as invalid, same as missing", () => {
-    const { result } = renderHook(() => useOpenDirections());
-    result.current({ id: "p1", latitude: 0, longitude: 0 }, "Square Voltaire");
+    const { result } = renderHook(() => useDirections());
+    act(() => {
+      result.current.openDirections({ id: "p1", latitude: 0, longitude: 0 }, "Square Voltaire");
+    });
 
-    expect(window.location.assign).not.toHaveBeenCalled();
-    expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
-  });
-
-  it("out-of-range coordinates: treated as invalid", () => {
-    const { result } = renderHook(() => useOpenDirections());
-    result.current({ id: "p1", latitude: 91, longitude: 4.8357 }, "Square Voltaire");
-
-    expect(window.location.assign).not.toHaveBeenCalled();
+    expect(result.current.directionsSheetProps.open).toBe(false);
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
   });
 });

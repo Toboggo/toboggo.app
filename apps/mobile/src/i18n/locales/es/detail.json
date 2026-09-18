@@ -6,6 +6,7 @@
   "directionsUnavailable": "Ruta no disponible: faltan las coordenadas del parque.",
   "directionsSheet": {
     "title": "Abrir la ruta con",
+    "subtitle": "Elige tu aplicación de navegación",
     "apple": "Mapas",
     "google": "Google Maps",
     "waze": "Waze"

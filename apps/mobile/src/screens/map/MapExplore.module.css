@@ -227,6 +227,20 @@
   color: var(--color-text-muted);
 }
 
+/* Contextual carousel's own title + subtitle (medium/expanded only — the peek
+   crop never shows this). A stacked column, unlike `.sheetHead`'s title +
+   trailing-slot row above it. */
+.contextualHead {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-1) var(--space-4) var(--space-3);
+}
+.contextualSubtitle {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
 .intermediate {
   display: flex;
   flex-direction: column;

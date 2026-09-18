@@ -39,7 +39,13 @@
     "dragHint_one": "{{count}} park · Drag to explore",
     "dragHint_other": "{{count}} parks · Drag to explore",
     "loading": "Looking for parks around you…",
-    "likedParks": "Parks you've liked"
+    "forChildrenNearby": "For your children, nearby",
+    "forChildrenNearbySubtitle": "Parks suited to their age",
+    "favoritesNearby": "Your favorites nearby ❤️",
+    "favoritesNearbySubtitle": "Your saved parks nearby",
+    "discoverNearby": "To discover nearby ✨",
+    "discoverNearbySubtitle": "Parks worth discovering around you",
+    "allNearby": "All the parks around you"
   },
   "state": {
     "errorTitle": "Couldn’t load the parks",

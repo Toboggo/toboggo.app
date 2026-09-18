@@ -51,6 +51,32 @@ const MAX_VH = 0.94;
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
+/**
+ * Whether the sheet's content is allowed to scroll vertically — gated to the
+ * tallest snap (`index === lastIdx`). Below it the panel is often
+ * deliberately cropped shorter than its content (a peek/medium preview), so
+ * comparing content to the *current* panel alone would read that crop as
+ * "overflowing" and turn on `overflow-y: auto` there too — a real scrollable
+ * surface iOS Safari can grab natively before `touch-action: pan-x` gets a
+ * chance to stop it. With scrolling switched off at the DOM level below the
+ * tallest snap, there is nothing left for the browser to grab, so every
+ * vertical drag there falls through to the sheet gesture. Exported standalone
+ * so this rule has direct test coverage, independent of real touch input.
+ */
+export function computeCanScroll(params: {
+  lockScroll: boolean;
+  index: number;
+  lastIdx: number;
+  contentH: number;
+  fitReserve: number;
+  height: number;
+}): boolean {
+  const { lockScroll, index, lastIdx, contentH, fitReserve, height } = params;
+  // 1px epsilon absorbs rounding — see `resolve`, whose "fit" height is built
+  // from these same two terms so they line up exactly by construction.
+  return !lockScroll && index === lastIdx && contentH + fitReserve > height - GRAB_H + 1;
+}
+
 function scrollableAncestor(from: HTMLElement, stop: HTMLElement): HTMLElement | null {
   let el: HTMLElement | null = from;
   while (el && el !== stop) {
@@ -354,11 +380,7 @@ export function BottomSheet({
   // scrolls its own content — every drag on it is a sheet gesture, so the
   // swipe-up can't be stolen by an internal scroll.
   const lockScroll = !!onOverswipeUp && snapPoints.length === 1;
-  // The panel body is `height - GRAB_H`; the content needs `contentH + fitReserve`
-  // to sit fully clear of its bottom edge. Above a `"fit"` snap these are equal by
-  // construction (see `resolve`), so it only scrolls once the content truly
-  // overflows the current panel. 1px epsilon absorbs rounding.
-  const canScroll = !lockScroll && contentH + fitReserve > height - GRAB_H + 1;
+  const canScroll = computeCanScroll({ lockScroll, index, lastIdx, contentH, fitReserve, height });
 
   // The sheet's opaque body is painted down to the screen edge when docked, so it
   // reads as one surface continuing behind the nav; `height` (the panel above the

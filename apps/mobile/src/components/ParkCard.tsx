@@ -70,8 +70,11 @@ export function ParkCard({
    * `row` — compact horizontal item (favourites, notifications).
    * `list` — richer horizontal item for the Explore results list.
    * `carousel` — vertical, photo-first.
+   * `peek` — `carousel`'s lighter sibling for the sheet's peek snap: a short
+   * photo strip + the start of the name, sized to read as an intentional crop
+   * rather than `carousel` cut off mid-photo.
    */
-  variant?: "row" | "list" | "carousel";
+  variant?: "row" | "list" | "carousel" | "peek";
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("features");
@@ -94,6 +97,17 @@ export function ParkCard({
     },
   };
 
+  if (variant === "peek") {
+    return (
+      <div className={styles.peekCard} {...activate}>
+        <div className={styles.peekMedia}>
+          <ParkPhoto park={park} className={styles.peekPhoto} markSize={20} />
+        </div>
+        <div className={styles.peekName}>{displayName}</div>
+      </div>
+    );
+  }
+
   if (variant === "carousel") {
     return (
       <div className={styles.card} {...activate}>
@@ -108,8 +122,8 @@ export function ParkCard({
         </div>
         <div className={styles.cardBody}>
           <div className={styles.name}>{displayName}</div>
-          <div className={styles.cardMeta}>{walkDistance && <span>{walkDistance}</span>}</div>
           <CompactRating park={park} />
+          <div className={styles.cardMeta}>{walkDistance && <span>{walkDistance}</span>}</div>
         </div>
       </div>
     );

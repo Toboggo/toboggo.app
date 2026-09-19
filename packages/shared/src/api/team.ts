@@ -65,6 +65,16 @@ export async function listCommunes(): Promise<Organization[]> {
   return data as Organization[];
 }
 
+/** Une collectivité par id (Admin-UI-3C — fiche 360). `null` si l'id
+ * n'existe pas ou n'est pas visible (RLS) — jamais distingué, même principe
+ * que `getParkEditWithDetails`. */
+export async function getOrganization(id: string): Promise<Organization | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("organizations").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data as Organization | null;
+}
+
 export async function updateCommune(id: string, patch: Partial<Organization>): Promise<Organization> {
   const supabase = getSupabase();
   const { data, error } = await supabase.from("organizations").update(patch).eq("id", id).select().single();

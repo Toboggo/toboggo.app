@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getSupabase } from "../supabaseClient";
-import { listOrganizationsWithCounts } from "./team";
+import { getOrganization, listOrganizationsWithCounts } from "./team";
 import { makeFakeSupabase } from "../testUtils/fakeSupabase";
 
 vi.mock("../supabaseClient", () => ({ getSupabase: vi.fn() }));
@@ -72,5 +72,31 @@ describe("listOrganizationsWithCounts — liste Admin des collectivités (Admin-
     vi.mocked(getSupabase).mockReturnValue(client as never);
 
     await expect(listOrganizationsWithCounts()).rejects.toEqual(dbError);
+  });
+});
+
+describe("getOrganization — fiche Collectivité 360 (Admin-UI-3C)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  it("retourne la collectivité demandée", async () => {
+    const { client } = makeFakeSupabase({ organizations: { data: ORG_LYON, error: null } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await getOrganization("org-lyon")).toEqual(ORG_LYON);
+  });
+
+  it("retourne null plutôt qu'une erreur quand l'id n'existe pas (ou est hors RLS)", async () => {
+    const { client } = makeFakeSupabase({ organizations: { data: null, error: null } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await getOrganization("missing")).toBeNull();
+  });
+
+  it("propage une vraie erreur Supabase", async () => {
+    const dbError = { message: "boom", code: "500" };
+    const { client } = makeFakeSupabase({ organizations: { data: null, error: dbError } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await expect(getOrganization("org-lyon")).rejects.toEqual(dbError);
   });
 });

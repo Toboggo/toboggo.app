@@ -13,6 +13,7 @@ import ParkDetail from "./screens/ParkDetail";
 import Validation from "./screens/Validation";
 import ValidationDetail from "./screens/ValidationDetail";
 import Organizations from "./screens/Organizations";
+import OrganizationDetail from "./screens/OrganizationDetail";
 import Reports from "./screens/Reports";
 import Reviews from "./screens/Reviews";
 import Photos from "./screens/Photos";
@@ -38,6 +39,7 @@ function RoutedContent() {
         <Route path="/validation" element={<Validation />} />
         <Route path="/validation/:editId" element={<ValidationDetail />} />
         <Route path="/organizations" element={<Organizations />} />
+        <Route path="/organizations/:id" element={<OrganizationDetail />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/photos" element={<Photos />} />

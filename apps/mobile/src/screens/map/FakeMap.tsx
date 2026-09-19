@@ -28,16 +28,25 @@ export function FakeMap({
   selectedId,
   onSelect,
   showUser = false,
+  onBackgroundTap,
 }: {
   parks: (Park & { distance_m?: number })[];
   selectedId: string | null;
   onSelect: (id: string) => void;
   showUser?: boolean;
+  /** Fires on a tap that lands on the backdrop itself, not on a pin. */
+  onBackgroundTap?: () => void;
 }) {
   const { t } = useTranslation("map");
   const f = useFormat();
   return (
-    <div className={styles.map}>
+    <div
+      className={styles.map}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest(`.${styles.pin}`)) return;
+        onBackgroundTap?.();
+      }}
+    >
       <div className={styles.grid} />
       <div className={styles.roadA} />
       <div className={styles.roadB} />

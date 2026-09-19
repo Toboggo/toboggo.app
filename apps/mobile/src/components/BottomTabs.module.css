@@ -1,24 +1,28 @@
-/* Bottom navigation — a real footer, anchored flush to the screen edge, not a
-   floating dock. Structurally the same "fixed bar + safe-area padding" shape
-   as the app's other fixed bottom bar (ParkDetail's CTA footer). */
+/* Bottom navigation — a floating glass dock, same inset/width/blur/radius/
+   shadow treatment as the Explorer map sheet (`BottomSheet`'s `floating`
+   variant, Dialog.module.css) so the two read as one coherent set. Lifted
+   clear of the screen edge by `--bottom-nav-gap` + the safe area — never
+   flush/bord-à-bord. */
 
 .wrap {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: var(--app-shell-width, 560px);
+  left: var(--floating-inset, 14px);
+  right: var(--floating-inset, 14px);
+  /* The gap + safe-area live here, outside the box, so `height` below is the
+     dock's own content height — same single-reservation rule `--bottom-nav-h`
+     documents, just expressed as position instead of internal padding. */
+  bottom: calc(var(--safe-bottom) + var(--bottom-nav-gap));
+  width: auto;
+  max-width: calc(var(--app-shell-width, 560px) - 2 * var(--floating-inset, 14px));
   margin: 0 auto;
-  /* `--bottom-nav-h` = content + gap(0) + safe-area: the safe area lives
-     inside this height as bottom padding (below), never added again outside
-     it — same single-reservation rule the token's own comment documents. */
-  height: var(--bottom-nav-h);
-  padding-bottom: var(--safe-bottom);
+  height: var(--bottom-nav-content-h);
   display: flex;
   align-items: stretch;
-  background-color: var(--color-surface);
-  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
   z-index: var(--z-nav, 50);
 }
 .tab {

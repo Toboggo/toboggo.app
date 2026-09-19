@@ -36,14 +36,14 @@ export function useViewportHeight(): number {
 }
 
 const BOTTOM_NAV_FALLBACK = 65;
+const BOTTOM_NAV_TOKEN = { floating: "--bottom-nav-h", docked: "--bottom-nav-h-docked" } as const;
 
-function readBottomNavHeight(): number {
+function readBottomNavHeight(variant: keyof typeof BOTTOM_NAV_TOKEN): number {
   if (typeof document === "undefined") return BOTTOM_NAV_FALLBACK;
   // Resolve the CSS token to concrete pixels (it is `calc(65px + env(...))`,
   // so it can't be read from getPropertyValue directly).
   const probe = document.createElement("div");
-  probe.style.cssText =
-    "position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:var(--bottom-nav-h)";
+  probe.style.cssText = `position:absolute;left:0;top:0;width:0;visibility:hidden;pointer-events:none;height:var(${BOTTOM_NAV_TOKEN[variant]})`;
   document.body.appendChild(probe);
   const px = probe.getBoundingClientRect().height;
   probe.remove();
@@ -52,17 +52,20 @@ function readBottomNavHeight(): number {
 
 /**
  * Resolved pixel height of the bottom navigation, tracking the CSS token
- * `--bottom-nav-h` (= `--bottom-nav-content-h` + `safe-area-inset-bottom`).
+ * `--bottom-nav-h` (= `--bottom-nav-content-h` + `--bottom-nav-gap` +
+ * `safe-area-inset-bottom`) — or, with `variant: "docked"`,
+ * `--bottom-nav-h-docked` (same, minus the floating gap — the nav's `docked`
+ * prop, Explorer only).
  *
  * Single source of truth shared by the bottom sheet (`bottomInset`) and the map
  * camera insets, so the hardcoded "~78px" nav-height guesses can be removed and
  * the sheet / map / nav can never disagree about where the nav starts.
  */
-export function useBottomNavHeight(): number {
-  const [height, setHeight] = useState(readBottomNavHeight);
+export function useBottomNavHeight(variant: keyof typeof BOTTOM_NAV_TOKEN = "floating"): number {
+  const [height, setHeight] = useState(() => readBottomNavHeight(variant));
 
   useEffect(() => {
-    const sync = () => setHeight(readBottomNavHeight());
+    const sync = () => setHeight(readBottomNavHeight(variant));
     sync();
     window.addEventListener("resize", sync);
     window.addEventListener("orientationchange", sync);
@@ -72,7 +75,7 @@ export function useBottomNavHeight(): number {
       window.removeEventListener("orientationchange", sync);
       window.visualViewport?.removeEventListener("resize", sync);
     };
-  }, []);
+  }, [variant]);
 
   return height;
 }

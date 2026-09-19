@@ -10,6 +10,7 @@ import type {
   ParkScore,
   ParkSource,
   ParkZone,
+  SourceType,
 } from "../types";
 
 /** A contributor upload (`source = "user"`) always lands in the moderation
@@ -66,6 +67,34 @@ export async function listSources(parkId: string): Promise<ParkSource[]> {
   const { data, error } = await supabase.from("park_sources").select("*").eq("park_id", parkId);
   if (error) throw error;
   return (data ?? []) as ParkSource[];
+}
+
+export interface ParkSourceCount {
+  source_type: SourceType;
+  count: number;
+}
+
+/**
+ * Répartition du catalogue par `park_sources.source_type` (Admin-UI-2 —
+ * Dashboard §3), toutes organisations confondues. `park_sources` a
+ * aujourd'hui exactement une ligne par parc (vérifié en lecture seule :
+ * `park_id` n'est pas unique en base mais chaque import n'en crée qu'une —
+ * un parc avec 0 ou 2+ lignes reste géré ici sans planter, juste compté
+ * différemment). RLS `park_sources_read` = `park_is_visible(park_id)` :
+ * un admin/staff voit tous les parcs (staff manages_park), donc cet agrégat
+ * porte sur le catalogue réel, pas seulement les parcs publiés.
+ */
+export async function getParkSourceDistribution(): Promise<ParkSourceCount[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("park_sources").select("source_type");
+  if (error) throw error;
+  const counts = new Map<SourceType, number>();
+  for (const row of (data ?? []) as { source_type: SourceType }[]) {
+    counts.set(row.source_type, (counts.get(row.source_type) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([source_type, count]) => ({ source_type, count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 export async function listExternalIds(parkId: string): Promise<ExternalId[]> {

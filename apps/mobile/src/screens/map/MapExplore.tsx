@@ -30,8 +30,11 @@ const PEEK_H = 137;
 // share of the zone actually available between the header and the bottom nav
 // (not of the raw viewport — a fraction snap resolves against the full screen
 // height, see `BottomSheet.resolve`), so it stays proportionate across phones
-// instead of hardcoding one device's numbers.
-const MEDIUM_RATIO = 0.48;
+// instead of hardcoding one device's numbers. Sized a bit past the contextual
+// block's own height so "Tous les parcs autour de vous" starts to peek in
+// underneath it (cropped, not scrollable yet — see `renderSheet`) instead of
+// snap 1 hard-stopping right at the carousel's edge.
+const MEDIUM_RATIO = 0.53;
 
 const SNAPS_SINGLE: Snap[] = ["fit"];
 
@@ -301,15 +304,17 @@ export default function MapExplore() {
     }
 
     // One header shape across every snap — same title anchor, same row
-    // layout — only the trailing slot's content changes (hint at peek, the
-    // "Voir tout" jump at medium, the count once expanded). Sharing this
-    // single block is what makes peek → medium → expanded read as one panel
-    // deploying rather than three different headers swapping in.
+    // layout — only the trailing slot's content changes (the count at peek,
+    // the "Voir tout" jump at medium, the count again once expanded). Sharing
+    // this single block is what makes peek → medium → expanded read as one
+    // panel deploying rather than three different headers swapping in. Peek
+    // shows the plain count — the handle alone is the "you can drag this"
+    // affordance, no extra copy needed.
     const header = (
       <div className={styles.sheetHead}>
         <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
         {snap === 0 ? (
-          <span className={styles.count}>{t("sheet.dragHint", { count: parks.length })}</span>
+          <span className={styles.count}>{t("sheet.count", { count: parks.length })}</span>
         ) : snap === 1 ? (
           <button type="button" className={styles.seeAll} onClick={() => setSnap(2)}>
             {t("action.seeAll", { ns: "common" })}
@@ -359,14 +364,16 @@ export default function MapExplore() {
       </div>
     );
 
-    // Medium: just the contextual block, cropped to the medium snap height —
-    // no vertical list yet.
-    if (snap === 1) return contextualBlock;
-
-    // Expanded: the same contextual block stays visible above a distinct
-    // "Tous les parcs autour de vous" list — parks already shown in the
-    // carousel are pushed after the rest there (never removed), so a park
-    // isn't immediately repeated in the first rows.
+    // Medium and expanded share this exact same tree — the "Tous les parcs
+    // autour de vous" list header starts right after the carousel in both.
+    // At medium the sheet's own fixed height (non-scrollable there, see
+    // BottomSheet's canScroll) simply crops it, so only the top of that
+    // heading peeks into view — the same "there's more below" affordance as
+    // the carousel itself, rather than a hard stop after the contextual
+    // block. Expanded then reveals (and makes scrollable) the rest of the
+    // list. Parks already shown in the carousel are pushed after the rest
+    // there (never removed), so a park isn't immediately repeated in the
+    // first rows.
     const contextualIds = contextual ? contextual.parks.map((p) => p.id) : [];
     return (
       <>

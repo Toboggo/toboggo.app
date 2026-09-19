@@ -156,7 +156,7 @@ describe("Explorer — map tap behaviour", () => {
 
     // Deselected: the preview panel is gone, back to the list sheet's peek content.
     expect(screen.queryByText("Itinéraire")).toBeNull();
-    expect(await screen.findByText(/parcs? · Faites glisser pour explorer/)).toBeTruthy();
+    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
   });
 
   it("selected park A + tap on marker B → B shows directly, no flash through peek", async () => {
@@ -169,25 +169,25 @@ describe("Explorer — map tap behaviour", () => {
     expect(await screen.findByText("Parc de la Tête d'Or")).toBeTruthy();
     expect(screen.queryByText("Square Voltaire")).toBeNull();
     // Never dropped into the list sheet's peek content in between.
-    expect(screen.queryByText(/Faites glisser pour explorer/)).toBeNull();
+    expect(screen.queryByText(/^2 parcs$/)).toBeNull();
   });
 
   it("sheet at medium + tap on visible map → back to peek", async () => {
     renderExplore();
-    await screen.findByText(/Faites glisser pour explorer/); // peek content loaded
+    await screen.findByText(/^2 parcs$/); // peek content loaded
 
     tapHandle(); // peek → medium
     expect(await screen.findByText("Voir tout")).toBeTruthy();
 
     tapMapBackground();
 
-    expect(await screen.findByText(/Faites glisser pour explorer/)).toBeTruthy();
+    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
     expect(screen.queryByText("Voir tout")).toBeNull();
   });
 
   it("sheet at expanded + tap on visible map → back to peek", async () => {
     renderExplore();
-    await screen.findByText(/Faites glisser pour explorer/);
+    await screen.findByText(/^2 parcs$/);
 
     tapHandle(); // peek → medium
     await screen.findByText("Voir tout");
@@ -196,15 +196,15 @@ describe("Explorer — map tap behaviour", () => {
 
     tapMapBackground();
 
-    expect(await screen.findByText(/Faites glisser pour explorer/)).toBeTruthy();
+    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
     expect(screen.queryByText("Tous les parcs autour de vous")).toBeNull();
   });
 
   it("sheet already at peek + tap on empty map → no change", async () => {
     renderExplore();
-    await screen.findByText(/Faites glisser pour explorer/);
+    await screen.findByText(/^2 parcs$/);
 
     expect(() => tapMapBackground()).not.toThrow();
-    expect(await screen.findByText(/Faites glisser pour explorer/)).toBeTruthy();
+    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
   });
 });

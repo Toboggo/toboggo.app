@@ -36,8 +36,6 @@
     "aroundYou": "Around you",
     "count_one": "{{count}} park",
     "count_other": "{{count}} parks",
-    "dragHint_one": "{{count}} park · Drag to explore",
-    "dragHint_other": "{{count}} parks · Drag to explore",
     "loading": "Looking for parks around you…",
     "forChildrenNearby": "For your children, nearby",
     "forChildrenNearbySubtitle": "Parks suited to their age",

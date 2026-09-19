@@ -36,8 +36,6 @@
     "aroundYou": "Cerca de ti",
     "count_one": "{{count}} parque",
     "count_other": "{{count}} parques",
-    "dragHint_one": "{{count}} parque · Desliza para explorar",
-    "dragHint_other": "{{count}} parques · Desliza para explorar",
     "loading": "Buscando parques cerca de ti…",
     "forChildrenNearby": "Para tus hijos, cerca de ti",
     "forChildrenNearbySubtitle": "Parques adaptados a su edad",

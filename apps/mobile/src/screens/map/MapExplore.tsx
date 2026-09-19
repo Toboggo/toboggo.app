@@ -30,11 +30,13 @@ const PEEK_H = 137;
 // share of the zone actually available between the header and the bottom nav
 // (not of the raw viewport — a fraction snap resolves against the full screen
 // height, see `BottomSheet.resolve`), so it stays proportionate across phones
-// instead of hardcoding one device's numbers. Sized a bit past the contextual
-// block's own height so "Tous les parcs autour de vous" starts to peek in
-// underneath it (cropped, not scrollable yet — see `renderSheet`) instead of
-// snap 1 hard-stopping right at the carousel's edge.
-const MEDIUM_RATIO = 0.53;
+// instead of hardcoding one device's numbers. Sized to the contextual block's
+// own height (header + "À découvrir" + carousel, fully visible, uncropped) —
+// ~45-48% of the screen on a typical phone. "Tous les parcs autour de vous"
+// (rendered right after it — see `renderSheet`) is cropped, not scrollable,
+// at this snap: at most a sliver of it may show, the rest only becomes
+// reachable at the expanded snap.
+const MEDIUM_RATIO = 0.47;
 
 const SNAPS_SINGLE: Snap[] = ["fit"];
 
@@ -66,8 +68,10 @@ export default function MapExplore() {
   const [sheetHeight, setSheetHeight] = useState(280);
   // Real rendered height of the bottom nav (content + iOS home-indicator safe
   // area), from the shared CSS token. Replaces the old `TAB_INSET = 78` guess so
-  // the sheet, the map camera insets and the nav can't disagree.
-  const navH = useBottomNavHeight();
+  // the sheet, the map camera insets and the nav can't disagree. "docked": the
+  // nav sits bord-à-bord here (no floating gap — see BottomTabs' `docked` prop),
+  // continuous with the sheet's own docked (non-floating) surface behind it.
+  const navH = useBottomNavHeight("docked");
   const vpH = useViewportHeight();
   const [headerBottom, setHeaderBottom] = useState(72);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -495,12 +499,11 @@ export default function MapExplore() {
         onHeightChange={setSheetHeight}
         bottomInset={navH}
         topInset={sheetTopInset}
-        floating
       >
         {renderSheet()}
       </BottomSheet>
 
-      <BottomTabs />
+      <BottomTabs docked />
 
       {searchOpen && (
         <SearchOverlay

@@ -39,10 +39,12 @@ export interface BottomSheetProps {
    */
   onOverswipeUp?: () => void;
   /**
-   * Detached "glass" card (Explorer's map sheet only): inset from the screen's
-   * sides, fully rounded, translucent + blurred, and — when `bottomInset` is
-   * set — stopping cleanly at that inset instead of painting through it. Every
-   * other sheet is unaffected (opt-in, default `false`).
+   * Detached "glass" card: inset from the screen's sides, fully rounded,
+   * translucent + blurred, and — when `bottomInset` is set — stopping cleanly
+   * at that inset instead of painting through it. Opt-in, default `false`
+   * (the docked, bord-à-bord look — see `[data-docked]` below); currently
+   * unused (Explorer's map sheet reverted to docked to read as one continuous
+   * surface with the bottom nav, see MapExplore).
    */
   floating?: boolean;
 }

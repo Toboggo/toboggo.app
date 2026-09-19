@@ -24,7 +24,7 @@ const TABS: { path: string; icon: ReactNode; labelKey: string }[] = [
  * ("+") are never part of it; the map's own floating FAB is the sole
  * "+" entry point (see MapExplore's `fabAdd`).
  */
-export function BottomTabs() {
+export function BottomTabs({ docked = false }: { docked?: boolean }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -46,7 +46,7 @@ export function BottomTabs() {
   };
 
   return (
-    <nav className={styles.wrap}>
+    <nav className={styles.wrap} data-docked={docked ? "1" : undefined}>
       {TABS.map(renderTab)}
     </nav>
   );

@@ -65,8 +65,9 @@
 .sheet[data-docked="1"] {
   z-index: var(--z-sheet-docked, 45);
 }
-/* Floating card (opt-in via BottomSheet `floating` — Explorer's map sheet
-   only): detached from the screen's edges, fully rounded, translucent +
+/* Floating card (opt-in via BottomSheet `floating`; currently unused —
+   Explorer's map sheet is docked, see MapExplore/BottomTabs `docked`):
+   detached from the screen's edges, fully rounded, translucent +
    blurred. Stops cleanly at its inset instead of painting through it (never
    "docked" behind the nav) — see BottomSheet.tsx `paintThrough` — but keeps
    `[data-docked]`'s z-index (below the nav, below full-screen overlays like

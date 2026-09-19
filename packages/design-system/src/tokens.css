@@ -163,10 +163,16 @@
      le dégagement bas des écrans à onglets, MapExplore (insets carte) et
      BottomSheet (bottomInset) via le hook useBottomNavHeight() — la carte,
      le sheet et la nav ne peuvent donc jamais se désynchroniser.
+     --bottom-nav-h-docked : variante sans le gap, pour la nav en mode
+     "docked" (bord-à-bord, surface continue avec la sheet derrière elle —
+     BottomTabs `docked` prop, Explorer uniquement, voir §5 "Z-index" /
+     `--z-sheet-docked`). Même contenu + safe-area, juste pas de dégagement
+     flottant. Lu par useBottomNavHeight("docked").
      ============================================================ */
   --bottom-nav-content-h: 56px;
   --bottom-nav-gap: 10px;
   --bottom-nav-h: calc(var(--bottom-nav-content-h) + var(--bottom-nav-gap) + var(--safe-bottom));
+  --bottom-nav-h-docked: calc(var(--bottom-nav-content-h) + var(--safe-bottom));
 }
 
 /*

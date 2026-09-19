@@ -5,6 +5,15 @@
   gap: 10px;
   margin-bottom: 14px;
 }
+/* `FieldWrap` (design-system) sets its own outer <label> to `width: 100%`,
+ * meant for a vertical form — as a flex child here it would stretch to fill
+ * the whole bar, pushing every field (Statut/Vérification/Source/
+ * Collectivité) onto its own row instead of a single horizontal bar. Let
+ * `.search`/`.select` below size the field from its real content instead. */
+.filterBar > label {
+  width: auto;
+  flex: 0 0 auto;
+}
 .search {
   width: 240px;
 }

@@ -8,13 +8,17 @@ import {
   Menu,
   MenuItem,
   Select,
+  Tag,
   useToast,
   type DataTableColumn,
 } from "@toboggo/design-system";
 import {
   isValidCoordinate,
+  listCommunes,
+  listOrgParkIds,
   listParks,
   listParksPage,
+  listParkSourcesByIds,
   setParkStatus,
   toCsv,
   downloadCsv,
@@ -22,9 +26,12 @@ import {
   createPark,
   logActivity,
   PARKS_PAGE_SIZE,
+  type Organization,
   type Park,
   type ParkStatus,
   type ParksSortKey,
+  type ParkWithSource,
+  type SourceType,
   type VerificationStatus,
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
@@ -68,6 +75,20 @@ const VERIFICATION_LABEL: Record<VerificationStatus | "all", string> = {
   community_verified: "Vérifié communauté",
   organization_verified: "Vérifié collectivité",
   toboggo_verified: "Vérifié Toboggo",
+};
+
+// Même libellés que Photos.tsx (`SOURCE_LABEL`) / PhotosPanel.tsx — pas de 2e
+// formulation pour les mêmes 7 valeurs de `source_type`.
+const SOURCE_VALUES: (SourceType | "all")[] = ["all", "osm", "open_data", "municipality", "partner", "user", "toboggo", "other"];
+const SOURCE_LABEL: Record<SourceType | "all", string> = {
+  all: "Toutes sources",
+  user: "Contributeur",
+  municipality: "Collectivité",
+  toboggo: "Toboggo",
+  open_data: "Open data",
+  partner: "Partenaire",
+  osm: "OpenStreetMap",
+  other: "Autre",
 };
 
 const SORT_KEYS: ParksSortKey[] = ["name", "created_at", "updated_at"];
@@ -116,11 +137,24 @@ export default function Parks() {
     verificationParam && VERIFICATION_VALUES.includes(verificationParam as VerificationStatus | "all")
       ? (verificationParam as VerificationStatus | "all")
       : "all";
+  const sourceParam = searchParams.get("source");
+  const source: SourceType | "all" =
+    sourceParam && SOURCE_VALUES.includes(sourceParam as SourceType | "all") ? (sourceParam as SourceType | "all") : "all";
+  // Filtre "Collectivité" — admin uniquement (une session collectivité est déjà
+  // scopée à sa propre organisation via `communeId`, donc redondante ici).
+  const organizationId = isAdmin ? searchParams.get("organization") ?? "" : "";
   const q = searchParams.get("q")?.trim() ?? "";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const sort = parseSort(searchParams.get("sort"));
 
-  const hasActiveFilters = q !== "" || status !== defaultStatus || verification !== "all";
+  const hasActiveFilters = q !== "" || status !== defaultStatus || verification !== "all" || source !== "all" || organizationId !== "";
+
+  const organizationsQ = useQuery({
+    queryKey: ["bo-parks-organizations"],
+    queryFn: () => listCommunes(),
+    enabled: isAdmin,
+    staleTime: 60_000,
+  });
 
   const [qInput, setQInput] = useState(q);
   useEffect(() => {
@@ -147,13 +181,15 @@ export default function Parks() {
   }
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, page, sort }],
+    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, source, organizationId, page, sort }],
     queryFn: () =>
       listParksPage({
         communeId,
         q,
         status: status === "all" ? undefined : [status],
         verification: verification === "all" ? undefined : [verification],
+        sourceTypes: source === "all" ? undefined : [source],
+        organizationId: organizationId || undefined,
         sort: sort.key,
         order: sort.order,
         page,
@@ -169,21 +205,33 @@ export default function Parks() {
     void (async () => {
       try {
         const all = await listParks({ communeId });
-        const filtered = all
+        let filtered = all
           .filter((p) => status === "all" || p.status === status)
           .filter((p) => verification === "all" || p.verification_status === verification)
           .filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()));
+        if (organizationId) {
+          const orgParkIds = new Set(await listOrgParkIds(organizationId));
+          filtered = filtered.filter((p) => orgParkIds.has(p.id));
+        }
+        // Un seul appel groupé pour toutes les lignes exportées (pas un par
+        // parc) — même principe que la colonne Source de la liste paginée.
+        const sourceByParkId = await listParkSourcesByIds(filtered.map((p) => p.id));
+        if (source !== "all") filtered = filtered.filter((p) => sourceByParkId.get(p.id) === source);
         const csv = toCsv(
-          filtered.map((p) => ({
-            Nom: p.name,
-            Adresse: p.formatted_address ?? "",
-            Latitude: p.latitude ?? p.lat ?? "",
-            Longitude: p.longitude ?? p.lng ?? "",
-            Statut: p.status,
-            Vérification: p.verification_status,
-            Photos: (p.photos ?? []).length,
-          })),
-          ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Photos"],
+          filtered.map((p) => {
+            const parkSource = sourceByParkId.get(p.id);
+            return {
+              Nom: p.name,
+              Adresse: p.formatted_address ?? "",
+              Latitude: p.latitude ?? p.lat ?? "",
+              Longitude: p.longitude ?? p.lng ?? "",
+              Statut: p.status,
+              Vérification: p.verification_status,
+              Source: parkSource ? SOURCE_LABEL[parkSource] : "",
+              Photos: (p.photos ?? []).length,
+            };
+          }),
+          ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Source", "Photos"],
         );
         downloadCsv("toboggo-parcs.csv", csv);
       } catch {
@@ -274,7 +322,7 @@ export default function Parks() {
     }));
   }
 
-  const columns: DataTableColumn<Park>[] = [
+  const columns: DataTableColumn<ParkWithSource>[] = [
     {
       key: "name",
       header: "Parc",
@@ -292,6 +340,13 @@ export default function Parks() {
       header: "Vérification",
       width: "1px",
       render: (park) => <ParkVerificationTag status={park.verification_status} />,
+    },
+    {
+      key: "source",
+      header: "Source",
+      width: "1px",
+      render: (park) =>
+        park.source_type ? <Tag>{SOURCE_LABEL[park.source_type]}</Tag> : <span className={styles.muted}>—</span>,
     },
     {
       key: "reports",
@@ -436,6 +491,33 @@ export default function Parks() {
             </option>
           ))}
         </Select>
+        <Select
+          className={styles.select}
+          label="Source"
+          value={source}
+          onChange={(e) => updateParams({ source: e.target.value === "all" ? null : e.target.value }, { resetPage: true })}
+        >
+          {SOURCE_VALUES.map((v) => (
+            <option key={v} value={v}>
+              {SOURCE_LABEL[v]}
+            </option>
+          ))}
+        </Select>
+        {isAdmin && (
+          <Select
+            className={styles.select}
+            label="Collectivité"
+            value={organizationId}
+            onChange={(e) => updateParams({ organization: e.target.value || null }, { resetPage: true })}
+          >
+            <option value="">Toutes collectivités</option>
+            {(organizationsQ.data ?? []).map((org: Organization) => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </Select>
+        )}
         {hasActiveFilters && (
           <button type="button" className={styles.reset} onClick={resetFilters}>
             Réinitialiser

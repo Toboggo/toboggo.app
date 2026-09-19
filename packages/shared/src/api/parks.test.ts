@@ -7,6 +7,7 @@ import {
   listOrgParkIds,
   listParks,
   listParksPage,
+  listParkSourcesByIds,
   updatePark,
 } from "./parks";
 import { formatAgeRange } from "../utils/age";
@@ -267,6 +268,112 @@ describe("listParksPage — server pagination / sort / search (Lot 3A)", () => {
     expect(res.total).toBe(0);
     const inArgs = calls(queriesByTable["park_public"][0], "in");
     expect(inArgs[0]).toEqual(["id", ["00000000-0000-0000-0000-000000000000"]]);
+  });
+});
+
+describe("listParksPage — Admin-UI-5B (filtre Source, filtre Collectivité, colonne Source)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  function calls(q: { calls: { method: string; args: unknown[] }[] }, method: string) {
+    return q.calls.filter((c) => c.method === method).map((c) => c.args);
+  }
+
+  it("left-joins park_sources by default and reads each row's source_type from the embedded resource", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: {
+        data: [
+          { id: "p1", park_sources: [{ source_type: "osm" }] },
+          { id: "p2", park_sources: [] },
+        ],
+        error: null,
+        count: 2,
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const res = await listParksPage();
+
+    // No separate `park_sources` request at all — the join is embedded in
+    // the single `park_public` select, never a per-row/per-page follow-up.
+    expect(queriesByTable["park_sources"]).toBeUndefined();
+    const selectArgs = calls(queriesByTable["park_public"][0], "select")[0];
+    expect(selectArgs[0]).toContain("park_sources(source_type)");
+    expect(res.rows.find((r) => r.id === "p1")?.source_type).toBe("osm");
+    expect(res.rows.find((r) => r.id === "p2")?.source_type).toBeNull();
+  });
+
+  it("filters by source_type via a real join (`!inner`), never an id=in.(…) list — a source can match the whole catalog", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [{ id: "p1", park_sources: [{ source_type: "osm" }] }], error: null, count: 1 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage({ sourceTypes: ["osm"] });
+
+    expect(queriesByTable["park_sources"]).toBeUndefined();
+    const selectArgs = calls(queriesByTable["park_public"][0], "select")[0];
+    expect(selectArgs[0]).toContain("park_sources!inner(source_type)");
+    expect(calls(queriesByTable["park_public"][0], "in")).toContainEqual(["park_sources.source_type", ["osm"]]);
+    // Crucially, no id-based restriction is derived from the source filter.
+    expect(calls(queriesByTable["park_public"][0], "in").some(([col]) => col === "id")).toBe(false);
+  });
+
+  it("combines the source filter (join) with the commune scope (id list) — both apply", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      organization_parks: { data: [{ park_id: "p1" }], error: null },
+      park_public: { data: [{ id: "p1", park_sources: [{ source_type: "osm" }] }], error: null, count: 1 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage({ communeId: "org-1", sourceTypes: ["osm"] });
+
+    const inArgs = calls(queriesByTable["park_public"][0], "in");
+    expect(inArgs).toContainEqual(["id", ["p1"]]);
+    expect(inArgs).toContainEqual(["park_sources.source_type", ["osm"]]);
+  });
+
+  it("filters by organizationId via organization_parks — distinct from the commune-scope communeId", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      organization_parks: { data: [{ park_id: "p9" }], error: null },
+      park_public: { data: [{ id: "p9" }], error: null, count: 1 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage({ organizationId: "org-9" });
+
+    const inArgs = calls(queriesByTable["park_public"][0], "in");
+    expect(inArgs).toContainEqual(["id", ["p9"]]);
+  });
+});
+
+describe("listParkSourcesByIds", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  it("returns an empty map without querying when given no ids", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({});
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const map = await listParkSourcesByIds([]);
+
+    expect(map.size).toBe(0);
+    expect(queriesByTable["park_sources"]).toBeUndefined();
+  });
+
+  it("keeps the first source row when a park has more than one (rare, never expected to throw)", async () => {
+    const { client } = makeFakeSupabase({
+      park_sources: {
+        data: [
+          { park_id: "p1", source_type: "osm" },
+          { park_id: "p1", source_type: "municipality" },
+        ],
+        error: null,
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const map = await listParkSourcesByIds(["p1"]);
+
+    expect(map.get("p1")).toBe("osm");
   });
 });
 

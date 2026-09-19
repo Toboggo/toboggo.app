@@ -6,6 +6,7 @@ import type {
   ParkEditHistoryEntry,
   ParkFeatureView,
   ParkStatus,
+  SourceType,
   VerificationStatus,
 } from "../types";
 import type { Database, Json, TablesInsert, TablesUpdate } from "../types/database.types";
@@ -214,6 +215,13 @@ export interface ListParksPageOpts {
   q?: string;
   status?: ParkStatus[];
   verification?: VerificationStatus[];
+  /** `park_sources.source_type` — a park matches when its (first) source row
+   * is one of these values. */
+  sourceTypes?: SourceType[];
+  /** Restricts to parks linked to this organisation via `organization_parks`
+   * (Admin-UI-5B "Collectivité" filter — distinct from `communeId`, which
+   * scopes the whole screen for a commune-role session). */
+  organizationId?: string;
   sort?: ParksSortKey;
   order?: "asc" | "desc";
   /** 1-based. */
@@ -221,12 +229,35 @@ export interface ListParksPageOpts {
   pageSize?: number;
 }
 
+/** A page row plus its provenance — `null` when the park has no `park_sources`
+ * row at all (never observed today, but not assumed impossible). */
+export type ParkWithSource = Park & { source_type: SourceType | null };
+
 export interface ParksPage {
-  rows: Park[];
+  rows: ParkWithSource[];
   total: number;
   page: number;
   pageSize: number;
   pageCount: number;
+}
+
+/**
+ * Batched `park_sources` lookup for a known set of park ids — one request
+ * regardless of how many ids, reusing the fetch-plus-`Map` pattern already
+ * used by `listOrganizationsWithCounts` to avoid a per-row query. A park with
+ * more than one `park_sources` row (not expected in practice, see
+ * `getParkSourceDistribution`) keeps its first one.
+ */
+export async function listParkSourcesByIds(parkIds: string[]): Promise<Map<string, SourceType>> {
+  const map = new Map<string, SourceType>();
+  if (!parkIds.length) return map;
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("park_sources").select("park_id, source_type").in("park_id", parkIds);
+  if (error) throw error;
+  for (const row of (data ?? []) as { park_id: string; source_type: SourceType }[]) {
+    if (!map.has(row.park_id)) map.set(row.park_id, row.source_type);
+  }
+  return map;
 }
 
 export async function listParksPage(opts: ListParksPageOpts = {}): Promise<ParksPage> {
@@ -236,18 +267,46 @@ export async function listParksPage(opts: ListParksPageOpts = {}): Promise<Parks
   const sort: ParksSortKey = opts.sort ?? "updated_at";
   const ascending = (opts.order ?? "desc") === "asc";
 
+  // `park_sources` is embedded directly in the select (PostgREST resource
+  // embedding), so every row's Source column comes from this one request —
+  // no follow-up per-page query. Filtering by source switches the embed to
+  // `!inner`, turning it into a real SQL join that restricts rows server-side
+  // via `.in("park_sources.source_type", …)`. This is deliberate: unlike
+  // `communeId`/`organizationId` below (always a small, one-organisation id
+  // set), a source type can match most of the catalog (e.g. "osm" matches
+  // 2201/2201 parks locally) — collecting every matching id client-side and
+  // sending `id=in.(…)` would build a multi-hundred-KB URL and fail outright
+  // (confirmed locally: PostgREST/the browser reject it). The join has no such
+  // limit. A park with more than one matching `park_sources` row (not expected
+  // in practice, see `getParkSourceDistribution`) would appear twice under an
+  // active source filter — an accepted, pre-existing edge case, not a crash.
+  const sourceFilterActive = !!opts.sourceTypes?.length;
+  const sourceEmbed = sourceFilterActive ? "park_sources!inner(source_type)" : "park_sources(source_type)";
+
   let query = supabase
     .from("park_public")
-    .select(PARK_COLS, { count: "exact" })
+    .select(`${PARK_COLS}, ${sourceEmbed}`, { count: "exact" })
     .order(sort, { ascending })
     // Stable tiebreaker so a row never straddles two pages when the sort
     // column has duplicate values (e.g. a bulk import sharing a timestamp).
     .order("id", { ascending: true });
 
-  if (opts.communeId) {
-    const ids = await listOrgParkIds(opts.communeId);
-    query = query.in("id", ids.length ? ids : [NO_MATCH_SENTINEL]);
+  if (sourceFilterActive) {
+    query = query.in("park_sources.source_type", opts.sourceTypes!);
   }
+
+  // `communeId` (session scope) and `organizationId` ("Collectivité" filter)
+  // both resolve to their own id list, intersected into a single
+  // `.in("id", …)` call — naturally bounded (one organisation's parks), so
+  // this pattern stays safe here (unlike the Source filter above).
+  const idLists: string[][] = [];
+  if (opts.communeId) idLists.push(await listOrgParkIds(opts.communeId));
+  if (opts.organizationId) idLists.push(await listOrgParkIds(opts.organizationId));
+  if (idLists.length) {
+    const idRestriction = idLists.reduce((a, b) => a.filter((id) => b.includes(id)));
+    query = query.in("id", idRestriction.length ? idRestriction : [NO_MATCH_SENTINEL]);
+  }
+
   if (opts.status?.length) query = query.in("moderation_status", opts.status);
   if (opts.verification?.length) query = query.in("verification_status", opts.verification);
   const q = opts.q?.trim();
@@ -258,9 +317,14 @@ export async function listParksPage(opts: ListParksPageOpts = {}): Promise<Parks
 
   const { data, error, count } = await query;
   if (error) throw error;
+  type RowWithEmbeddedSource = Park & { park_sources: { source_type: SourceType }[] | null };
+  const rows = (data ?? []) as unknown as RowWithEmbeddedSource[];
   const total = count ?? 0;
   return {
-    rows: (data ?? []) as unknown as Park[],
+    rows: rows.map(({ park_sources, ...park }) => ({
+      ...park,
+      source_type: park_sources?.[0]?.source_type ?? null,
+    })),
     total,
     page,
     pageSize,

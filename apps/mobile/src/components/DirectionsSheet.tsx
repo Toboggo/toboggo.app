@@ -1,7 +1,16 @@
 import { useTranslation } from "react-i18next";
-import { BottomSheet, Button, Icon } from "@toboggo/design-system";
+import { BottomSheet, Button } from "@toboggo/design-system";
 import { getAvailableMapProviders, type MapProvider } from "@toboggo/shared";
 import styles from "./DirectionsSheet.module.css";
+
+// Vrai logo par provider (voir public/logos/README.md pour la provenance /
+// les droits) — pas d'icône Toboggo générique partagée : c'est justement ce
+// qui distingue les 3 choix pour l'utilisateur.
+const PROVIDER_LOGO: Record<MapProvider, string> = {
+  apple: "/logos/apple.svg",
+  google: "/logos/google.svg",
+  waze: "/logos/waze.svg",
+};
 
 export function DirectionsSheet({
   open,
@@ -27,7 +36,7 @@ export function DirectionsSheet({
           {providers.map((provider) => (
             <button key={provider} type="button" className={styles.row} onClick={() => onChoose(provider)}>
               <span className={styles.rowIcon}>
-                <Icon name="ic-route" size={18} />
+                <img src={PROVIDER_LOGO[provider]} alt="" width={20} height={20} />
               </span>
               <span className={styles.rowLabel}>{t(`directionsSheet.${provider}`)}</span>
               <svg

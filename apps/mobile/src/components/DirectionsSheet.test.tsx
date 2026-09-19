@@ -62,6 +62,17 @@ describe("DirectionsSheet", () => {
     expect(onChoose).not.toHaveBeenCalled();
   });
 
+  it("on iPhone: each provider gets its own distinct logo, not a shared generic icon", () => {
+    stubUserAgent(IPHONE_UA);
+    render(<DirectionsSheet open onClose={() => {}} onChoose={() => {}} />);
+
+    // BottomSheet renders through a portal, so query the whole document, not
+    // just render()'s own container.
+    const logos = Array.from(document.querySelectorAll("img")).map((img) => img.getAttribute("src"));
+    expect(logos).toEqual(["/logos/apple.svg", "/logos/google.svg", "/logos/waze.svg"]);
+    expect(new Set(logos).size).toBe(3); // no two rows share the same icon
+  });
+
   it("closed: renders nothing", () => {
     stubUserAgent(IPHONE_UA);
     render(<DirectionsSheet open={false} onClose={() => {}} onChoose={() => {}} />);

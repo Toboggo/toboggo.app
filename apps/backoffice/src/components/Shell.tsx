@@ -164,27 +164,30 @@ export function Shell({ children }: { children: ReactNode }) {
       </a>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <Logo size={26} tone="light" />
+          <Logo size={24} tone="light" />
+          {isAdmin && <span className={styles.adminBadge}>Admin</span>}
         </div>
-        <div className={styles.orgLabel}>{orgLabel}</div>
 
-        {(hasAdmin ? 1 : 0) + communeMemberships.length > 1 && (
-          <select
-            className={styles.orgSwitch}
-            aria-label="Changer d'organisation"
-            value={isAdmin ? "admin" : communeId}
-            onChange={(e) =>
-              setActiveOrg(e.target.value === "admin" ? { type: "admin" } : { type: "commune", communeId: e.target.value })
-            }
-          >
-            {hasAdmin && <option value="admin">Toboggo Admin</option>}
-            {communeMemberships.map((m) => (
-              <option key={m.commune_id} value={m.commune_id!}>
-                {communes.find((c) => c.id === m.commune_id)?.name ?? m.commune_id}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className={styles.orgBlock}>
+          <div className={styles.orgLabel}>{orgLabel}</div>
+          {(hasAdmin ? 1 : 0) + communeMemberships.length > 1 && (
+            <select
+              className={styles.orgSwitch}
+              aria-label="Changer d'organisation"
+              value={isAdmin ? "admin" : communeId}
+              onChange={(e) =>
+                setActiveOrg(e.target.value === "admin" ? { type: "admin" } : { type: "commune", communeId: e.target.value })
+              }
+            >
+              {hasAdmin && <option value="admin">Toboggo Admin</option>}
+              {communeMemberships.map((m) => (
+                <option key={m.commune_id} value={m.commune_id!}>
+                  {communes.find((c) => c.id === m.commune_id)?.name ?? m.commune_id}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
 
         <nav className={styles.nav} aria-label="Navigation principale">
           {groups.map((group) => (
@@ -201,7 +204,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   >
                     <span className={styles.navLabel}>
                       {item.icon ? (
-                        <Icon name={item.icon} size={18} />
+                        <Icon name={item.icon} size={16} />
                       ) : (
                         <span className={styles.navIconSlot} aria-hidden="true" />
                       )}

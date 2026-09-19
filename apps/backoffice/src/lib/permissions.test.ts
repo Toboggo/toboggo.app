@@ -8,12 +8,17 @@ import {
   canManageTeam,
   canReplyToReview,
   canResolveReport,
+  canReviewParkEdit,
   type PermissionRoleContext,
 } from "./permissions";
 
 const admin: PermissionRoleContext = { isAdmin: true, isGestionnaireOrAbove: true };
 const gestionnaire: PermissionRoleContext = { isAdmin: false, isGestionnaireOrAbove: true };
 const contributeur: PermissionRoleContext = { isAdmin: false, isGestionnaireOrAbove: false };
+/** Staff `support` : `isAdmin` (org null) mais PAS `isGestionnaireOrAbove`
+ * (rôle exclu de la liste gestionnaire/super_admin/moderation) — le cas
+ * exact que `review_park_edit()` (0037) refuse via `is_toboggo_admin`. */
+const supportStaff: PermissionRoleContext = { isAdmin: true, isGestionnaireOrAbove: false };
 
 describe("permissions — D. an action never appears available to a role it would fail for", () => {
   it("a contributeur cannot create/import parks (organization_parks insert requires gestionnaire)", () => {
@@ -39,6 +44,14 @@ describe("permissions — D. an action never appears available to a role it woul
 
   it("a contributeur cannot edit the commune settings (organizations_update is gestionnaire+/staff only)", () => {
     expect(canEditCommuneSettings(contributeur)).toBe(false);
+  });
+
+  it("a contributeur cannot review a park_edit (review_park_edit is gestionnaire+/admin only)", () => {
+    expect(canReviewParkEdit(contributeur)).toBe(false);
+  });
+
+  it("a support staff member cannot review a park_edit — review_park_edit's is_toboggo_admin() gate excludes support, unlike the broader isAdmin used elsewhere", () => {
+    expect(canReviewParkEdit(supportStaff)).toBe(false);
   });
 });
 
@@ -66,5 +79,10 @@ describe("permissions — G. existing staff/admin capabilities do not regress", 
 
   it("a gestionnaire does not get the staff-only review delete capability", () => {
     expect(canDeleteReview(gestionnaire)).toBe(false);
+  });
+
+  it("a Toboggo admin (super_admin/moderation) and a gestionnaire can both review park_edits", () => {
+    expect(canReviewParkEdit(admin)).toBe(true);
+    expect(canReviewParkEdit(gestionnaire)).toBe(true);
   });
 });

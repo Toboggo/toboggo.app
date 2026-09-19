@@ -2,6 +2,7 @@ import { Tag } from "@toboggo/design-system";
 import {
   REPORT_SEVERITY_LABEL,
   type EditStatus,
+  type ParkEditItemResult,
   type ParkStatus,
   type ReportSeverity,
   type ReportStatus,
@@ -86,4 +87,24 @@ const EDIT_TONE: Record<EditStatus, "warning" | "primary" | "error"> = {
 
 export function ParkEditStatusTag({ status }: { status: EditStatus }) {
   return <Tag tone={EDIT_TONE[status]}>{EDIT_LABEL[status]}</Tag>;
+}
+
+// Classification A/B/C d'un item (Admin-3B-2, aperçu client — voir
+// `lib/parkEditReviewPreview.ts` — et résultat réel renvoyé par la RPC
+// `review_park_edit`, migration 0037) : mêmes 4 valeurs dans les deux cas.
+const ITEM_RESULT_LABEL: Record<ParkEditItemResult, string> = {
+  APPLICABLE: "Applicable",
+  ALREADY_APPLIED: "Déjà appliqué",
+  CONFLICT: "Conflit",
+  NOT_AUTOMATICALLY_APPLICABLE: "Vérification manuelle",
+};
+const ITEM_RESULT_TONE: Record<ParkEditItemResult, "primary" | "neutral" | "error" | "warning"> = {
+  APPLICABLE: "primary",
+  ALREADY_APPLIED: "neutral",
+  CONFLICT: "error",
+  NOT_AUTOMATICALLY_APPLICABLE: "warning",
+};
+
+export function ParkEditItemResultTag({ result }: { result: ParkEditItemResult }) {
+  return <Tag tone={ITEM_RESULT_TONE[result]}>{ITEM_RESULT_LABEL[result]}</Tag>;
 }

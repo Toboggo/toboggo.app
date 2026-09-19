@@ -78,6 +78,22 @@ export function canEditCommuneSettings(ctx: PermissionRoleContext): boolean {
   return ctx.isGestionnaireOrAbove;
 }
 
+/**
+ * `review_park_edit()` (RLS, migration 0037) imposes a filter STRICTER than
+ * plain staff/gestionnaire: `is_toboggo_admin` only (super_admin/moderation —
+ * `support` explicitly excluded) for staff, `is_org_gestionnaire` for a
+ * collectivité. Unlike `canEditPark` above, `ctx.isAdmin` must NOT be OR'd in
+ * here — it is broad staff (includes `support`), which the RPC itself
+ * refuses. `isGestionnaireOrAbove` alone is exactly the right gate: it's
+ * computed from `currentRole()`, scoped to whichever org is active, and
+ * already only returns true for gestionnaire/super_admin/moderation — the
+ * same 3 roles the RPC accepts, whether the active org is "admin" or a
+ * commune.
+ */
+export function canReviewParkEdit(ctx: PermissionRoleContext): boolean {
+  return ctx.isGestionnaireOrAbove;
+}
+
 export interface Permissions {
   canCreatePark: boolean;
   canImportParksCsv: boolean;
@@ -87,6 +103,7 @@ export interface Permissions {
   canDeleteReview: boolean;
   canManageTeam: boolean;
   canEditCommuneSettings: boolean;
+  canReviewParkEdit: boolean;
 }
 
 /** Reads the current role from `orgSession`/`orgScope` and derives every
@@ -105,5 +122,6 @@ export function usePermissions(): Permissions {
     canDeleteReview: canDeleteReview(ctx),
     canManageTeam: canManageTeam(ctx),
     canEditCommuneSettings: canEditCommuneSettings(ctx),
+    canReviewParkEdit: canReviewParkEdit(ctx),
   };
 }

@@ -128,6 +128,19 @@ export default function MapExplore() {
     setSnap(0);
   }, [mode]);
 
+  // A deliberate tap on the map background (never a pan/zoom/marker tap — see
+  // MapCanvas/FakeMap's own `onBackgroundTap`). A selected park is deselected,
+  // which already collapses the sheet to peek via the mode-change effect
+  // above; otherwise, with no park selected, the sheet's own medium/expanded
+  // snap is brought back to peek directly.
+  function handleMapBackgroundTap() {
+    if (selectedId) {
+      setSelectedId(null);
+    } else if (snap !== 0) {
+      setSnap(0);
+    }
+  }
+
   function toggleFavorite(parkId: string) {
     if (!userId) {
       navigate("/login");
@@ -382,6 +395,7 @@ export default function MapExplore() {
         parks={parks}
         selectedId={selectedId}
         onSelect={setSelectedId}
+        onBackgroundTap={handleMapBackgroundTap}
         recenterSignal={recenterSignal}
         showUser={permission === "granted"}
         insets={mapInsets}

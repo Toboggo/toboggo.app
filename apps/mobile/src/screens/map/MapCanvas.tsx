@@ -41,6 +41,7 @@ export function MapCanvas({
   recenterSignal,
   showUser = false,
   insets,
+  onBackgroundTap,
 }: {
   lat: number;
   lng: number;
@@ -51,6 +52,8 @@ export function MapCanvas({
   showUser?: boolean;
   /** Pixels hidden by the floating header (top) and the bottom sheet (bottom). */
   insets?: { top: number; bottom: number };
+  /** Fires on a tap that lands on the map background, not on a marker. */
+  onBackgroundTap?: () => void;
 }) {
   const { t } = useTranslation("map");
   const { intlLocale } = useLocale();
@@ -60,6 +63,8 @@ export function MapCanvas({
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onBackgroundTapRef = useRef(onBackgroundTap);
+  onBackgroundTapRef.current = onBackgroundTap;
   // Bumped every time a fresh Map is constructed (incl. React StrictMode's
   // mount/unmount/remount in dev). Downstream effects key off it so they
   // rebuild their markers on the new instance instead of touching orphans.
@@ -212,6 +217,31 @@ export function MapCanvas({
     };
   }, [clusterIndex, parks, selectedId, mapEpoch, intlLocale, t]);
 
+  // A tap on the map background (not a marker) — MapLibre's own `click`
+  // already excludes pan/zoom gestures (only a real, undragged tap fires it),
+  // so this needs no gesture bookkeeping of its own. Marker elements sit
+  // inside the same canvas container and also receive this event by
+  // bubbling, so a tap that lands on one (park, cluster, or user marker) is
+  // excluded by checking it against the markers we track — independent of
+  // MapLibre's own internal marker DOM/class details.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const handleClick = (e: maplibregl.MapMouseEvent) => {
+      const target = e.originalEvent.target as HTMLElement | null;
+      if (!target) return;
+      const hitMarker =
+        !!userMarkerRef.current?.getElement().contains(target) ||
+        Object.values(markersRef.current).some((entry) => entry.marker.getElement().contains(target));
+      if (hitMarker) return;
+      onBackgroundTapRef.current?.();
+    };
+    map.on("click", handleClick);
+    return () => {
+      map.off("click", handleClick);
+    };
+  }, [mapEpoch]);
+
   // User position marker.
   useEffect(() => {
     const map = mapRef.current;
@@ -256,7 +286,15 @@ export function MapCanvas({
   }, [recenterSignal, mapEpoch]);
 
   if (!STYLE_URL) {
-    return <FakeMap parks={parks} selectedId={selectedId} onSelect={onSelect} showUser={showUser} />;
+    return (
+      <FakeMap
+        parks={parks}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        showUser={showUser}
+        onBackgroundTap={onBackgroundTap}
+      />
+    );
   }
 
   return <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />;

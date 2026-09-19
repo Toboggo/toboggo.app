@@ -65,6 +65,25 @@
 .sheet[data-docked="1"] {
   z-index: var(--z-sheet-docked, 45);
 }
+/* Floating card (opt-in via BottomSheet `floating` — Explorer's map sheet
+   only): detached from the screen's edges, fully rounded, translucent +
+   blurred. Stops cleanly at its inset instead of painting through it (never
+   "docked" behind the nav) — see BottomSheet.tsx `paintThrough` — but keeps
+   `[data-docked]`'s z-index (below the nav, below full-screen overlays like
+   the search/filters sheets): there's no pixel overlap left to resolve by
+   stacking order, and jumping above `--z-sheet` would otherwise cover those
+   overlays whenever they're opened over the map. */
+.sheet[data-floating="1"] {
+  left: var(--floating-inset, 14px);
+  right: var(--floating-inset, 14px);
+  width: auto;
+  max-width: calc(var(--app-shell-width, 560px) - 2 * var(--floating-inset, 14px));
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-glass);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
+  box-shadow: var(--shadow-lg);
+}
 .grabZone {
   flex-shrink: 0;
   display: flex;

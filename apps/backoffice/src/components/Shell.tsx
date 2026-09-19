@@ -37,6 +37,7 @@ export const NAV_ICON_GAPS: Record<string, string> = {
   "/maintenance": "entretien (outil / clé) — aucun symbole du sprite ne convient",
   "/photos": "photo / appareil — aucun symbole du sprite ne convient",
   "/journal": "journal d'activité — aucun symbole du sprite ne convient sans réutiliser ic-list (déjà « Parcs »)",
+  "/organizations": "collectivité (bâtiment / mairie) — aucun symbole du sprite ne convient ; ic-users est déjà « Utilisateurs », le réutiliser serait ambigu",
 };
 
 export function buildNavGroups(opts: {
@@ -67,7 +68,13 @@ export function buildNavGroups(opts: {
         ],
       },
       { title: "Organisation", items: [{ to: "/settings", label: "Équipe & Réglages", icon: "ic-settings" }] },
-      { title: "Admin", items: [{ to: "/users", label: "Utilisateurs", icon: "ic-users" }] },
+      {
+        title: "Admin",
+        items: [
+          { to: "/organizations", label: "Collectivités" },
+          { to: "/users", label: "Utilisateurs", icon: "ic-users" },
+        ],
+      },
     ];
   }
 

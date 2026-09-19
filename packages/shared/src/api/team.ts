@@ -74,3 +74,46 @@ export async function updateCommune(id: string, patch: Partial<Organization>): P
 
 export const listOrganizations = listCommunes;
 export const updateOrganization = updateCommune;
+
+export interface OrganizationWithCounts extends Organization {
+  /** Nombre de parcs rattachés (`organization_parks`, lecture publique —
+   * policy `organization_parks_read` = `using (true)`, vérifié). */
+  parkCount: number;
+}
+
+/**
+ * Liste Admin des collectivités (Admin-UI-3B) : `organizations` enrichi du
+ * nombre de parcs rattachés, en 2 requêtes au total (pas de N+1 — même
+ * principe que `listParkEditsWithDetails`).
+ *
+ * Pas de compteur « membres » ici, délibérément : la policy `team_read`
+ * (migration 0002, jamais étendue depuis) n'autorise un membre du staff à
+ * lire que ses propres lignes, les lignes staff (`organization_id is null`)
+ * et celles de SA PROPRE organisation s'il en est membre — `commune_role()`/
+ * `org_role()` n'ont aucune clause de bypass staff. Un admin ne peut donc pas
+ * compter fiablement les membres d'une collectivité dont il ne fait pas
+ * partie ; un compteur basé sur une lecture non scopée de `team_members`
+ * afficherait silencieusement 0 pour la plupart des collectivités alors que
+ * des membres existent réellement. Décision produit (Admin-UI-3B) : retirer
+ * la colonne plutôt qu'afficher un chiffre potentiellement faux — nécessite
+ * une policy RLS dédiée (migration) pour être ajouté correctement plus tard.
+ */
+export async function listOrganizationsWithCounts(): Promise<OrganizationWithCounts[]> {
+  const supabase = getSupabase();
+  const [orgsRes, orgParksRes] = await Promise.all([
+    supabase.from("organizations").select("*").order("name"),
+    supabase.from("organization_parks").select("organization_id"),
+  ]);
+  if (orgsRes.error) throw orgsRes.error;
+  if (orgParksRes.error) throw orgParksRes.error;
+
+  const parkCounts = new Map<string, number>();
+  for (const row of (orgParksRes.data ?? []) as { organization_id: string }[]) {
+    parkCounts.set(row.organization_id, (parkCounts.get(row.organization_id) ?? 0) + 1);
+  }
+
+  return ((orgsRes.data ?? []) as Organization[]).map((org) => ({
+    ...org,
+    parkCount: parkCounts.get(org.id) ?? 0,
+  }));
+}

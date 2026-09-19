@@ -11,6 +11,7 @@ const REGISTERED_ROUTES = new Set([
   "/reports",
   "/reviews",
   "/photos",
+  "/organizations",
   "/users",
   "/map",
   "/maintenance",
@@ -63,7 +64,7 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
     ]);
   });
 
-  it("matches the validated admin group structure exactly, with Utilisateurs admin-only", () => {
+  it("matches the validated admin group structure exactly, with Utilisateurs/Collectivités admin-only", () => {
     const communeLabels = flatten({ isAdmin: false, ...base }).map((i) => i.label);
     const adminGroups = buildNavGroups({ isAdmin: true, ...base });
     expect(adminGroups.map((g) => [g.title, g.items.map((i) => i.label)])).toEqual([
@@ -72,9 +73,10 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
       ["Exploitation", ["Signalements"]],
       ["Échanges / Qualité", ["Avis", "Photos"]],
       ["Organisation", ["Équipe & Réglages"]],
-      ["Admin", ["Utilisateurs"]],
+      ["Admin", ["Collectivités", "Utilisateurs"]],
     ]);
     expect(communeLabels).not.toContain("Utilisateurs");
+    expect(communeLabels).not.toContain("Collectivités");
   });
 
   it("carries the real pending counts through as badges", () => {

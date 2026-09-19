@@ -488,6 +488,7 @@ export default function MapExplore() {
         onHeightChange={setSheetHeight}
         bottomInset={navH}
         topInset={sheetTopInset}
+        floating
       >
         {renderSheet()}
       </BottomSheet>

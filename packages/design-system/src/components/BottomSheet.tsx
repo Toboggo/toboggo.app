@@ -38,6 +38,13 @@ export interface BottomSheetProps {
    * When set, the sheet rubber-bands slightly past the top instead of a hard stop.
    */
   onOverswipeUp?: () => void;
+  /**
+   * Detached "glass" card (Explorer's map sheet only): inset from the screen's
+   * sides, fully rounded, translucent + blurred, and — when `bottomInset` is
+   * set — stopping cleanly at that inset instead of painting through it. Every
+   * other sheet is unaffected (opt-in, default `false`).
+   */
+  floating?: boolean;
 }
 
 const GRAB_H = 26; // handle strip — added on top of a `"fit"` content height
@@ -116,6 +123,7 @@ export function BottomSheet({
   showBackdrop = false,
   dismissible = true,
   onOverswipeUp,
+  floating = false,
 }: BottomSheetProps) {
   const controlled = snapIndex != null;
   const lastIdx = snapPoints.length - 1;
@@ -152,6 +160,11 @@ export function BottomSheet({
   // and it sits *below* the nav in the stack, so the nav stays usable on top.
   // A modal sheet (backdrop) still floats above everything — never docked.
   const docked = bottomInset > 0 && !showBackdrop;
+  // `floating` still reserves the inset the same way (`docked` above still
+  // governs `fitReserve`/`scrollReserve`) but never paints through it: the
+  // card stops exactly at the inset, clear of the nav, instead of continuing
+  // behind it.
+  const paintThrough = docked && !floating;
 
   const safeBottom = useSafeAreaBottom();
 
@@ -384,8 +397,9 @@ export function BottomSheet({
 
   // The sheet's opaque body is painted down to the screen edge when docked, so it
   // reads as one surface continuing behind the nav; `height` (the panel above the
-  // inset) still drives every drag / snap calculation.
-  const paintedHeight = docked ? height + bottomInset : height;
+  // inset) still drives every drag / snap calculation. A `floating` card never
+  // paints through — it stops at `bottomInset`, clear of whatever sits below it.
+  const paintedHeight = paintThrough ? height + bottomInset : height;
 
   return createPortal(
     <>
@@ -395,7 +409,8 @@ export function BottomSheet({
         className={styles.sheet}
         data-dragging={dragging ? "1" : undefined}
         data-docked={docked ? "1" : undefined}
-        style={{ height: paintedHeight }}
+        data-floating={floating ? "1" : undefined}
+        style={{ height: paintedHeight, bottom: floating ? bottomInset : undefined }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -429,7 +444,7 @@ export function BottomSheet({
           <div ref={contentRef}>{children}</div>
           {scrollReserve > 0 && <div aria-hidden style={{ height: scrollReserve }} />}
         </div>
-        {docked && bottomInset > 0 && (
+        {paintThrough && bottomInset > 0 && (
           // Purely decorative continuation of the sheet's surface behind the
           // nav — never part of the scrollable viewport, so it can't leak
           // content behind the dock; the nav floats on top of it (z-index).

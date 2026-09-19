@@ -6,6 +6,7 @@ import {
   type ParkStatus,
   type ReportSeverity,
   type ReportStatus,
+  type ReviewStatus,
   type VerificationStatus,
 } from "@toboggo/shared";
 
@@ -70,6 +71,23 @@ const SEVERITY_TONE: Record<ReportSeverity, "neutral" | "warning" | "error"> = {
 
 export function ReportSeverityTag({ severity }: { severity: ReportSeverity }) {
   return <Tag tone={SEVERITY_TONE[severity]}>{REPORT_SEVERITY_LABEL[severity]}</Tag>;
+}
+
+const REVIEW_LABEL: Record<ReviewStatus, string> = {
+  published: "Publié",
+  flagged: "Signalé",
+  hidden: "Masqué",
+  pending: "En attente",
+};
+const REVIEW_TONE: Record<ReviewStatus, "primary" | "error" | "neutral" | "warning"> = {
+  published: "primary",
+  flagged: "error",
+  hidden: "neutral",
+  pending: "warning",
+};
+
+export function ReviewStatusTag({ status }: { status: ReviewStatus }) {
+  return <Tag tone={REVIEW_TONE[status]}>{REVIEW_LABEL[status]}</Tag>;
 }
 
 const EDIT_LABEL: Record<EditStatus, string> = {

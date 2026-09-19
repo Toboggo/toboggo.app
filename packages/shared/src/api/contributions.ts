@@ -66,14 +66,21 @@ export async function listPendingParkEditsForOrg(organizationId: string): Promis
  * proposition sans parc reste listée. `proposedByName` est `null` si
  * `profiles` n'est pas lisible pour l'appelant (RLS `profiles_staff_read` :
  * vrai pour le staff, pas pour une collectivité) — jamais un nom inventé.
+ *
+ * `parkId` (Admin-UI-5D — onglet "Modifications proposées" de la fiche Parc
+ * 360) restreint à un seul parc, en réutilisant le même enrichissement
+ * auteur/parc plutôt que dupliquer la logique dans un second endpoint.
  */
-export async function listParkEditsWithDetails(opts: { status?: EditStatus[] } = {}): Promise<ParkEditWithDetails[]> {
+export async function listParkEditsWithDetails(
+  opts: { status?: EditStatus[]; parkId?: string } = {},
+): Promise<ParkEditWithDetails[]> {
   const supabase = getSupabase();
   let query = supabase
     .from("park_edits")
     .select("*, parks(name, formatted_address)")
     .order("created_at", { ascending: false });
   if (opts.status?.length) query = query.in("status", opts.status);
+  if (opts.parkId) query = query.eq("park_id", opts.parkId);
   const { data, error } = await query;
   if (error) throw error;
   const rows = (data ?? []) as (ParkEdit & { parks: { name: string; formatted_address: string | null } | null })[];

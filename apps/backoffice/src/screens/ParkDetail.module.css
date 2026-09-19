@@ -80,6 +80,14 @@
   font-size: 13px;
   color: var(--color-text-muted);
 }
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
 .headerActions {
   display: flex;
   flex-wrap: wrap;
@@ -138,6 +146,92 @@
 }
 .empty {
   color: var(--color-text-faint);
+}
+
+/* ── Onglet Vue d'ensemble ──────────────────────────────────────────────── */
+.overviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+.overviewCard {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.overviewCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.overviewCardTitle {
+  font-family: var(--font-heading);
+  font-size: 12.5px;
+  font-weight: 700;
+  margin: 0;
+}
+.overviewLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  cursor: pointer;
+}
+.overviewLink:hover {
+  text-decoration: underline;
+}
+.overviewTagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.overviewFeatList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.overviewFeatRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+}
+.overviewFeatRow:last-child {
+  border-bottom: none;
+}
+.overviewFeatCount {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.overviewPhotoRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.overviewPhotoThumb {
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+  background: var(--color-surface-alt);
+}
+.overviewPhotoCount {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }
 
 /* ── Barre d'édition ────────────────────────────────────────────────────── */
@@ -368,6 +462,96 @@
   text-align: center;
   color: var(--color-text-muted);
   font-size: 13px;
+}
+
+/* ── Onglets Avis / Signalements / Modifications proposées ─────────────── */
+.date {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.viewAffordance {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+.tabCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  margin-left: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-alt);
+  color: var(--color-text-muted);
+  font-family: var(--font-body);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.tabCountAlert {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+/* ── Avis ────────────────────────────────────────────────────────────────── */
+.reviewList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.reviewCard {
+  padding: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+.reviewHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+  font-size: 13.5px;
+}
+.reviewHeadRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.reviewDate {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.reviewDeleteBtn {
+  background: none;
+  border: none;
+  color: var(--color-error);
+  cursor: pointer;
+  font-size: 12.5px;
+  padding: 0;
+}
+.reviewComment {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+}
+.reviewReply {
+  margin-top: 10px;
+  padding: 10px;
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-xs);
+  font-size: 12.5px;
+}
+.reviewReplyForm {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+.reviewReplyForm > :first-child {
+  flex: 1;
 }
 
 /* ── Onglet Caractéristiques ───────────────────────────────────────────── */

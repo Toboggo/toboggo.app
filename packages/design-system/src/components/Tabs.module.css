@@ -2,6 +2,10 @@
   display: flex;
   gap: 2px;
   border-bottom: 1px solid var(--color-border);
+  /* A tab strip with many items (e.g. Parc 360's 8 tabs) must scroll rather
+   * than compress labels to illegibility or overflow the page. */
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .tab {
@@ -17,6 +21,7 @@
   color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab:hover {

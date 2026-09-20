@@ -43,8 +43,8 @@ export interface BottomSheetProps {
    * translucent + blurred, and — when `bottomInset` is set — stopping cleanly
    * at that inset instead of painting through it. Opt-in, default `false`
    * (the docked, bord-à-bord look — see `[data-docked]` below); currently
-   * unused (Explorer's map sheet reverted to docked to read as one continuous
-   * surface with the bottom nav, see MapExplore).
+   * unused (Explorer's map sheet is docked, painted straight through behind
+   * the — always floating, unaffected — bottom nav, see MapExplore).
    */
   floating?: boolean;
 }

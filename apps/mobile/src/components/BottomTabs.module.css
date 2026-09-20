@@ -1,14 +1,12 @@
-/* Bottom navigation — a floating glass dock by default, same inset/width/
-   blur/radius/shadow treatment as a modal bottom sheet (`BottomSheet`'s
-   `floating` variant, Dialog.module.css). Lifted clear of the screen edge by
-   `--bottom-nav-gap` + the safe area — never flush/bord-à-bord.
-
-   `docked` (Explorer's map sheet only, via the `docked` prop): the nav
-   instead sits bord-à-bord and undecorated — no inset, no radius, no shadow,
-   opaque `--color-surface` — so it reads as the *same continuous white
-   surface* as the docked map sheet behind it (`BottomSheet`'s non-floating
-   mode, `[data-docked="1"]` in Dialog.module.css), Apple Maps/Google Maps
-   style, rather than two stacked floating cards. */
+/* Bottom navigation — a floating glass dock, same inset/width/blur/radius/
+   shadow treatment as a modal bottom sheet (`BottomSheet`'s `floating`
+   variant, Dialog.module.css). Lifted clear of the screen edge by
+   `--bottom-nav-gap` + the safe area — never flush/bord-à-bord. Identical on
+   every screen, Explorer included: Explorer's map sheet is docked (painted
+   *behind* this nav — `BottomSheet`'s non-floating mode, `[data-docked="1"]`
+   in Dialog.module.css) precisely so the nav itself never has to change
+   shape to sit above it — only `z-index` (`--z-nav` > `--z-sheet-docked`)
+   separates them. */
 
 .wrap {
   position: fixed;
@@ -30,25 +28,6 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   z-index: var(--z-nav, 50);
-}
-.wrap[data-docked="1"] {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  max-width: var(--app-shell-width, 560px);
-  /* Own reserve for the safe area (padding, box-sizing: border-box) instead
-     of `--bottom-nav-h`'s gap-based bottom offset — see `--bottom-nav-h-docked`
-     (tokens.css), read by `useBottomNavHeight("docked")` so the sheet / map /
-     nav stay in lockstep the same way the floating variant does. */
-  height: calc(var(--bottom-nav-content-h) + var(--safe-bottom));
-  padding-bottom: var(--safe-bottom);
-  box-sizing: border-box;
-  background: var(--color-surface);
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  border-radius: 0;
-  box-shadow: none;
 }
 .tab {
   position: relative;

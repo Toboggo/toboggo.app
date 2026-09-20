@@ -22,9 +22,12 @@ const TABS: { path: string; icon: ReactNode; labelKey: string }[] = [
 /**
  * Bottom navigation — the 4 root destinations only. Contribution actions
  * ("+") are never part of it; the map's own floating FAB is the sole
- * "+" entry point (see MapExplore's `fabAdd`).
+ * "+" entry point (see MapExplore's `fabAdd`). Same floating dock on every
+ * screen, Explorer included — the map's bottom sheet is docked (painted
+ * behind it, see BottomSheet's non-floating mode) precisely so this one
+ * nav never has to change shape to sit above it.
  */
-export function BottomTabs({ docked = false }: { docked?: boolean }) {
+export function BottomTabs() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -46,7 +49,7 @@ export function BottomTabs({ docked = false }: { docked?: boolean }) {
   };
 
   return (
-    <nav className={styles.wrap} data-docked={docked ? "1" : undefined}>
+    <nav className={styles.wrap}>
       {TABS.map(renderTab)}
     </nav>
   );

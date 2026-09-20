@@ -68,10 +68,10 @@ export default function MapExplore() {
   const [sheetHeight, setSheetHeight] = useState(280);
   // Real rendered height of the bottom nav (content + iOS home-indicator safe
   // area), from the shared CSS token. Replaces the old `TAB_INSET = 78` guess so
-  // the sheet, the map camera insets and the nav can't disagree. "docked": the
-  // nav sits bord-à-bord here (no floating gap — see BottomTabs' `docked` prop),
-  // continuous with the sheet's own docked (non-floating) surface behind it.
-  const navH = useBottomNavHeight("docked");
+  // the sheet, the map camera insets and the nav can't disagree. The nav itself
+  // is the same floating dock on every screen (see BottomTabs) — only the sheet
+  // is docked here, painted behind it (see the `<BottomSheet>` below).
+  const navH = useBottomNavHeight();
   const vpH = useViewportHeight();
   const [headerBottom, setHeaderBottom] = useState(72);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -503,7 +503,7 @@ export default function MapExplore() {
         {renderSheet()}
       </BottomSheet>
 
-      <BottomTabs docked />
+      <BottomTabs />
 
       {searchOpen && (
         <SearchOverlay

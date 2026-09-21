@@ -23,6 +23,7 @@ import RatePark from "./screens/actions/RatePark";
 import ReportProblem from "./screens/actions/ReportProblem";
 import AddPhotos from "./screens/actions/AddPhotos";
 import EditInfo from "./screens/actions/EditInfo";
+import EditInfoPickPark from "./screens/actions/EditInfoPickPark";
 import MoreActions from "./screens/actions/MoreActions";
 
 import Favorites from "./screens/favorites/Favorites";
@@ -30,6 +31,7 @@ import Compare from "./screens/favorites/Compare";
 import GroupOuting from "./screens/social/GroupOuting";
 
 import Contributions from "./screens/contributions/Contributions";
+import ContributionsHistory from "./screens/contributions/ContributionsHistory";
 import Activity from "./screens/contributions/Activity";
 
 import Profile from "./screens/profile/Profile";
@@ -127,6 +129,7 @@ export default function App() {
       <Route path="/report" element={<ReportProblem />} />
       <Route path="/photo-add" element={<AddPhotos />} />
       <Route path="/contribute/edit" element={<EditInfo />} />
+      <Route path="/contribute/edit/pick-park" element={<EditInfoPickPark />} />
       <Route path="/more-actions" element={<MoreActions />} />
 
       <Route path="/favorites" element={<Favorites />} />
@@ -134,6 +137,7 @@ export default function App() {
       <Route path="/group" element={<GroupOuting />} />
 
       <Route path="/contributions" element={<Contributions />} />
+      <Route path="/contributions/history" element={<ContributionsHistory />} />
       <Route path="/activity" element={<Activity />} />
 
       <Route path="/profile" element={<Profile />} />

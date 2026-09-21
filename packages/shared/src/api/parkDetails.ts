@@ -96,6 +96,21 @@ export async function listMedia(parkId: string): Promise<ParkMedia[]> {
   return (data ?? []) as ParkMedia[];
 }
 
+/** A parent's own photo uploads, newest first — mirrors `listMyReports`/
+ * `listMyReviews` (RLS `park_media_read` already grants `user_id = auth.uid()`). */
+export async function listMyMedia(
+  userId: string,
+): Promise<(ParkMedia & { parks: { name: string; city: string | null } | null })[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("park_media")
+    .select("*, parks(name, city)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as (ParkMedia & { parks: { name: string; city: string | null } | null })[];
+}
+
 /**
  * Add a real photo of a park as a `park_media` row.
  *

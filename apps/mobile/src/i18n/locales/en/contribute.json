@@ -105,7 +105,12 @@
     "myLocationShort": "My location",
     "useMyLocationAria": "Use my location",
     "geoError": "Location unavailable — search for a place or move the marker.",
-    "nudge": { "north": "North", "south": "South", "east": "East", "west": "West" }
+    "nudge": {
+      "north": "North",
+      "south": "South",
+      "east": "East",
+      "west": "West"
+    }
   },
   "addPark": {
     "locationTitle": "Where is the park?",
@@ -185,6 +190,84 @@
     "unknown": "Not specified",
     "temporarily_unavailable": "Temporarily unavailable"
   },
+  "hub": {
+    "title": "Contributions",
+    "subtitle": "Together, let's keep park info up to date.",
+    "addPark": {
+      "title": "Add a park",
+      "subtitle": "Missing a park on Toboggo? Add it in a few seconds."
+    },
+    "quickActions": {
+      "photos": "Add photos",
+      "editInfo": "Edit information",
+      "report": "Report a problem",
+      "rate": "Rate a park"
+    },
+    "impact": {
+      "title": "Thanks for your help!",
+      "published": "contributions published",
+      "parksImproved": "parks improved"
+    },
+    "recent": {
+      "title": "Your latest contributions"
+    },
+    "empty": {
+      "title": "You haven't contributed yet",
+      "body": "Your photos, corrections and new parks will appear here.",
+      "cta": "Explore parks"
+    },
+    "type": {
+      "park": "New park suggested",
+      "edit": "Correction suggested",
+      "editTarget": "Correction · {{target}}",
+      "media_one": "{{count}} photo added",
+      "media_other": "{{count}} photos added",
+      "report": "Problem reported",
+      "review": "Review added"
+    },
+    "status": {
+      "published": "Published",
+      "pending": "Under review",
+      "inProgress": "In progress",
+      "resolved": "Resolved",
+      "rejected": "Rejected",
+      "dismissed": "Closed"
+    }
+  },
+  "history": {
+    "title": "Your contributions",
+    "subtitle": "All your actions to keep parks up to date.",
+    "filters": {
+      "type": {
+        "all": "All types",
+        "media": "Photos",
+        "edit": "Corrections",
+        "park": "New parks",
+        "report": "Reports",
+        "review": "Reviews"
+      },
+      "status": {
+        "all": "All statuses"
+      },
+      "date": {
+        "all": "All dates",
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "thisYear": "This year"
+      },
+      "city": {
+        "all": "All cities"
+      },
+      "reset": "Reset"
+    },
+    "search": {
+      "placeholder": "Search a park, a city…"
+    },
+    "emptyFiltered": {
+      "title": "No contribution matches these filters.",
+      "cta": "Reset filters"
+    }
+  },
   "edit": {
     "target": {
       "general": "General information",
@@ -203,6 +286,7 @@
       "location": "Position",
       "freeText": "Proposed correction"
     },
+    "pickParkTitle": "Which park do you want to edit?",
     "notFoundTitle": "Park not found",
     "notFoundBody": "This park can't be opened right now.",
     "backToMap": "Back to the map",

@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { getParkDisplayName, searchParks, searchPlaces } from "@toboggo/shared";
 import { CITIES } from "../../lib/geo";
 import { useLocale } from "../../i18n/useLocale";
 import { EmptyState, Icon } from "@toboggo/design-system";
+import { trackEvent } from "../../lib/analytics";
 import styles from "./SearchOverlay.module.css";
 
 const RECENT_KEY = "toboggo-recent-searches";
@@ -23,6 +24,29 @@ function loadRecent(): string[] {
 function saveRecent(q: string) {
   const recent = [q, ...loadRecent().filter((r) => r !== q)].slice(0, 5);
   localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+}
+
+/**
+ * Décision pure (testable sans rendre l'écran) : à partir du nombre de parcs
+ * et de lieux trouvés pour une même recherche déjà débouncée/réglée, calcule
+ * les événements analytics à émettre. `search_results_viewed` et
+ * `zero_results` sont TOUJOURS mutuellement exclusifs (`resultEvent` ne
+ * contient jamais les deux) — voir `SearchOverlay.test.ts`.
+ */
+export function classifySearchOutcome(
+  parkCount: number,
+  placeCount: number,
+): {
+  queryType: "park" | "place";
+  resultsCount: number;
+  resultEvent: "search_results_viewed" | "zero_results";
+} {
+  const resultsCount = parkCount + placeCount;
+  return {
+    queryType: parkCount > 0 ? "park" : "place",
+    resultsCount,
+    resultEvent: resultsCount > 0 ? "search_results_viewed" : "zero_results",
+  };
 }
 
 export function SearchOverlay({
@@ -49,7 +73,7 @@ export function SearchOverlay({
     return () => clearTimeout(t);
   }, [query]);
 
-  const { data: results } = useQuery({
+  const { data: results, isFetching: resultsFetching } = useQuery({
     queryKey: ["search-parks", query],
     queryFn: () => searchParks(query),
     enabled: active,
@@ -58,11 +82,34 @@ export function SearchOverlay({
   // `signal` est fourni par React Query et annulé automatiquement dès qu'une
   // frappe plus récente change la clé — pas de résultat obsolète qui écrase
   // le plus récent.
-  const { data: places } = useQuery({
+  const { data: places, isFetching: placesFetching } = useQuery({
     queryKey: ["search-places", debouncedQuery.trim(), language],
     queryFn: ({ signal }) => searchPlaces(debouncedQuery, signal, language),
     enabled: geoActive,
   });
+
+  // Analytics — une seule fois par recherche "réelle" (débouncée sur
+  // `debouncedQuery`, déjà utilisé pour le géocodage ci-dessus, pas un
+  // débounce inventé pour l'occasion), une fois les deux requêtes réglées
+  // (pas en cours de chargement). `search_results_viewed` et `zero_results`
+  // sont mutuellement exclusifs pour une même recherche (l'un OU l'autre,
+  // jamais les deux). `trackedQueryRef` évite de ré-émettre tant que
+  // `debouncedQuery` ne change pas.
+  const trackedQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!geoActive) return;
+    if (resultsFetching || placesFetching) return;
+    if (trackedQueryRef.current === debouncedQuery) return;
+    trackedQueryRef.current = debouncedQuery;
+
+    const { queryType, resultsCount, resultEvent } = classifySearchOutcome(results?.length ?? 0, places?.length ?? 0);
+    trackEvent("search_performed", { query_type: queryType, results_count: resultsCount });
+    if (resultEvent === "search_results_viewed") {
+      trackEvent("search_results_viewed", { query_type: queryType, results_count: resultsCount });
+    } else {
+      trackEvent("zero_results", { reason: "search_no_match" });
+    }
+  }, [debouncedQuery, geoActive, resultsFetching, placesFetching, results, places]);
 
   useEffect(() => {
     const el = document.getElementById("toboggo-search-input");

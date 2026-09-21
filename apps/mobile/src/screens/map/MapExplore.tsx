@@ -2,6 +2,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, Icon, useBottomNavHeight, useViewportHeight, type Snap } from "@toboggo/design-system";
+import { mapStyleUrl } from "@toboggo/shared";
+import { trackEvent, type AnalyticsEventProperties } from "../../lib/analytics";
 import { MapCanvas } from "./MapCanvas";
 import { SearchOverlay } from "./SearchOverlay";
 import { FiltersSheet } from "./FiltersSheet";
@@ -39,6 +41,25 @@ const PEEK_H = 137;
 const MEDIUM_RATIO = 0.47;
 
 const SNAPS_SINGLE: Snap[] = ["fit"];
+
+/**
+ * Décision pure (testable sans monter l'écran) : laquelle des 4 raisons de
+ * "0 résultat" de `renderSheet()` s'applique, ou `null` s'il y a des
+ * résultats. Reflète EXACTEMENT l'ordre de priorité du rendu ci-dessous —
+ * toute modification de l'un doit se répercuter sur l'autre.
+ */
+export function deriveMapZeroResultReason(
+  hasResults: boolean,
+  locationPermissionDenied: boolean,
+  filterCount: number,
+  placeLabel: string | null,
+): AnalyticsEventProperties["zero_results"]["reason"] | null {
+  if (hasResults) return null;
+  if (locationPermissionDenied) return "location_denied";
+  if (filterCount > 0) return "filters_active";
+  if (placeLabel) return "place_not_found";
+  return "default_area";
+}
 
 function weatherEmoji(condition?: string) {
   return condition === "rain" ? "🌧️" : condition === "heat" ? "☀️" : condition === "wind" ? "💨" : "⛅";
@@ -208,6 +229,38 @@ export default function MapExplore() {
   }, [alertShown]);
 
   const placeLabel = label && label !== DEFAULT_GEO_LABEL ? label : null;
+
+  // `map_viewed` — une fois par montage réel de l'écran carte (navigation
+  // vers `/map`), jamais par re-render (le `useRef` ne dépend d'aucune valeur
+  // qui changerait pendant la vie du composant). `map_kind` distingue
+  // MapLibre réel de FakeMap (ANALYTICS-AUDIT.md §4) — indispensable pour ne
+  // pas fausser toute mesure d'engagement carte.
+  const mapViewedTracked = useRef(false);
+  useEffect(() => {
+    if (mapViewedTracked.current) return;
+    mapViewedTracked.current = true;
+    trackEvent("map_viewed", {
+      map_kind: mapStyleUrl() ? "real" : "fake",
+      has_location_permission: permission === "granted",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // `zero_results` — les 4 branches de `renderSheet()` (géoloc refusée /
+  // filtres actifs / lieu recherché sans résultat / cas par défaut) sont
+  // évaluées ici pour ne déclencher l'événement qu'à la TRANSITION vers une
+  // raison donnée, jamais à chaque re-render tant qu'on y reste (le chip
+  // météo, le snap de la sheet, etc. re-rendent ce composant sans que l'état
+  // "0 résultat" change de nature).
+  const zeroResultReason = deriveMapZeroResultReason(hasResults, permission === "denied", filterCount, placeLabel);
+  const lastZeroReasonRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (zeroResultReason && zeroResultReason !== lastZeroReasonRef.current) {
+      trackEvent("zero_results", { reason: zeroResultReason });
+    }
+    lastZeroReasonRef.current = zeroResultReason;
+  }, [zeroResultReason]);
+
   const sheetTopInset = headerBottom + 12;
   // Deterministic: the floating controls belong to the map browsing states, not
   // to a full-height list or a park preview. No height guessing.

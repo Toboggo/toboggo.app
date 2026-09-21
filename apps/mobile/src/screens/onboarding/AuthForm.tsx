@@ -5,6 +5,7 @@ import { signIn, signUp, sendPasswordReset, signInWithGoogle } from "@toboggo/sh
 import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
 import { takeResumeRoute } from "../../lib/resumeRoute";
+import { trackEvent } from "../../lib/analytics";
 import { AppleIcon, ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 
@@ -51,6 +52,12 @@ export default function AuthForm() {
         // Only jump straight to a pending contribution when a session was issued
         // right away (email confirmation disabled); otherwise the draft waits.
         const resumeRoute = res.session ? takeResumeRoute() : null;
+        // `takeResumeRoute()` est déjà consommé ci-dessus (lecture one-shot) —
+        // on réutilise sa valeur, on ne le rappelle jamais une 2e fois.
+        trackEvent("signup_completed", {
+          provider: "email",
+          entry_point: resumeRoute ? "contribution_resume" : "splash",
+        });
         if (resumeRoute) {
           // Reprise d'une contribution après login juste-à-temps : on REMPLACE
           // l'entrée /login. Une fois la contribution finie (confirmation
@@ -64,6 +71,7 @@ export default function AuthForm() {
         }
       } else {
         await signIn(email, password);
+        trackEvent("login_completed", { provider: "email" });
         // Resume an in-progress contribution if one was started before login.
         const resumeRoute = takeResumeRoute();
         if (resumeRoute) {

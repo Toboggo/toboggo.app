@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "./lib/session";
 import { useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
 import { takeResumeRoute } from "./lib/resumeRoute";
+import { trackEvent } from "./lib/analytics";
 
 import Splash from "./screens/onboarding/Splash";
 import LoginMethod from "./screens/onboarding/LoginMethod";
@@ -87,6 +88,23 @@ export default function App() {
   useEffect(() => {
     init();
   }, [init]);
+
+  // `app_opened` — un événement par chargement de la PWA (montage de la racine
+  // `App`), jamais par navigation interne (les routes rendent à l'intérieur de
+  // ce même montage, sans jamais remonter `App`) ni par re-render. Le `useRef`
+  // survit au double-invoke des effets de `React.StrictMode` en dev (React
+  // réutilise la même instance/fiber sur les deux passes, sans réinitialiser
+  // les refs) tout en se réinitialisant correctement si `App` était un jour
+  // réellement démonté puis remonté — ce qui, dans ce cas précis,
+  // représenterait légitimement un nouveau chargement d'app. Vérifié
+  // explicitement (pas seulement supposé) par `App.test.tsx`, qui rend
+  // `<App/>` sous `<React.StrictMode>` et confirme un seul `app_opened`.
+  const appOpenedTracked = useRef(false);
+  useEffect(() => {
+    if (appOpenedTracked.current) return;
+    appOpenedTracked.current = true;
+    trackEvent("app_opened", {});
+  }, []);
 
   // A contribution started while signed out stashes a resume route before the
   // just-in-time auth flow (which, for Google OAuth, is a full-page redirect).

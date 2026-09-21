@@ -8,6 +8,7 @@ import {
   updateProfile as apiUpdateProfile,
   type Profile,
 } from "@toboggo/shared";
+import { registerIsAuthenticated, trackEvent } from "./analytics";
 
 interface SessionState {
   userId: string | null;
@@ -108,18 +109,37 @@ export const useSession = create<SessionState>((set, get) => ({
     const { userId, profile } = get();
     if (!userId || !profile) return;
     const current = profile.favorites ?? [];
-    const next = current.includes(parkId) ? current.filter((f) => f !== parkId) : [...current, parkId];
+    const wasFavorite = current.includes(parkId);
+    const next = wasFavorite ? current.filter((f) => f !== parkId) : [...current, parkId];
     set({ profile: { ...profile, favorites: next } });
-    void apiToggleFavorite(userId, parkId, current).catch(() => {
-      set((s) => {
-        if (!s.profile) return s;
-        const cur = s.profile.favorites ?? [];
-        const reverted = next.includes(parkId) ? cur.filter((f) => f !== parkId) : [...cur, parkId];
-        return { profile: { ...s.profile, favorites: reverted } };
+    void apiToggleFavorite(userId, parkId, current)
+      .then(() => {
+        // `park_favorited` (P0) uniquement après confirmation serveur —
+        // jamais sur le seul état optimiste ci-dessus, qui peut encore être
+        // annulé par le `.catch` ci-dessous en cas d'échec réseau.
+        // `park_unfavorited` est P1 : volontairement non câblé dans cette
+        // passe d'instrumentation P0 (consigne explicite).
+        if (!wasFavorite) trackEvent("park_favorited", { park_id: parkId });
+      })
+      .catch(() => {
+        set((s) => {
+          if (!s.profile) return s;
+          const cur = s.profile.favorites ?? [];
+          const reverted = next.includes(parkId) ? cur.filter((f) => f !== parkId) : [...cur, parkId];
+          return { profile: { ...s.profile, favorites: reverted } };
+        });
       });
-    });
   },
 }));
+
+// Câble `is_authenticated` (propriété commune analytics) sur ce store, sans
+// que `lib/analytics` n'ait jamais à importer ce fichier — voir le
+// commentaire de tête de `lib/analytics/commonProperties.ts` pour la raison
+// (éviter un cycle `session.ts` → `analytics` → `session.ts`, puisque ce
+// fichier importe déjà `trackEvent` ci-dessus). Un seul appel, au chargement
+// du module ; la fonction injectée relit `useSession.getState()` à chaque
+// événement tracké, jamais une valeur figée.
+registerIsAuthenticated(() => useSession.getState().userId !== null);
 
 /** Central gate: contribution actions (add/rate/report/favorite/group) require
  * an account. Guests get routed to auth and resumed after login — mirrors the

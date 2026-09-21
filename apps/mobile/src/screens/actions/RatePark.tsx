@@ -12,6 +12,7 @@ import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { queryClient } from "../../lib/queryClient";
 import { setResumeRoute } from "../../lib/resumeRoute";
+import { trackEvent } from "../../lib/analytics";
 
 const CRITERIA: { key: keyof ReviewSubRatings; labelKey: string }[] = [
   { key: "clean", labelKey: "rate.criteria.clean" },
@@ -97,6 +98,26 @@ export default function RatePark() {
   const [photoPending, setPhotoPending] = useState(false);
   const autoSubmitted = useRef(false);
 
+  // `contribution_started` — une fois par montage du wizard, quelle que soit
+  // l'étape. `entry_point` : contrairement aux autres wizards, `/rate?park=`
+  // (préselection non-resume) n'implique PAS de façon fiable "depuis la
+  // fiche parc" — `GlobalOverlays.tsx` (rappel de visite post-itinéraire)
+  // navigue vers la MÊME URL sans marqueur distinctif, et rien dans ce
+  // fichier ne permet de savoir laquelle des deux origines c'est. `"unknown"`
+  // plutôt que d'affirmer à tort `"park_detail_contribute_sheet"` — voir
+  // events.ts. `wantsResume` reste, lui, 100% fiable (`?resume=1` explicite).
+  const contributionStartedTracked = useRef(false);
+  useEffect(() => {
+    if (contributionStartedTracked.current) return;
+    contributionStartedTracked.current = true;
+    trackEvent("contribution_started", {
+      contribution_type: "review",
+      park_id: parkId ?? undefined,
+      entry_point: wantsResume ? "contribution_resume" : preselected ? "unknown" : "direct_link",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
@@ -144,6 +165,12 @@ export default function RatePark() {
       }
       void queryClient.invalidateQueries({ queryKey: ["park-reviews", parkId] });
       void queryClient.invalidateQueries({ queryKey: ["park", parkId] });
+      trackEvent("contribution_completed", {
+        contribution_type: "review",
+        park_id: parkId,
+        had_just_in_time_auth: wantsResume,
+        has_photo: Boolean(draft.photo),
+      });
       setDone(true);
     } catch {
       useToastStore.getState().show(tErr("generic"));

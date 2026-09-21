@@ -1,111 +1,142 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { getParkDisplayName, listMyParks, listMyReviews, listMyReports } from "@toboggo/shared";
-import { DetailHeader } from "../../components/DetailHeader";
+import { Button, EmptyState, Icon } from "@toboggo/design-system";
+import { computeImpactStats, listMyContributions } from "@toboggo/shared";
 import { BottomTabs } from "../../components/BottomTabs";
-import { ParkPhoto } from "../../components/ParkPhoto";
+import { ContributionRow } from "../../components/ContributionRow";
 import { useSession } from "../../lib/session";
-import { useFormat } from "../../i18n/useFormat";
 import styles from "./Contributions.module.css";
 
-type Tab = "parks" | "reviews" | "reports";
-
-function Stars({ value }: { value: number }) {
-  return (
-    <>
-      {Array.from({ length: 5 }).map((_, i) => (
-        <svg key={i} width="11" height="11" viewBox="0 0 24 24" fill={i < Math.round(value) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.5" style={{ color: "var(--color-accent)" }} aria-hidden>
-          <path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" />
-        </svg>
-      ))}
-    </>
-  );
-}
-
-const TABS: { value: Tab; labelKey: string }[] = [
-  { value: "parks", labelKey: "contributions.tabParks" },
-  { value: "reviews", labelKey: "contributions.tabReviews" },
-  { value: "reports", labelKey: "contributions.tabReports" },
+const QUICK_ACTIONS: { key: "photos" | "editInfo" | "report" | "rate"; to: string; emoji: string; tone: "green" | "amber" | "red" | "blue" }[] = [
+  { key: "photos", to: "/photo-add", emoji: "📷", tone: "green" },
+  { key: "editInfo", to: "/contribute/edit/pick-park", emoji: "✏️", tone: "amber" },
+  { key: "report", to: "/report", emoji: "⚠️", tone: "red" },
+  { key: "rate", to: "/rate", emoji: "⭐", tone: "blue" },
 ];
+
+const RECENT_COUNT = 3;
 
 export default function Contributions() {
   const navigate = useNavigate();
-  const { t } = useTranslation("profile");
-  const f = useFormat();
+  const { t } = useTranslation("contribute");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tErr } = useTranslation("errors");
   const userId = useSession((s) => s.userId);
-  const [tab, setTab] = useState<Tab>("parks");
 
-  const { data: parks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
-  const { data: reviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId && tab === "reviews" });
-  const { data: reports = [] } = useQuery({ queryKey: ["my-reports", userId], queryFn: () => listMyReports(userId!), enabled: !!userId && tab === "reports" });
+  const {
+    data: items,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
+    queryKey: ["my-contributions", userId],
+    queryFn: () => listMyContributions(userId!),
+    enabled: !!userId,
+  });
 
-  const emptyText =
-    tab === "parks"
-      ? t("contributions.emptyParks")
-      : tab === "reviews"
-        ? t("contributions.emptyReviews")
-        : t("contributions.emptyReports");
+  const hasContributed = !!items && items.length > 0;
+  const impactStats = items && hasContributed ? computeImpactStats(items) : null;
+  // Nothing published/approved yet — a "0 / 0" box the moment a first, still-
+  // pending contribution is submitted would read as discouraging rather than
+  // informative, so the block only appears once there is real impact to show.
+  const impact = impactStats && impactStats.publishedCount > 0 ? impactStats : null;
+  const recent = items?.slice(0, RECENT_COUNT) ?? [];
+
+  function openContribution(parkId: string | null) {
+    if (parkId) navigate(`/park/${parkId}`);
+  }
 
   return (
     <div className={styles.screen}>
-      <DetailHeader title={t("contributions.title")} onBack={() => navigate("/map")} />
-      <div className={styles.tabs}>
-        {TABS.map((tabDef) => (
-          <button key={tabDef.value} type="button" className={styles.tab} data-on={tab === tabDef.value ? "1" : undefined} onClick={() => setTab(tabDef.value)}>
-            {t(tabDef.labelKey)}
-          </button>
-        ))}
+      <div className={styles.header}>
+        <h1>{t("hub.title")}</h1>
+        <p>{t("hub.subtitle")}</p>
       </div>
 
       <div className={styles.body}>
-        {tab === "parks" &&
-          (parks.length === 0 ? (
-            <div className={styles.empty}>{emptyText}</div>
-          ) : (
-            parks.map((p) => (
-              <div key={p.id} className={styles.parkRow} onClick={() => navigate(`/park/${p.id}`)}>
-                <ParkPhoto park={p} className={styles.thumb} markSize={18} />
-                <div className={styles.rowBody}>
-                  <div className={styles.rowName}>{getParkDisplayName(p, t)}</div>
-                  <div className={styles.rowSub}>{p.formatted_address}</div>
-                </div>
-                {p.status !== "published" && <span className={styles.pending}>{t("contributions.pending")}</span>}
-              </div>
-            ))
-          ))}
+        <button type="button" className={styles.addPark} onClick={() => navigate("/action-intro/add")}>
+          <span className={styles.addParkIcon}>
+            <Icon name="ic-plus" size={20} />
+          </span>
+          <span className={styles.addParkBody}>
+            <span className={styles.addParkTitle}>{t("hub.addPark.title")}</span>
+            <span className={styles.addParkSubtitle}>{t("hub.addPark.subtitle")}</span>
+          </span>
+          <Icon name="ic-back" size={16} style={{ transform: "rotate(180deg)", flex: "none" }} />
+        </button>
 
-        {tab === "reviews" &&
-          (reviews.length === 0 ? (
-            <div className={styles.empty}>{emptyText}</div>
-          ) : (
-            reviews.map((r: any) => (
-              <div key={r.id} className={styles.card}>
-                <div className={styles.cardTop}>
-                  <span className={styles.cardName}>{r.parks?.name ?? r.parkName}</span>
-                  <span className={styles.cardDate}>{f.date(r.created_at)}</span>
-                </div>
-                <div className={styles.cardStars}>
-                  <Stars value={r.stars} />
-                </div>
-                {r.comment && <p>{r.comment}</p>}
-              </div>
-            ))
+        <div className={styles.quickGrid}>
+          {QUICK_ACTIONS.map((action) => (
+            <button
+              key={action.key}
+              type="button"
+              className={styles.quickCard}
+              data-tone={action.tone}
+              onClick={() => navigate(action.to)}
+            >
+              <span className={styles.quickIcon} aria-hidden>
+                {action.emoji}
+              </span>
+              {t(`hub.quickActions.${action.key}`)}
+            </button>
           ))}
+        </div>
 
-        {tab === "reports" &&
-          (reports.length === 0 ? (
-            <div className={styles.empty}>{emptyText}</div>
-          ) : (
-            reports.map((r: any) => (
-              <div key={r.id} className={styles.reportRow}>
-                <span className={styles.cardName}>{r.parks?.name ?? r.parkName}</span>
-                <span className={styles.cardDate}>{f.date(r.created_at)}</span>
+        {impact && (
+          <div className={styles.impactCard}>
+            <div className={styles.impactTitle}>{t("hub.impact.title")}</div>
+            <div className={styles.impactStats}>
+              <div className={styles.impactStat}>
+                <strong>{impact.publishedCount}</strong>
+                <span>{t("hub.impact.published")}</span>
               </div>
-            ))
-          ))}
+              <div className={styles.impactStat}>
+                <strong>{impact.parksImprovedCount}</strong>
+                <span>{t("hub.impact.parksImproved")}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <div className={styles.sectionHeader}>
+            <h2>{t("hub.recent.title")}</h2>
+            {hasContributed && (
+              <button type="button" className={styles.seeAll} onClick={() => navigate("/contributions/history")}>
+                {tCommon("action.seeAll")}
+              </button>
+            )}
+          </div>
+
+          {isError && (
+            <>
+              <EmptyState icon="⚠️" title={tErr("generic")} />
+              <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => refetch()}>
+                {tCommon("action.retry")}
+              </Button>
+            </>
+          )}
+
+          {!isLoading && !isError && !hasContributed && (
+            <>
+              <EmptyState iconName="ic-list" title={t("hub.empty.title")} description={t("hub.empty.body")} />
+              <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => navigate("/map")}>
+                {t("hub.empty.cta")}
+              </Button>
+            </>
+          )}
+
+          {recent.length > 0 && (
+            <div className={styles.recentList}>
+              {recent.map((item) => (
+                <ContributionRow key={item.id} item={item} onClick={() => openContribution(item.parkId)} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
       <BottomTabs />
     </div>
   );

@@ -45,17 +45,19 @@ export async function listReports(opts: { communeId?: string; status?: ReportSta
   }) as unknown as Report[];
 }
 
-export async function listMyReports(userId: string): Promise<(Report & { parks: { name: string } })[]> {
+export async function listMyReports(
+  userId: string,
+): Promise<(Report & { parks: { name: string; city: string | null } })[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("reports")
-    .select("*, parks(name)")
+    .select("*, parks(name, city)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row) => {
-    const h = hydrate(row) as Report & { parks: { name: string } };
-    h.parks = (row as { parks: { name: string } }).parks;
+    const h = hydrate(row) as Report & { parks: { name: string; city: string | null } };
+    h.parks = (row as { parks: { name: string; city: string | null } }).parks;
     return h;
   });
 }

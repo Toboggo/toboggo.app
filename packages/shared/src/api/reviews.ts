@@ -77,17 +77,19 @@ export async function listReviews(opts: { communeId?: string } = {}): Promise<Re
   }) as unknown as Review[];
 }
 
-export async function listMyReviews(userId: string): Promise<(Review & { parks: { name: string } })[]> {
+export async function listMyReviews(
+  userId: string,
+): Promise<(Review & { parks: { name: string; city: string | null } })[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("reviews")
-    .select("*, parks(name)")
+    .select("*, parks(name, city)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row) => {
-    const h = hydrate(row) as Review & { parks: { name: string } };
-    h.parks = (row as { parks: { name: string } }).parks;
+    const h = hydrate(row) as Review & { parks: { name: string; city: string | null } };
+    h.parks = (row as { parks: { name: string; city: string | null } }).parks;
     return h;
   });
 }

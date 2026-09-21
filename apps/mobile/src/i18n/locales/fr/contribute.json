@@ -105,7 +105,12 @@
     "myLocationShort": "Ma position",
     "useMyLocationAria": "Utiliser ma position",
     "geoError": "Position indisponible — recherchez un lieu ou déplacez le repère.",
-    "nudge": { "north": "Nord", "south": "Sud", "east": "Est", "west": "Ouest" }
+    "nudge": {
+      "north": "Nord",
+      "south": "Sud",
+      "east": "Est",
+      "west": "Ouest"
+    }
   },
   "addPark": {
     "locationTitle": "Où se trouve le parc ?",
@@ -185,6 +190,84 @@
     "unknown": "Non renseigné",
     "temporarily_unavailable": "Temporairement indisponible"
   },
+  "hub": {
+    "title": "Contributions",
+    "subtitle": "Ensemble, gardons les infos des parcs à jour.",
+    "addPark": {
+      "title": "Ajouter un parc",
+      "subtitle": "Un parc manque sur Toboggo ? Ajoutez-le en quelques secondes."
+    },
+    "quickActions": {
+      "photos": "Ajouter des photos",
+      "editInfo": "Modifier les informations",
+      "report": "Signaler un problème",
+      "rate": "Donner mon avis"
+    },
+    "impact": {
+      "title": "Merci pour votre aide !",
+      "published": "contributions publiées",
+      "parksImproved": "parcs améliorés"
+    },
+    "recent": {
+      "title": "Vos dernières contributions"
+    },
+    "empty": {
+      "title": "Vous n’avez encore rien contribué",
+      "body": "Vos photos, corrections et nouveaux parcs apparaîtront ici.",
+      "cta": "Explorer les parcs"
+    },
+    "type": {
+      "park": "Nouveau parc proposé",
+      "edit": "Modification proposée",
+      "editTarget": "Modification · {{target}}",
+      "media_one": "{{count}} photo ajoutée",
+      "media_other": "{{count}} photos ajoutées",
+      "report": "Signalement d’un problème",
+      "review": "Avis ajouté"
+    },
+    "status": {
+      "published": "Publié",
+      "pending": "En vérification",
+      "inProgress": "Pris en compte",
+      "resolved": "Résolu",
+      "rejected": "Refusé",
+      "dismissed": "Fermé"
+    }
+  },
+  "history": {
+    "title": "Vos contributions",
+    "subtitle": "Toutes vos actions pour des parcs toujours à jour.",
+    "filters": {
+      "type": {
+        "all": "Tous types",
+        "media": "Photos",
+        "edit": "Modifications",
+        "park": "Nouveaux parcs",
+        "report": "Signalements",
+        "review": "Avis"
+      },
+      "status": {
+        "all": "Tous statuts"
+      },
+      "date": {
+        "all": "Toutes les dates",
+        "last7": "7 derniers jours",
+        "last30": "30 derniers jours",
+        "thisYear": "Cette année"
+      },
+      "city": {
+        "all": "Toutes les villes"
+      },
+      "reset": "Réinitialiser"
+    },
+    "search": {
+      "placeholder": "Rechercher un parc, une ville…"
+    },
+    "emptyFiltered": {
+      "title": "Aucune contribution ne correspond à ces filtres.",
+      "cta": "Réinitialiser les filtres"
+    }
+  },
   "edit": {
     "target": {
       "general": "Informations générales",
@@ -203,6 +286,7 @@
       "location": "Position",
       "freeText": "Correction proposée"
     },
+    "pickParkTitle": "Quel parc souhaitez-vous modifier ?",
     "notFoundTitle": "Parc introuvable",
     "notFoundBody": "Impossible d’ouvrir ce parc pour le moment.",
     "backToMap": "Retour à la carte",

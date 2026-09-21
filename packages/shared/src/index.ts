@@ -16,6 +16,7 @@ export * from "./api/contact";
 export * from "./api/features";
 export * from "./api/parkDetails";
 export * from "./api/contributions";
+export * from "./api/userContributions";
 export * from "./api/geocode";
 export * from "./draft/persistentDraft";
 export * from "./utils/age";

@@ -394,3 +394,9 @@
   line-height: 1.5;
   color: var(--color-text-muted);
 }
+.dialogError {
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-error);
+}

@@ -165,8 +165,9 @@
     "legalNotice": "Legal notice",
     "deleteAccount": "Delete my account",
     "deleteConfirmTitle": "Delete your account?",
-    "deleteConfirmBody": "This action is permanent. Your profile and reviews will be deleted. Parks you added will stay online but will no longer be linked to your account.",
-    "delete": "Delete"
+    "deleteConfirmBody": "This action is permanent. Your account, your personal data and your reviews will be deleted. Some contributions that help the community (parks added, photos, reports, suggested edits) may be kept anonymously.",
+    "delete": "Delete",
+    "deleteError": "We couldn’t delete your account. Please try again in a moment."
   },
   "accountScreen": {
     "sessionKicker": "Session",

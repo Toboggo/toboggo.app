@@ -94,6 +94,20 @@ export function canReviewParkEdit(ctx: PermissionRoleContext): boolean {
   return ctx.isGestionnaireOrAbove;
 }
 
+/**
+ * `park_media_update` / `park_media_delete` (RLS, migration 0027) both key off
+ * `manages_park()`, which — exactly like `parks_update` (see `canEditPark`) —
+ * actually allows ANY member of the owning organisation (even `contributeur`)
+ * or any Toboggo staff role (including `support`), with no role filter of its
+ * own. Kept stricter here on purpose, same product convention already applied
+ * to `canEditPark` / `canResolveReport`: only gestionnaire+/staff moderate
+ * media from the UI, so a `contributeur` never sees Approuver/Refuser/
+ * Supprimer for a resource RLS would in fact let them write.
+ */
+export function canModerateMedia(ctx: PermissionRoleContext): boolean {
+  return ctx.isAdmin || ctx.isGestionnaireOrAbove;
+}
+
 export interface Permissions {
   canCreatePark: boolean;
   canImportParksCsv: boolean;
@@ -104,6 +118,7 @@ export interface Permissions {
   canManageTeam: boolean;
   canEditCommuneSettings: boolean;
   canReviewParkEdit: boolean;
+  canModerateMedia: boolean;
 }
 
 /** Reads the current role from `orgSession`/`orgScope` and derives every
@@ -123,5 +138,6 @@ export function usePermissions(): Permissions {
     canManageTeam: canManageTeam(ctx),
     canEditCommuneSettings: canEditCommuneSettings(ctx),
     canReviewParkEdit: canReviewParkEdit(ctx),
+    canModerateMedia: canModerateMedia(ctx),
   };
 }

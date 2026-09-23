@@ -2,6 +2,7 @@ import { Tag } from "@toboggo/design-system";
 import {
   REPORT_SEVERITY_LABEL,
   type EditStatus,
+  type MediaStatus,
   type ParkEditItemResult,
   type ParkStatus,
   type ReportSeverity,
@@ -125,4 +126,11 @@ const ITEM_RESULT_TONE: Record<ParkEditItemResult, "primary" | "neutral" | "erro
 
 export function ParkEditItemResultTag({ result }: { result: ParkEditItemResult }) {
   return <Tag tone={ITEM_RESULT_TONE[result]}>{ITEM_RESULT_LABEL[result]}</Tag>;
+}
+
+const MEDIA_LABEL: Record<MediaStatus, string> = { pending: "En attente", approved: "Approuvée", rejected: "Refusée" };
+const MEDIA_TONE: Record<MediaStatus, "warning" | "primary" | "error"> = { pending: "warning", approved: "primary", rejected: "error" };
+
+export function MediaStatusTag({ status }: { status: MediaStatus }) {
+  return <Tag tone={MEDIA_TONE[status]}>{MEDIA_LABEL[status]}</Tag>;
 }

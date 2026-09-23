@@ -53,30 +53,37 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
     }
   });
 
-  it("matches the validated commune group structure exactly", () => {
+  it("matches the validated commune group structure exactly (Admin-UI-6B: Modération groups Signalements/Avis/Photos)", () => {
     const groups = buildNavGroups({ isAdmin: false, ...base });
     expect(groups.map((g) => [g.title, g.items.map((i) => i.label)])).toEqual([
       ["Pilotage", ["Tableau de bord"]],
       ["Parcs", ["Mes parcs", "Carte"]],
-      ["Exploitation", ["Signalements", "Entretien"]],
-      ["Échanges / Qualité", ["Avis", "Photos"]],
+      ["Modération", ["Signalements", "Avis", "Photos"]],
+      ["Exploitation", ["Entretien"]],
       ["Organisation", ["Journal", "Statistiques", "Équipe & Réglages"]],
     ]);
   });
 
-  it("matches the validated admin group structure exactly, with Utilisateurs/Collectivités admin-only", () => {
+  it("matches the validated admin group structure exactly, with Utilisateurs/Collectivités admin-only (Admin-UI-6B: Modération groups Signalements/Avis/Photos/File de validation)", () => {
     const communeLabels = flatten({ isAdmin: false, ...base }).map((i) => i.label);
     const adminGroups = buildNavGroups({ isAdmin: true, ...base });
     expect(adminGroups.map((g) => [g.title, g.items.map((i) => i.label)])).toEqual([
       ["Pilotage", ["Tableau de bord"]],
-      ["Parcs", ["Parcs", "File de validation"]],
-      ["Exploitation", ["Signalements"]],
-      ["Échanges / Qualité", ["Avis", "Photos"]],
+      ["Parcs", ["Parcs"]],
+      ["Modération", ["Signalements", "Avis", "Photos", "File de validation"]],
       ["Organisation", ["Équipe & Réglages"]],
       ["Admin", ["Collectivités", "Utilisateurs"]],
     ]);
     expect(communeLabels).not.toContain("Utilisateurs");
     expect(communeLabels).not.toContain("Collectivités");
+  });
+
+  it("Admin-UI-6B: no duplicate nav item across groups (each route appears exactly once per session type)", () => {
+    for (const isAdmin of [true, false]) {
+      const items = flatten({ isAdmin, ...base });
+      const routes = items.map((i) => i.to);
+      expect(new Set(routes).size).toBe(routes.length);
+    }
   });
 
   it("carries the real pending counts through as badges", () => {
@@ -86,6 +93,14 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
     expect(byLabel["Signalements"]).toBe(5);
     expect(byLabel["Photos"]).toBe(2);
     expect(byLabel["Carte"]).toBeUndefined();
+  });
+
+  it("Admin-UI-6B: Avis never carries a badge (pas encore de définition d'un avis à modérer)", () => {
+    for (const isAdmin of [true, false]) {
+      const groups = buildNavGroups({ isAdmin, pendingParks: 1, openReports: 1, pendingMedia: 1, pendingEdits: 1 });
+      const byLabel = Object.fromEntries(groups.flatMap((g) => g.items).map((i) => [i.label, i.badge]));
+      expect(byLabel["Avis"]).toBeUndefined();
+    }
   });
 
   it("carries the pending park_edits count as the admin-only 'File de validation' badge", () => {

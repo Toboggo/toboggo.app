@@ -52,19 +52,14 @@ export function buildNavGroups(opts: {
   if (isAdmin) {
     return [
       { title: "Pilotage", items: [{ to: "/", label: "Tableau de bord", icon: "ic-dashboard" }] },
+      { title: "Parcs", items: [{ to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks }] },
       {
-        title: "Parcs",
+        title: "Modération",
         items: [
-          { to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks },
-          { to: "/validation", label: "File de validation", icon: "ic-check", badge: pendingEdits },
-        ],
-      },
-      { title: "Exploitation", items: [{ to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports }] },
-      {
-        title: "Échanges / Qualité",
-        items: [
+          { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
           { to: "/reviews", label: "Avis", icon: "ic-review" },
           { to: "/photos", label: "Photos", badge: pendingMedia },
+          { to: "/validation", label: "File de validation", icon: "ic-check", badge: pendingEdits },
         ],
       },
       { title: "Organisation", items: [{ to: "/settings", label: "Équipe & Réglages", icon: "ic-settings" }] },
@@ -88,19 +83,14 @@ export function buildNavGroups(opts: {
       ],
     },
     {
-      title: "Exploitation",
+      title: "Modération",
       items: [
         { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
-        { to: "/maintenance", label: "Entretien" },
-      ],
-    },
-    {
-      title: "Échanges / Qualité",
-      items: [
         { to: "/reviews", label: "Avis", icon: "ic-review" },
         { to: "/photos", label: "Photos", badge: pendingMedia },
       ],
     },
+    { title: "Exploitation", items: [{ to: "/maintenance", label: "Entretien" }] },
     {
       title: "Organisation",
       items: [

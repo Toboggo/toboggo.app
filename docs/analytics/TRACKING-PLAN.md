@@ -193,8 +193,10 @@ corrigées pour préférer l'inconnu explicite :
   différent — voir la fiche de l'événement) : la vraie provenance n'est pas propagée à travers les
   écrans de découverte dans cette passe.
 - `contribution_started.entry_point` envoie `"unknown"` pour `RatePark.tsx` spécifiquement quand
-  `?park=` est présent sans reprise — `GlobalOverlays.tsx` (rappel de visite) mène à la même URL
-  que la fiche parc, sans marqueur distinctif. Les 4 autres wizards gardent une valeur fiable.
+  `?park=` est présent sans reprise ni `source=visit_prompt` — l'URL seule ne permet pas de
+  distinguer la fiche parc d'un lien direct. Le rappel de visite (`GlobalOverlays.tsx`) porte
+  désormais un marqueur explicite `source=visit_prompt` → `entry_point: "visit_prompt"`. Les 4
+  autres wizards gardent une valeur fiable.
 - `contribution_completed.had_just_in_time_auth` est désormais **optionnelle** dans la taxonomie et
   omise par `AddPhotos.tsx` (pas de marqueur `?resume=1` sur ce wizard, contrairement aux 4
   autres) — plutôt que d'envoyer `false` sans pouvoir le garantir.

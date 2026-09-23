@@ -106,6 +106,61 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
     expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", true);
   });
 
+  it("?stars=4 (visit prompt) → lands on the rating step with 4 stars preselected", async () => {
+    renderRate("?park=p1&stars=4");
+    expect(await screen.findByText("Square Voltaire")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", false);
+    await waitFor(() => expect((readDraft(key("p1", { userId: "u1" }), READ) as { stars?: number })?.stars).toBe(4), { timeout: 2000 });
+  });
+
+  it("?stars= overrides the star count of an older stored draft", async () => {
+    writeDraft(key("p1", { userId: "u1" }), { step: 1, stars: 2, subRatings: { clean: 2, safety: 2, equipment: 2, comfort: 2 }, ageBand: "3-6", comment: "Déjà écrit", photo: null }, { schemaVersion: 1 });
+    renderRate("?park=p1&stars=5");
+    await screen.findByText("Square Voltaire");
+    await waitFor(() => expect((readDraft(key("p1", { userId: "u1" }), READ) as { stars?: number; comment?: string })).toMatchObject({ stars: 5, comment: "Déjà écrit" }), { timeout: 2000 });
+  });
+
+  it("visit prompt URL (?stars=4&source=visit_prompt) → 4 stars preselected, entry_point 'visit_prompt'", async () => {
+    renderRate("?park=p1&stars=4&source=visit_prompt");
+    expect(await screen.findByText("Square Voltaire")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", false);
+    await waitFor(() => expect((readDraft(key("p1", { userId: "u1" }), READ) as { stars?: number })?.stars).toBe(4), { timeout: 2000 });
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith("contribution_started", {
+      contribution_type: "review",
+      park_id: "p1",
+      entry_point: "visit_prompt",
+    });
+  });
+
+  it("?stars=4 without source=visit_prompt is NOT attributed to the visit prompt (stays 'unknown')", async () => {
+    renderRate("?park=p1&stars=4");
+    await screen.findByText("Square Voltaire");
+    expect(trackEventMock).toHaveBeenCalledWith("contribution_started", expect.objectContaining({ entry_point: "unknown" }));
+  });
+
+  it.each([
+    ["?park=p1&source=bogus", "unknown"],
+    ["?park=p1&stars=4&source=VISIT_PROMPT", "unknown"],
+    ["?source=bogus", "direct_link"],
+  ])("invalid source (%s) keeps the existing behaviour → %s", async (search, expected) => {
+    renderRate(search);
+    await waitFor(() => expect(trackEventMock).toHaveBeenCalledTimes(1));
+    expect(trackEventMock).toHaveBeenCalledWith("contribution_started", expect.objectContaining({ entry_point: expected }));
+  });
+
+  it("resume wins over source=visit_prompt (contribution_resume unchanged)", async () => {
+    renderRate("?park=p1&resume=1&source=visit_prompt");
+    await waitFor(() => expect(trackEventMock).toHaveBeenCalledTimes(1));
+    expect(trackEventMock).toHaveBeenCalledWith("contribution_started", expect.objectContaining({ entry_point: "contribution_resume" }));
+  });
+
+  it("ignores an invalid ?stars= value", async () => {
+    renderRate("?park=p1&stars=9");
+    await screen.findByText("Square Voltaire");
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", true);
+  });
+
   it("tracks contribution_started exactly once on mount, entry_point 'unknown' since /rate?park= is also reachable from GlobalOverlays' visit prompt", async () => {
     renderRate();
     await screen.findByText("Square Voltaire");

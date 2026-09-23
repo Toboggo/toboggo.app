@@ -1,0 +1,187 @@
+/* Post-directions review prompt — native iOS rating-dialog shape, Toboggo DA. */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog, 100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* ≥ 20px gutters, never under the notch / home indicator. */
+  padding: max(var(--space-5), env(safe-area-inset-top)) max(var(--space-5), env(safe-area-inset-right))
+    max(var(--space-5), env(safe-area-inset-bottom)) max(var(--space-5), env(safe-area-inset-left));
+  background: var(--color-overlay);
+  /* Lighter than the default scrim (~42%): the park stays readable behind. */
+  background: color-mix(in srgb, var(--color-overlay) 85%, transparent);
+  overscroll-behavior: contain;
+  touch-action: none;
+  animation: backdropIn 200ms ease-out both;
+}
+.backdrop[data-state="closing"] {
+  animation: backdropOut 180ms ease-in both;
+}
+
+.dialog {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  max-height: 100%;
+  overflow-y: auto;
+  touch-action: pan-y;
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+  outline: none;
+  animation: dialogIn 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.backdrop[data-state="closing"] .dialog {
+  animation: dialogOut 180ms ease-in both;
+}
+
+.close {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-text-faint);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.close:hover {
+  color: var(--color-text-muted);
+  background: var(--color-surface-alt);
+}
+
+.body {
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.illustration {
+  display: block;
+  width: 140px;
+  height: auto;
+  margin-bottom: var(--space-4);
+  /* The supplied artwork has an opaque near-white canvas — blend it into the
+     card so no box shows around the illustration. */
+  mix-blend-mode: multiply;
+  user-select: none;
+  pointer-events: none;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+
+.description {
+  margin: var(--space-2) 0 0;
+  max-width: 264px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-top: var(--space-5);
+}
+
+.star {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 120ms ease-out;
+}
+.star path {
+  fill: transparent;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  transition: fill 120ms ease-out;
+}
+.star[data-lit] path,
+.star:active path {
+  fill: currentColor;
+}
+.star:active {
+  transform: scale(0.92);
+}
+.star:focus-visible,
+.close:focus-visible,
+.later:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.later {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  border-top: 1px solid var(--color-border);
+  background: none;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-primary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.later:active {
+  background: var(--color-surface-alt);
+}
+
+@keyframes backdropIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes backdropOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes dialogIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes dialogOut {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.96); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .backdrop[data-state="closing"],
+  .dialog,
+  .backdrop[data-state="closing"] .dialog {
+    animation-duration: 1ms;
+  }
+  .star {
+    transition: none;
+  }
+}

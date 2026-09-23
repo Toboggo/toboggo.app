@@ -328,13 +328,17 @@ ci-dessous (traçables au code) :
   `review`), `park_id` (nullable — absent si le wizard démarre sans parc préselectionné, ex.
   `AddPark` ou `AddPhotos`/`ReportProblem`/`RatePark` sans `?park=`), `entry_point`
   (`park_detail_contribute_sheet` | `more_actions` | `direct_link` | `contribution_resume` |
-  `unknown`).
+  `visit_prompt` | `unknown`).
+- **`entry_point: "visit_prompt"`** : `RatePark` ouvert depuis le rappel de visite post-itinéraire
+  (`GlobalOverlays.tsx` → `VisitRatingPrompt`, cf. `useVisitPrompt`), qui navigue vers
+  `/rate?park=<id>&stars=<N>&source=visit_prompt`. L'origine est portée **explicitement** par
+  `source=visit_prompt` ; `stars` ne sert qu'à présélectionner la note et n'est jamais utilisé pour
+  déduire l'origine. `contribution_resume` (`?resume=1`) reste prioritaire.
 - **`entry_point: "unknown"`** (ajouté lors du hardening post-instrumentation) : pour `RatePark`
-  spécifiquement, `/rate?park=` (hors reprise) n'implique PAS de façon fiable "depuis la fiche
-  parc" — `GlobalOverlays.tsx` (rappel de visite post-itinéraire, cf. `useVisitPrompt`) navigue
-  vers la même URL sans marqueur distinctif, et le wizard ne peut pas distinguer les deux origines.
-  `RatePark.tsx` envoie donc `unknown` dans ce cas plutôt que d'affirmer `park_detail_contribute_sheet`
-  à tort. Les 4 autres wizards (parcours `?park=` à origine unique vérifiée) gardent
+  spécifiquement, `/rate?park=` (hors reprise, sans `source=visit_prompt`) n'implique PAS de façon
+  fiable "depuis la fiche parc" (lien direct, etc.), et le wizard ne peut pas distinguer ces
+  origines. `RatePark.tsx` envoie donc `unknown` dans ce cas plutôt que d'affirmer
+  `park_detail_contribute_sheet` à tort. Les 4 autres wizards (parcours `?park=` à origine unique vérifiée) gardent
   `park_detail_contribute_sheet` de façon fiable.
 - **KPI/funnel** : volume de contribution par type, base du funnel started → completed →
   abandoned.

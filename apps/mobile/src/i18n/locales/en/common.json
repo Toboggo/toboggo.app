@@ -55,9 +55,12 @@
   },
   "comingSoon": "Coming soon",
   "visitPrompt": {
-    "message": "Were you at {{park}}? Leave a review.",
-    "later": "Later",
-    "rate": "Write a review"
+    "title": "Have you been to this park?",
+    "description": "Your review helps other parents find the best places for their kids.",
+    "later": "Not now",
+    "close": "Close",
+    "starLabel_one": "{{count}} star",
+    "starLabel_other": "{{count}} stars"
   },
   "park": {
     "generic": "Playground",

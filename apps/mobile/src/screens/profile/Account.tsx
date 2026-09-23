@@ -18,12 +18,23 @@ export default function Account() {
   const { t } = useTranslation("profile");
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+
+  function openDeleteConfirm() {
+    setDeleteFailed(false);
+    setConfirmDeleteOpen(true);
+  }
 
   async function onDeleteAccount() {
     setDeleting(true);
+    setDeleteFailed(false);
     try {
       await deleteOwnAccount();
       navigate("/");
+    } catch {
+      // Account still exists (the RPC is all-or-nothing): keep the dialog
+      // open with a generic message — never surface the raw SQL error.
+      setDeleteFailed(true);
     } finally {
       setDeleting(false);
     }
@@ -46,7 +57,7 @@ export default function Account() {
         <div className={styles.dangerZone}>
           <h6 className={styles.dangerKicker}>{t("accountScreen.dangerKicker")}</h6>
           <p className={styles.dangerText}>{t("privacyScreen.deleteConfirmBody")}</p>
-          <Button variant="danger" size="sm" onClick={() => setConfirmDeleteOpen(true)}>
+          <Button variant="danger" size="sm" onClick={openDeleteConfirm}>
             {t("privacyScreen.deleteAccount")}
           </Button>
         </div>
@@ -70,6 +81,11 @@ export default function Account() {
         <p style={{ fontSize: 14, color: "var(--color-text-muted)" }}>
           {t("privacyScreen.deleteConfirmBody")}
         </p>
+        {deleteFailed && (
+          <p role="alert" className={styles.dialogError}>
+            {t("privacyScreen.deleteError")}
+          </p>
+        )}
       </Dialog>
     </div>
   );

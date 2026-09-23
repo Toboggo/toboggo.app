@@ -165,8 +165,9 @@
     "legalNotice": "Aviso legal",
     "deleteAccount": "Eliminar mi cuenta",
     "deleteConfirmTitle": "¿Eliminar tu cuenta?",
-    "deleteConfirmBody": "Esta acción es definitiva. Se eliminarán tu perfil y tus opiniones. Los parques que hayas añadido seguirán visibles, pero ya no estarán asociados a tu cuenta.",
-    "delete": "Eliminar"
+    "deleteConfirmBody": "Esta acción es definitiva. Se eliminarán tu cuenta, tus datos personales y tus opiniones. Algunas contribuciones útiles para la comunidad (parques añadidos, fotos, problemas notificados, modificaciones propuestas) pueden conservarse de forma anónima.",
+    "delete": "Eliminar",
+    "deleteError": "No se ha podido eliminar tu cuenta. Vuelve a intentarlo en unos instantes."
   },
   "accountScreen": {
     "sessionKicker": "Sesión",

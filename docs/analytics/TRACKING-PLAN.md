@@ -25,7 +25,7 @@ fois les données collectées (voir `EVENT-TAXONOMY.md` pour le détail de chaqu
 | Quels parcs sont consultés ? | `park_viewed` (propriété `park_id`) — à croiser avec `increment_park_views` déjà en base (`ANALYTICS-AUDIT.md` §9) |
 | Quelle proportion de fiches génère un favori ? | `park_viewed` → `park_favorited` (taux de conversion) |
 | Quelle proportion génère un partage ? | `park_viewed` → `park_shared` |
-| Quelle proportion génère une demande d'itinéraire ? | `park_viewed` → `route_requested` — **⚠️ non fiable tant que `Directions.tsx` reste un mock : mesure aujourd'hui un clic sur un écran fermé, pas une ouverture réelle de provider externe, voir §2 et `EVENT-TAXONOMY.md`** |
+| Quelle proportion génère une demande d'itinéraire ? | `park_viewed` → `route_requested` — mesure désormais une vraie ouverture externe (Apple Plans/Google Maps/Waze), voir §2 et `EVENT-TAXONOMY.md` |
 | Les photos sont-elles associées à plus d'engagement ? | `park_viewed` avec propriété `has_photos`, comparé au taux de conversion vers favori/partage/itinéraire |
 | Les utilisateurs contribuent-ils ? Quels types ? | `contribution_started`/`contribution_completed` par `contribution_type` |
 | Où abandonnent-ils les flows de contribution ? | `contribution_started` sans `contribution_completed` correspondant, par `step` atteint (cf. audit §17 — pas de draft en base, mesure uniquement possible via ces deux événements) |
@@ -53,11 +53,13 @@ des règles de lecture de la métrique :
    destinataire.** Cliquer sur un canal de partage (ou copier le lien) est comptabilisé même si le
    destinataire n'ouvre jamais le lien, ou même si aucun message n'est réellement envoyé (canaux
    externes `wa.me`/`sms:`/`mailto:` sans callback de confirmation, cf. `ANALYTICS-AUDIT.md` §13).
-3. **`route_requested` deviendra un signal plus fort lorsque l'ouverture externe sera
-   fonctionnelle.** Dans l'état actuel (`Directions.tsx` mock, cf. `EVENT-TAXONOMY.md`), cette
-   composante de la North Star doit être lue comme une mesure de demande déclarative, pas
-   d'usage réel d'itinéraire — sa fiabilité augmentera mécaniquement une fois l'ouverture vers un
-   provider externe (Apple Plans, Google Maps, Waze) implémentée.
+3. **`route_requested` mesure désormais une vraie ouverture externe.** Le flux Itinéraire a été
+   reconstruit (`DirectionsSheet` + `lib/directions.ts`, cf. `EVENT-TAXONOMY.md`) : l'événement
+   est émis au choix effectif d'un provider (Apple Plans, Google Maps, Waze), juste avant la
+   navigation réelle vers ce service. La limite qui subsiste est la même que pour toute intention
+   côté client : l'événement confirme la demande d'ouverture, pas que l'utilisateur s'est
+   effectivement rendu au parc (cf. point 1 ci-dessus) — mais ce n'est plus un clic dans un écran
+   mock fermé.
 
 ### Verdict : adoptable, avec deux limites significatives à documenter dès le lancement — ne pas l'adopter sans les lire
 
@@ -72,15 +74,13 @@ des règles de lecture de la métrique :
 
 **Limites à documenter, pas des bloqueurs :**
 
-1. **`route_requested` mesure un clic sur un écran mock, pas une navigation réelle.**
-   `Directions.tsx` ne déclenche aucune navigation externe (voir `ANALYTICS-AUDIT.md` §9ter) — pas
-   de lien Google/Apple Maps, ETA calculée localement. L'événement capte une vraie intention
-   ("je veux qu'on me guide vers ce parc"), mais si/quand la fonctionnalité est reconstruite avec
-   un vrai lien externe, la sémantique de l'événement changera (aujourd'hui : clic sur bouton
-   dans un flow fermé ; demain : sortie effective de l'app vers un service de navigation). Il faut
-   traiter les données actuelles comme une **mesure de demande**, pas une mesure d'usage réel
-   d'itinéraire, et être prêt à casser la comparabilité historique le jour où Directions devient
-   fonctionnel.
+1. **`route_requested` mesure une demande d'ouverture externe, pas une visite confirmée.**
+   Depuis la reconstruction du flux Itinéraire (`DirectionsSheet` + `lib/directions.ts`),
+   l'événement est émis au choix effectif d'un provider (Apple Plans/Google Maps/Waze), juste
+   avant une vraie sortie de l'app vers ce service — ce n'est plus un clic dans un écran mock
+   fermé. La limite qui subsiste est structurelle, pas un défaut d'implémentation : rien ne
+   confirme que l'utilisateur a suivi cette navigation jusqu'au parc une fois sorti de Toboggo.
+   Continuer à traiter la donnée comme une **mesure de demande**, pas une mesure de visite réelle.
 2. **`park_shared` ne confirme jamais un partage effectivement envoyé** (liens `wa.me`/`sms:`/
    `mailto:` ouverts dans une app externe, sans callback — voir `ANALYTICS-AUDIT.md` §13). Seul le
    fallback "copier le lien" est vérifiable côté client (succès d'écriture presse-papiers).
@@ -93,10 +93,10 @@ des règles de lecture de la métrique :
    l'implémentation — hors périmètre de cette phase).
 
 **Recommandation** : adopter la North Star candidate telle quelle, mais (a) libeller clairement en
-interne que `route_requested` mesure une intention de navigation et non une navigation réalisée
-tant que Directions reste un mock, (b) surveiller `park_favorited` isolément comme le sous-signal
-le plus fiable des trois si la métrique composite semble bruitée, (c) mettre en place la
-réconciliation anonyme→identifié dès le début de l'implémentation PostHog.
+interne que `route_requested` mesure une intention de navigation (sortie confirmée vers un
+provider externe) et non une visite réelle du parc, (b) surveiller `park_favorited` isolément
+comme le sous-signal le plus fiable des trois si la métrique composite semble bruitée, (c) mettre
+en place la réconciliation anonyme→identifié dès le début de l'implémentation PostHog.
 
 ---
 
@@ -113,7 +113,7 @@ un chiffre pour le chiffre.
 | Parks viewed / user | `park_viewed` uniques / utilisateur actif sur la période | `park_viewed` |
 | Taux de favoris | `park_favorited` / `park_viewed` | funnel |
 | Taux de partage | `park_shared` / `park_viewed` | funnel |
-| Taux de demande d'itinéraire | `route_requested` / `park_viewed` | funnel — ⚠️ non fiable tant que l'ouverture externe n'est pas implémentée, cf. §2 |
+| Taux de demande d'itinéraire | `route_requested` / `park_viewed` | funnel |
 | Contributeurs actifs | Utilisateurs uniques avec ≥1 `contribution_completed` sur la période | `contribution_completed` |
 | Contributions par type | Volume `contribution_completed` par `contribution_type` | `contribution_completed` |
 | Taux de complétion de contribution | `contribution_completed` / `contribution_started`, par type et par étape d'abandon | `contribution_started`/`completed` |
@@ -151,10 +151,11 @@ jamais dupliquer un chiffre déjà disponible par une requête Supabase.
 Ce tracking plan a été écrit avant l'implémentation ; cette section reflète ce qui est
 **effectivement câblé dans le code** à ce jour, pour éviter toute ambiguïté de comptage.
 
-**12 des 13 événements P0 instrumentés, aucun câblage partiel autre que `login_completed` :**
+**13 des 13 événements P0 instrumentés, aucun câblage partiel autre que `login_completed` :**
 `app_opened`, `signup_completed`, `login_completed` (**email uniquement**, voir ci-dessous),
 `map_viewed`, `search_performed`, `search_results_viewed`, `zero_results`, `filter_applied`,
-`park_viewed`, `park_favorited`, `park_shared`, `contribution_started`, `contribution_completed`.
+`park_viewed`, `park_favorited`, `park_shared`, `route_requested` (voir ci-dessous),
+`contribution_started`, `contribution_completed`.
 
 ### `login_completed` — email instrumenté, Google OAuth non instrumenté
 
@@ -178,12 +179,29 @@ Ce tracking plan a été écrit avant l'implémentation ; cette section reflète
   n'est pas fait. Ne pas présenter un taux Google/email calculé sur les seules données actuelles
   comme complet.
 
-### `route_requested` — différé, non un échec d'instrumentation
+### `route_requested` — instrumenté après la reconstruction du flux Itinéraire
 
-Prévu P0 dans la taxonomie mais **volontairement non câblé** dans aucun écran : `Directions.tsx`
-reste un mock (`ANALYTICS-AUDIT.md` §9ter). Vérifié explicitement absent de tout site d'appel
-(`grep trackEvent` sur `apps/mobile/src`). Sera instrumenté avec le chantier fonctionnel de
-l'itinéraire réel, pas avant.
+Le flux Itinéraire a été reconstruit (`DirectionsSheet` + `useDirections`/`lib/directions.ts`,
+navigation externe réelle via `getDirectionsUrl`) avant que cette phase de finalisation Analytics
+ne démarre — l'ancien constat "`Directions.tsx` mock, non câblé" ne s'applique plus. L'événement
+est désormais émis dans `choose()` (`lib/directions.ts`), au moment du choix réel d'un provider,
+juste avant la navigation externe — jamais à l'ouverture du sheet, jamais à sa fermeture/
+annulation. Propriétés : `park_id`, `provider` (mappé `apple`/`google`/`waze` du code réel vers
+`apple_maps`/`google_maps`/`waze` de la taxonomie). `transport_mode`, prévu dans une version
+antérieure de la taxonomie pour l'ancien écran mock, a été retiré : le flux actuel n'a plus de
+sélecteur de mode de transport.
+
+### `zero_results` — garde anti faux-positif pendant le chargement (hardening)
+
+Un audit de câblage a confirmé que `MapExplore.tsx` dérivait `zero_results` de `hasResults`
+(`parks.length > 0`) sans tenir compte de `isLoading`/`isError` — comme `useNearbyParks` défaut à
+`parks = []` tant que la requête n'a pas résolu, l'événement pouvait partir **avant** que le
+résultat réel soit connu (au premier montage de l'écran carte, y compris quand des parcs
+s'affichent une fraction de seconde plus tard) ou sur une erreur réseau (comptée à tort comme
+"0 résultat"). Corrigé : la dérivation n'a lieu que lorsque la requête est réellement réglée
+(`!isLoading && !isError`), la déduplication par transition étant conservée. `SearchOverlay.tsx`
+et `ParkList.tsx` attendaient déjà correctement la résolution de leurs requêtes respectives — non
+modifiés.
 
 ### Propriétés approximatives corrigées (hardening)
 

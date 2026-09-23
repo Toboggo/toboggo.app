@@ -19,6 +19,9 @@ vi.mock("./visitPrompt", () => ({
   },
 }));
 
+const trackEventMock = vi.hoisted(() => vi.fn());
+vi.mock("./analytics", () => ({ trackEvent: trackEventMock }));
+
 describe("useDirections", () => {
   // `Location.assign` is spec-"unforgeable" (own, non-configurable) in jsdom —
   // `vi.spyOn` can't touch it, so the whole `window.location` is swapped for a
@@ -28,6 +31,7 @@ describe("useDirections", () => {
   beforeEach(() => {
     toasts.list = [];
     visits.calls = [];
+    trackEventMock.mockClear();
     originalLocation = window.location;
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -51,9 +55,13 @@ describe("useDirections", () => {
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(visits.calls).toEqual([]);
     expect(toasts.list).toEqual([]);
+    // Opening the sheet is a weaker signal than a real navigation intent
+    // (see `directions_viewed` in EVENT-TAXONOMY.md) — `route_requested`
+    // must not fire until a provider is actually chosen.
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 
-  it("choosing a provider: schedules the visit prompt, navigates the current tab, closes the sheet", () => {
+  it("choosing a provider: schedules the visit prompt, navigates the current tab, closes the sheet, tracks route_requested", () => {
     const { result } = renderHook(() => useDirections());
     act(() => {
       result.current.openDirections({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
@@ -67,6 +75,27 @@ describe("useDirections", () => {
     expect(url).toBe("https://waze.com/ul?ll=45.764%2C4.8357&navigate=yes");
     expect(visits.calls).toEqual([["p1", "Square Voltaire"]]);
     expect(result.current.directionsSheetProps.open).toBe(false);
+    expect(trackEventMock).toHaveBeenCalledTimes(1);
+    expect(trackEventMock).toHaveBeenCalledWith("route_requested", { park_id: "p1", provider: "waze" });
+  });
+
+  it("maps each provider to its route_requested taxonomy value (apple_maps / google_maps / waze)", () => {
+    const cases: Array<["apple" | "google" | "waze", string]> = [
+      ["apple", "apple_maps"],
+      ["google", "google_maps"],
+      ["waze", "waze"],
+    ];
+    for (const [provider, expected] of cases) {
+      trackEventMock.mockClear();
+      const { result } = renderHook(() => useDirections());
+      act(() => {
+        result.current.openDirections({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
+      });
+      act(() => {
+        result.current.directionsSheetProps.onChoose(provider);
+      });
+      expect(trackEventMock).toHaveBeenCalledWith("route_requested", { park_id: "p1", provider: expected });
+    }
   });
 
   it("choosing Apple Maps builds the right URL", () => {
@@ -81,7 +110,7 @@ describe("useDirections", () => {
     expect(window.location.assign).toHaveBeenCalledWith("https://maps.apple.com/?daddr=45.764%2C4.8357");
   });
 
-  it("closing the sheet without choosing: no navigation, no visit prompt", () => {
+  it("closing the sheet without choosing: no navigation, no visit prompt, no tracking", () => {
     const { result } = renderHook(() => useDirections());
     act(() => {
       result.current.openDirections({ id: "p1", latitude: 45.764, longitude: 4.8357 }, "Square Voltaire");
@@ -93,9 +122,10 @@ describe("useDirections", () => {
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(visits.calls).toEqual([]);
     expect(result.current.directionsSheetProps.open).toBe(false);
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 
-  it("missing coordinates: shows a toast, sheet never opens, never crashes", () => {
+  it("missing coordinates: shows a toast, sheet never opens, never crashes, no tracking", () => {
     const { result } = renderHook(() => useDirections());
     expect(() =>
       act(() => {
@@ -107,6 +137,7 @@ describe("useDirections", () => {
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(visits.calls).toEqual([]);
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 
   it("(0, 0) coordinates: treated as invalid, same as missing", () => {
@@ -117,5 +148,6 @@ describe("useDirections", () => {
 
     expect(result.current.directionsSheetProps.open).toBe(false);
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
+    expect(trackEventMock).not.toHaveBeenCalled();
   });
 });

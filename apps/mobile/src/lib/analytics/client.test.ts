@@ -130,12 +130,8 @@ describe("trackEvent — no-op without configuration", () => {
     expect(captureMock).not.toHaveBeenCalled();
   });
 
-  it("route_requested is never called from anywhere in a no-op environment (sanity check on the abstraction itself)", () => {
-    // route_requested is intentionally NOT instrumented in any screen at this
-    // phase (Directions.tsx is still a mock) — this only asserts the
-    // abstraction itself stays a no-op if it ever were called, it does not
-    // scan the codebase (see the repo-wide grep in the final report instead).
-    trackEvent("route_requested", { park_id: "p1", transport_mode: "walk" });
+  it("route_requested (real provider choice, lib/directions.ts) stays a no-op when unconfigured", () => {
+    trackEvent("route_requested", { park_id: "p1", provider: "google_maps" });
     expect(captureMock).not.toHaveBeenCalled();
   });
 });

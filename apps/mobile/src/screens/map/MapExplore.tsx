@@ -251,15 +251,24 @@ export default function MapExplore() {
   // évaluées ici pour ne déclencher l'événement qu'à la TRANSITION vers une
   // raison donnée, jamais à chaque re-render tant qu'on y reste (le chip
   // météo, le snap de la sheet, etc. re-rendent ce composant sans que l'état
-  // "0 résultat" change de nature).
-  const zeroResultReason = deriveMapZeroResultReason(hasResults, permission === "denied", filterCount, placeLabel);
+  // "0 résultat" change de nature). `isSettled` (même condition que le mode
+  // "state" du rendu, cf. `mode` ci-dessus) évite de compter le chargement
+  // initial de `useNearbyParks` (`parks` vaut `[]` par défaut tant qu'aucune
+  // réponse n'est arrivée) ou une erreur réseau comme un vrai "0 résultat" —
+  // sans cette garde, `hasResults` est `false` pendant tout le chargement et
+  // l'événement partait avant la résolution de la requête, y compris quand
+  // des parcs s'affichent une fraction de seconde plus tard.
+  const isSettled = !isLoading && !isError;
+  const zeroResultReason = isSettled
+    ? deriveMapZeroResultReason(hasResults, permission === "denied", filterCount, placeLabel)
+    : null;
   const lastZeroReasonRef = useRef<string | null>(null);
   useEffect(() => {
     if (zeroResultReason && zeroResultReason !== lastZeroReasonRef.current) {
       trackEvent("zero_results", { reason: zeroResultReason });
     }
-    lastZeroReasonRef.current = zeroResultReason;
-  }, [zeroResultReason]);
+    if (isSettled) lastZeroReasonRef.current = zeroResultReason;
+  }, [zeroResultReason, isSettled]);
 
   const sheetTopInset = headerBottom + 12;
   // Deterministic: the floating controls belong to the map browsing states, not

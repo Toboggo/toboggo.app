@@ -55,9 +55,12 @@
   },
   "comingSoon": "Bientôt disponible",
   "visitPrompt": {
-    "message": "Vous étiez peut-être à {{park}} ? Donnez votre avis.",
+    "title": "Vous êtes allé à ce parc ?",
+    "description": "Votre avis aide les autres parents à trouver les meilleurs lieux pour leurs enfants.",
     "later": "Plus tard",
-    "rate": "Donner mon avis"
+    "close": "Fermer",
+    "starLabel_one": "{{count}} étoile",
+    "starLabel_other": "{{count}} étoiles"
   },
   "park": {
     "generic": "Aire de jeux",

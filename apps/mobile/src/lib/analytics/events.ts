@@ -194,13 +194,21 @@ export interface AnalyticsEventProperties {
   contribution_started: {
     contribution_type: ContributionType;
     park_id?: string;
-    /** `unknown` : plusieurs écrans distincts peuvent mener au même wizard
+    /** `visit_prompt` : RatePark ouvert depuis le rappel de visite
+     * post-itinéraire (`GlobalOverlays.tsx` → `VisitRatingPrompt`), marqué
+     * explicitement par `?source=visit_prompt` (jamais déduit de `?stars=`).
+     * `unknown` : plusieurs écrans distincts peuvent mener au même wizard
      * avec la même URL (`?park=` sans marqueur de provenance) sans qu'on
-     * puisse les distinguer depuis le wizard lui-même — ex. RatePark est
-     * atteint à la fois depuis ParkDetail/DetailReviews ET depuis le rappel
-     * de visite (`GlobalOverlays.tsx`), tous deux en `/rate?park=`. Préférer
-     * `unknown` à une valeur affirmée à tort — voir RatePark.tsx. */
-    entry_point: "park_detail_contribute_sheet" | "more_actions" | "direct_link" | "contribution_resume" | "unknown";
+     * puisse les distinguer depuis le wizard lui-même — ex. RatePark en
+     * `/rate?park=` sans `source`. Préférer `unknown` à une valeur affirmée
+     * à tort — voir RatePark.tsx. */
+    entry_point:
+      | "park_detail_contribute_sheet"
+      | "more_actions"
+      | "direct_link"
+      | "contribution_resume"
+      | "visit_prompt"
+      | "unknown";
   };
   contribution_completed: {
     contribution_type: ContributionType;

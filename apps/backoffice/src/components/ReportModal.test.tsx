@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
 import { listAuditLog, type Report } from "@toboggo/shared";
@@ -59,13 +59,19 @@ vi.mock("../lib/orgSession", () => ({
   },
 }));
 
-function renderModal(report: ReportWithPark, canManage = true) {
+function LocationProbe() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+}
+
+function renderModal(report: ReportWithPark, canManage = true, onClose: () => void = () => {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <ToastProvider>
         <MemoryRouter>
-          <ReportModal report={report} onClose={() => {}} canManage={canManage} />
+          <LocationProbe />
+          <ReportModal report={report} onClose={onClose} canManage={canManage} />
         </MemoryRouter>
       </ToastProvider>
     </QueryClientProvider>,
@@ -112,5 +118,14 @@ describe("ReportModal (Lot Admin-2 hardening)", () => {
     renderModal(makeReport({ status: "resolved" }));
     expect(listAuditLog).not.toHaveBeenCalled();
     expect(screen.queryByText("Historique")).toBeNull();
+  });
+
+  it("Admin-UI-6C : « Voir le parc » ferme la modale et navigue vers /parks/:parkId", () => {
+    scope.isAdmin = true;
+    const onClose = vi.fn();
+    renderModal(makeReport({ park_id: "p42" }), true, onClose);
+    fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.getByTestId("location").textContent).toBe("/parks/p42");
   });
 });

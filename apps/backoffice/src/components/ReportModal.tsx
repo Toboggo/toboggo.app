@@ -167,6 +167,17 @@ export function ReportModal({
             <ReportStatusTag status={report.status} />
           </div>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          style={{ alignSelf: "flex-start" }}
+          onClick={() => {
+            onClose();
+            navigate(`/parks/${report.park_id}`);
+          }}
+        >
+          Voir le parc
+        </Button>
         <div style={{ fontSize: 13, display: "flex", flexDirection: "column", gap: 4 }}>
           <div>
             <strong>Motif :</strong> {REPORT_REASON_LABEL[report.reason]}

@@ -27,16 +27,29 @@
   color: var(--color-text-muted);
 }
 
+/* ── Colonne indicatrice « ouvrir le signalement » ───────────────────────── */
+.rowChevron {
+  color: var(--color-text-faint);
+  font-size: 15px;
+  line-height: 1;
+}
+
 /* ── Cellule « Parc » ─────────────────────────────────────────────────── */
-.parkName {
+.parkLink {
   display: block;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13.5px;
   color: var(--color-text);
+  text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.parkLink:hover,
+.parkLink:focus-visible {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
 }
 .parkMeta {
   display: block;

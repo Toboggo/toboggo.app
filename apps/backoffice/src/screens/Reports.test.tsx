@@ -123,4 +123,24 @@ describe("Reports — file de triage (Lot Admin-2)", () => {
     expect(screen.queryByText("Parc Nord")).toBeNull();
     expect(screen.queryByText("Parc Sud")).toBeNull();
   });
+
+  it("Admin-UI-6C : le nom du parc est un lien vers sa fiche Parc 360", async () => {
+    renderReports();
+    const link = await screen.findByRole("link", { name: "Parc Nord" });
+    expect(link.getAttribute("href")).toBe("/parks/p1");
+  });
+
+  it("Admin-UI-6C : cliquer sur le lien du parc n'ouvre pas le signalement", async () => {
+    renderReports();
+    const link = await screen.findByRole("link", { name: "Parc Nord" });
+    fireEvent.click(link);
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("Admin-UI-6C : le clic sur le reste de la ligne ouvre toujours le signalement", async () => {
+    renderReports();
+    await screen.findByText("Parc Nord");
+    fireEvent.click(screen.getByText("Jean Dupont"));
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+  });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button, DataTable, Input, Select, type DataTableColumn } from "@toboggo/design-system";
 import { listReports, toCsv, downloadCsv, REPORT_REASON_LABEL, type ReportCategory, type ReportStatus } from "@toboggo/shared";
@@ -38,6 +38,7 @@ const DEFAULT_STATUS: ReportStatus | "all" = "open";
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 
 export default function Reports() {
+  const navigate = useNavigate();
   const { communeId } = useOrgScope();
   const { canResolveReport } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,12 +115,40 @@ export default function Reports() {
   }
 
   const columns: DataTableColumn<ReportWithPark>[] = [
+    // Colonne technique dédiée à l'action primaire de la ligne (ouvrir le
+    // signalement) : `DataTable` rend toujours le contenu de la 1ʳᵉ colonne
+    // dans un bouton plein-cellule accessible au clavier (voir DataTable.tsx),
+    // ce qui empêcherait un lien réel dans la cellule "Parc" si elle occupait
+    // cette place (lien imbriqué dans un bouton). En l'isolant ici (comme le
+    // fait déjà la colonne "actions" de Parks.tsx avec `data-dt-stop`), le nom
+    // du parc peut devenir un vrai lien sans ambiguïté avec le clic ligne.
+    {
+      key: "open",
+      header: "",
+      width: "1px",
+      align: "center",
+      render: () => (
+        <span className={styles.rowChevron} aria-hidden="true">
+          ›
+        </span>
+      ),
+    },
     {
       key: "park",
       header: "Parc",
       render: (r) => (
         <>
-          <span className={styles.parkName}>{r.parks?.name ?? "—"}</span>
+          <a
+            className={styles.parkLink}
+            href={`/parks/${r.park_id}`}
+            data-dt-stop
+            onClick={(e) => {
+              e.preventDefault();
+              navigate(`/parks/${r.park_id}`);
+            }}
+          >
+            {r.parks?.name ?? "—"}
+          </a>
           <span className={styles.parkMeta}>{r.parks?.formatted_address ?? "Adresse non renseignée"}</span>
         </>
       ),

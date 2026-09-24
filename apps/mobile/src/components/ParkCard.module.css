@@ -187,12 +187,15 @@
   flex-direction: column;
   gap: 2px;
 }
-/* Up to two lines, ellipsis only beyond. */
+/* Up to two lines, ellipsis only beyond — and always the height of two, so
+   the rating / distance rows start at the same height on every card of the
+   carousel whatever the name's length. */
 .cardName {
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 14px;
   line-height: 1.25;
+  min-height: calc(2 * 1.25em);
   color: var(--color-text);
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -220,4 +223,8 @@
   flex: none;
   display: inline-flex;
   color: var(--color-primary);
+}
+/* A little more air between "180 m · 2 min" and the first pictogram. */
+.cardDist + .fact {
+  margin-left: 4px;
 }

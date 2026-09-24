@@ -94,7 +94,22 @@ export async function listMyReviews(
   });
 }
 
-type CreateReviewInput = Partial<Review> & { park_id: string; user_id: string; author_name: string };
+/**
+ * Whether `userId` has published a review of `parkId`. Existence check only:
+ * `count` + `head` (no row payload), served by the park/user indexes.
+ */
+export async function hasUserReviewedPark(userId: string, parkId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  const { count, error } = await supabase
+    .from("reviews")
+    .select("id", { count: "exact", head: true })
+    .eq("park_id", parkId)
+    .eq("user_id", userId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+type CreateReviewInput =Partial<Review> & { park_id: string; user_id: string; author_name: string };
 
 export async function createReview(input: CreateReviewInput): Promise<Review> {
   const supabase = getSupabase();

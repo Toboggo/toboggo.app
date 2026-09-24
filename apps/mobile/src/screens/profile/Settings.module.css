@@ -1,0 +1,16 @@
+/* Réglages — fond dédié, distinct de la classe globale ".screen" (index.css,
+   partagée par ~25 sous-écrans, background: var(--color-bg) crème). Correction
+   locale à cet écran uniquement : le token global --color-bg n'est pas touché. */
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--bottom-nav-h) + 16px);
+  background: #f7f8f7;
+}
+
+/* TopBar (components/TopBar.module.css) hardcodes background: var(--color-bg)
+   for its ~19 callers — doubled selector to outrank that shared rule for
+   Réglages only, without touching the shared component's default. */
+.topBar.topBar {
+  background: #f7f8f7;
+}

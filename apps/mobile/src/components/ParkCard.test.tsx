@@ -4,6 +4,8 @@ import { MemoryRouter } from "react-router-dom";
 import type { Park } from "@toboggo/shared";
 import "../i18n/testInit";
 import { ParkCard } from "./ParkCard";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 // Non-regression of the Explore `carousel` card: everything the pre-redesign
 // card showed (photo, age, favourite, name, rating + review count, distance +
@@ -144,5 +146,61 @@ describe("ParkCard carousel — walking time reuses the shared helper", () => {
     expect(listText).toMatch(/^1,2 km · \d+ min$/);
     const card = renderCard(park(), { distanceM: 1240 });
     expect(distLine(card)).toBe(listText);
+  });
+});
+
+describe("ParkCard carousel — same vertical structure whatever the name length", () => {
+  // jsdom has no layout: the alignment contract lives in the CSS rule itself.
+  const cardCss = readFileSync(resolve(__dirname, "ParkCard.module.css"), "utf8");
+  const rule = (name: string) => cardCss.match(new RegExp(`\\.${name} \\{([^}]*)\\}`))?.[1] ?? "";
+
+  it("always reserves two lines for the name, clamped at two with an ellipsis beyond", () => {
+    const name = rule("cardName");
+    expect(name).toMatch(/line-height: 1\.25;/);
+    expect(name).toMatch(/min-height: calc\(2 \* 1\.25em\);/);
+    expect(name).toMatch(/-webkit-line-clamp: 2;/);
+    expect(name).toMatch(/overflow: hidden;/);
+  });
+
+  it("keeps a little extra space between distance · time and the attribute pictograms, on the same line", () => {
+    expect(cardCss).toMatch(/\.cardDist \+ \.fact \{\s*margin-left: 4px;/);
+    const card = renderCard(park({ pmr: true, shade: true }), { distanceM: 180 });
+    const meta = card.querySelector('[class*="_cardMeta_"]') as HTMLElement;
+    expect(norm(meta.querySelector('[class*="_cardDist_"]')?.textContent)).toBe("180 m · 2 min");
+    expect(Array.from(meta.querySelectorAll('[class*="_fact_"]')).map((el) => el.getAttribute("aria-label"))).toEqual([
+      "Ombragé",
+      "PMR",
+    ]);
+  });
+
+  it.each([
+    ["short", "Parc Voltaire"],
+    ["long", "Aire de jeux du Quai Sully-Chaliès et du jardin des Plantes de Millau"],
+  ])("%s name: full name kept, same row order, rating + reviews + distance · time + attributes", (_, name) => {
+    const onOpen = vi.fn();
+    const onToggleFavorite = vi.fn();
+    const card = renderCard(park({ name, rating: 4.8, review_count: 23, pmr: true }), { onOpen, onToggleFavorite });
+    const body = card.querySelector('[class*="_cardBody_"]') as HTMLElement;
+    const rows = Array.from(body.children).map((el) => el.className.match(/_(cardName|compactRating|cardMeta)_/)?.[1]);
+    expect(rows).toEqual(["cardName", "compactRating", "cardMeta"]);
+    expect(body.children[0].textContent).toBe(name); // never truncated in the data, only visually clamped
+    expect(within(body).getByText("4,8")).toBeTruthy();
+    expect(within(body).getByText("(23)")).toBeTruthy();
+    expect(distLine(card)).toBe("350 m · 4 min");
+    expect(within(card).getByRole("img", { name: "PMR" })).toBeTruthy();
+
+    fireEvent.click(card);
+    fireEvent.click(within(card).getByRole("button", { name: /favoris/ }));
+    expect(onOpen).toHaveBeenCalledTimes(1);
+    expect(onToggleFavorite).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reserve a fake rating row when the park has no review", () => {
+    const card = renderCard(park({ name: "Parc Voltaire" }));
+    const body = card.querySelector('[class*="_cardBody_"]') as HTMLElement;
+    expect(Array.from(body.children).map((el) => el.className.match(/_(cardName|compactRating|cardMeta)_/)?.[1])).toEqual([
+      "cardName",
+      "cardMeta",
+    ]);
   });
 });

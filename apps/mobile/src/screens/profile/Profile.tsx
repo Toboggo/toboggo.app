@@ -48,10 +48,21 @@ const BADGES: {
   },
 ];
 
-// Preview strip on the hub shows at most this many badges, plus a "+N" tile
-// for the rest — a full "Tous les badges" screen doesn't exist yet, so this
-// cap is what keeps the preview compact rather than a real pagination.
+// Preview strip on the hub shows at most this many badges — a full "Tous les
+// badges" screen doesn't exist yet, so no "Voir tout" link either (would
+// point nowhere).
 const BADGES_PREVIEW_COUNT = 3;
+
+// Illustrated hex art exists only for these two badges in their *earned*
+// state and for "explorer" in its *locked* state (toboggo-profile-svg-pack).
+// Any other key/earned combination (explorer earned, or first_review /
+// contributor still locked) falls back to the plain icon treatment below —
+// there's no drawn art for those states.
+const BADGE_ART: Partial<Record<string, { src: string; earned: boolean }>> = {
+  first_review: { src: "/profile/badge-first-review.svg", earned: true },
+  contributor: { src: "/profile/badge-contributor.svg", earned: true },
+  explorer: { src: "/profile/badge-explorer-locked.svg", earned: false },
+};
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
@@ -110,54 +121,66 @@ export default function Profile() {
   const stats: Stats = { parks: myParks.length, reviews: myReviews.length, favorites: profile.favorites.length };
   const memberSinceYear = profile.created_at ? new Date(profile.created_at).getFullYear() : NaN;
   const previewBadges = BADGES.slice(0, BADGES_PREVIEW_COUNT);
-  const extraBadgeCount = BADGES.length - previewBadges.length;
 
   return (
     <div className={styles.screen}>
-      {/* Header hub — logo + titre + accès Réglages. L'édition du profil et
-          les préférences vivent désormais dans /settings (sous-écran) : ce
-          header n'est plus qu'une identité, pas un centre d'actions. */}
-      <div className={styles.hubHeader}>
-        <LogoMark size={28} />
-        <h2 className={styles.hubTitle}>{t("title")}</h2>
-        <button
-          type="button"
-          className={styles.settingsBtn}
-          onClick={() => navigate("/settings")}
-          aria-label={t("settingsScreen.open")}
-        >
-          <Icon name="ic-settings" size={18} />
-        </button>
+      {/* Header hub — logo + titre + accès Réglages, avec l'illustration
+          décorative du parc en fond. L'édition du profil et les préférences
+          vivent désormais dans /settings (sous-écran) : ce header n'est
+          plus qu'une identité, pas un centre d'actions. */}
+      <div className={styles.hero}>
+        <img className={styles.heroImg} src="/profile/hero-playground.svg" alt="" aria-hidden="true" />
+        <div className={styles.hubHeader}>
+          <LogoMark size={28} />
+          <h2 className={styles.hubTitle}>{t("title")}</h2>
+          <button
+            type="button"
+            className={styles.settingsBtn}
+            onClick={() => navigate("/settings")}
+            aria-label={t("settingsScreen.open")}
+          >
+            <Icon name="ic-settings" size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.idRow}>
+        <div className={styles.avatar}>{initials(profile.name)}</div>
+        <div className={styles.idText}>
+          <div className={styles.idName}>{profile.name}</div>
+          {!Number.isNaN(memberSinceYear) && (
+            <div className={styles.idMeta}>{t("memberSince", { year: memberSinceYear })}</div>
+          )}
+        </div>
       </div>
 
       <div className={styles.body}>
-        <div className={styles.idRow}>
-          <div className={styles.avatar}>{initials(profile.name)}</div>
-          <div className={styles.idText}>
-            <div className={styles.idName}>{profile.name}</div>
-            {!Number.isNaN(memberSinceYear) && (
-              <div className={styles.idMeta}>{t("memberSince", { year: memberSinceYear })}</div>
-            )}
-          </div>
+        <div className={styles.statsCard}>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions")}>
+            <img className={styles.statIcon} src="/profile/icon-park-added.svg" alt="" aria-hidden="true" />
+            <span className={styles.statText}>
+              <span className={styles.statValue}>{stats.parks}</span>
+              <span className={styles.statLabel}>{t("stats.parks")}</span>
+            </span>
+          </button>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions")}>
+            <img className={styles.statIcon} src="/profile/icon-review.svg" alt="" aria-hidden="true" />
+            <span className={styles.statText}>
+              <span className={styles.statValue}>{stats.reviews}</span>
+              <span className={styles.statLabel}>{t("stats.reviews")}</span>
+            </span>
+          </button>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/favorites")}>
+            <img className={styles.statIcon} src="/profile/icon-favorite.svg" alt="" aria-hidden="true" />
+            <span className={styles.statText}>
+              <span className={styles.statValue}>{stats.favorites}</span>
+              <span className={styles.statLabel}>{t("stats.favorites")}</span>
+            </span>
+          </button>
         </div>
 
-        <div className={styles.stats}>
-          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "var(--color-primary)" }}>{stats.parks}</span>
-            {t("stats.parks")}
-          </button>
-          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "var(--color-accent)" }}>{stats.reviews}</span>
-            {t("stats.reviews")}
-          </button>
-          <button type="button" className={styles.stat} onClick={() => navigate("/favorites")}>
-            <span style={{ color: "var(--color-error)" }}>{stats.favorites}</span>
-            {t("stats.favorites")}
-          </button>
-        </div>
-
-        {/* Famille — encart teinté (univers Toboggo), délibérément plus
-            visible que le reste du hub : c'est le cœur du produit. */}
+        {/* Famille — card blanche légère : chips par âge uniquement, jamais
+            de prénom ni de photo réelle (le modèle Child n'en stocke pas). */}
         <div className={styles.familyCard}>
           <div className={styles.familyHeader}>
             <h6 className={styles.familyKicker}>{t("myChildren")}</h6>
@@ -167,35 +190,34 @@ export default function Profile() {
             </button>
           </div>
           <p className={styles.familyIntro}>{t("children.formIntro")}</p>
-          {myChildren.length > 0 && (
-            <div className={styles.children}>
-              {myChildren.map((c) => {
-                const age = computeChildAge(c);
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={styles.child}
-                    onClick={() => navigate(`/profile/children/${c.id}`)}
-                  >
-                    {age != null ? f.ageRange(age, age) : t("children.ageUnknown")}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          <button type="button" className={styles.addChild} onClick={() => navigate("/profile/children/new")}>
-            <span aria-hidden>+</span> {t("children.add")}
-          </button>
+          <div className={styles.children}>
+            {myChildren.map((c) => {
+              const age = computeChildAge(c);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={styles.child}
+                  onClick={() => navigate(`/profile/children/${c.id}`)}
+                >
+                  <img className={styles.childAvatar} src="/profile/child-neutral.svg" alt="" aria-hidden="true" />
+                  {age != null ? f.ageRange(age, age) : t("children.ageUnknown")}
+                </button>
+              );
+            })}
+            <button type="button" className={styles.addChild} onClick={() => navigate("/profile/children/new")}>
+              <span aria-hidden>+</span> {t("children.add")}
+            </button>
+          </div>
         </div>
 
         {/* Mon activité — uniquement des éléments personnels réels ; jamais
             le fil communautaire (/activity), qui n'est pas "mon" historique. */}
         <h6 className={styles.kicker}>{t("myActivityTitle")}</h6>
         <div className={styles.group}>
-          <Row icon="ic-heart" label={t("favorites.title")} value={String(stats.favorites)} onClick={() => navigate("/favorites")} />
-          <Row icon="ic-list" label={t("myContributions")} onClick={() => navigate("/contributions")} />
-          <Row icon="ic-users" label={t("groupOuting")} onClick={() => navigate("/group")} />
+          <Row iconSrc="/profile/icon-favorite.svg" label={t("favorites.title")} value={String(stats.favorites)} onClick={() => navigate("/favorites")} />
+          <Row iconSrc="/profile/icon-contributions.svg" label={t("myContributions")} onClick={() => navigate("/contributions")} />
+          <Row iconSrc="/profile/icon-group.svg" label={t("groupOuting")} onClick={() => navigate("/group")} />
         </div>
 
         {/* Mes badges — aperçu compact, jamais la grille de grosses cartes.
@@ -203,39 +225,36 @@ export default function Profile() {
             n'existe, on n'en crée pas un juste pour la maquette — ni un
             texte qui ferait croire à une destination qui n'existe pas. */}
         <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
-        <div className={styles.badgesStrip}>
+        <div className={styles.badgesGrid}>
           {previewBadges.map((b) => {
             const earned = b.earned(stats);
             const prog = !earned ? b.progress?.(stats) : undefined;
-            const iconWrapClass = earned
-              ? b.key === "grand"
-                ? `${styles.badgeIconWrap} ${styles.badgeIconWrapAccent}`
-                : `${styles.badgeIconWrap} ${styles.badgeIconWrapEarned}`
-              : styles.badgeIconWrap;
+            const art = BADGE_ART[b.key];
             const a11yLabel = `${t(b.labelKey)}${
               earned ? ` — ${t("badge.earnedLabel")}` : prog ? ` — ${prog.current}/${prog.target}` : ""
             }`;
             return (
-              <div key={b.key} className={styles.badgeItem} role="img" aria-label={a11yLabel}>
-                <div className={iconWrapClass}>
-                  <Icon name={b.icon} size={17} />
-                  {earned && (
-                    <span className={styles.badgeCheck} aria-hidden>
-                      <Icon name="ic-check" size={9} />
-                    </span>
-                  )}
-                </div>
-                <span className={styles.badgeItemLabel}>{t(b.labelKey)}</span>
+              <div key={b.key} className={styles.badgeCard} role="img" aria-label={a11yLabel}>
+                {art && art.earned === earned ? (
+                  <img className={styles.badgeArt} src={art.src} alt="" aria-hidden="true" />
+                ) : (
+                  <div className={earned ? `${styles.badgeIconWrap} ${styles.badgeIconWrapEarned}` : styles.badgeIconWrap}>
+                    <Icon name={b.icon} size={17} />
+                    {earned ? (
+                      <span className={styles.badgeCheck} aria-hidden>
+                        <Icon name="ic-check" size={9} />
+                      </span>
+                    ) : (
+                      <span className={styles.badgeLock} aria-hidden>
+                        <Lock />
+                      </span>
+                    )}
+                  </div>
+                )}
+                <span className={styles.badgeCardLabel}>{t(b.labelKey)}</span>
               </div>
             );
           })}
-          {extraBadgeCount > 0 && (
-            <div className={styles.badgeItem} aria-hidden>
-              <div className={styles.badgeIconWrap}>
-                <span className={styles.badgeMoreText}>{t("badge.more", { count: extraBadgeCount })}</span>
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -245,12 +264,12 @@ export default function Profile() {
 }
 
 function Row({
-  icon,
+  iconSrc,
   label,
   value,
   onClick,
 }: {
-  icon?: IconName;
+  iconSrc?: string;
   label: string;
   value?: string;
   onClick: () => void;
@@ -258,11 +277,7 @@ function Row({
   return (
     <button type="button" className={styles.groupRow} onClick={onClick}>
       <span className={styles.groupRowMain}>
-        {icon && (
-          <span className={styles.groupRowIcon}>
-            <Icon name={icon} size={15} />
-          </span>
-        )}
+        {iconSrc && <img className={styles.groupRowIcon} src={iconSrc} alt="" aria-hidden="true" />}
         <span>{label}</span>
       </span>
       <span className={styles.groupRowTrailing}>
@@ -270,6 +285,15 @@ function Row({
         <Chevron />
       </span>
     </button>
+  );
+}
+
+function Lock() {
+  return (
+    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="4" y="10" width="16" height="12" rx="2.5" fill="currentColor" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="3" fill="none" />
+    </svg>
   );
 }
 

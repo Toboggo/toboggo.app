@@ -201,46 +201,6 @@
   font-size: 17px;
   color: var(--color-text);
 }
-.seeAll {
-  flex: none;
-  border: none;
-  background: none;
-  padding: 0;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 13px;
-  color: var(--color-primary);
-  cursor: pointer;
-}
-/* `flex:1` + `min-width:0` + ellipsis: the trailing slot (peek's longer drag
-   hint, in particular) truncates gracefully on a narrow phone instead of
-   wrapping or pushing the title — same box on every snap regardless of how
-   long its text is. */
-.count {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  text-align: right;
-  font-size: 12.5px;
-  color: var(--color-text-muted);
-}
-
-/* Contextual carousel's own title + subtitle (medium/expanded only — the peek
-   crop never shows this). A stacked column, unlike `.sheetHead`'s title +
-   trailing-slot row above it. */
-.contextualHead {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-1) var(--space-4) var(--space-3);
-}
-.contextualSubtitle {
-  font-size: 12.5px;
-  color: var(--color-text-muted);
-}
-
 .intermediate {
   display: flex;
   flex-direction: column;

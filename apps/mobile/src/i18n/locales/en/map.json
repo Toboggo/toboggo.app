@@ -33,17 +33,44 @@
     }
   },
   "sheet": {
-    "aroundYou": "Around you",
-    "count_one": "{{count}} park",
-    "count_other": "{{count}} parks",
     "loading": "Looking for parks around you…",
-    "forChildrenNearby": "For your children, nearby",
-    "forChildrenNearbySubtitle": "Parks suited to their age",
-    "favoritesNearby": "Your favorites nearby ❤️",
-    "favoritesNearbySubtitle": "Your saved parks nearby",
-    "discoverNearby": "To discover nearby ✨",
-    "discoverNearbySubtitle": "Parks worth discovering around you",
     "allNearby": "All the parks around you"
+  },
+  "nearby": {
+    "title": "Around you",
+    "subtitle_one": "{{count}} park within {{distance}}",
+    "subtitle_other": "{{count}} parks within {{distance}}",
+    "subtitleNone": "No parks within {{distance}}",
+    "zone": "Area: {{distance}}",
+    "zoneAria": "Search area: {{distance}}. Change",
+    "expand": "Show parks around you",
+    "filtersAria": "Filter parks around you",
+    "filter": {
+      "nearby": "Nearby",
+      "favorites": "Favorites",
+      "forChildren": "For my children"
+    },
+    "favoritesEmpty": "None of your favorites in this area.",
+    "childrenEmpty": "No parks suited to your children’s age in this area.",
+    "moreTitle": "Want more options?",
+    "moreDesc": "Discover parks a little further away",
+    "furtherTitle": "Parks a little further away",
+    "seeWithin": "See parks within {{distance}}",
+    "emptyTitle": "No parks nearby",
+    "emptyDesc": "Widen the area to discover parks a little further away.",
+    "emptyAction": "Widen the area",
+    "radius": {
+      "title": "Search area",
+      "subtitle": "Show parks around your location",
+      "apply": "Apply",
+      "hint": {
+        "1": "Very close",
+        "2": "Neighborhood and surroundings",
+        "5": "Town and nearby areas",
+        "10": "Wider discovery",
+        "20": "Explore further"
+      }
+    }
   },
   "state": {
     "errorTitle": "Couldn’t load the parks",

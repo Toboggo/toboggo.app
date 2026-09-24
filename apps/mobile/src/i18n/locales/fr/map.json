@@ -33,17 +33,44 @@
     }
   },
   "sheet": {
-    "aroundYou": "Autour de vous",
-    "count_one": "{{count}} parc",
-    "count_other": "{{count}} parcs",
     "loading": "Recherche des parcs autour de vous…",
-    "forChildrenNearby": "Pour vos enfants, près d’ici",
-    "forChildrenNearbySubtitle": "Des parcs adaptés à leur âge",
-    "favoritesNearby": "Vos favoris à proximité ❤️",
-    "favoritesNearbySubtitle": "Vos parcs enregistrés près d’ici",
-    "discoverNearby": "À découvrir près d’ici ✨",
-    "discoverNearbySubtitle": "Des parcs à découvrir autour de vous",
     "allNearby": "Tous les parcs autour de vous"
+  },
+  "nearby": {
+    "title": "Autour de vous",
+    "subtitle_one": "{{count}} parc à moins de {{distance}}",
+    "subtitle_other": "{{count}} parcs à moins de {{distance}}",
+    "subtitleNone": "Aucun parc à moins de {{distance}}",
+    "zone": "Zone : {{distance}}",
+    "zoneAria": "Zone de recherche : {{distance}}. Modifier",
+    "expand": "Afficher les parcs autour de vous",
+    "filtersAria": "Filtrer les parcs autour de vous",
+    "filter": {
+      "nearby": "À proximité",
+      "favorites": "Favoris",
+      "forChildren": "Pour mes enfants"
+    },
+    "favoritesEmpty": "Aucun de vos favoris dans cette zone.",
+    "childrenEmpty": "Aucun parc adapté à l’âge de vos enfants dans cette zone.",
+    "moreTitle": "Envie de plus d’options ?",
+    "moreDesc": "Découvrez des parcs un peu plus loin",
+    "furtherTitle": "Des parcs un peu plus loin",
+    "seeWithin": "Voir des parcs à moins de {{distance}}",
+    "emptyTitle": "Aucun parc à proximité",
+    "emptyDesc": "Élargissez la zone pour découvrir des parcs un peu plus loin.",
+    "emptyAction": "Élargir la zone",
+    "radius": {
+      "title": "Zone de recherche",
+      "subtitle": "Afficher les parcs autour de votre position",
+      "apply": "Appliquer",
+      "hint": {
+        "1": "Tout près",
+        "2": "Quartier et alentours",
+        "5": "Ville et proches environs",
+        "10": "Découverte plus large",
+        "20": "Explorer plus loin"
+      }
+    }
   },
   "state": {
     "errorTitle": "Impossible de charger les parcs",

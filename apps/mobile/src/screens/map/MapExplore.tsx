@@ -9,8 +9,9 @@ import { SearchOverlay } from "./SearchOverlay";
 import { FiltersSheet } from "./FiltersSheet";
 import { ParkPreview } from "./ParkPreview";
 import { ParkList } from "./ParkList";
-import { ParkCarousel } from "./ParkCarousel";
-import { selectContextualCarousel } from "./contextualCarousel";
+import { NearbyBody, NearbyHeader } from "./NearbySection";
+import { RadiusSheet } from "./RadiusSheet";
+import { availableContexts, selectNearby, type NearbyContext } from "./nearbySelection";
 import { SheetState, SheetLoading } from "./SheetState";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
@@ -18,26 +19,26 @@ import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo
 import { useFilters } from "../../lib/filters";
 import { useChildAges } from "../../lib/children";
 import { useNearbyParks } from "../../lib/parksQuery";
+import { useNearbyRadius } from "../../lib/nearbyRadius";
 import { useWeather } from "../../lib/weather";
 import { useSession } from "../../lib/session";
 import styles from "./MapExplore.module.css";
 
-// Peek height (px): header + hint, then ~30-40% of the first card row height
-// showing through — a real "there's more below" affordance (Maps/Plans-style
-// peek principle, not their visuals) rather than a title-only bar. Fixed, not
-// "fit": we deliberately crop the carousel short instead of hugging it.
-const PEEK_H = 137;
+// Peek height (px, panel above the nav): the handle strip + the compact
+// "Autour de vous" header (icon, title, count within the active radius, Zone
+// pill) and nothing else — no card, so the map keeps the room. Fixed, not
+// "fit", so the peek never jumps with the content below the header.
+const PEEK_H = 84;
 
 // Medium is a real "map + discovery" balance, not a near-full sheet: a fixed
 // share of the zone actually available between the header and the bottom nav
 // (not of the raw viewport — a fraction snap resolves against the full screen
 // height, see `BottomSheet.resolve`), so it stays proportionate across phones
-// instead of hardcoding one device's numbers. Sized to the contextual block's
-// own height (header + "À découvrir" + carousel, fully visible, uncropped) —
-// ~45-48% of the screen on a typical phone. "Tous les parcs autour de vous"
-// (rendered right after it — see `renderSheet`) is cropped, not scrollable,
-// at this snap: at most a sliver of it may show, the rest only becomes
-// reachable at the expanded snap.
+// instead of hardcoding one device's numbers (~45-48% of the screen on a
+// typical phone). It leads with the "Autour de vous" header, contextual
+// filters and carousel; whatever doesn't fit below them (on a short phone the
+// "plus loin" CTA, and always "Tous les parcs autour de vous") is cropped, not
+// scrollable, at this snap — reachable at expanded.
 const MEDIUM_RATIO = 0.47;
 
 const SNAPS_SINGLE: Snap[] = ["fit"];
@@ -81,7 +82,10 @@ export default function MapExplore() {
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recenterSignal, setRecenterSignal] = useState(0);
-  const [forChildren, setForChildren] = useState(false);
+  const [nearbyContext, setNearbyContext] = useState<NearbyContext>("nearby");
+  const [radiusOpen, setRadiusOpen] = useState(false);
+  const radiusKm = useNearbyRadius((s) => s.radiusKm);
+  const setRadiusKm = useNearbyRadius((s) => s.setRadiusKm);
   const [weatherDismissed, setWeatherDismissed] = useState(false);
   // Compact by default — the map is the point of this screen, so it opens
   // with just the "Autour de vous" bar, not the carousel already expanded.
@@ -115,12 +119,31 @@ export default function MapExplore() {
   const filterCount = activeCount();
   const hasResults = parks.length > 0;
 
-  // The one carousel shown under the filters — same selection at every list
-  // snap, see `renderSheet`.
-  const contextual = useMemo(
-    () => selectContextualCarousel(parks, favorites, forChildren, childAges),
-    [parks, favorites, forChildren, childAges],
+  // Everything "Autour de vous" shows, derived from the parks already loaded
+  // (up to 20 km — the map markers keep using all of them): count, carousel
+  // and expanded list are strictly the active radius. See `nearbySelection`.
+  const nearbyContexts = useMemo(() => availableContexts(!!userId, childAges), [userId, childAges]);
+  const nearby = useMemo(
+    () =>
+      selectNearby({
+        parks,
+        radiusKm,
+        context: nearbyContext,
+        favoriteIds: favorites,
+        childAges,
+        isLoggedIn: !!userId,
+      }),
+    [parks, radiusKm, nearbyContext, favorites, childAges, userId],
   );
+
+  function handleContextChange(next: NearbyContext) {
+    setNearbyContext(next);
+    // Only the children filter has a matching existing event (`for_children`);
+    // "À proximité" / "Favoris" have none yet and are deliberately not tracked.
+    if (next === "forChildren" || nearby.context === "forChildren") {
+      trackEvent("filter_applied", { filter_type: "for_children", filter_value: String(next === "forChildren") });
+    }
+  }
 
   const mode: "preview" | "loading" | "state" | "list" = selectedPark
     ? "preview"
@@ -360,93 +383,54 @@ export default function MapExplore() {
       );
     }
 
-    // One header shape across every snap — same title anchor, same row
-    // layout — only the trailing slot's content changes (the count at peek,
-    // the "Voir tout" jump at medium, the count again once expanded). Sharing
-    // this single block is what makes peek → medium → expanded read as one
-    // panel deploying rather than three different headers swapping in. Peek
-    // shows the plain count — the handle alone is the "you can drag this"
-    // affordance, no extra copy needed.
+    // One header across every snap — only the peek adds its "raise" chevron.
+    // Peek is this header alone (no card); medium adds the contextual filters
+    // + carousel (or the empty-zone suggestions); expanded additionally
+    // reveals the full list. Medium and expanded share the same tree: at
+    // medium the sheet's fixed, non-scrollable height (see BottomSheet's
+    // canScroll) crops what follows, expanded makes it scrollable.
     const header = (
-      <div className={styles.sheetHead}>
-        <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
-        {snap === 0 ? (
-          <span className={styles.count}>{t("sheet.count", { count: parks.length })}</span>
-        ) : snap === 1 ? (
-          <button type="button" className={styles.seeAll} onClick={() => setSnap(2)}>
-            {t("action.seeAll", { ns: "common" })}
-          </button>
-        ) : (
-          <span className={styles.count}>{t("sheet.count", { count: parks.length })}</span>
-        )}
-      </div>
+      <NearbyHeader
+        count={nearby.activeParks.length}
+        radiusKm={radiusKm}
+        onOpenZone={() => setRadiusOpen(true)}
+        onExpand={snap === 0 ? () => setSnap(1) : undefined}
+      />
     );
+    if (snap === 0) return header;
 
-    // `contextual` is never null here — `hasResults` above already guarantees
-    // `parks.length > 0`, the only case `selectContextualCarousel` returns null.
-    // Peek: a minimal, coherent preview — the same contextual selection medium
-    // and expanded show (not a different "every nearby park" strip), but
-    // without stacking a second title in an already tight crop (PEEK_H).
-    if (snap === 0) {
-      return (
-        <div className={styles.intermediate}>
-          {header}
-          <ParkCarousel
-            parks={contextual?.parks ?? []}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
-            onSelect={setSelectedId}
-            cardVariant="peek"
-          />
-        </div>
-      );
-    }
-
-    // Medium and expanded both lead with the full contextual block (children >
-    // favorites nearby > discover) under its own title — so opening the sheet
-    // further reads as more of the same view, not a jump to a different screen.
-    const contextualBlock = contextual && (
-      <div className={styles.intermediate}>
-        {header}
-        <div className={styles.contextualHead}>
-          <div className={styles.sheetTitle}>{t(contextual.titleKey)}</div>
-          <div className={styles.contextualSubtitle}>{t(contextual.subtitleKey)}</div>
-        </div>
-        <ParkCarousel
-          parks={contextual.parks}
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
-          onSelect={setSelectedId}
-        />
-      </div>
-    );
-
-    // Medium and expanded share this exact same tree — the "Tous les parcs
-    // autour de vous" list header starts right after the carousel in both.
-    // At medium the sheet's own fixed height (non-scrollable there, see
-    // BottomSheet's canScroll) simply crops it, so only the top of that
-    // heading peeks into view — the same "there's more below" affordance as
-    // the carousel itself, rather than a hard stop after the contextual
-    // block. Expanded then reveals (and makes scrollable) the rest of the
-    // list. Parks already shown in the carousel are pushed after the rest
-    // there (never removed), so a park isn't immediately repeated in the
-    // first rows.
-    const contextualIds = contextual ? contextual.parks.map((p) => p.id) : [];
+    // Parks already shown in the carousel are pushed after the rest in the
+    // list (never removed), so a park isn't immediately repeated.
+    const contextualIds = nearby.carousel.map((p) => p.id);
     return (
       <>
-        {contextualBlock}
-        <ParkList
-          parks={parks}
-          onToggleFavorite={toggleFavorite}
-          forChildren={forChildren}
-          setForChildren={setForChildren}
-          header={
-            <div className={styles.sheetHead}>
-              <div className={styles.sheetTitle}>{t("sheet.allNearby")}</div>
-            </div>
-          }
-          contextualIds={contextualIds}
-        />
+        <div className={styles.intermediate}>
+          {header}
+          <NearbyBody
+            selection={nearby}
+            contexts={nearbyContexts}
+            onContextChange={handleContextChange}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
+            onSelectPark={setSelectedId}
+            onOpenZone={() => setRadiusOpen(true)}
+            onSetRadius={setRadiusKm}
+          />
+        </div>
+        {nearby.activeParks.length > 0 && (
+          <ParkList
+            parks={nearby.activeParks}
+            onToggleFavorite={toggleFavorite}
+            forChildren={nearby.context === "forChildren"}
+            setForChildren={(v) => setNearbyContext(v ? "forChildren" : "nearby")}
+            header={
+              <div className={styles.sheetHead}>
+                <div className={styles.sheetTitle}>{t("sheet.allNearby")}</div>
+              </div>
+            }
+            contextualIds={contextualIds}
+          />
+        )}
       </>
     );
   }
@@ -574,6 +558,15 @@ export default function MapExplore() {
       )}
 
       <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} />
+      <RadiusSheet
+        open={radiusOpen}
+        value={radiusKm}
+        onApply={(r) => {
+          setRadiusKm(r);
+          setRadiusOpen(false);
+        }}
+        onClose={() => setRadiusOpen(false)}
+      />
       <QuickMenu open={quickMenuOpen} onClose={() => setQuickMenuOpen(false)} />
     </div>
   );

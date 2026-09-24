@@ -125,6 +125,12 @@ function renderExplore() {
   );
 }
 
+// Peek shows the "Autour de vous" header alone: its count within the active
+// (default 2 km) radius is the peek marker. Medium adds the contextual
+// filters, whose always-present "À proximité" chip is the medium marker.
+const PEEK_COUNT = "2 parcs à moins de 2 km";
+const MEDIUM_MARKER = "À proximité";
+
 // Pins render as `<button aria-label={parkName}>` in the FakeMap fallback,
 // once the parks query has resolved — `findByRole` waits for that.
 const pin = (name: string) => screen.findByRole("button", { name });
@@ -156,7 +162,7 @@ describe("Explorer — map tap behaviour", () => {
 
     // Deselected: the preview panel is gone, back to the list sheet's peek content.
     expect(screen.queryByText("Itinéraire")).toBeNull();
-    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
+    expect(await screen.findByText(PEEK_COUNT)).toBeTruthy();
   });
 
   it("selected park A + tap on marker B → B shows directly, no flash through peek", async () => {
@@ -169,42 +175,42 @@ describe("Explorer — map tap behaviour", () => {
     expect(await screen.findByText("Parc de la Tête d'Or")).toBeTruthy();
     expect(screen.queryByText("Square Voltaire")).toBeNull();
     // Never dropped into the list sheet's peek content in between.
-    expect(screen.queryByText(/^2 parcs$/)).toBeNull();
+    expect(screen.queryByText(PEEK_COUNT)).toBeNull();
   });
 
   it("sheet at medium + tap on visible map → back to peek", async () => {
     renderExplore();
-    await screen.findByText(/^2 parcs$/); // peek content loaded
+    await screen.findByText(PEEK_COUNT); // peek content loaded
 
     tapHandle(); // peek → medium
-    expect(await screen.findByText("Voir tout")).toBeTruthy();
+    expect(await screen.findByText(MEDIUM_MARKER)).toBeTruthy();
 
     tapMapBackground();
 
-    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
-    expect(screen.queryByText("Voir tout")).toBeNull();
+    expect(await screen.findByText(PEEK_COUNT)).toBeTruthy();
+    expect(screen.queryByText(MEDIUM_MARKER)).toBeNull();
   });
 
   it("sheet at expanded + tap on visible map → back to peek", async () => {
     renderExplore();
-    await screen.findByText(/^2 parcs$/);
+    await screen.findByText(PEEK_COUNT);
 
     tapHandle(); // peek → medium
-    await screen.findByText("Voir tout");
+    await screen.findByText(MEDIUM_MARKER);
     tapHandle(); // medium → expanded
     expect(await screen.findByText("Tous les parcs autour de vous")).toBeTruthy();
 
     tapMapBackground();
 
-    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
+    expect(await screen.findByText(PEEK_COUNT)).toBeTruthy();
     expect(screen.queryByText("Tous les parcs autour de vous")).toBeNull();
   });
 
   it("sheet already at peek + tap on empty map → no change", async () => {
     renderExplore();
-    await screen.findByText(/^2 parcs$/);
+    await screen.findByText(PEEK_COUNT);
 
     expect(() => tapMapBackground()).not.toThrow();
-    expect(await screen.findByText(/^2 parcs$/)).toBeTruthy();
+    expect(await screen.findByText(PEEK_COUNT)).toBeTruthy();
   });
 });

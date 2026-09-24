@@ -2,7 +2,12 @@
 
 .screen {
   min-height: 100vh;
-  background: var(--color-bg);
+  /* Fond Profil volontairement blanc — --color-bg (tokens.css) reste la
+     teinte crème globale partagée par les autres écrans, non modifiée ici
+     (voir CLAUDE.md §6). --color-surface est déjà blanc pur ailleurs dans
+     le design system : on le réutilise plutôt que d'inventer un nouveau
+     token. */
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   /* Dégagement pour la bottom nav fixe — même source que la nav (tokens.css). */
@@ -19,21 +24,50 @@
   color: var(--color-text);
 }
 
-/* Hub header — logo + title + a single settings entry point (gear). Replaces
-   the old inline "Modifier" action: editing and every preference now live in
-   /settings, so this header is identity-only, never an action bar. */
+/* Hero — logo + titre + Réglages + identité, avec hero-playground.svg en
+   fond décoratif (parc/toboggan). L'édition du profil et les préférences
+   vivent désormais dans /settings (sous-écran) : ce header n'est plus
+   qu'une identité, pas un centre d'actions. */
+.hero {
+  position: relative;
+  overflow: hidden;
+}
+.hero {
+  height: calc(128px + var(--safe-top));
+}
+.heroImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 78% top;
+  pointer-events: none;
+  user-select: none;
+}
+/* Fondu doux vers le blanc en bas de l'illustration — évite la coupure nette
+   entre le lavis clair du SVG et le fond blanc du reste de l'écran. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 46px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), var(--color-surface));
+}
 .hubHeader {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: calc(20px + var(--safe-top)) 20px 6px;
+  padding: calc(16px + var(--safe-top)) 20px 6px;
 }
 .hubTitle {
   flex: 1;
   font-family: var(--font-heading);
   font-weight: 600;
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   color: var(--color-text);
 }
 .settingsBtn {
@@ -42,7 +76,8 @@
   height: 36px;
   border-radius: 50%;
   border: none;
-  background: var(--color-surface-alt);
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.08);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -60,6 +95,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 16px 20px 4px;
+  background: var(--color-surface);
 }
 .avatar {
   width: 56px;
@@ -99,14 +136,66 @@
   margin: 20px 0 10px;
 }
 
-/* Famille — encart teinté (vert Toboggo, distinct de l'amande des chips
-   enfant ci-dessous pour qu'ils restent lisibles dessus), nettement plus
-   présent que les listes de réglages : c'est le cœur du produit. */
-.familyCard {
-  background: var(--color-primary-tint);
+/* Statistiques — une seule card blanche horizontale, 3 colonnes séparées par
+   un filet subtil. Remplace les 3 cartes indépendantes de couleurs
+   différentes de l'ancienne version. */
+.statsCard {
+  display: flex;
+  align-items: stretch;
+  background: var(--color-surface);
   border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+  margin-top: 4px;
+  overflow: hidden;
+}
+.statItem {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+}
+.statItem + .statItem {
+  border-left: 1px solid var(--color-border);
+}
+.statIcon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+.statText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.statValue {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 19px;
+  line-height: 1.15;
+  color: var(--color-text);
+}
+.statLabel {
+  font-size: 10.5px;
+  line-height: 1.25;
+  color: var(--color-text-muted);
+}
+
+/* Famille — card blanche légère, cohérente avec le reste du hub (avant :
+   encart teinté massif). Les chips n'exposent jamais que l'âge — le modèle
+   Child (packages/shared) ne stocke ni prénom ni photo. */
+.familyCard {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
   padding: 16px;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 .familyHeader {
   display: flex;
@@ -116,7 +205,7 @@
 .familyKicker {
   composes: kicker;
   margin: 0;
-  color: var(--color-primary);
+  color: var(--color-text);
 }
 .familyIntro {
   margin: 4px 0 12px;
@@ -131,10 +220,9 @@
   background: none;
   border: none;
   padding: 0;
-  color: var(--color-text-muted);
+  color: var(--color-primary);
   font-size: 12.5px;
   font-weight: 700;
-  text-decoration: underline;
   cursor: pointer;
   font-family: var(--font-body);
 }
@@ -145,24 +233,32 @@
   gap: 8px;
 }
 .child {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-primary-tint);
+  color: var(--color-text);
   font-size: 12.5px;
   font-weight: 700;
-  padding: 7px 14px;
+  padding: 6px 14px 6px 6px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
   font-family: var(--font-body);
+}
+.childAvatar {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
 }
 
 .addChild {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-top: 10px;
   background: none;
-  border: 1.5px dashed var(--color-border-strong);
+  border: 1.5px dashed var(--color-primary);
   border-radius: 999px;
   padding: 7px 14px;
   font-size: 12.5px;
@@ -172,50 +268,29 @@
   font-family: var(--font-body);
 }
 
-.stats {
-  display: flex;
+/* Badges — grille de petites cards individuelles (avant : bandeau d'icônes
+   sans fond). Art illustré (BADGE_ART) quand disponible pour l'état
+   earned/locked exact, sinon repli sur l'icône du sprite + pastille
+   check/cadenas — voir le commentaire sur BADGE_ART dans Profile.tsx. */
+.badgesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-top: 20px;
 }
-.stat {
-  flex: 1;
-  padding: 14px;
-  text-align: center;
-  background: var(--color-surface);
-  border: none;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
-  cursor: pointer;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  font-family: var(--font-body);
-}
-.stat span {
-  display: block;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 20px;
-  margin-bottom: 2px;
-}
-
-/* Compact badges preview — icons + short labels only, no progress bar (the
-   fraction is still exposed to assistive tech via aria-label on .badgeItem),
-   no card wrapper — deliberately the lightest section of the hub. Capped at
-   BADGES_PREVIEW_COUNT with a "+N" tile — no "Voir tout": there's no "all
-   badges" screen to point it at, and a non-interactive affordance implying
-   one would exist is worse than no affordance at all. */
-.badgesStrip {
-  display: flex;
-  gap: 18px;
-  overflow-x: auto;
-}
-.badgeItem {
-  flex: none;
-  width: 56px;
+.badgeCard {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.05);
+  padding: 14px 6px 12px;
+  text-align: center;
+}
+.badgeArt {
+  width: 46px;
+  height: 46px;
 }
 .badgeIconWrap {
   position: relative;
@@ -233,39 +308,33 @@
   background: var(--color-primary-tint);
   color: var(--color-primary);
 }
-.badgeIconWrapAccent {
-  background: var(--color-accent-tint);
-  color: var(--color-accent);
-}
-.badgeCheck {
+.badgeCheck,
+.badgeLock {
   position: absolute;
   right: -2px;
   bottom: -2px;
-  width: 13px;
-  height: 13px;
+  width: 15px;
+  height: 15px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   border: 1.5px solid var(--color-surface);
 }
-.badgeItemLabel {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-align: center;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
+.badgeCheck {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
-.badgeMoreText {
+.badgeLock {
+  background: var(--color-text-faint);
+  color: var(--color-surface);
+}
+.badgeCardLabel {
   font-size: 11px;
-  font-weight: 700;
-  color: var(--color-text-muted);
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: center;
+  line-height: 1.25;
 }
 
 .group {
@@ -302,16 +371,12 @@
   gap: 10px;
   min-width: 0;
 }
+/* icon-favorite / icon-contributions / icon-group (toboggo-profile-svg-pack)
+   already bake in their own tinted circle — no extra CSS wrapper needed. */
 .groupRowIcon {
   flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--color-primary-tint);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 30px;
+  height: 30px;
 }
 .groupRowTrailing {
   display: flex;

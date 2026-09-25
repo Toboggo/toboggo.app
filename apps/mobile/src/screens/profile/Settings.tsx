@@ -7,7 +7,6 @@ import { useSession } from "../../lib/session";
 import { useLocale } from "../../i18n/useLocale";
 import { LANGUAGE_ENDONYM } from "../../i18n/languageNames";
 import styles from "./Profile.module.css";
-import layoutStyles from "./Settings.module.css";
 
 const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
   system: "settings.appearanceSystem",
@@ -35,8 +34,8 @@ export default function Settings() {
   }
 
   return (
-    <div className={layoutStyles.screen}>
-      <TopBar title={t("settingsScreen.title")} className={layoutStyles.topBar} />
+    <div className="screen">
+      <TopBar title={t("settingsScreen.title")} />
       <div style={{ padding: "0 20px" }}>
         <h6 className={styles.kicker}>{t("applicationTitle")}</h6>
         <div className={styles.group}>

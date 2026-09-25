@@ -8,32 +8,32 @@ import { useSession } from "./session";
  * `useDirections` once the user actually hands off to a maps app; shown by
  * `<VisitRatingPrompt>` (GlobalOverlays) when they come back.
  *
- * Eligibility, per park (all must hold):
+ * Eligibility is strictly per park — one park never blocks another (a
+ * directions hand-off doesn't prove a visit; the prompt asks the user). For a
+ * given park, both must hold:
  * 1. the signed-in user has not published a review of this park — server
  *    truth (`reviews`), see `reviewStatus`. If that can't be determined
  *    (network / Supabase error), this attempt is skipped without recording
  *    anything, so a later hand-off re-checks normally. Guests skip this check;
  * 2. the prompt was not shown for this park less than
  *    `PARK_REMINDER_COOLDOWN_MS` ago ("Plus tard", ✕, or a star tap followed
- *    by an abandoned form all count as "shown", never as "reviewed");
- * 3. no prompt at all (any park) less than `GLOBAL_ANTI_SPAM_MS` ago — only
- *    guards against rapid successive hand-offs, not a per-day limit.
- * The cheap local checks (2, 3) run first so the network is only touched
- * when a prompt would otherwise be shown.
+ *    by an abandoned form all count as "shown", never as "reviewed").
+ * The cheap local check (2) runs first so the network is only touched when a
+ * prompt would otherwise be shown.
  *
  * Persisted in localStorage (best-effort — a blocked storage just means no
  * cooldown, never a crash). The log stores *when* a prompt was shown, never an
- * expiry: entries written by an earlier version (then read with a 14-day /
- * 24 h policy) are re-evaluated against the current constants as-is.
+ * expiry: entries written by an earlier version (then read with a 14-day
+ * policy) are re-evaluated against the current constant as-is. Earlier
+ * versions also stored a global `last` timestamp (24 h, then 30 min
+ * anti-spam across parks): it is ignored on read and dropped on the next
+ * write.
  */
 export const VISIT_PROMPT_STORAGE_KEY = "toboggo:visit-prompt";
 export const PARK_REMINDER_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000; // 3 jours
-export const GLOBAL_ANTI_SPAM_MS = 30 * 60 * 1000; // 30 min
 const DEFAULT_DELAY_MS = 8000;
 
 interface ShownLog {
-  /** Last time the prompt was shown, any park. */
-  last: number;
   /** parkId → last time the prompt was shown for that park. */
   parks: Record<string, number>;
 }
@@ -41,14 +41,11 @@ interface ShownLog {
 function readLog(): ShownLog {
   try {
     const raw = localStorage.getItem(VISIT_PROMPT_STORAGE_KEY);
-    if (!raw) return { last: 0, parks: {} };
+    if (!raw) return { parks: {} };
     const parsed = JSON.parse(raw) as Partial<ShownLog>;
-    return {
-      last: typeof parsed.last === "number" ? parsed.last : 0,
-      parks: parsed.parks && typeof parsed.parks === "object" ? parsed.parks : {},
-    };
+    return { parks: parsed.parks && typeof parsed.parks === "object" ? parsed.parks : {} };
   } catch {
-    return { last: 0, parks: {} };
+    return { parks: {} };
   }
 }
 
@@ -61,7 +58,7 @@ function recordShown(parkId: string, now: number) {
   }
   parks[parkId] = now;
   try {
-    localStorage.setItem(VISIT_PROMPT_STORAGE_KEY, JSON.stringify({ last: now, parks }));
+    localStorage.setItem(VISIT_PROMPT_STORAGE_KEY, JSON.stringify({ parks }));
   } catch {
     // Storage unavailable — prompt still works, just without cooldown.
   }
@@ -70,8 +67,7 @@ function recordShown(parkId: string, now: number) {
 export function isVisitPromptCoolingDown(parkId: string, now = Date.now()): boolean {
   const log = readLog();
   const at = log.parks[parkId];
-  if (at != null && now - at < PARK_REMINDER_COOLDOWN_MS) return true;
-  return now - log.last < GLOBAL_ANTI_SPAM_MS;
+  return at != null && now - at < PARK_REMINDER_COOLDOWN_MS;
 }
 
 /**

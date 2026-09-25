@@ -17,7 +17,6 @@ vi.mock("./session", () => ({
 
 import { queryClient } from "./queryClient";
 import {
-  GLOBAL_ANTI_SPAM_MS,
   PARK_REMINDER_COOLDOWN_MS,
   VISIT_PROMPT_STORAGE_KEY,
   useVisitPrompt,
@@ -52,10 +51,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.useRealTimers());
 
-describe("useVisitPrompt — per-park eligibility", () => {
-  it("constants: 3 days per park, 30 min global anti-spam", () => {
+describe("useVisitPrompt — strictly per-park eligibility", () => {
+  it("constant: 3 days per park; no global cooldown exported any more", async () => {
     expect(PARK_REMINDER_COOLDOWN_MS).toBe(3 * DAY);
-    expect(GLOBAL_ANTI_SPAM_MS).toBe(30 * MIN);
+    expect(Object.keys(await import("./visitPrompt"))).not.toContain("GLOBAL_ANTI_SPAM_MS");
   });
 
   it("shows after the default 8 s delay", async () => {
@@ -80,8 +79,9 @@ describe("useVisitPrompt — per-park eligibility", () => {
     expect(await handOff("A", T0 + 2 * DAY)).toBe(false);
   });
 
-  it("4. park A after 3 days, no review → shown", async () => {
+  it("4. park A after ≥ 3 days, no review → shown", async () => {
     await handOff("A", T0);
+    expect(await handOff("A", T0 + 3 * DAY - MIN)).toBe(false);
     expect(await handOff("A", T0 + 3 * DAY)).toBe(true);
   });
 
@@ -104,103 +104,112 @@ describe("useVisitPrompt — per-park eligibility", () => {
     expect(reviewed.calls).toBe(1);
   });
 
-  it("6. park A then park B 10 min later → B blocked by the global anti-spam", async () => {
+  it("6. park A then park B 1 min later → B shown", async () => {
     await handOff("A", T0);
-    expect(await handOff("B", T0 + 10 * MIN)).toBe(false);
+    expect(await handOff("B", T0 + MIN)).toBe(true);
   });
 
-  it("7. park A then park B 31 min later → B shown (A's cooldown never blocks B)", async () => {
+  it("7. park A then park B immediately after → B still eligible", async () => {
     await handOff("A", T0);
-    expect(await handOff("B", T0 + 31 * MIN)).toBe(true);
+    expect(await handOff("B", T0)).toBe(true);
   });
 
-  it("10. star tap then abandoned form (no review on the server) → reminder possible after 3 days", async () => {
+  it("8. parks A, B, C in a row (5 min, then 2 min) → each prompted independently", async () => {
+    expect(await handOff("A", T0)).toBe(true);
+    expect(await handOff("B", T0 + 5 * MIN)).toBe(true);
+    expect(await handOff("C", T0 + 7 * MIN)).toBe(true);
+    // …and each keeps its own cooldown.
+    expect(await handOff("A", T0 + 8 * MIN)).toBe(false);
+    expect(await handOff("B", T0 + 8 * MIN)).toBe(false);
+    expect(await handOff("D", T0 + 8 * MIN)).toBe(true);
+  });
+
+  // 9 (« Plus tard ») and 10 (✕) go through the real dialog: GlobalOverlays.test.tsx.
+
+  it("11. star tap then abandoned form (no review on the server) → A blocked 3 days, then possible again", async () => {
     await handOff("A", T0); // star tapped → RatePark opened, never published
+    expect(await handOff("A", T0 + DAY)).toBe(false);
     expect(await handOff("A", T0 + 3 * DAY - MIN)).toBe(false);
     expect(await handOff("A", T0 + 3 * DAY)).toBe(true);
   });
 
-  it("11. star tap then review actually published → no more prompt for this park", async () => {
+  it("12. star tap then review actually published → A never prompted again", async () => {
     await handOff("A", T0);
     reviewed.set.add("u1:A"); // createReview succeeded
     expect(await handOff("A", T0 + 3 * DAY)).toBe(false);
     expect(await handOff("A", T0 + 30 * DAY)).toBe(false);
   });
 
-  it("12. log written by PR #49 (14 d / 24 h policy) is re-read with 3 d / 30 min — no artificial 14-day block", async () => {
-    localStorage.setItem(VISIT_PROMPT_STORAGE_KEY, JSON.stringify({ last: T0, parks: { A: T0 } }));
-    expect(await handOff("B", T0 + 31 * MIN)).toBe(true); // old 24 h global no longer applies
-    expect(await handOff("A", T0 + 3 * DAY + MIN)).toBe(true); // old 14 d per park no longer applies
-  });
-
-  it("13. two rapid hand-offs → a single prompt, for the latest park", async () => {
-    const setSpy = vi.fn();
-    const unsub = useVisitPrompt.subscribe((s, prev) => {
-      if (s.visible && !prev.visible) setSpy(s.parkId);
-    });
-    state().schedule("A", "Parc A", 1000);
-    state().schedule("B", "Parc B", 1000);
-    await vi.advanceTimersByTimeAsync(1000);
-    unsub();
-    expect(setSpy).toHaveBeenCalledTimes(1);
-    expect(setSpy).toHaveBeenCalledWith("B");
-  });
-
-  it("13b. a hand-off superseding one whose server check is still in flight → no double prompt", async () => {
-    let release: (v: boolean) => void = () => {};
-    const { hasUserReviewedPark } = await import("@toboggo/shared");
-    vi.mocked(hasUserReviewedPark).mockImplementationOnce(() => new Promise<boolean>((r) => (release = r)));
-    state().schedule("A", "Parc A", 0);
-    await vi.advanceTimersByTimeAsync(0); // A's check pending
-    state().schedule("B", "Parc B", 0);
-    await vi.advanceTimersByTimeAsync(0); // B shown
-    expect(state().parkId).toBe("B");
-    state().dismiss();
-    release(false);
-    await vi.advanceTimersByTimeAsync(0);
-    expect(state().visible).toBe(false); // stale A never pops up
-  });
-
-  it("guest: no server check, local per-park cooldown still applies", async () => {
-    sess.userId = null;
-    expect(await handOff("A", T0)).toBe(true);
-    expect(await handOff("A", T0 + 2 * DAY)).toBe(false);
-    expect(await handOff("A", T0 + 3 * DAY)).toBe(true);
-    expect(reviewed.calls).toBe(0);
-  });
-
-  it("signed-in, eligible, server check failing → not shown, no cooldown recorded, a later attempt re-checks", async () => {
+  it("13. signed-in, eligible, server check failing → not shown, no cooldown recorded", async () => {
     reviewed.fail = true;
     expect(await handOff("A", T0)).toBe(false);
     expect(reviewed.calls).toBe(1);
     expect(localStorage.getItem(VISIT_PROMPT_STORAGE_KEY)).toBeNull();
+  });
 
-    // Neither the per-park cooldown nor the global anti-spam was started:
-    // 1 min later (same park, then another park) the check simply runs again.
+  it("14. after that failure, a new attempt re-checks normally (same park, 1 min later)", async () => {
+    reviewed.fail = true;
+    await handOff("A", T0);
     reviewed.fail = false;
     expect(await handOff("A", T0 + MIN)).toBe(true);
     expect(reviewed.calls).toBe(2);
   });
 
-  it("server check failing does not block another park either (no global anti-spam started)", async () => {
-    reviewed.fail = true;
-    await handOff("A", T0);
-    reviewed.fail = false;
-    expect(await handOff("B", T0 + MIN)).toBe(true);
-  });
-
-  it("guest: a failing server would not matter — no check is made", async () => {
+  it("15. guest: no server check (even if it would fail), local per-park cooldown only", async () => {
     sess.userId = null;
     reviewed.fail = true;
     expect(await handOff("A", T0)).toBe(true);
+    expect(await handOff("A", T0 + 2 * DAY)).toBe(false);
+    expect(await handOff("B", T0 + 2 * DAY)).toBe(true);
+    expect(await handOff("A", T0 + 3 * DAY)).toBe(true);
     expect(reviewed.calls).toBe(0);
   });
 
-  it("local cooldowns are checked before the network (no request while cooling down)", async () => {
+  it("16. two concurrent hand-offs for the SAME park → a single prompt", async () => {
+    const shown = vi.fn();
+    const unsub = useVisitPrompt.subscribe((s, prev) => {
+      if (s.visible && !prev.visible) shown(s.parkId);
+    });
+    state().schedule("A", "Parc A", 1000);
+    state().schedule("A", "Parc A", 1000);
+    await vi.advanceTimersByTimeAsync(1000);
+    state().dismiss();
+    state().schedule("A", "Parc A", 0); // and then cooling down
+    await vi.advanceTimersByTimeAsync(0);
+    unsub();
+    expect(shown).toHaveBeenCalledTimes(1);
+    expect(shown).toHaveBeenCalledWith("A");
+  });
+
+  it("16b. a hand-off superseding one whose server check is still in flight → no double prompt", async () => {
+    let release: (v: boolean) => void = () => {};
+    const { hasUserReviewedPark } = await import("@toboggo/shared");
+    vi.mocked(hasUserReviewedPark).mockImplementationOnce(() => new Promise<boolean>((r) => (release = r)));
+    state().schedule("A", "Parc A", 0);
+    await vi.advanceTimersByTimeAsync(0); // first check pending
+    state().schedule("A", "Parc A", 0);
+    await vi.advanceTimersByTimeAsync(0); // second one shows
+    expect(state()).toMatchObject({ visible: true, parkId: "A" });
+    state().dismiss();
+    release(false);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(state().visible).toBe(false); // the stale check never pops a second one
+  });
+
+  it("17. legacy global timestamp in storage (24 h / 30 min versions) never blocks an eligible park, and is dropped on write", async () => {
+    localStorage.setItem(VISIT_PROMPT_STORAGE_KEY, JSON.stringify({ last: T0, parks: { A: T0 } }));
+    expect(await handOff("B", T0 + MIN)).toBe(true);
+    expect(JSON.parse(localStorage.getItem(VISIT_PROMPT_STORAGE_KEY) ?? "{}")).toEqual({
+      parks: { A: T0, B: T0 + MIN },
+    });
+    // Per-park entries from older versions (14-day policy) are re-read with 3 days.
+    expect(await handOff("A", T0 + 3 * DAY)).toBe(true);
+  });
+
+  it("local cooldown is checked before the network (no request while cooling down)", async () => {
     await handOff("A", T0);
     reviewed.calls = 0;
     await handOff("A", T0 + DAY);
-    await handOff("B", T0 + 5 * MIN);
     expect(reviewed.calls).toBe(0);
   });
 

@@ -58,8 +58,8 @@ describe("GlobalOverlays — visit rating prompt", () => {
   });
 
   it.each([
-    ["8. « Plus tard »", "Plus tard"],
-    ["9. the close button (X)", "Fermer"],
+    ["9. « Plus tard »", "Plus tard"],
+    ["10. the close button (X)", "Fermer"],
   ])("%s → dismissed for this park, reminder possible after 3 days", async (_label, button) => {
     const T0 = new Date("2026-09-24T10:00:00Z").getTime();
     vi.setSystemTime(T0);

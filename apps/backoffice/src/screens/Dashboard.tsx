@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
+import maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { Button, Card, Icon, Segmented, Skeleton, StatCard, type IconName } from "@toboggo/design-system";
 import {
   listParks,
@@ -20,6 +22,7 @@ import {
   listOrganizationsWithCounts,
   toCsv,
   downloadCsv,
+  mapStyleUrl,
   type Maintenance,
   type ParkCountryCount,
   type ParkSourceCount,
@@ -29,6 +32,12 @@ import { PageHeader } from "../components/PageHeader";
 import { useOrgScope } from "../lib/orgScope";
 import { activityIcon } from "../lib/activityCategory";
 import styles from "./Dashboard.module.css";
+
+// Fond de carte MapLibre pour « Couverture géographique » (Admin-UI-7D-D §1) —
+// même variable/convention que MapScreen.tsx (VITE_MAP_STYLE_URL). Absente
+// ⇒ le bloc affiche le même message « Carte indisponible » que /map, jamais
+// une carte factice dessinée à la main.
+const STYLE_URL = mapStyleUrl();
 
 const UPCOMING_MAINTENANCE_WINDOW_DAYS = 7;
 
@@ -614,6 +623,10 @@ export default function Dashboard() {
           <StatCard
             key={stat.key}
             icon={stat.icon}
+            // Admin-UI-7D-D §2 : cercle identique pour les 7 KPI même quand
+            // 2 d'entre eux (Photos, Collectivités) n'ont encore aucun
+            // pictogramme sûr — voir le rapport final pour l'asset attendu.
+            alwaysShowIcon
             label={stat.label}
             tone={stat.tint}
             onClick={stat.onClick}
@@ -660,6 +673,9 @@ export default function Dashboard() {
 
           <Card variant="admin" padding="sm" className={styles.card}>
             <h2 className={styles.sectionTitle}>Couverture géographique</h2>
+            {!countryQ.isLoading && !countryQ.isError && (
+              <GeoCoverageMap rows={countryQ.data ?? []} onSelectCountry={(code) => navigate(`/parks?country=${code}&status=all`)} />
+            )}
             <CountryBreakdown
               data={countryQ.data}
               isLoading={countryQ.isLoading}
@@ -829,15 +845,105 @@ const COUNTRY_LABEL: Record<string, string> = {
 };
 
 /**
- * Admin-UI-7D-C §4 — répartition réelle du catalogue par `country_code`
- * (`getParkCountryDistribution`, fiable au-delà de `max_rows` — voir le
- * commentaire sur `countryQ`). Barres compactes plutôt qu'une vraie carte
- * MapLibre : intégrer une carte pour 1-2 points agrégés aurait ajouté du
- * poids (tuiles, style, instance carte) sans valeur ajoutée réelle à ce
- * stade — cf. consigne "préférer une visualisation propre basée sur les
- * agrégats pays" quand une vraie carte serait disproportionnée. Aucun marker
- * individuel, jamais un pays codé en dur : ce composant ne fait qu'afficher
- * ce que `data` contient.
+ * Admin-UI-7D-D §1 — centroïdes géographiques approximatifs (repères publics
+ * connus, PAS des frontières : un seul point par pays, jamais un tracé de
+ * côte/frontière fabriqué) utilisés uniquement pour positionner un marker
+ * AGRÉGÉ par pays sur la mini-carte ci-dessous. Un pays présent dans
+ * `getParkCountryDistribution()` mais absent d'ici reste malgré tout visible
+ * dans la liste de barres en dessous (jamais masqué) — juste sans point sur
+ * la carte tant que son centroïde n'a pas été ajouté ici.
+ */
+const COUNTRY_CENTROID: Record<string, [number, number]> = {
+  FR: [2.2137, 46.2276],
+  ES: [-3.7492, 40.4637],
+  BE: [4.4699, 50.5039],
+  CH: [8.2275, 46.8182],
+  DE: [10.4515, 51.1657],
+  IT: [12.5674, 41.8719],
+  PT: [-8.2245, 39.3999],
+  LU: [6.1296, 49.8153],
+};
+// Cadrage fixe et volontairement générique ("Europe cadrée proprement",
+// Admin-UI-7D-D §1) plutôt qu'un fitBounds recalculé à chaque changement de
+// données : la carte ne saute pas de zoom quand un pays s'ajoute/disparaît,
+// et un futur pays européen dont le centroïde est ajouté ci-dessus apparaît
+// sans autre changement.
+const GEO_MAP_CENTER: [number, number] = [8, 47.5];
+const GEO_MAP_ZOOM = 3.4;
+
+/**
+ * Admin-UI-7D-D §1 — vraie carte MapLibre (même moteur/convention que
+ * MapScreen.tsx, aucune nouvelle librairie), mais avec un marker AGRÉGÉ par
+ * pays (taille proportionnelle au nombre de parcs) plutôt qu'un marker par
+ * parc — jamais des milliers de points individuels. Repose uniquement sur
+ * `COUNTRY_CENTROID` (repères, pas des frontières) : aucun fond
+ * géographique (GeoJSON de frontières) n'existe dans le repo et aucun n'est
+ * fabriqué ici. `STYLE_URL` absent ⇒ même message qu'/map, jamais une carte
+ * dessinée à la main.
+ */
+function GeoCoverageMap({ rows, onSelectCountry }: { rows: ParkCountryCount[]; onSelectCountry: (code: string) => void }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const total = rows.reduce((sum, r) => sum + r.count, 0);
+  const plottable = rows.filter((r) => COUNTRY_CENTROID[r.country_code]);
+  const maxCount = Math.max(1, ...plottable.map((r) => r.count));
+
+  useEffect(() => {
+    if (!containerRef.current || mapRef.current || !STYLE_URL || plottable.length === 0) return;
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style: STYLE_URL,
+      center: GEO_MAP_CENTER,
+      zoom: GEO_MAP_ZOOM,
+      interactive: false,
+    });
+    mapRef.current = map;
+    return () => {
+      map.remove();
+      mapRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plottable.length > 0]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const markers = plottable.map((row) => {
+      const pct = total > 0 ? Math.round((row.count / total) * 100) : 0;
+      const size = 14 + Math.round((row.count / maxCount) * 22);
+      const el = document.createElement("button");
+      el.type = "button";
+      el.setAttribute("aria-label", `Voir les parcs de ${COUNTRY_LABEL[row.country_code] ?? row.country_code} (${row.count})`);
+      el.title = `${COUNTRY_LABEL[row.country_code] ?? row.country_code} — ${row.count} parcs (${pct}%)`;
+      el.style.width = `${size}px`;
+      el.style.height = `${size}px`;
+      el.style.borderRadius = "50%";
+      el.style.border = "2px solid white";
+      el.style.boxShadow = "0 2px 6px rgba(0,0,0,0.25)";
+      el.style.background = "var(--color-primary)";
+      el.style.cursor = "pointer";
+      el.onclick = () => onSelectCountry(row.country_code);
+      return new maplibregl.Marker({ element: el }).setLngLat(COUNTRY_CENTROID[row.country_code]).addTo(map);
+    });
+    return () => markers.forEach((m) => m.remove());
+  }, [plottable, total, maxCount, onSelectCountry]);
+
+  if (!STYLE_URL) {
+    return <div className={styles.geoMapUnavailable}>Carte indisponible : renseignez VITE_MAP_STYLE_URL dans .env.</div>;
+  }
+  if (plottable.length === 0) return null;
+  return <div ref={containerRef} className={styles.geoMap} />;
+}
+
+/**
+ * Admin-UI-7D-C §4 / 7D-D §1 — répartition réelle du catalogue par
+ * `country_code` (`getParkCountryDistribution`, fiable au-delà de
+ * `max_rows` — voir le commentaire sur `countryQ`). Liste conservée sous la
+ * carte (Admin-UI-7D-D §1 : "conserver éventuellement la liste ... si cela
+ * améliore la lisibilité") : chiffres exacts, accessible clavier/lecteur
+ * d'écran, et seul affichage restant pour un pays sans centroïde connu.
+ * Aucun marker individuel, jamais un pays codé en dur : ce composant ne fait
+ * qu'afficher ce que `data` contient.
  */
 function CountryBreakdown({
   data,

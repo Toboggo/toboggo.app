@@ -21,6 +21,36 @@ import {
 } from "@toboggo/shared";
 import Dashboard from "./Dashboard";
 
+// ── MapLibre : même mock léger que ParkLocationEditor.test.tsx, sans WebGL
+// ni réseau — Admin-UI-7D-D §1. ────────────────────────────────────────────
+vi.mock("maplibre-gl", () => {
+  class FakeMap {
+    constructor() {
+      instances.maps.push(this);
+    }
+    remove() {}
+  }
+  class FakeMarker {
+    lngLat: [number, number] = [0, 0];
+    element: HTMLElement | undefined;
+    constructor(opts?: { element?: HTMLElement }) {
+      this.element = opts?.element;
+      instances.markers.push(this);
+    }
+    setLngLat(v: [number, number]) {
+      this.lngLat = v;
+      return this;
+    }
+    addTo() {
+      return this;
+    }
+    remove() {}
+  }
+  const instances: { maps: FakeMap[]; markers: FakeMarker[] } = { maps: [], markers: [] };
+  return { __esModule: true, default: { Map: FakeMap, Marker: FakeMarker }, __instances: instances };
+});
+vi.mock("maplibre-gl/dist/maplibre-gl.css", () => ({}));
+
 vi.mock("@toboggo/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@toboggo/shared")>();
   return {
@@ -40,8 +70,18 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listAllUsers: vi.fn(),
     listOrganizationsWithCounts: vi.fn(),
     downloadCsv: vi.fn(),
+    // Admin-UI-7D-D §1 : URL de style factice pour exercer réellement le
+    // rendu de GeoCoverageMap (marker(s)) plutôt que son seul état
+    // "indisponible" dans les tests.
+    mapStyleUrl: vi.fn(() => "https://example.test/style.json"),
   };
 });
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function mapInstances(): Promise<{ maps: any[]; markers: any[] }> {
+  return (await import("maplibre-gl") as unknown as { __instances: { maps: unknown[]; markers: unknown[] } })
+    .__instances as never;
+}
 
 const scope = vi.hoisted(() => ({ isAdmin: true, communeId: undefined as string | undefined }));
 vi.mock("../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: scope.isAdmin, communeId: scope.communeId }) }));
@@ -75,8 +115,14 @@ function renderDashboard() {
 const PARK = (status: "published" | "pending" | "blocked") => ({ id: `p-${status}-${Math.random()}`, status });
 
 describe("Dashboard — Admin-UI-2", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    // Le mock maplibre-gl garde ses instances au niveau module (Admin-UI-7D-D
+    // §1) — à vider entre chaque test, sinon les markers d'un test précédent
+    // fausseraient le compte/la recherche par aria-label du test suivant.
+    const { maps, markers } = await mapInstances();
+    maps.length = 0;
+    markers.length = 0;
     scope.isAdmin = true;
     scope.communeId = undefined;
     vi.mocked(listParks).mockResolvedValue([PARK("published"), PARK("published"), PARK("pending")] as never);
@@ -142,14 +188,37 @@ describe("Dashboard — Admin-UI-2", () => {
     expect(screen.getByTestId("loc").textContent).toBe("/parks?country=ES&status=all");
   });
 
+  it("Admin-UI-7D-D §1 : « Couverture géographique » instancie une vraie carte MapLibre avec un marker agrégé par pays (jamais par parc), cliquable vers /parks filtré", async () => {
+    vi.mocked(getParkCountryDistribution).mockResolvedValue([
+      { country_code: "FR", count: 1700 },
+      { country_code: "ES", count: 800 },
+    ]);
+    renderDashboard();
+    await screen.findByText("Couverture géographique");
+    await screen.findByText("France");
+
+    const { maps, markers } = await mapInstances();
+    expect(maps).toHaveLength(1);
+    // 1 marker par pays présent dans les données (2), jamais un par parc (2500).
+    expect(markers).toHaveLength(2);
+
+    const esMarkerEl = markers.find((m) => m.element?.getAttribute("aria-label")?.includes("Espagne"))!.element!;
+    fireEvent.click(esMarkerEl);
+    expect(screen.getByTestId("loc").textContent).toBe("/parks?country=ES&status=all");
+  });
+
   it("Admin-UI-7D-C : un pays inconnu du dictionnaire de libellés s'affiche quand même, avec son code brut — jamais masqué", async () => {
-    // "PL" (Pologne) — délibérément absent de COUNTRY_LABEL (Dashboard.tsx),
-    // pour vérifier le fallback sur le code brut plutôt qu'un libellé inventé.
+    // "PL" (Pologne) — délibérément absent de COUNTRY_LABEL/COUNTRY_CENTROID
+    // (Dashboard.tsx), pour vérifier le fallback sur le code brut plutôt
+    // qu'un libellé inventé, et l'absence de marker fabriqué sans centroïde
+    // connu (Admin-UI-7D-D §1).
     vi.mocked(getParkCountryDistribution).mockResolvedValue([{ country_code: "PL", count: 5 }]);
     renderDashboard();
 
     await screen.findByText("Couverture géographique");
     expect(await screen.findByText("PL")).toBeTruthy();
+    const { markers } = await mapInstances();
+    expect(markers).toHaveLength(0);
   });
 
   it("Admin-UI-7D-C : « Couverture géographique » affiche un état vide honnête plutôt qu'une carte inventée quand le catalogue est vide", async () => {
@@ -158,6 +227,8 @@ describe("Dashboard — Admin-UI-2", () => {
 
     await screen.findByText("Couverture géographique");
     expect(await screen.findByText("Aucun pays enregistré pour le moment.")).toBeTruthy();
+    const { maps } = await mapInstances();
+    expect(maps).toHaveLength(0);
   });
 
   it("Admin-UI-7D-C : « Répartition des parcs par source » régression >1000 — la légende reflète un vrai count exact par source, pas un tableau tronqué à 1000", async () => {

@@ -36,6 +36,18 @@ describe("StatCard — Admin-UI-7B (icon/hint/trend/tone additive, existing usag
     render(<StatCard value={12} label="Signalements" />);
     expect(screen.queryByText(/^[+-]/)).toBeNull();
   });
+
+  it("Admin-UI-7D-D: alwaysShowIcon renders the tinted circle even without an icon (grid alignment), still with no svg glyph inside", () => {
+    const { container } = render(<StatCard value={1} label="Collectivités" alwaysShowIcon />);
+    const wrapper = container.querySelector("button > span:first-child");
+    expect(wrapper).toBeTruthy();
+    expect(wrapper?.querySelector("svg")).toBeNull();
+  });
+
+  it("Admin-UI-7D-D: alwaysShowIcon is opt-in — omitted (Maintenance.tsx's call shape) still renders no circle at all", () => {
+    const { container } = render(<StatCard value={1} label="À venir" />);
+    expect(container.querySelector("button > span:first-child")).toBeNull();
+  });
 });
 
 describe("ErrorState — Admin-UI-7B (shared compact error pattern)", () => {

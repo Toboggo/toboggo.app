@@ -213,8 +213,8 @@
   flex-wrap: wrap;
 }
 .donutSvg {
-  width: 92px;
-  height: 92px;
+  width: 104px;
+  height: 104px;
   flex-shrink: 0;
 }
 .donutSvg circle {
@@ -239,11 +239,38 @@
   flex: 1;
   min-width: 0;
 }
+/* Admin-UI-7D-B §2 : devenu un vrai bouton (synthèse → détail vers /parks),
+ * même rendu visuel qu'avant + focus/hover clavier réels. */
 .donutLegendRow {
   display: flex;
   align-items: flex-start;
   gap: 7px;
+  width: 100%;
   font-size: 12.5px;
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: -2px;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.donutLegendRow:hover,
+.donutLegendRow:focus-visible {
+  background: var(--color-bg-admin);
+}
+.viewAllLink {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  cursor: pointer;
 }
 .donutSwatch {
   width: 9px;
@@ -371,3 +398,138 @@
 /* `auto-fit`/`minmax` (règle de base ci-dessus) réduit déjà le nombre de
  * colonnes tout seul en dessous de ces largeurs — plus besoin d'overrides
  * dédiés ici. */
+
+/* ════════════════════════════════════════════════════════════════════════
+   Admin-UI-7D — Dashboard Admin cible (Admin uniquement : la vue
+   Collectivité au-dessus reste sur .kpiGrid/.kpiTile/.stack, inchangés)
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* KPI Admin = StatCard (7B), pas .kpiTile — grille un peu plus généreuse que
+ * .kpiGrid pour laisser respirer icône/valeur/hint. */
+.kpiGridAdmin {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* ── En-tête de carte avec contrôle à droite (période) ────────────────────── */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.sectionHeader .sectionTitle {
+  margin-bottom: 0;
+}
+
+/* ── Évolution de l'activité (Admin-UI-7D-B §3/§4) : 3 séries réelles déjà
+ * chargées (activity/reports/reviews), rebucketées côté client selon la
+ * période choisie — aucune requête réseau supplémentaire, aucune valeur
+ * inventée. ───────────────────────────────────────────────────────────── */
+.evo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-admin);
+}
+.evoSvg {
+  width: 100%;
+  height: 96px;
+  display: block;
+}
+.evoGrid {
+  stroke: var(--color-border-admin);
+  stroke-width: 1;
+}
+.evoAxis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--color-text-faint);
+}
+.evoLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.evoLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.evoLegendItem strong {
+  color: var(--color-text);
+  font-family: var(--font-heading);
+}
+.evoLegendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Top collectivités (Admin-UI-7D §8) ───────────────────────────────── */
+.orgList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.orgRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.orgRow:hover {
+  background: var(--color-bg-admin);
+  color: var(--color-primary-hover);
+}
+.orgRank {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 10.5px;
+}
+.orgName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orgCount {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}

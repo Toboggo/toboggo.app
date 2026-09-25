@@ -14,6 +14,7 @@ import {
   getParkSourceDistribution,
   listCommunes,
   listAllUsers,
+  listOrganizationsWithCounts,
   downloadCsv,
 } from "@toboggo/shared";
 import Dashboard from "./Dashboard";
@@ -33,6 +34,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     getParkSourceDistribution: vi.fn(),
     listCommunes: vi.fn(),
     listAllUsers: vi.fn(),
+    listOrganizationsWithCounts: vi.fn(),
     downloadCsv: vi.fn(),
   };
 });
@@ -84,6 +86,7 @@ describe("Dashboard — Admin-UI-2", () => {
     vi.mocked(getParkSourceDistribution).mockResolvedValue([{ source_type: "osm", count: 3 }]);
     vi.mocked(listCommunes).mockResolvedValue([{ id: "org-1" }, { id: "org-2" }, { id: "org-3" }, { id: "org-4" }, { id: "org-5" }] as never);
     vi.mocked(listAllUsers).mockResolvedValue([{ id: "u1" }, { id: "u2" }, { id: "u3" }, { id: "u4" }] as never);
+    vi.mocked(listOrganizationsWithCounts).mockResolvedValue([]);
   });
 
   it("affiche les KPI admin, cliquables vers les écrans réels", async () => {
@@ -152,6 +155,34 @@ describe("Dashboard — Admin-UI-2", () => {
     expect(await screen.findByText("Impossible de charger ces données.")).toBeTruthy();
   });
 
+  it("Admin-UI-7D-B : la légende du donut navigue vers /parks filtré sur la source, avec status=all (le défaut admin de /parks est status=pending, qui masquerait le catalogue entier représenté par le donut)", async () => {
+    renderDashboard();
+    const link = await screen.findByRole("button", { name: /Voir les parcs source OpenStreetMap/ });
+    fireEvent.click(link);
+    expect(screen.getByTestId("loc").textContent).toBe("/parks?source=osm&status=all");
+  });
+
+  it("Admin-UI-7D-B : « Voir tous les parcs » navigue vers /parks avec status=all", async () => {
+    renderDashboard();
+    await screen.findByText("OpenStreetMap");
+    fireEvent.click(screen.getByRole("button", { name: "Voir tous les parcs ›" }));
+    expect(screen.getByTestId("loc").textContent).toBe("/parks?status=all");
+  });
+
+  it("Admin-UI-7D-B : « Évolution de l'activité » remplace « Activité récente » côté Admin, avec un sélecteur de période qui ne change aucun KPI", async () => {
+    renderDashboard();
+    expect(await screen.findByText("Évolution de l'activité")).toBeTruthy();
+    // "2" (published) doit être chargé avant qu'on capture l'état de référence.
+    await waitFor(() => expect(screen.getByText("Parcs actifs").closest("button")!.textContent).toContain("2"));
+    const before = screen.getByText("Parcs actifs").closest("button")!.textContent;
+
+    fireEvent.click(screen.getByRole("tab", { name: "30 j" }));
+    // Le changement de période ne doit rien re-fetcher ni changer un seul KPI
+    // (rebucketing 100% client des séries déjà chargées).
+    expect(listParks).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Parcs actifs").closest("button")!.textContent).toBe(before);
+  });
+
   it("actions rapides : ouvre les écrans réels uniquement (parcs, signalements, validation, photos)", async () => {
     renderDashboard();
     fireEvent.click(await screen.findByText("Ouvrir la file de validation"));
@@ -192,20 +223,40 @@ describe("Dashboard — Admin-UI-2", () => {
     expect(listAllUsers).not.toHaveBeenCalled();
   });
 
-  it("Admin-UI-4 : pas de bloc « Top collectivités » (activity_log inter-organisations bloqué par RLS)", async () => {
+  it("Admin-UI-7D : « Top collectivités » classe par vrai parkCount (listOrganizationsWithCounts, RLS publique — pas activity_log) et lie vers /organizations/:id", async () => {
+    vi.mocked(listOrganizationsWithCounts).mockResolvedValue([
+      { id: "org-1", name: "Lyon", parkCount: 2 } as never,
+      { id: "org-2", name: "Paris", parkCount: 9 } as never,
+      { id: "org-3", name: "Nice", parkCount: 0 } as never,
+    ]);
     renderDashboard();
-    await screen.findByText("Collectivités");
-    expect(screen.queryByText(/Top collectivités/i)).toBeNull();
-    expect(screen.queryByText(/collectivités les plus actives/i)).toBeNull();
+    await screen.findByText("Paris");
+    // Trié par parkCount décroissant : Paris (9) avant Lyon (2) avant Nice (0).
+    const rows = screen.getAllByText(/^\d+ parcs?$/).map((el) => el.closest("button")?.textContent ?? "");
+    expect(rows[0]).toContain("Paris");
+    expect(rows[0]).toContain("9 parcs");
+    expect(rows[1]).toContain("Lyon");
+
+    fireEvent.click(screen.getByText("Paris").closest("button")!);
+    expect(screen.getByTestId("loc").textContent).toBe("/organizations/org-2");
   });
 
-  it("Admin-UI-4 : « Signalements ouverts » signale les critiques/hautes sévérités sans dupliquer un bloc « Alertes »", async () => {
+  it("Admin-UI-7D : « Top collectivités » affiche un état vide honnête plutôt qu'un classement inventé quand il n'y a aucune collectivité", async () => {
+    vi.mocked(listOrganizationsWithCounts).mockResolvedValue([]);
+    renderDashboard();
+    await screen.findByText("Top collectivités");
+    expect(await screen.findByText("Aucune collectivité enregistrée pour le moment.")).toBeTruthy();
+  });
+
+  it("Admin-UI-4 : « Signalements ouverts » signale les critiques/hautes sévérités sans dupliquer un bloc « Alertes » (KPI + À traiter, même donnée réelle)", async () => {
     vi.mocked(listReports).mockResolvedValue([
       { id: "r1", status: "open", severity: "critical" },
       { id: "r2", status: "open", severity: "low" },
     ] as never);
     renderDashboard();
-    expect(await screen.findByText(/dont 1 critique\/haute sévérité/)).toBeTruthy();
+    // Admin-UI-7D : le hint réel apparaît maintenant aussi sur le KPI (StatCard),
+    // en plus de la ligne « À traiter » — même compteur, jamais un 2e calcul.
+    expect(await screen.findAllByText(/dont 1 critique\/haute sévérité/)).toHaveLength(2);
     expect(screen.queryByText("Alertes opérationnelles")).toBeNull();
   });
 

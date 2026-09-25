@@ -1,7 +1,8 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Button, Card, Icon, Skeleton, type IconName } from "@toboggo/design-system";
+import { Button, Card, Icon, Segmented, Skeleton, StatCard, type IconName } from "@toboggo/design-system";
 import {
   listParks,
   listReports,
@@ -14,6 +15,7 @@ import {
   getParkSourceDistribution,
   listCommunes,
   listAllUsers,
+  listOrganizationsWithCounts,
   toCsv,
   downloadCsv,
   type Maintenance,
@@ -55,6 +57,9 @@ interface StatItem {
   onClick: () => void;
   loading: boolean;
   error: boolean;
+  /** Real secondary context only (Admin-UI-7D §2) — never fabricated, always
+   * derived from data already loaded for this exact stat. */
+  hint?: string;
 }
 
 // Même libellés que Photos.tsx / PhotosPanel.tsx (pas de 2e formulation pour
@@ -89,9 +94,124 @@ const QUICK_ACTIONS: { key: string; label: string; icon?: IconName; to: string }
   { key: "photos", label: "Modérer les photos", to: "/photos" },
 ];
 
+const TOP_ORGANIZATIONS_LIMIT = 5;
+
+// Admin-UI-7D-B §3/§4 : "évolution de l'activité" — 3 séries réellement
+// disponibles SANS requête supplémentaire (activity/reports/reviews sont déjà
+// intégralement chargées par ce même écran pour d'autres besoins). Photos et
+// modifications ont aussi un `created_at` réel mais nécessiteraient 1-2
+// requêtes de plus (listProcessedMedia, listParkEdits sans filtre statut) —
+// volontairement pas ajoutées ici pour ne pas alourdir cette itération ;
+// extension triviale plus tard si besoin.
+//
+// Le sélecteur de période (7/30/90 j) ne fait AUCUNE requête réseau : il ne
+// fait que rebucketer les tableaux déjà en mémoire — donc aucune donnée
+// inventée, mais deux limites réelles à connaître : `listActivity` plafonne
+// à 200 lignes (les fenêtres 30/90 j peuvent donc être tronquées si plus de
+// 200 événements existent sur la période) et, plus largement, TOUTE requête
+// Supabase non paginée de ce projet est plafonnée à 1000 lignes
+// (`supabase/config.toml` → `max_rows = 1000`, PostgREST) — `reports`/
+// `reviews` en sont aujourd'hui loin, donc sans impact réel pour ces 2
+// séries, mais la limite existe et vaut d'être connue.
+const EVOLUTION_PERIODS = [7, 30, 90] as const;
+type EvolutionDays = (typeof EVOLUTION_PERIODS)[number];
+const dayFullFmt = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "short" });
+const dayShortFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short" });
+
+interface EvolutionBucket {
+  date: Date;
+  count: number;
+}
+interface EvolutionSeries {
+  key: string;
+  label: string;
+  color: string;
+  data: EvolutionBucket[];
+}
+
+function bucketByDay(items: { created_at: string }[], days: number): EvolutionBucket[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const buckets: EvolutionBucket[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    buckets.push({ date: d, count: 0 });
+  }
+  for (const item of items) {
+    const d = new Date(item.created_at);
+    d.setHours(0, 0, 0, 0);
+    const bucket = buckets.find((b) => b.date.getTime() === d.getTime());
+    if (bucket) bucket.count++;
+  }
+  return buckets;
+}
+
+const EVO_W = 560;
+const EVO_H = 110;
+
+function ActivityEvolutionChart({ series, days }: { series: EvolutionSeries[]; days: number }) {
+  const max = Math.max(1, ...series.flatMap((s) => s.data.map((b) => b.count)));
+  const first = series[0]?.data[0]?.date;
+  const last = series[0]?.data[series[0].data.length - 1]?.date;
+  const totals = series.map((s) => ({ label: s.label, total: s.data.reduce((sum, b) => sum + b.count, 0) }));
+  const ariaLabel = `Évolution sur ${days} jours — ${totals.map((t) => `${t.label} : ${t.total}`).join(", ")}`;
+
+  function xAt(i: number, len: number) {
+    return len > 1 ? (i / (len - 1)) * EVO_W : EVO_W / 2;
+  }
+  function yAt(count: number) {
+    return EVO_H - (count / max) * EVO_H;
+  }
+
+  return (
+    <div className={styles.evo}>
+      <svg viewBox={`0 0 ${EVO_W} ${EVO_H}`} className={styles.evoSvg} role="img" aria-label={ariaLabel} preserveAspectRatio="none">
+        {[0, 0.5, 1].map((f) => (
+          <line key={f} x1={0} x2={EVO_W} y1={EVO_H - f * EVO_H} y2={EVO_H - f * EVO_H} className={styles.evoGrid} />
+        ))}
+        {series.map((s) => (
+          <g key={s.key}>
+            <polyline
+              points={s.data.map((b, i) => `${xAt(i, s.data.length)},${yAt(b.count)}`).join(" ")}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={2}
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            {s.data.map((b, i) => (
+              <circle key={i} cx={xAt(i, s.data.length)} cy={yAt(b.count)} r={days > 30 ? 1.5 : 2.5} fill={s.color}>
+                <title>
+                  {dayFullFmt.format(b.date)} · {s.label} : {b.count}
+                </title>
+              </circle>
+            ))}
+          </g>
+        ))}
+      </svg>
+      <div className={styles.evoAxis} aria-hidden="true">
+        <span>{first && dayShortFmt.format(first)}</span>
+        <span>{last && dayShortFmt.format(last)}</span>
+      </div>
+      <ul className={styles.evoLegend}>
+        {totals.map((t, i) => (
+          <li key={t.label} className={styles.evoLegendItem}>
+            <span className={styles.evoLegendDot} style={{ background: series[i].color }} aria-hidden="true" />
+            {t.label} <strong>{t.total}</strong>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { isAdmin, communeId } = useOrgScope();
+  // Admin-UI-7D-B §4 : ne rejoue aucune requête réseau — rebucketing client
+  // des séries déjà chargées ci-dessous, scope Admin uniquement.
+  const [evoDays, setEvoDays] = useState<EvolutionDays>(7);
 
   const parksQ = useQuery({ queryKey: ["dash-parks", communeId], queryFn: () => listParks({ communeId }) });
   const reportsQ = useQuery({ queryKey: ["dash-reports", communeId], queryFn: () => listReports({ communeId }) });
@@ -131,6 +251,18 @@ export default function Dashboard() {
   // l'ensemble des utilisateurs de la plateforme.
   const communesQ = useQuery({ queryKey: ["dash-communes"], queryFn: () => listCommunes(), enabled: isAdmin });
   const usersQ = useQuery({ queryKey: ["dash-all-users"], queryFn: () => listAllUsers(), enabled: isAdmin });
+  // "Top collectivités" (Admin-UI-7D §8) : `organizations`/`organization_parks`
+  // sont en lecture publique (RLS `using (true)`, migration 0018) — sans
+  // rapport avec la piste `activity_log` écartée en Admin-UI-4 (celle-ci était
+  // réellement bloquée : `listActivity(null)` en admin ne renvoie que les
+  // entrées `organization_id IS NULL`, jamais l'activité des collectivités).
+  // `listOrganizationsWithCounts` (déjà utilisée par Organizations.tsx) donne
+  // donc un vrai classement par nombre de parcs rattachés, admin uniquement.
+  const orgsQ = useQuery({
+    queryKey: ["dash-organizations-counts"],
+    queryFn: () => listOrganizationsWithCounts(),
+    enabled: isAdmin,
+  });
 
   const parks = parksQ.data ?? [];
   const reports = reportsQ.data ?? [];
@@ -139,6 +271,14 @@ export default function Dashboard() {
   const pendingMedia = pendingMediaQ.data ?? [];
   const maintenance = maintenanceQ.data ?? [];
   const pendingEdits = pendingEditsQ.data ?? [];
+  const topOrganizations = [...(orgsQ.data ?? [])].sort((a, b) => b.parkCount - a.parkCount).slice(0, TOP_ORGANIZATIONS_LIMIT);
+  const evolutionSeries: EvolutionSeries[] = [
+    { key: "activity", label: "Activité", color: "var(--color-primary)", data: bucketByDay(activity, evoDays) },
+    { key: "reports", label: "Signalements", color: "var(--color-error)", data: bucketByDay(reports, evoDays) },
+    { key: "reviews", label: "Avis", color: "var(--color-info)", data: bucketByDay(reviews, evoDays) },
+  ];
+  const evolutionLoading = activityQ.isLoading || reportsQ.isLoading || reviewsQ.isLoading;
+  const evolutionError = activityQ.isError || reportsQ.isError || reviewsQ.isError;
 
   const published = parks.filter((p) => p.status === "published").length;
   const pending = parks.filter((p) => p.status === "pending").length;
@@ -151,6 +291,10 @@ export default function Dashboard() {
   const criticalOpenReports = reports.filter((r) => r.status === "open" && (r.severity === "critical" || r.severity === "high")).length;
   const lowReviews = reviews.filter((r) => r.stars <= 2).length;
   const upcomingMaintenance = maintenance.filter(isUpcoming).length;
+  const criticalHint =
+    criticalOpenReports > 0
+      ? `dont ${criticalOpenReports} critique${criticalOpenReports > 1 ? "s" : ""}/haute${criticalOpenReports > 1 ? "s" : ""} sévérité`
+      : undefined;
 
   // "À traiter" ne doit jamais retomber sur un faux "rien à faire" pendant
   // que ses compteurs sont encore à 0 faute de données chargées — la liste
@@ -172,7 +316,7 @@ export default function Dashboard() {
       count: openReports,
       tint: criticalOpenReports > 0 ? "error" : "warning",
       onClick: () => navigate("/reports"),
-      hint: criticalOpenReports > 0 ? `dont ${criticalOpenReports} critique${criticalOpenReports > 1 ? "s" : ""}/haute${criticalOpenReports > 1 ? "s" : ""} sévérité` : undefined,
+      hint: criticalHint,
     },
     { key: "parks", label: "Parcs en attente de validation", count: pending, tint: "warning", onClick: () => navigate("/parks?status=pending") },
     // La file de validation park_edits a désormais un vrai écran
@@ -222,6 +366,7 @@ export default function Dashboard() {
           onClick: () => navigate("/reports"),
           loading: reportsQ.isLoading,
           error: reportsQ.isError,
+          hint: criticalHint,
         },
         {
           key: "reviews",
@@ -316,71 +461,115 @@ export default function Dashboard() {
     downloadCsv("toboggo-dashboard.csv", toCsv(rows, ["Indicateur", "Valeur"]));
   }
 
-  const toTreatCard = (
-    <Card flat padding="sm" className={styles.card}>
-      <h2 className={styles.sectionTitle}>À traiter</h2>
-      {toTreatError ? (
-        <ErrorInline onRetry={retryToTreat} />
-      ) : toTreatLoading ? (
-        <SkeletonActionRows count={4} />
-      ) : (
-        <div className={styles.actionList}>
-          {actionItems.map((item) => {
-            const isZero = item.count === 0;
-            const content = (
-              <>
-                <span className={styles.actionLabel}>
-                  <span
-                    className={clsx(styles.actionDot, isZero ? styles.actionDotZero : styles[`tint-${item.tint}`])}
-                    aria-hidden="true"
-                  />
-                  <span className={isZero ? styles.actionLabelZero : undefined}>{item.label}</span>
-                  {item.hint && <span className={styles.actionHint}>{item.hint}</span>}
+  // Contenu (sans le `Card` englobant) partagé entre les deux rôles — seul le
+  // wrapper diffère (variant="admin" pour l'Admin, `flat` inchangé pour la
+  // Collectivité, cf. Admin-UI-7C : ne jamais toucher le rendu Collectivité).
+  const toTreatBody = toTreatError ? (
+    <ErrorInline onRetry={retryToTreat} />
+  ) : toTreatLoading ? (
+    <SkeletonActionRows count={4} />
+  ) : (
+    <div className={styles.actionList}>
+      {actionItems.map((item) => {
+        const isZero = item.count === 0;
+        const content = (
+          <>
+            <span className={styles.actionLabel}>
+              <span
+                className={clsx(styles.actionDot, isZero ? styles.actionDotZero : styles[`tint-${item.tint}`])}
+                aria-hidden="true"
+              />
+              <span className={isZero ? styles.actionLabelZero : undefined}>{item.label}</span>
+              {item.hint && <span className={styles.actionHint}>{item.hint}</span>}
+            </span>
+            <span className={clsx(styles.countBadge, isZero ? styles.countBadgeZero : styles[`tint-${item.tint}`])}>
+              {item.count}
+            </span>
+          </>
+        );
+        return item.onClick ? (
+          <button key={item.key} type="button" className={styles.actionRow} onClick={item.onClick}>
+            {content}
+          </button>
+        ) : (
+          <div key={item.key} className={`${styles.actionRow} ${styles.static}`}>
+            {content}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const activityListBody = activityQ.isError ? (
+    <ErrorInline onRetry={() => void activityQ.refetch()} />
+  ) : activityQ.isLoading ? (
+    <SkeletonActivityRows count={4} />
+  ) : (
+    <ActivityList activity={activity} />
+  );
+
+  const lowReviewsRow = !isAdmin && !reviewsQ.isLoading && !reviewsQ.isError && lowReviews > 0 && (
+    <button type="button" className={styles.actionRow} onClick={() => navigate("/reviews")} style={{ marginTop: 8 }}>
+      <span className={styles.actionLabel}>Avis ≤2★ à examiner</span>
+      <span className={styles.countBadge}>{lowReviews}</span>
+    </button>
+  );
+
+  if (!isAdmin) {
+    // Vue Collectivité — strictement inchangée depuis Admin-UI-4 (Admin-UI-7D
+    // ne concerne que le Dashboard Admin, cf. consigne).
+    return (
+      <div>
+        <PageHeader
+          title="Tableau de bord"
+          actions={
+            <Button size="sm" variant="secondary" disabled={!canExport} onClick={exportDashboard}>
+              Exporter
+            </Button>
+          }
+        />
+
+        <div className={styles.kpiGrid}>
+          {stats.map((stat) => (
+            <button key={stat.key} type="button" className={styles.kpiTile} onClick={stat.onClick}>
+              <span className={clsx(styles.kpiIcon, styles[`tint-${stat.tint}`])}>{stat.icon && <Icon name={stat.icon} size={13} />}</span>
+              {stat.error ? (
+                <span className={styles.statError} title="Indisponible">
+                  —
                 </span>
-                <span className={clsx(styles.countBadge, isZero ? styles.countBadgeZero : styles[`tint-${item.tint}`])}>
-                  {item.count}
-                </span>
-              </>
-            );
-            return item.onClick ? (
-              <button key={item.key} type="button" className={styles.actionRow} onClick={item.onClick}>
-                {content}
-              </button>
-            ) : (
-              <div key={item.key} className={`${styles.actionRow} ${styles.static}`}>
-                {content}
-              </div>
-            );
-          })}
+              ) : stat.loading ? (
+                <Skeleton width={32} height={20} />
+              ) : (
+                <span className={styles.kpiValue}>{stat.value}</span>
+              )}
+              <span className={styles.kpiLabel}>{stat.label}</span>
+            </button>
+          ))}
         </div>
-      )}
-    </Card>
-  );
 
-  const activityCard = (
-    <Card flat padding="sm" className={styles.card}>
-      <h2 className={styles.sectionTitle}>Activité récente</h2>
-      {activityQ.isError ? (
-        <ErrorInline onRetry={() => void activityQ.refetch()} />
-      ) : activityQ.isLoading ? (
-        <SkeletonActivityRows count={4} />
-      ) : (
-        <ActivityList activity={activity} />
-      )}
-      {!isAdmin && !reviewsQ.isLoading && !reviewsQ.isError && lowReviews > 0 && (
-        <button type="button" className={styles.actionRow} onClick={() => navigate("/reviews")} style={{ marginTop: 8 }}>
-          <span className={styles.actionLabel}>Avis ≤2★ à examiner</span>
-          <span className={styles.countBadge}>{lowReviews}</span>
-        </button>
-      )}
-    </Card>
-  );
+        <div className={styles.stack}>
+          <Card flat padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>À traiter</h2>
+            {toTreatBody}
+          </Card>
+          <Card flat padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>Activité récente</h2>
+            {activityListBody}
+            {lowReviewsRow}
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
+  // Vue Admin (Admin-UI-7D) — grille dense : KPI en haut, zone principale
+  // (activité + répartition + top collectivités) plus large que le rail
+  // droit (à traiter + actions rapides), cf. maquette cible.
   return (
     <div>
       <PageHeader
         title="Tableau de bord"
-        subtitle={isAdmin ? "Vue d'ensemble de l'activité Toboggo." : undefined}
+        subtitle="Vue d'ensemble de l'activité Toboggo."
         actions={
           <Button size="sm" variant="secondary" disabled={!canExport} onClick={exportDashboard}>
             Exporter
@@ -388,62 +577,90 @@ export default function Dashboard() {
         }
       />
 
-      <div className={styles.kpiGrid}>
+      <div className={styles.kpiGridAdmin}>
         {stats.map((stat) => (
-          <button key={stat.key} type="button" className={styles.kpiTile} onClick={stat.onClick}>
-            <span className={clsx(styles.kpiIcon, styles[`tint-${stat.tint}`])}>{stat.icon && <Icon name={stat.icon} size={13} />}</span>
-            {stat.error ? (
-              <span className={styles.statError} title="Indisponible">
-                —
-              </span>
-            ) : stat.loading ? (
-              <Skeleton width={32} height={20} />
-            ) : (
-              <span className={styles.kpiValue}>{stat.value}</span>
-            )}
-            <span className={styles.kpiLabel}>{stat.label}</span>
-          </button>
+          <StatCard
+            key={stat.key}
+            icon={stat.icon}
+            label={stat.label}
+            tone={stat.tint}
+            onClick={stat.onClick}
+            hint={stat.hint}
+            value={
+              stat.error ? (
+                <span title="Indisponible">—</span>
+              ) : stat.loading ? (
+                <Skeleton width={28} height={18} />
+              ) : (
+                stat.value
+              )
+            }
+          />
         ))}
       </div>
 
-      {isAdmin ? (
-        <div className={styles.grid}>
-          <div className={styles.mainCol}>
-            {toTreatCard}
-            {activityCard}
-          </div>
-          <div className={styles.sideCol}>
-            <Card flat padding="sm" className={styles.card}>
-              <h2 className={styles.sectionTitle}>Répartition des parcs par source</h2>
-              <SourceBreakdown
-                data={sourceQ.data}
-                isLoading={sourceQ.isLoading}
-                isError={sourceQ.isError}
-                onRetry={() => void sourceQ.refetch()}
+      <div className={styles.grid}>
+        <div className={styles.mainCol}>
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Évolution de l'activité</h2>
+              <Segmented
+                options={EVOLUTION_PERIODS.map((d) => ({ value: String(d), label: `${d} j` }))}
+                value={String(evoDays)}
+                onChange={(v) => setEvoDays(Number(v) as EvolutionDays)}
               />
-            </Card>
-            <Card flat padding="sm" className={styles.card}>
-              <h2 className={styles.sectionTitle}>Actions rapides</h2>
-              <div className={styles.quickActions}>
-                {QUICK_ACTIONS.map((a) => (
-                  <button key={a.key} type="button" className={styles.quickAction} onClick={() => navigate(a.to)}>
-                    <span className={styles.quickActionIcon}>{a.icon && <Icon name={a.icon} size={13} />}</span>
-                    <span className={styles.quickActionLabel}>{a.label}</span>
-                    <span className={styles.quickActionChevron} aria-hidden="true">
-                      ›
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </Card>
-          </div>
+            </div>
+            {!evolutionLoading && !evolutionError && <ActivityEvolutionChart series={evolutionSeries} days={evoDays} />}
+            {activityListBody}
+          </Card>
+
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>Répartition des parcs par source</h2>
+            <SourceBreakdown
+              data={sourceQ.data}
+              isLoading={sourceQ.isLoading}
+              isError={sourceQ.isError}
+              onRetry={() => void sourceQ.refetch()}
+              onSelectSource={(source) => navigate(`/parks?source=${source}&status=all`)}
+              onViewAll={() => navigate("/parks?status=all")}
+            />
+          </Card>
+
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>Top collectivités</h2>
+            <TopOrganizations
+              data={orgsQ.data}
+              top={topOrganizations}
+              isLoading={orgsQ.isLoading}
+              isError={orgsQ.isError}
+              onRetry={() => void orgsQ.refetch()}
+              onOpen={(id) => navigate(`/organizations/${id}`)}
+            />
+          </Card>
         </div>
-      ) : (
-        <div className={styles.stack}>
-          {toTreatCard}
-          {activityCard}
+
+        <div className={styles.sideCol}>
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>À traiter</h2>
+            {toTreatBody}
+          </Card>
+
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>Actions rapides</h2>
+            <div className={styles.quickActions}>
+              {QUICK_ACTIONS.map((a) => (
+                <button key={a.key} type="button" className={styles.quickAction} onClick={() => navigate(a.to)}>
+                  <span className={styles.quickActionIcon}>{a.icon && <Icon name={a.icon} size={13} />}</span>
+                  <span className={styles.quickActionLabel}>{a.label}</span>
+                  <span className={styles.quickActionChevron} aria-hidden="true">
+                    ›
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Card>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -453,11 +670,20 @@ function SourceBreakdown({
   isLoading,
   isError,
   onRetry,
+  onSelectSource,
+  onViewAll,
 }: {
   data: ParkSourceCount[] | undefined;
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
+  /** Admin-UI-7D-B §2 : `/parks` sait déjà lire `?source=` côté client
+   * (Parks.tsx, Admin-UI-5B) — synthèse → détail réutilise ce filtre réel
+   * tel quel, sans y toucher. `status=all` est explicite : l'admin par
+   * défaut de `/parks` est `status=pending`, ce qui masquerait la plupart
+   * des parcs d'une source alors que ce donut porte sur le catalogue entier. */
+  onSelectSource: (source: SourceType) => void;
+  onViewAll: () => void;
 }) {
   if (isError) return <ErrorInline onRetry={onRetry} />;
   if (isLoading) {
@@ -470,7 +696,14 @@ function SourceBreakdown({
   const rows = data ?? [];
   const total = rows.reduce((sum, r) => sum + r.count, 0);
   if (total === 0) {
-    return <p className={styles.activityEmpty}>Aucune source enregistrée pour le moment.</p>;
+    return (
+      <>
+        <p className={styles.activityEmpty}>Aucune source enregistrée pour le moment.</p>
+        <button type="button" className={styles.viewAllLink} onClick={onViewAll}>
+          Voir tous les parcs ›
+        </button>
+      </>
+    );
   }
 
   const R = 45;
@@ -478,6 +711,7 @@ function SourceBreakdown({
   let offset = 0;
 
   return (
+    <>
     <div className={styles.donutWrap}>
       <svg viewBox="0 0 120 120" className={styles.donutSvg} role="img" aria-label={`Répartition des ${total} parcs par source`}>
         <circle cx={60} cy={60} r={R} fill="none" stroke="var(--color-border)" strokeWidth={16} />
@@ -509,18 +743,83 @@ function SourceBreakdown({
       </svg>
       <ul className={styles.donutLegend}>
         {rows.map((row) => (
-          <li key={row.source_type} className={styles.donutLegendRow}>
-            <span className={styles.donutSwatch} style={{ background: SOURCE_TYPE_COLOR[row.source_type] }} aria-hidden="true" />
-            <span className={styles.donutLegendText}>
-              <span className={styles.donutLegendLabel}>{SOURCE_TYPE_LABEL[row.source_type] ?? row.source_type}</span>
-              <span className={styles.donutLegendCount}>
-                {row.count} · {Math.round((row.count / total) * 100)}%
+          <li key={row.source_type}>
+            <button
+              type="button"
+              className={styles.donutLegendRow}
+              onClick={() => onSelectSource(row.source_type)}
+              aria-label={`Voir les parcs source ${SOURCE_TYPE_LABEL[row.source_type] ?? row.source_type} (${row.count})`}
+            >
+              <span className={styles.donutSwatch} style={{ background: SOURCE_TYPE_COLOR[row.source_type] }} aria-hidden="true" />
+              <span className={styles.donutLegendText}>
+                <span className={styles.donutLegendLabel}>{SOURCE_TYPE_LABEL[row.source_type] ?? row.source_type}</span>
+                <span className={styles.donutLegendCount}>
+                  {row.count} · {Math.round((row.count / total) * 100)}%
+                </span>
               </span>
-            </span>
+            </button>
           </li>
         ))}
       </ul>
     </div>
+    <button type="button" className={styles.viewAllLink} onClick={onViewAll}>
+      Voir tous les parcs ›
+    </button>
+    </>
+  );
+}
+
+/**
+ * Admin-UI-7D §8 — classement réel par `parkCount` (`listOrganizationsWithCounts`,
+ * `organizations`/`organization_parks` en lecture publique — voir le
+ * commentaire sur `orgsQ`). Aucune sparkline, aucune tendance : uniquement le
+ * total de parcs rattachés, explicitement nommé.
+ */
+function TopOrganizations({
+  data,
+  top,
+  isLoading,
+  isError,
+  onRetry,
+  onOpen,
+}: {
+  data: { id: string }[] | undefined;
+  top: { id: string; name: string; parkCount: number }[];
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  onOpen: (id: string) => void;
+}) {
+  if (isError) return <ErrorInline onRetry={onRetry} />;
+  if (isLoading) {
+    return (
+      <div className={styles.orgList}>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className={styles.orgRow}>
+            <Skeleton width="60%" height={13} />
+            <Skeleton width={28} height={13} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (!data || data.length === 0) {
+    return <p className={styles.activityEmpty}>Aucune collectivité enregistrée pour le moment.</p>;
+  }
+  return (
+    <ul className={styles.orgList}>
+      {top.map((org, i) => (
+        <li key={org.id}>
+          <button type="button" className={styles.orgRow} onClick={() => onOpen(org.id)}>
+            <span className={styles.orgRank}>{i + 1}</span>
+            <span className={styles.orgName}>{org.name}</span>
+            <span className={styles.orgCount}>
+              {org.parkCount} parc{org.parkCount > 1 ? "s" : ""}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 

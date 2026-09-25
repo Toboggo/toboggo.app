@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import clsx from "clsx";
 import { Avatar, Button, Input, Menu, MenuItem, MenuLabel } from "@toboggo/design-system";
 import type { TeamRole } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
+import { useOrgScope } from "../lib/orgScope";
 import styles from "./AppHeader.module.css";
 
 // Mêmes libellés que le sélecteur de rôle d'InviteModal — pas de 2e formulation.
@@ -24,6 +26,7 @@ const ROLE_LABEL: Record<TeamRole, string> = {
  */
 export function AppHeader({ orgLabel, screenLabel }: { orgLabel: string; screenLabel?: string }) {
   const navigate = useNavigate();
+  const { isAdmin } = useOrgScope();
   const { userName, userEmail, currentRole, signOut } = useOrgSession();
   const [query, setQuery] = useState("");
   // `Input` (design-system) n'est pas un `forwardRef` — on cible son <input>
@@ -54,7 +57,7 @@ export function AppHeader({ orgLabel, screenLabel }: { orgLabel: string; screenL
   const roleLabel = role ? ROLE_LABEL[role] : null;
 
   return (
-    <header className={styles.header}>
+    <header className={clsx(styles.header, isAdmin && styles.adminHeader)}>
       <nav aria-label="Fil d'Ariane" className={styles.breadcrumb}>
         <span>{orgLabel}</span>
         {screenLabel && (
@@ -75,7 +78,7 @@ export function AppHeader({ orgLabel, screenLabel }: { orgLabel: string; screenL
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un parc…"
             aria-label="Rechercher un parc"
-            className={styles.searchInput}
+            className={clsx(styles.searchInput, isAdmin && styles.searchInputAdmin)}
           />
           <kbd className={styles.kbdHint} aria-hidden="true">
             ⌘K

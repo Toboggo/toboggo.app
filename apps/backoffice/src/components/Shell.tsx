@@ -154,8 +154,14 @@ export function Shell({ children }: { children: ReactNode }) {
     mainRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
+  // "bo-shell-admin" (Admin-UI-7C) is a plain global marker, not a CSS-module
+  // class: it must be readable both from this module (via `:global()`) and
+  // from the shared, non-module `index.css` (`.bo-content` background) — same
+  // convention already used for "bo-shell"/"bo-content" themselves. Applied
+  // only when `isAdmin`, so the Collectivité shell keeps its current (green
+  // sidebar, warm background) look entirely unchanged.
   return (
-    <div className="bo-shell">
+    <div className={clsx("bo-shell", isAdmin && "bo-shell-admin")}>
       <a href="#main-content" className={styles.skipLink}>
         Aller au contenu principal
       </a>

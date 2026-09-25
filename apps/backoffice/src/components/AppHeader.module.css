@@ -8,7 +8,13 @@
   padding: 8px 20px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  min-height: 48px;
+  min-height: var(--topbar-height, 48px);
+}
+/* Admin-UI-7C — bordure neutre (pas la teinte beige de --color-border) ;
+ * le fond reste --color-surface (déjà blanc) pour les deux rôles. Scoped via
+ * `isAdmin` côté composant, jamais appliqué à la Collectivité. */
+.adminHeader {
+  border-bottom-color: var(--color-border-admin);
 }
 
 /* Contexte discret : petite ligne « où suis-je », pas un titre — le <h1> du
@@ -55,6 +61,11 @@
   font-size: 13.5px;
   border-radius: var(--radius-pill);
   background: var(--color-surface-alt);
+}
+/* Admin-UI-7C — même recherche, fond neutre (pas la teinte beige de
+ * --color-surface-alt) pour rester cohérent avec le reste de la topbar Admin. */
+.searchInputAdmin {
+  background: var(--color-bg-admin);
 }
 .kbdHint {
   position: absolute;

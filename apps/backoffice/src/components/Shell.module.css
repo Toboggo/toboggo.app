@@ -14,11 +14,12 @@
   left: 0;
 }
 
-/* Sidebar = surface structurelle de la marque : vert Toboggo profond
- * (token --color-primary-pressed), pas l'encre neutre d'un template admin.
- * cf. docs/DESIGN-SYSTEM.md §6 (« sidebar back-office = fond coloré »). */
+/* Sidebar Collectivité (défaut) = vert Toboggo profond (--color-primary-pressed).
+ * L'Admin sombre (Admin-UI-7C, ci-dessous) est une SURCHARGE scoped sous
+ * `:global(.bo-shell-admin)` — ce bloc reste la vérité pour la Collectivité,
+ * intégralement inchangé. cf. docs/DESIGN-SYSTEM.md §6. */
 .sidebar {
-  width: 212px;
+  width: var(--sidebar-width, 212px);
   flex-shrink: 0;
   background: var(--color-primary-pressed);
   color: #fff;
@@ -29,6 +30,51 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
+}
+
+/* ════════════════════════════════════════════════════════════════════════
+   Admin-UI-7C — Shell Admin sombre (scoped, Admin uniquement)
+   ────────────────────────────────────────────────────────────────────────
+   `:global(.bo-shell-admin)` n'est posé sur la racine que si `isAdmin`
+   (Shell.tsx) : la Collectivité ne charge jamais ces règles. Presque noir /
+   bleu nuit plutôt qu'une grande surface verte — le vert Toboggo devient un
+   ACCENT (item actif) et non plus le fond structurel.
+   ════════════════════════════════════════════════════════════════════════ */
+:global(.bo-shell-admin) .sidebar {
+  background: var(--color-sidebar-bg);
+}
+:global(.bo-shell-admin) .navItem {
+  color: var(--color-sidebar-text);
+}
+:global(.bo-shell-admin) .navItem:hover {
+  background: var(--color-sidebar-surface-hover);
+  color: var(--color-sidebar-text-active);
+}
+/* Item actif = halo vert Toboggo (surface + liseré), pas violet, pas un
+ * simple blanc translucide comme sur la Collectivité. */
+:global(.bo-shell-admin) .navItem.active {
+  background: rgba(47, 163, 124, 0.18);
+  color: var(--color-sidebar-text-active);
+}
+:global(.bo-shell-admin) .navItem.active::before {
+  background: var(--color-primary);
+}
+:global(.bo-shell-admin) .groupTitle {
+  color: rgba(255, 255, 255, 0.42);
+}
+:global(.bo-shell-admin) .orgLabel {
+  color: var(--color-sidebar-text-active);
+}
+:global(.bo-shell-admin) .orgBlock {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+:global(.bo-shell-admin) .orgSwitch {
+  background: var(--color-sidebar-surface-hover);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+:global(.bo-shell-admin) .adminBadge {
+  background: var(--color-primary);
+  color: #fff;
 }
 .brand {
   display: flex;

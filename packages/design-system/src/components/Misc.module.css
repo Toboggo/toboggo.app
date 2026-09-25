@@ -80,6 +80,71 @@
   margin-top: 2px;
 }
 
+/* Admin-UI-7B — additions optionnelles (icône/tendance/tonalité), n'affectent
+ * jamais les usages qui ne passent pas ces props (ex. Maintenance.tsx). */
+.statIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+.tone-primary .statIcon {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.tone-warning .statIcon {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.tone-error .statIcon {
+  background: var(--color-error-tint);
+  color: var(--color-error);
+}
+.tone-info .statIcon {
+  background: var(--color-info-tint);
+  color: var(--color-info);
+}
+.statMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.statHint {
+  color: var(--color-text-faint);
+}
+.statTrend {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+.trend-up {
+  color: var(--color-primary);
+}
+.trend-down {
+  color: var(--color-error);
+}
+.trend-neutral {
+  color: var(--color-text-muted);
+}
+
+/* Pattern d'erreur compact partagé (Admin-UI-7B) — même mise en page que
+ * l'ErrorInline privé de Dashboard.module.css. */
+.errorState {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

@@ -1,0 +1,24 @@
+/* Admin-UI-7B — valeurs identiques à l'ancienne version inline (22px / 24px /
+ * 12px / 13px / 4px / 8px correspondent exactement à --text-xl / --space-6 /
+ * --space-3 / --text-sm / --space-1 / --space-2) : aucun changement visuel,
+ * juste le passage sur les tokens existants. */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.title {
+  font-size: var(--text-xl);
+}
+.subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+}
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}

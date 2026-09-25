@@ -1,13 +1,14 @@
 import type { ReactNode } from "react";
+import styles from "./PageHeader.module.css";
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: string; actions?: ReactNode }) {
   return (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+    <div className={styles.header}>
       <div>
-        <h1 style={{ fontSize: 22 }}>{title}</h1>
-        {subtitle && <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 4 }}>{subtitle}</p>}
+        <h1 className={styles.title}>{title}</h1>
+        {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
       </div>
-      {actions && <div style={{ display: "flex", gap: 8 }}>{actions}</div>}
+      {actions && <div className={styles.actions}>{actions}</div>}
     </div>
   );
 }

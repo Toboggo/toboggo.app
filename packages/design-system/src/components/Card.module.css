@@ -11,3 +11,16 @@
 .pad-sm {
   padding: var(--space-3);
 }
+
+/* Admin-UI-7B — surface nette pour la Visual Foundation cible : radius
+ * resserré (10px au lieu de 26px), bordure neutre fine (--color-border-admin,
+ * pas --color-border qui a une teinte beige), pas d'ombre par défaut. Opt-in
+ * via `variant="admin"` — n'affecte aucun usage existant de `.card`/`.flat`. */
+.admin {
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-border-admin);
+  box-shadow: none;
+}
+.adminShadow {
+  box-shadow: var(--shadow-sm);
+}

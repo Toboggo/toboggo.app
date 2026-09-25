@@ -165,7 +165,56 @@
   --color-nav-surface: rgba(255, 255, 255, 0.72);
   --color-nav-surface-fallback: var(--color-surface);
   --color-nav-border: rgba(20, 30, 24, 0.07);
+
+  /* ============================================================
+     Admin surfaces (Admin-UI-7B — Visual Foundation)
+     ------------------------------------------------------------
+     Additif, non consommé par défaut : Shell.tsx (7C) et
+     Dashboard.tsx (7D) les activeront écran par écran. Tant qu'ils
+     ne sont pas consommés, aucun rendu existant ne change — mêmes
+     garanties que --space-7/--color-success (DESIGN-1). Le BO
+     Collectivité continue d'utiliser --color-bg/--color-surface/
+     --color-border existants, inchangés, et n'est donc pas affecté.
+
+     Objectif : surfaces blanches/gris très clair, bordures fines
+     neutres (moins "beige" que --color-border), plus proches d'un
+     produit SaaS dense — sans toucher aux tokens déjà consommés
+     ailleurs (mobile app + BO Collectivité).
+     ============================================================ */
+  --color-bg-admin: #f6f7f9;
+  --color-border-admin: #e4e7eb;
+  --color-text-muted-admin: #6b7280;
+
+  /* Sidebar sombre (7C) — tokens dédiés, ne réutilisent PAS
+     --color-primary-pressed (qui reste le "pressed" sémantique des
+     boutons/actions, partagé avec le BO Collectivité). Neutre avec
+     une légère teinte verte pour rester identifiable comme Toboggo
+     plutôt qu'un gris SaaS générique. */
+  --color-sidebar-bg: #12181a;
+  --color-sidebar-surface-hover: rgba(255, 255, 255, 0.06);
+  --color-sidebar-surface-active: rgba(255, 255, 255, 0.12);
+  --color-sidebar-text: rgba(255, 255, 255, 0.72);
+  --color-sidebar-text-active: #ffffff;
+
+  /* Dimensions communes (7C) — sortent Shell.module.css/AppHeader.module.css
+     de leurs valeurs en dur (212px / 48px) sans les appliquer ici. */
+  --sidebar-width: 212px;
+  --topbar-height: 48px;
 }
+
+/*
+  Breakpoints conventionnels (Admin-UI-7B) — DOCUMENTATION UNIQUEMENT.
+  Une custom property CSS n'est pas utilisable dans une condition
+  `@media (max-width: ...)` standard (pas de CSS custom media ici, pas de
+  PostCSS/librairie ajoutée) : il n'existe donc PAS de token de breakpoint
+  utilisable, et il ne faut pas en créer un qui aurait l'air fonctionnel sans
+  l'être. Ces 3 valeurs sont déjà celles réellement utilisées (dupliquées en
+  dur) dans Shell.module.css / AppHeader.module.css / Dashboard.module.css —
+  les reprendre telles quelles pour tout nouveau media query :
+    640px  — mobile / recherche topbar masquée
+    860px  — bascule sidebar → barre basse, recherche resserrée
+    1024px — grille Dashboard 2 colonnes → 1 colonne
+*/
 
 /*
   Mode sombre — opt-in uniquement (via useTheme → [data-theme="dark"]).
@@ -211,6 +260,14 @@
 
   --color-nav-surface: rgba(30, 38, 32, 0.72);
   --color-nav-border: rgba(255, 255, 255, 0.08);
+
+  /* Admin surfaces (7B) — même caveat que le reste de ce bloc : non validé
+     visuellement, architecture préservée. --color-sidebar-* n'a pas
+     d'équivalent ici : la sidebar Admin est sombre en permanence, que l'app
+     soit en thème clair ou sombre — rien à inverser. */
+  --color-bg-admin: #15191c;
+  --color-border-admin: #262b30;
+  --color-text-muted-admin: #9aa1ab;
 }
 
 * {

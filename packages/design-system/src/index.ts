@@ -5,6 +5,7 @@ export * from "./icons/Icon";
 export * from "./icons/iconMap";
 export * from "./components/Button";
 export * from "./components/Card";
+export * from "./components/FilterBar";
 export * from "./components/Tag";
 export * from "./components/Input";
 export * from "./components/Segmented";

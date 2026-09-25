@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { ReactNode, TableHTMLAttributes } from "react";
 import clsx from "clsx";
 import { Icon, type IconName } from "../icons/Icon";
+import { Button } from "./Button";
 import styles from "./Misc.module.css";
 
 export function StepDots({ total, current }: { total: number; current: number }) {
@@ -71,20 +72,78 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
-export function StatCard({
-  value,
-  label,
-  onClick,
-}: {
+export interface StatCardTrend {
+  /** Already-formatted, caller-supplied display text (e.g. "+12 %", "-3").
+   * Never computed here — Admin-UI-7B: no fabricated/fictional trend. */
+  label: string;
+  /** Purely cosmetic direction (color) — not derived from `label`. */
+  direction?: "up" | "down" | "neutral";
+}
+
+export interface StatCardProps {
   value: ReactNode;
   label: string;
+  /** Sprite icon shown above the value (Admin-UI-7B — KPI cards). Optional:
+   * omitted, the card renders exactly as before. */
+  icon?: IconName;
+  /** Secondary/contextual line (e.g. "dont 2 critiques"). */
+  hint?: ReactNode;
+  /** Optional delta/tendency, real data only — see `StatCardTrend`. */
+  trend?: StatCardTrend;
+  tone?: "primary" | "warning" | "error" | "info" | "neutral";
   onClick?: () => void;
-}) {
+}
+
+/**
+ * Common stat/KPI tile primitive (Admin-UI-7B — Visual Foundation). Existing
+ * calls (`<StatCard value label onClick? />`, e.g. Maintenance.tsx) keep
+ * rendering identically: `icon`/`hint`/`trend`/`tone` are all optional and
+ * additive. Not yet wired into Dashboard.tsx (7D will migrate it there).
+ */
+export function StatCard({ value, label, icon, hint, trend, tone = "neutral", onClick }: StatCardProps) {
   return (
-    <button type="button" className={styles.statCard} onClick={onClick} disabled={!onClick}>
+    <button
+      type="button"
+      className={clsx(styles.statCard, tone !== "neutral" && styles[`tone-${tone}`])}
+      onClick={onClick}
+      disabled={!onClick}
+    >
+      {icon && (
+        <span className={styles.statIcon}>
+          <Icon name={icon} size={14} />
+        </span>
+      )}
       <div className={styles.statValue}>{value}</div>
       <div className={styles.statLabel}>{label}</div>
+      {(hint || trend) && (
+        <div className={styles.statMeta}>
+          {trend && (
+            <span className={clsx(styles.statTrend, trend.direction && styles[`trend-${trend.direction}`])}>
+              {trend.label}
+            </span>
+          )}
+          {hint && <span className={styles.statHint}>{hint}</span>}
+        </div>
+      )}
     </button>
+  );
+}
+
+/**
+ * Compact inline error pattern (Admin-UI-7B), extracted from the one that
+ * already lived privately inside Dashboard.tsx (`ErrorInline`) so it can be
+ * reused elsewhere. Dashboard's own copy is deliberately left as-is for now
+ * (7D will consolidate it onto this one) — this lot only prepares the shared
+ * primitive, it does not migrate any screen.
+ */
+export function ErrorState({ message = "Impossible de charger ces données.", onRetry }: { message?: string; onRetry: () => void }) {
+  return (
+    <div className={styles.errorState}>
+      <span>{message}</span>
+      <Button size="sm" variant="secondary" onClick={onRetry}>
+        Réessayer
+      </Button>
+    </div>
   );
 }
 

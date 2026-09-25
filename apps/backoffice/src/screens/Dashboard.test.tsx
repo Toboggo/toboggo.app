@@ -157,6 +157,26 @@ describe("Dashboard — Admin-UI-2", () => {
     expect(screen.getByTestId("loc").textContent).toBe("/reviews");
   });
 
+  it("Admin-UI-7E-B : les 7 KPI admin ont chacun un vrai pictogramme (plus aucun cercle vide) — Photos et Collectivités inclus", async () => {
+    renderDashboard();
+    await screen.findByText("Parcs actifs");
+    const labels = [
+      "Parcs actifs",
+      "Parcs en attente",
+      "Signalements ouverts",
+      "Avis publiés",
+      "Photos en attente",
+      "Collectivités",
+      "Utilisateurs",
+    ];
+    for (const label of labels) {
+      // Certains libellés existent aussi dans « À traiter » — le premier
+      // match du DOM est toujours la tuile KPI (rendue avant cette section).
+      const btn = screen.getAllByText(label)[0].closest("button")!;
+      expect(btn.querySelector("svg")).toBeTruthy();
+    }
+  });
+
   it("Admin-UI-7D-C — régression >1000 parcs : « Parcs actifs »/« Parcs en attente » reflètent le vrai total exact, jamais plafonnés à 1000 par un tableau tronqué", async () => {
     // Catalogue réel simulé : 2201 parcs (comme en local au moment de
     // l'audit), très au-delà de max_rows (1000) — getParkStatusCounts vient

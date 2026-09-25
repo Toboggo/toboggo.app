@@ -63,9 +63,22 @@
   background: var(--color-surface-alt);
 }
 /* Admin-UI-7C — même recherche, fond neutre (pas la teinte beige de
- * --color-surface-alt) pour rester cohérent avec le reste de la topbar Admin. */
+ * --color-surface-alt) pour rester cohérent avec le reste de la topbar Admin.
+ * Admin-UI-7E-B : marge gauche élargie pour laisser la place à `.searchIcon`
+ * (Admin uniquement — la Collectivité n'affiche pas encore cette icône, voir
+ * AppHeader.tsx). */
 .searchInputAdmin {
   background: var(--color-bg-admin);
+  padding-left: 36px;
+}
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-faint);
+  pointer-events: none;
+  display: flex;
 }
 .kbdHint {
   position: absolute;

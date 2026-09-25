@@ -53,4 +53,20 @@ describe("AppHeader — Admin-UI-7C (admin-only topbar theming)", () => {
     expect(screen.getByRole("searchbox", { name: "Rechercher un parc" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Menu utilisateur — Testeur/ })).toBeTruthy();
   });
+
+  it("Admin-UI-7E-B : la recherche Admin affiche l'icône ic-search — pas encore propagée à la Collectivité", () => {
+    scope.isAdmin = true;
+    const { container: adminContainer } = renderHeader();
+    const adminWrap = adminContainer.querySelector('input[type="search"]')?.parentElement?.parentElement;
+    expect(adminWrap?.querySelector("svg")).toBeTruthy();
+
+    scope.isAdmin = false;
+    const { container: communeContainer } = render(
+      <MemoryRouter>
+        <AppHeader orgLabel="Ma commune" screenLabel="Tableau de bord" />
+      </MemoryRouter>,
+    );
+    const communeWrap = communeContainer.querySelector('input[type="search"]')?.parentElement?.parentElement;
+    expect(communeWrap?.querySelector("svg")).toBeNull();
+  });
 });

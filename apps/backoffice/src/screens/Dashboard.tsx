@@ -101,9 +101,7 @@ const QUICK_ACTIONS: { key: string; label: string; icon?: IconName; to: string }
   { key: "parks", label: "Gérer les parcs", icon: "ic-list", to: "/parks" },
   { key: "reports", label: "Voir les signalements", icon: "ic-flag", to: "/reports" },
   { key: "validation", label: "Ouvrir la file de validation", icon: "ic-check", to: "/validation" },
-  // "Photos" n'a pas de pictogramme sûr dans le sprite (même constat que la
-  // nav — voir NAV_ICON_GAPS dans Shell.tsx) : pas d'icône inventée.
-  { key: "photos", label: "Modérer les photos", to: "/photos" },
+  { key: "photos", label: "Modérer les photos", icon: "ic-camera", to: "/photos" },
 ];
 
 const TOP_ORGANIZATIONS_LIMIT = 5;
@@ -423,6 +421,7 @@ export default function Dashboard() {
           key: "media",
           value: pendingMedia.length,
           label: "Photos en attente",
+          icon: "ic-camera",
           tint: "warning",
           onClick: () => navigate("/photos"),
           loading: pendingMediaQ.isLoading,
@@ -432,9 +431,7 @@ export default function Dashboard() {
           key: "organizations",
           value: communesQ.data?.length ?? 0,
           label: "Collectivités",
-          // Aucun pictogramme sûr dans le sprite pour « collectivité »
-          // (bâtiment/mairie) — voir NAV_ICON_GAPS (Shell.tsx) : pas d'icône
-          // inventée, listée en fin de rapport plutôt qu'un rond générique.
+          icon: "ic-building",
           tint: "primary",
           onClick: () => navigate("/organizations"),
           loading: communesQ.isLoading,
@@ -565,6 +562,7 @@ export default function Dashboard() {
           title="Tableau de bord"
           actions={
             <Button size="sm" variant="secondary" disabled={!canExport} onClick={exportDashboard}>
+              <Icon name="ic-download" size={14} />
               Exporter
             </Button>
           }
@@ -613,6 +611,7 @@ export default function Dashboard() {
         subtitle="Vue d'ensemble de l'activité Toboggo."
         actions={
           <Button size="sm" variant="secondary" disabled={!canExport} onClick={exportDashboard}>
+            <Icon name="ic-download" size={14} />
             Exporter
           </Button>
         }
@@ -623,10 +622,6 @@ export default function Dashboard() {
           <StatCard
             key={stat.key}
             icon={stat.icon}
-            // Admin-UI-7D-D §2 : cercle identique pour les 7 KPI même quand
-            // 2 d'entre eux (Photos, Collectivités) n'ont encore aucun
-            // pictogramme sûr — voir le rapport final pour l'asset attendu.
-            alwaysShowIcon
             label={stat.label}
             tone={stat.tint}
             onClick={stat.onClick}

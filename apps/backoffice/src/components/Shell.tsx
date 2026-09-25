@@ -26,18 +26,18 @@ export interface NavGroup {
 
 /**
  * Entrées de navigation sans icône de sprite adaptée (Lot 2 — audit §6 bis /
- * §20). Recherchées dans les 47 symboles existants avant d'écarter l'idée :
- * aucun ne représente raisonnablement une carte, l'entretien ou un journal
- * d'activité sans dénaturer un symbole déjà utilisé ailleurs dans le sprite
- * pour un autre sens. Pas de nouveau SVG dessiné, pas de bibliothèque externe
- * (CLAUDE.md §9) — à fournir par le fondateur (artifact « Brand kit ») pour
- * une passe ultérieure. Documenté ici plutôt que masqué.
+ * §20 ; Photos et Collectivités résolus en Admin-UI-7E-B via `ic-camera` /
+ * `ic-building`, Lucide adapté au format Toboggo). Recherchées dans les
+ * symboles existants avant d'écarter l'idée : aucun ne représente
+ * raisonnablement une carte ou un journal d'activité sans dénaturer un
+ * symbole déjà utilisé ailleurs dans le sprite pour un autre sens (l'entretien
+ * a un équivalent Lucide plausible mais hors périmètre de ce lot — pas de
+ * nouvelle icône ajoutée sans besoin identifié). Documenté ici plutôt que
+ * masqué.
  */
 export const NAV_ICON_GAPS: Record<string, string> = {
   "/maintenance": "entretien (outil / clé) — aucun symbole du sprite ne convient",
-  "/photos": "photo / appareil — aucun symbole du sprite ne convient",
   "/journal": "journal d'activité — aucun symbole du sprite ne convient sans réutiliser ic-list (déjà « Parcs »)",
-  "/organizations": "collectivité (bâtiment / mairie) — aucun symbole du sprite ne convient ; ic-users est déjà « Utilisateurs », le réutiliser serait ambigu",
 };
 
 export function buildNavGroups(opts: {
@@ -58,7 +58,7 @@ export function buildNavGroups(opts: {
         items: [
           { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
           { to: "/reviews", label: "Avis", icon: "ic-review" },
-          { to: "/photos", label: "Photos", badge: pendingMedia },
+          { to: "/photos", label: "Photos", icon: "ic-camera", badge: pendingMedia },
           { to: "/validation", label: "File de validation", icon: "ic-check", badge: pendingEdits },
         ],
       },
@@ -66,7 +66,7 @@ export function buildNavGroups(opts: {
       {
         title: "Admin",
         items: [
-          { to: "/organizations", label: "Collectivités" },
+          { to: "/organizations", label: "Collectivités", icon: "ic-building" },
           { to: "/users", label: "Utilisateurs", icon: "ic-users" },
         ],
       },
@@ -87,7 +87,7 @@ export function buildNavGroups(opts: {
       items: [
         { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
         { to: "/reviews", label: "Avis", icon: "ic-review" },
-        { to: "/photos", label: "Photos", badge: pendingMedia },
+        { to: "/photos", label: "Photos", icon: "ic-camera", badge: pendingMedia },
       ],
     },
     { title: "Exploitation", items: [{ to: "/maintenance", label: "Entretien" }] },

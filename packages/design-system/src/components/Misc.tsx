@@ -92,21 +92,15 @@ export interface StatCardProps {
   trend?: StatCardTrend;
   tone?: "primary" | "warning" | "error" | "info" | "neutral";
   onClick?: () => void;
-  /** Admin-UI-7D-D: renders the tinted icon circle even when `icon` is
-   * omitted, so a row of StatCards stays visually aligned (same circle,
-   * same diameter) while a real pictogram is still missing for some of
-   * them. Default false — existing icon-less callers (e.g. Maintenance.tsx)
-   * keep rendering with no circle at all. */
-  alwaysShowIcon?: boolean;
 }
 
 /**
  * Common stat/KPI tile primitive (Admin-UI-7B — Visual Foundation). Existing
  * calls (`<StatCard value label onClick? />`, e.g. Maintenance.tsx) keep
  * rendering identically: `icon`/`hint`/`trend`/`tone` are all optional and
- * additive. Not yet wired into Dashboard.tsx (7D will migrate it there).
+ * additive.
  */
-export function StatCard({ value, label, icon, hint, trend, tone = "neutral", onClick, alwaysShowIcon }: StatCardProps) {
+export function StatCard({ value, label, icon, hint, trend, tone = "neutral", onClick }: StatCardProps) {
   return (
     <button
       type="button"
@@ -114,8 +108,10 @@ export function StatCard({ value, label, icon, hint, trend, tone = "neutral", on
       onClick={onClick}
       disabled={!onClick}
     >
-      {(icon || alwaysShowIcon) && (
-        <span className={styles.statIcon}>{icon && <Icon name={icon} size={14} />}</span>
+      {icon && (
+        <span className={styles.statIcon}>
+          <Icon name={icon} size={14} />
+        </span>
       )}
       <div className={styles.statValue}>{value}</div>
       <div className={styles.statLabel}>{label}</div>

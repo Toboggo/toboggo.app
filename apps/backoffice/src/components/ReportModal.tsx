@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Dialog, Textarea } from "@toboggo/design-system";
+import { Button, Dialog, Icon, Textarea } from "@toboggo/design-system";
 import {
   dismissReport,
   reopenReport,
@@ -231,8 +231,9 @@ export function ReportModal({
             <>
               <Textarea label="Note de traitement (obligatoire)" value={note} onChange={(e) => setNote(e.target.value)} />
               {!isAdmin && (
-                <label style={{ fontSize: 12.5, cursor: "pointer" }}>
-                  📷 Ajouter une photo après réparation
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12.5, cursor: "pointer" }}>
+                  <Icon name="ic-camera" size={14} />
+                  Ajouter une photo après réparation
                   <input type="file" accept="image/*" hidden onChange={onPhoto} />
                 </label>
               )}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import clsx from "clsx";
-import { Avatar, Button, Input, Menu, MenuItem, MenuLabel } from "@toboggo/design-system";
+import { Avatar, Button, Icon, Input, Menu, MenuItem, MenuLabel } from "@toboggo/design-system";
 import type { TeamRole } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
@@ -72,6 +72,11 @@ export function AppHeader({ orgLabel, screenLabel }: { orgLabel: string; screenL
 
       <form role="search" className={styles.search} onSubmit={submitSearch}>
         <div className={styles.searchWrap} ref={searchWrapRef}>
+          {isAdmin && (
+            <span className={styles.searchIcon} aria-hidden="true">
+              <Icon name="ic-search" size={14} />
+            </span>
+          )}
           <Input
             type="search"
             value={query}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNavGroups } from "./Shell";
+import { buildNavGroups, NAV_ICON_GAPS } from "./Shell";
 
 /** Routes actually registered in `App.tsx`'s `<Routes>` — kept in sync by
  * hand (small, stable list). Any nav item pointing outside this set would be
@@ -112,5 +112,21 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
   it("never exposes 'File de validation' to a Collectivité session (Admin-3B-1 §11)", () => {
     const communeLabels = flatten({ isAdmin: false, ...base }).map((i) => i.label);
     expect(communeLabels).not.toContain("File de validation");
+  });
+
+  it("Admin-UI-7E-B : « Photos » a désormais ic-camera (Admin et Collectivité), « Collectivités » a ic-building", () => {
+    for (const isAdmin of [true, false]) {
+      const byLabel = Object.fromEntries(flatten({ isAdmin, ...base }).map((i) => [i.label, i.icon]));
+      expect(byLabel["Photos"]).toBe("ic-camera");
+    }
+    const adminByLabel = Object.fromEntries(flatten({ isAdmin: true, ...base }).map((i) => [i.label, i.icon]));
+    expect(adminByLabel["Collectivités"]).toBe("ic-building");
+  });
+
+  it("Admin-UI-7E-B : NAV_ICON_GAPS ne liste plus /photos ni /organizations (résolus), mais garde /maintenance et /journal (toujours sans pictogramme sûr)", () => {
+    expect(NAV_ICON_GAPS["/photos"]).toBeUndefined();
+    expect(NAV_ICON_GAPS["/organizations"]).toBeUndefined();
+    expect(NAV_ICON_GAPS["/maintenance"]).toBeTruthy();
+    expect(NAV_ICON_GAPS["/journal"]).toBeTruthy();
   });
 });

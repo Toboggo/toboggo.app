@@ -74,6 +74,11 @@ export interface ParkSourceCount {
   count: number;
 }
 
+// Toutes les valeurs réelles de l'enum `source_type` (fermé — contrairement à
+// `country_code`, voir `getParkCountryDistribution` dans parks.ts) : un
+// `count` exact par valeur, tiré en parallèle, jamais un tableau complet.
+const SOURCE_TYPES: SourceType[] = ["osm", "open_data", "municipality", "partner", "user", "toboggo", "other"];
+
 /**
  * Répartition du catalogue par `park_sources.source_type` (Admin-UI-2 —
  * Dashboard §3), toutes organisations confondues. `park_sources` a
@@ -83,18 +88,28 @@ export interface ParkSourceCount {
  * différemment). RLS `park_sources_read` = `park_is_visible(park_id)` :
  * un admin/staff voit tous les parcs (staff manages_park), donc cet agrégat
  * porte sur le catalogue réel, pas seulement les parcs publiés.
+ *
+ * Admin-UI-7D-C : réécrit pour ne plus dépendre d'un `select` non paginé.
+ * `park_sources` n'a pas de `.limit()` — au-delà de `max_rows` (PostgREST,
+ * 1000 localement) l'ancien `select("source_type")` était silencieusement
+ * tronqué, exactement le même bug que `listParks()` (voir
+ * `getParkStatusCounts`). `{ count: "exact", head: true }` par valeur donne
+ * un vrai `SELECT count(*) WHERE source_type = …` — fiable à toute échelle,
+ * sans transférer une seule ligne.
  */
 export async function getParkSourceDistribution(): Promise<ParkSourceCount[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase.from("park_sources").select("source_type");
-  if (error) throw error;
-  const counts = new Map<SourceType, number>();
-  for (const row of (data ?? []) as { source_type: SourceType }[]) {
-    counts.set(row.source_type, (counts.get(row.source_type) ?? 0) + 1);
-  }
-  return [...counts.entries()]
-    .map(([source_type, count]) => ({ source_type, count }))
-    .sort((a, b) => b.count - a.count);
+  const entries = await Promise.all(
+    SOURCE_TYPES.map(async (source_type) => {
+      const { count, error } = await supabase
+        .from("park_sources")
+        .select("park_id", { count: "exact", head: true })
+        .eq("source_type", source_type);
+      if (error) throw error;
+      return { source_type, count: count ?? 0 };
+    }),
+  );
+  return entries.filter((e) => e.count > 0).sort((a, b) => b.count - a.count);
 }
 
 export async function listExternalIds(parkId: string): Promise<ExternalId[]> {

@@ -3,6 +3,8 @@ import { getSupabase } from "../supabaseClient";
 import {
   assertValidAgeRange,
   createPark,
+  getParkCountryDistribution,
+  getParkStatusCounts,
   isValidCoordinate,
   listOrgParkIds,
   listParks,
@@ -343,6 +345,144 @@ describe("listParksPage — Admin-UI-5B (filtre Source, filtre Collectivité, co
 
     const inArgs = calls(queriesByTable["park_public"][0], "in");
     expect(inArgs).toContainEqual(["id", ["p9"]]);
+  });
+
+  it("Admin-UI-7D-C : filters by countryCode via a plain eq (no join needed, unlike sourceTypes)", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [{ id: "p1" }], error: null, count: 1 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listParksPage({ countryCode: "ES" });
+
+    const eqArgs = calls(queriesByTable["park_public"][0], "eq");
+    expect(eqArgs).toContainEqual(["country_code", "ES"]);
+  });
+});
+
+describe("getParkStatusCounts / getParkCountryDistribution — Admin-UI-7D-C (comptes exacts, jamais un tableau tronqué par max_rows)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  it("getParkStatusCounts : un count exact (head:true) par statut demandé, en parallèle", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: (calls) => {
+        const eq = calls.find((c) => c.method === "eq");
+        const status = eq?.args[1] as string | undefined;
+        const counts: Record<string, number> = { published: 1523, pending: 12 };
+        return { data: null, error: null, count: (status && counts[status]) ?? 0 };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const result = await getParkStatusCounts(["published", "pending"]);
+
+    expect(result).toEqual({ published: 1523, pending: 12 });
+    expect(queriesByTable["park_public"]).toHaveLength(2);
+    for (const q of queriesByTable["park_public"]) {
+      const selectArgs = q.calls.find((c) => c.method === "select")?.args;
+      expect(selectArgs?.[1]).toEqual({ count: "exact", head: true });
+    }
+  });
+
+  it("getParkStatusCounts régression >1000 : reste exact quand le vrai total dépasse max_rows (jamais un .filter().length sur un tableau tronqué à 1000)", async () => {
+    const { client } = makeFakeSupabase({
+      park_public: { data: null, error: null, count: 2201 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await getParkStatusCounts(["published"])).toEqual({ published: 2201 });
+  });
+
+  it("getParkStatusCounts : scope communeId via organization_parks", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      organization_parks: { data: [{ park_id: "p1" }, { park_id: "p2" }], error: null },
+      park_public: { data: null, error: null, count: 2 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await getParkStatusCounts(["published"], { communeId: "org-1" });
+
+    const inArgs = queriesByTable["park_public"][0].calls.find((c) => c.method === "in")?.args;
+    expect(inArgs).toEqual(["id", ["p1", "p2"]]);
+  });
+
+  it("getParkCountryDistribution : agrège via un count total puis une pagination sur country_code seul (jamais le tableau Park complet)", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: (calls) => {
+        const rangeCall = calls.find((c) => c.method === "range");
+        if (!rangeCall) return { data: null, error: null, count: 3 };
+        return {
+          data: [{ country_code: "FR" }, { country_code: "FR" }, { country_code: "ES" }],
+          error: null,
+        };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const result = await getParkCountryDistribution();
+
+    expect(result).toEqual([
+      { country_code: "FR", count: 2 },
+      { country_code: "ES", count: 1 },
+    ]);
+    // 1 requête de count (head) + 1 seule page (3 lignes < 1000) — jamais un select() sans filtre sur les colonnes complètes de Park.
+    expect(queriesByTable["park_public"]).toHaveLength(2);
+    const pageSelect = queriesByTable["park_public"][1].calls.find((c) => c.method === "select")?.args[0];
+    expect(pageSelect).toBe("country_code");
+  });
+
+  it("getParkCountryDistribution régression >1000 : agrège correctement sur plusieurs pages au-delà de max_rows", async () => {
+    const total = 2500;
+    const page0 = Array.from({ length: 1000 }, () => ({ country_code: "FR" }));
+    const page1 = [
+      ...Array.from({ length: 700 }, () => ({ country_code: "FR" })),
+      ...Array.from({ length: 300 }, () => ({ country_code: "ES" })),
+    ];
+    const page2 = Array.from({ length: 500 }, () => ({ country_code: "ES" }));
+
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: (calls) => {
+        const rangeCall = calls.find((c) => c.method === "range");
+        if (!rangeCall) return { data: null, error: null, count: total };
+        const [from] = rangeCall.args as [number, number];
+        if (from === 0) return { data: page0, error: null };
+        if (from === 1000) return { data: page1, error: null };
+        return { data: page2, error: null };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const result = await getParkCountryDistribution();
+
+    expect(result).toEqual([
+      { country_code: "FR", count: 1700 },
+      { country_code: "ES", count: 800 },
+    ]);
+    // 1 count + 3 pages (2500 lignes / 1000 par page) : jamais 1 seule requête tronquée.
+    expect(queriesByTable["park_public"]).toHaveLength(4);
+  });
+
+  it("getParkCountryDistribution : un catalogue vide ne déclenche aucune page", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: null, error: null, count: 0 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await getParkCountryDistribution()).toEqual([]);
+    expect(queriesByTable["park_public"]).toHaveLength(1);
+  });
+
+  it("un futur pays apparaît automatiquement — aucune liste de pays codée en dur", async () => {
+    const { client } = makeFakeSupabase({
+      park_public: (calls) => {
+        const rangeCall = calls.find((c) => c.method === "range");
+        if (!rangeCall) return { data: null, error: null, count: 1 };
+        return { data: [{ country_code: "PT" }], error: null };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await getParkCountryDistribution()).toEqual([{ country_code: "PT", count: 1 }]);
   });
 });
 

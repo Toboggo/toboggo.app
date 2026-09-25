@@ -5,21 +5,25 @@ import { makeFakeSupabase } from "../testUtils/fakeSupabase";
 
 vi.mock("../supabaseClient", () => ({ getSupabase: vi.fn() }));
 
-describe("getParkSourceDistribution — répartition des parcs par source (Admin-UI-2)", () => {
+// Admin-UI-7D-C : `getParkSourceDistribution` fait maintenant 1 requête
+// `count: exact, head: true` PAR valeur de `source_type` (7, en parallèle) au
+// lieu d'un unique `select("source_type")` non paginé — le fake doit donc
+// répondre différemment selon la valeur passée à `.eq()`, d'où ce responder
+// dynamique (voir `FakeQueryResponder`, testUtils/fakeSupabase.ts).
+function countsResponder(counts: Partial<Record<string, number>>) {
+  return (calls: { method: string; args: unknown[] }[]) => {
+    const eqCall = calls.find((c) => c.method === "eq");
+    const value = eqCall?.args[1] as string | undefined;
+    return { data: null, error: null, count: (value && counts[value]) ?? 0 };
+  };
+}
+
+describe("getParkSourceDistribution — répartition des parcs par source (Admin-UI-2, réécrit Admin-UI-7D-C)", () => {
   beforeEach(() => vi.mocked(getSupabase).mockReset());
 
-  it("agrège par source_type, triée du plus grand au plus petit", async () => {
-    const { client } = makeFakeSupabase({
-      park_sources: {
-        data: [
-          { source_type: "osm" },
-          { source_type: "municipality" },
-          { source_type: "osm" },
-          { source_type: "osm" },
-          { source_type: "user" },
-        ],
-        error: null,
-      },
+  it("agrège par source_type via un count exact par valeur (jamais un tableau complet), triée du plus grand au plus petit", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_sources: countsResponder({ osm: 3, municipality: 1, user: 1 }),
     });
     vi.mocked(getSupabase).mockReturnValue(client as never);
 
@@ -30,11 +34,26 @@ describe("getParkSourceDistribution — répartition des parcs par source (Admin
       { source_type: "municipality", count: 1 },
       { source_type: "user", count: 1 },
     ]);
+    // 1 requête par valeur réelle de l'enum (7), jamais un `select` sans filtre.
+    expect(queriesByTable["park_sources"]).toHaveLength(7);
+    for (const q of queriesByTable["park_sources"]) {
+      const selectArgs = q.calls.find((c) => c.method === "select")?.args;
+      expect(selectArgs?.[1]).toEqual({ count: "exact", head: true });
+    }
+  });
+
+  it("reste correct au-delà de 1000 lignes réelles — un count exact n'est jamais tronqué par max_rows (PostgREST), contrairement à un select non paginé", async () => {
+    const { client } = makeFakeSupabase({
+      park_sources: countsResponder({ osm: 2201 }),
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await getParkSourceDistribution()).toEqual([{ source_type: "osm", count: 2201 }]);
   });
 
   it("gère le cas mono-source (catalogue 100% OSM, état réel actuel)", async () => {
     const { client } = makeFakeSupabase({
-      park_sources: { data: [{ source_type: "osm" }, { source_type: "osm" }], error: null },
+      park_sources: countsResponder({ osm: 2 }),
     });
     vi.mocked(getSupabase).mockReturnValue(client as never);
 
@@ -42,7 +61,7 @@ describe("getParkSourceDistribution — répartition des parcs par source (Admin
   });
 
   it("retourne une liste vide plutôt que planter quand park_sources est vide", async () => {
-    const { client } = makeFakeSupabase({ park_sources: { data: [], error: null } });
+    const { client } = makeFakeSupabase({ park_sources: countsResponder({}) });
     vi.mocked(getSupabase).mockReturnValue(client as never);
 
     expect(await getParkSourceDistribution()).toEqual([]);

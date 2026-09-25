@@ -12,6 +12,8 @@ import {
   listPendingParkEditsForOrg,
   listParkEdits,
   getParkSourceDistribution,
+  getParkStatusCounts,
+  getParkCountryDistribution,
   listCommunes,
   listAllUsers,
   listOrganizationsWithCounts,
@@ -32,6 +34,8 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listPendingParkEditsForOrg: vi.fn(),
     listParkEdits: vi.fn(),
     getParkSourceDistribution: vi.fn(),
+    getParkStatusCounts: vi.fn(),
+    getParkCountryDistribution: vi.fn(),
     listCommunes: vi.fn(),
     listAllUsers: vi.fn(),
     listOrganizationsWithCounts: vi.fn(),
@@ -84,6 +88,11 @@ describe("Dashboard — Admin-UI-2", () => {
     vi.mocked(listPendingParkEditsForOrg).mockResolvedValue([]);
     vi.mocked(listParkEdits).mockResolvedValue([{ id: "e1", status: "pending" }] as never);
     vi.mocked(getParkSourceDistribution).mockResolvedValue([{ source_type: "osm", count: 3 }]);
+    // Admin-UI-7D-C : l'Admin ne dérive plus published/pending de listParks()
+    // (voir Dashboard.tsx) — mêmes valeurs que l'ancien tableau `PARK(...)`
+    // ci-dessus (2 published, 1 pending), mais via le comptage exact réel.
+    vi.mocked(getParkStatusCounts).mockResolvedValue({ published: 2, pending: 1 });
+    vi.mocked(getParkCountryDistribution).mockResolvedValue([]);
     vi.mocked(listCommunes).mockResolvedValue([{ id: "org-1" }, { id: "org-2" }, { id: "org-3" }, { id: "org-4" }, { id: "org-5" }] as never);
     vi.mocked(listAllUsers).mockResolvedValue([{ id: "u1" }, { id: "u2" }, { id: "u3" }, { id: "u4" }] as never);
     vi.mocked(listOrganizationsWithCounts).mockResolvedValue([]);
@@ -100,6 +109,64 @@ describe("Dashboard — Admin-UI-2", () => {
 
     fireEvent.click(screen.getByText("Avis publiés").closest("button")!);
     expect(screen.getByTestId("loc").textContent).toBe("/reviews");
+  });
+
+  it("Admin-UI-7D-C — régression >1000 parcs : « Parcs actifs »/« Parcs en attente » reflètent le vrai total exact, jamais plafonnés à 1000 par un tableau tronqué", async () => {
+    // Catalogue réel simulé : 2201 parcs (comme en local au moment de
+    // l'audit), très au-delà de max_rows (1000) — getParkStatusCounts vient
+    // d'un count exact serveur, jamais d'un `listParks().filter().length`.
+    vi.mocked(getParkStatusCounts).mockResolvedValue({ published: 2189, pending: 12 });
+    renderDashboard();
+
+    expect(await screen.findByText("2189")).toBeTruthy();
+    // "12" apparaît aussi dans le badge « À traiter » (même compteur réel,
+    // jamais un 2e calcul) — on vérifie la valeur precisely dans la tuile KPI.
+    expect(screen.getByText("Parcs en attente").closest("button")!.textContent).toContain("12");
+    // listParks n'est même pas appelée côté Admin : rien à plafonner.
+    expect(listParks).not.toHaveBeenCalled();
+  });
+
+  it("Admin-UI-7D-C : « Couverture géographique » affiche la répartition réelle par pays et lie vers /parks filtré, avec status=all", async () => {
+    vi.mocked(getParkCountryDistribution).mockResolvedValue([
+      { country_code: "FR", count: 1700 },
+      { country_code: "ES", count: 800 },
+    ]);
+    renderDashboard();
+
+    await screen.findByText("Couverture géographique");
+    expect(await screen.findByText("France")).toBeTruthy();
+    expect(screen.getByText("Espagne")).toBeTruthy();
+    expect(screen.getByText("1700 · 68%")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Voir les parcs de Espagne/ }));
+    expect(screen.getByTestId("loc").textContent).toBe("/parks?country=ES&status=all");
+  });
+
+  it("Admin-UI-7D-C : un pays inconnu du dictionnaire de libellés s'affiche quand même, avec son code brut — jamais masqué", async () => {
+    // "PL" (Pologne) — délibérément absent de COUNTRY_LABEL (Dashboard.tsx),
+    // pour vérifier le fallback sur le code brut plutôt qu'un libellé inventé.
+    vi.mocked(getParkCountryDistribution).mockResolvedValue([{ country_code: "PL", count: 5 }]);
+    renderDashboard();
+
+    await screen.findByText("Couverture géographique");
+    expect(await screen.findByText("PL")).toBeTruthy();
+  });
+
+  it("Admin-UI-7D-C : « Couverture géographique » affiche un état vide honnête plutôt qu'une carte inventée quand le catalogue est vide", async () => {
+    vi.mocked(getParkCountryDistribution).mockResolvedValue([]);
+    renderDashboard();
+
+    await screen.findByText("Couverture géographique");
+    expect(await screen.findByText("Aucun pays enregistré pour le moment.")).toBeTruthy();
+  });
+
+  it("Admin-UI-7D-C : « Répartition des parcs par source » régression >1000 — la légende reflète un vrai count exact par source, pas un tableau tronqué à 1000", async () => {
+    vi.mocked(getParkSourceDistribution).mockResolvedValue([
+      { source_type: "osm", count: 2201 },
+    ]);
+    renderDashboard();
+
+    expect(await screen.findByText("2201 · 100%")).toBeTruthy();
   });
 
   it("« À traiter » inclut désormais les photos en attente et navigue directement vers /validation (plus de 'écran à venir')", async () => {
@@ -178,8 +245,11 @@ describe("Dashboard — Admin-UI-2", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "30 j" }));
     // Le changement de période ne doit rien re-fetcher ni changer un seul KPI
-    // (rebucketing 100% client des séries déjà chargées).
-    expect(listParks).toHaveBeenCalledTimes(1);
+    // (rebucketing 100% client des séries déjà chargées) — vérifié sur la
+    // requête que l'Admin utilise réellement pour ce KPI (Admin-UI-7D-C),
+    // `listParks` n'étant même plus appelée du tout côté Admin.
+    expect(listParks).not.toHaveBeenCalled();
+    expect(getParkStatusCounts).toHaveBeenCalledTimes(1);
     expect(screen.getByText("Parcs actifs").closest("button")!.textContent).toBe(before);
   });
 

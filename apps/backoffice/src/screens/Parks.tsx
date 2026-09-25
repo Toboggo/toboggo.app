@@ -143,11 +143,19 @@ export default function Parks() {
   // Filtre "Collectivité" — admin uniquement (une session collectivité est déjà
   // scopée à sa propre organisation via `communeId`, donc redondante ici).
   const organizationId = isAdmin ? searchParams.get("organization") ?? "" : "";
+  // `country` (Admin-UI-7D-C — Dashboard "Couverture géographique" → synthèse →
+  // détail). Contrairement à `source`/`status`, `country_code` est un champ
+  // ouvert (pas un enum fermé) : pas de liste de valeurs valides à vérifier
+  // ici, sinon un futur pays réel serait rejeté silencieusement. Deep-link
+  // uniquement pour l'instant — pas de <Select> dédié dans ce lot (périmètre
+  // volontairement minimal, cf. Admin-UI-7D-C §5).
+  const country = searchParams.get("country") ?? "all";
   const q = searchParams.get("q")?.trim() ?? "";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const sort = parseSort(searchParams.get("sort"));
 
-  const hasActiveFilters = q !== "" || status !== defaultStatus || verification !== "all" || source !== "all" || organizationId !== "";
+  const hasActiveFilters =
+    q !== "" || status !== defaultStatus || verification !== "all" || source !== "all" || organizationId !== "" || country !== "all";
 
   const organizationsQ = useQuery({
     queryKey: ["bo-parks-organizations"],
@@ -181,7 +189,7 @@ export default function Parks() {
   }
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, source, organizationId, page, sort }],
+    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, source, organizationId, country, page, sort }],
     queryFn: () =>
       listParksPage({
         communeId,
@@ -190,6 +198,7 @@ export default function Parks() {
         verification: verification === "all" ? undefined : [verification],
         sourceTypes: source === "all" ? undefined : [source],
         organizationId: organizationId || undefined,
+        countryCode: country === "all" ? undefined : country,
         sort: sort.key,
         order: sort.order,
         page,
@@ -208,6 +217,7 @@ export default function Parks() {
         let filtered = all
           .filter((p) => status === "all" || p.status === status)
           .filter((p) => verification === "all" || p.verification_status === verification)
+          .filter((p) => country === "all" || p.country_code === country)
           .filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()));
         if (organizationId) {
           const orgParkIds = new Set(await listOrgParkIds(organizationId));

@@ -195,6 +195,94 @@ export async function listParks(opts: { communeId?: string; status?: ParkStatus[
   return data as unknown as Park[];
 }
 
+/**
+ * Admin-UI-7D-C — exact per-status counts, never "download every park and
+ * `.length` the array". `listParks()` above has no `.limit()`/pagination, so
+ * on a catalog bigger than PostgREST's `max_rows` (`supabase/config.toml` —
+ * 1000 locally) it silently truncates; a `.filter().length` on its result is
+ * therefore wrong past that size (confirmed locally: 2201 real parks, the
+ * Dashboard's "Parcs actifs" KPI showed exactly 1000). `{ count: "exact",
+ * head: true }` asks PostgREST for a real `SELECT count(*)` with no rows
+ * transferred at all — unaffected by `max_rows`, correct at any scale, and
+ * cheaper than the array it replaces. One request per requested status,
+ * fired in parallel (`ParkStatus` is a small closed enum, so this is safe —
+ * unlike country codes below, which are open-ended).
+ */
+export async function getParkStatusCounts(
+  statuses: ParkStatus[],
+  opts: { communeId?: string } = {},
+): Promise<Partial<Record<ParkStatus, number>>> {
+  const supabase = getSupabase();
+  const idFilter = opts.communeId ? await listOrgParkIds(opts.communeId) : null;
+  const entries = await Promise.all(
+    statuses.map(async (status) => {
+      let query = supabase
+        .from("park_public")
+        .select("id", { count: "exact", head: true })
+        .eq("moderation_status", status);
+      if (idFilter) query = query.in("id", idFilter.length ? idFilter : [NO_MATCH_SENTINEL]);
+      const { count, error } = await query;
+      if (error) throw error;
+      return [status, count ?? 0] as const;
+    }),
+  );
+  return Object.fromEntries(entries);
+}
+
+export interface ParkCountryCount {
+  country_code: string;
+  count: number;
+}
+
+// One page of `country_code` only (skinny payload — a few KB even at several
+// thousand parks) per request; PostgREST's own `max_rows` already caps a page
+// at this size, so this stays aligned with it rather than fighting it.
+const COUNTRY_PAGE_SIZE = 1000;
+
+/**
+ * Admin-UI-7D-C — real répartition du catalogue par `country_code`, fiable
+ * au-delà de `max_rows` (voir `getParkStatusCounts`). `country_code` est un
+ * champ OUVERT (pas un enum fermé comme `ParkStatus`/`SourceType`) : on ne
+ * peut donc pas précalculer la liste des valeurs à interroger comme pour ces
+ * deux-là. Solution : un `count` exact (rapide, aucune ligne transférée) pour
+ * connaître le total, puis une pagination exhaustive mais SEULEMENT sur la
+ * colonne `country_code` (jamais le tableau `Park` complet), en parallèle vu
+ * que le nombre de pages est connu à l'avance. Un pays qui n'existe pas
+ * encore dans le catalogue apparaît automatiquement dès qu'un parc l'utilise
+ * — aucune liste de pays codée en dur.
+ */
+export async function getParkCountryDistribution(): Promise<ParkCountryCount[]> {
+  const supabase = getSupabase();
+  const { count, error: countError } = await supabase
+    .from("park_public")
+    .select("id", { count: "exact", head: true });
+  if (countError) throw countError;
+  const total = count ?? 0;
+  if (total === 0) return [];
+
+  const pageCount = Math.ceil(total / COUNTRY_PAGE_SIZE);
+  const pages = await Promise.all(
+    Array.from({ length: pageCount }, (_, i) => {
+      const from = i * COUNTRY_PAGE_SIZE;
+      return supabase
+        .from("park_public")
+        .select("country_code")
+        .range(from, from + COUNTRY_PAGE_SIZE - 1);
+    }),
+  );
+
+  const counts = new Map<string, number>();
+  for (const page of pages) {
+    if (page.error) throw page.error;
+    for (const row of (page.data ?? []) as { country_code: string }[]) {
+      counts.set(row.country_code, (counts.get(row.country_code) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .map(([country_code, count]) => ({ country_code, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 // ── Server-paginated management list (BO Lot 3A) ──────────────────────────
 // Separate from `listParks` (which stays an unpaginated array, still used by
 // the dashboard / map / sidebar counts) — this one adds page/sort/search/
@@ -222,6 +310,10 @@ export interface ListParksPageOpts {
    * (Admin-UI-5B "Collectivité" filter — distinct from `communeId`, which
    * scopes the whole screen for a commune-role session). */
   organizationId?: string;
+  /** `park_public.country_code`, exact match (Admin-UI-7D-C — Dashboard
+   * "Couverture géographique" → synthèse → détail). A plain column, unlike
+   * `sourceTypes` above (no join needed). */
+  countryCode?: string;
   sort?: ParksSortKey;
   order?: "asc" | "desc";
   /** 1-based. */
@@ -309,6 +401,7 @@ export async function listParksPage(opts: ListParksPageOpts = {}): Promise<Parks
 
   if (opts.status?.length) query = query.in("moderation_status", opts.status);
   if (opts.verification?.length) query = query.in("verification_status", opts.verification);
+  if (opts.countryCode) query = query.eq("country_code", opts.countryCode);
   const q = opts.q?.trim();
   if (q) query = query.ilike("name", `%${q}%`);
 

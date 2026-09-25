@@ -533,3 +533,63 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ── Couverture géographique (Admin-UI-7D-C §4) — barres compactes, pas de
+ * carte : agrégats réels par country_code uniquement. ─────────────────── */
+.countryList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.countryRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: -2px;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.countryRow:hover,
+.countryRow:focus-visible {
+  background: var(--color-bg-admin);
+}
+.countryHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.countryName {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.countryCount {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.countryBarTrack {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-admin);
+  overflow: hidden;
+}
+.countryBarFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+}

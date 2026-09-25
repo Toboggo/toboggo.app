@@ -13,12 +13,15 @@ import {
   listPendingParkEditsForOrg,
   listParkEdits,
   getParkSourceDistribution,
+  getParkStatusCounts,
+  getParkCountryDistribution,
   listCommunes,
   listAllUsers,
   listOrganizationsWithCounts,
   toCsv,
   downloadCsv,
   type Maintenance,
+  type ParkCountryCount,
   type ParkSourceCount,
   type SourceType,
 } from "@toboggo/shared";
@@ -213,7 +216,24 @@ export default function Dashboard() {
   // des séries déjà chargées ci-dessous, scope Admin uniquement.
   const [evoDays, setEvoDays] = useState<EvolutionDays>(7);
 
-  const parksQ = useQuery({ queryKey: ["dash-parks", communeId], queryFn: () => listParks({ communeId }) });
+  // Admin-UI-7D-C : `listParks()` n'a pas de pagination — au-delà de
+  // `max_rows` (PostgREST, 1000 localement) elle est silencieusement tronquée
+  // (confirmé : 2201 parcs réels localement, cette requête n'en renvoyait que
+  // 1000). Une collectivité reste petite par construction (ses propres parcs
+  // seulement, via `organization_parks`) et n'a donc jamais ce problème — le
+  // tableau complet reste chargé et utilisé tel quel pour elle. L'Admin, qui
+  // voit tout le catalogue, ne télécharge plus ce tableau du tout : ses
+  // compteurs viennent de `parkCountsQ` (comptages exacts serveur) ci-dessous.
+  const parksQ = useQuery({ queryKey: ["dash-parks", communeId], queryFn: () => listParks({ communeId }), enabled: !isAdmin });
+  // Comptages exacts (`count: "exact", head: true` — aucune ligne transférée,
+  // jamais tronqué par max_rows) pour les 2 seuls statuts dont l'Admin a
+  // besoin ici (Parcs actifs / Parcs en attente — "bloqué" et "total" ne sont
+  // affichés que côté Collectivité, où `parksQ` ci-dessus reste fiable).
+  const parkCountsQ = useQuery({
+    queryKey: ["dash-park-status-counts"],
+    queryFn: () => getParkStatusCounts(["published", "pending"]),
+    enabled: isAdmin,
+  });
   const reportsQ = useQuery({ queryKey: ["dash-reports", communeId], queryFn: () => listReports({ communeId }) });
   const reviewsQ = useQuery({ queryKey: ["dash-reviews", communeId], queryFn: () => listReviews({ communeId }) });
   const activityQ = useQuery({ queryKey: ["dash-activity", communeId, isAdmin], queryFn: () => listActivity(isAdmin ? null : communeId!) });
@@ -244,6 +264,14 @@ export default function Dashboard() {
   const sourceQ = useQuery({
     queryKey: ["dash-park-sources"],
     queryFn: () => getParkSourceDistribution(),
+    enabled: isAdmin,
+  });
+  // Couverture géographique (Admin-UI-7D-C §4) : même raisonnement que
+  // `sourceQ` — admin uniquement, catalogue entier, fiable au-delà de
+  // max_rows (voir `getParkCountryDistribution`).
+  const countryQ = useQuery({
+    queryKey: ["dash-park-countries"],
+    queryFn: () => getParkCountryDistribution(),
     enabled: isAdmin,
   });
   // KPI Collectivités/Utilisateurs (Admin-UI-4 §1) : totaux réels, admin
@@ -280,8 +308,12 @@ export default function Dashboard() {
   const evolutionLoading = activityQ.isLoading || reportsQ.isLoading || reviewsQ.isLoading;
   const evolutionError = activityQ.isError || reportsQ.isError || reviewsQ.isError;
 
-  const published = parks.filter((p) => p.status === "published").length;
-  const pending = parks.filter((p) => p.status === "pending").length;
+  // Admin-UI-7D-C : l'Admin utilise le comptage exact serveur (`parkCountsQ`),
+  // jamais `parks.filter().length` (fiable seulement pour la Collectivité,
+  // dont le tableau `parks` reste petit — voir le commentaire sur `parksQ`).
+  // "blocked" reste dérivé de `parks` : uniquement affiché côté Collectivité.
+  const published = isAdmin ? (parkCountsQ.data?.published ?? 0) : parks.filter((p) => p.status === "published").length;
+  const pending = isAdmin ? (parkCountsQ.data?.pending ?? 0) : parks.filter((p) => p.status === "pending").length;
   const blocked = parks.filter((p) => p.status === "blocked").length;
   const openReports = reports.filter((r) => r.status === "open").length;
   // Admin-UI-4 §3 : plutôt qu'un 2e bloc "Alertes opérationnelles" dupliquant
@@ -301,7 +333,7 @@ export default function Dashboard() {
   // des sources qui le nourrissent pilote son propre loading/error, distinct
   // du reste de la page.
   const toTreatSources = isAdmin
-    ? [parksQ, reportsQ, pendingEditsQ, pendingMediaQ]
+    ? [parkCountsQ, reportsQ, pendingEditsQ, pendingMediaQ]
     : [reportsQ, pendingMediaQ, pendingEditsQ, maintenanceQ];
   const toTreatLoading = toTreatSources.some((q) => q.isLoading);
   const toTreatError = toTreatSources.some((q) => q.isError);
@@ -344,8 +376,8 @@ export default function Dashboard() {
           icon: "ic-list",
           tint: "primary",
           onClick: () => navigate("/parks?status=published"),
-          loading: parksQ.isLoading,
-          error: parksQ.isError,
+          loading: parkCountsQ.isLoading,
+          error: parkCountsQ.isError,
         },
         {
           key: "pending",
@@ -354,8 +386,8 @@ export default function Dashboard() {
           icon: "ic-list",
           tint: "warning",
           onClick: () => navigate("/parks?status=pending"),
-          loading: parksQ.isLoading,
-          error: parksQ.isError,
+          loading: parkCountsQ.isLoading,
+          error: parkCountsQ.isError,
         },
         {
           key: "reports",
@@ -627,6 +659,17 @@ export default function Dashboard() {
           </Card>
 
           <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>Couverture géographique</h2>
+            <CountryBreakdown
+              data={countryQ.data}
+              isLoading={countryQ.isLoading}
+              isError={countryQ.isError}
+              onRetry={() => void countryQ.refetch()}
+              onSelectCountry={(code) => navigate(`/parks?country=${code}&status=all`)}
+            />
+          </Card>
+
+          <Card variant="admin" padding="sm" className={styles.card}>
             <h2 className={styles.sectionTitle}>Top collectivités</h2>
             <TopOrganizations
               data={orgsQ.data}
@@ -766,6 +809,94 @@ function SourceBreakdown({
       Voir tous les parcs ›
     </button>
     </>
+  );
+}
+
+// Libellés lisibles pour les codes ISO les plus probables du catalogue —
+// purement cosmétique : un pays absent de ce dictionnaire s'affiche quand
+// même, avec son code brut comme libellé (jamais masqué, jamais bloquant —
+// voir "prévoir l'architecture pour que de futurs pays apparaissent
+// automatiquement", Admin-UI-7D-C §4).
+const COUNTRY_LABEL: Record<string, string> = {
+  FR: "France",
+  ES: "Espagne",
+  BE: "Belgique",
+  CH: "Suisse",
+  DE: "Allemagne",
+  IT: "Italie",
+  PT: "Portugal",
+  LU: "Luxembourg",
+};
+
+/**
+ * Admin-UI-7D-C §4 — répartition réelle du catalogue par `country_code`
+ * (`getParkCountryDistribution`, fiable au-delà de `max_rows` — voir le
+ * commentaire sur `countryQ`). Barres compactes plutôt qu'une vraie carte
+ * MapLibre : intégrer une carte pour 1-2 points agrégés aurait ajouté du
+ * poids (tuiles, style, instance carte) sans valeur ajoutée réelle à ce
+ * stade — cf. consigne "préférer une visualisation propre basée sur les
+ * agrégats pays" quand une vraie carte serait disproportionnée. Aucun marker
+ * individuel, jamais un pays codé en dur : ce composant ne fait qu'afficher
+ * ce que `data` contient.
+ */
+function CountryBreakdown({
+  data,
+  isLoading,
+  isError,
+  onRetry,
+  onSelectCountry,
+}: {
+  data: ParkCountryCount[] | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  onRetry: () => void;
+  onSelectCountry: (countryCode: string) => void;
+}) {
+  if (isError) return <ErrorInline onRetry={onRetry} />;
+  if (isLoading) {
+    return (
+      <div className={styles.countryList}>
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className={styles.countryRow}>
+            <Skeleton width="40%" height={13} />
+            <Skeleton width="100%" height={8} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  const rows = data ?? [];
+  const total = rows.reduce((sum, r) => sum + r.count, 0);
+  if (total === 0) {
+    return <p className={styles.activityEmpty}>Aucun pays enregistré pour le moment.</p>;
+  }
+  const max = Math.max(...rows.map((r) => r.count));
+  return (
+    <ul className={styles.countryList}>
+      {rows.map((row) => {
+        const pct = Math.round((row.count / total) * 100);
+        return (
+          <li key={row.country_code}>
+            <button
+              type="button"
+              className={styles.countryRow}
+              onClick={() => onSelectCountry(row.country_code)}
+              aria-label={`Voir les parcs de ${COUNTRY_LABEL[row.country_code] ?? row.country_code} (${row.count})`}
+            >
+              <span className={styles.countryHead}>
+                <span className={styles.countryName}>{COUNTRY_LABEL[row.country_code] ?? row.country_code}</span>
+                <span className={styles.countryCount}>
+                  {row.count} · {pct}%
+                </span>
+              </span>
+              <span className={styles.countryBarTrack}>
+                <span className={styles.countryBarFill} style={{ width: `${(row.count / max) * 100}%` }} />
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

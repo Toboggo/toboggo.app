@@ -71,19 +71,50 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
+/**
+ * Compact metric tile — used both for simple counters (`Maintenance`) and, with
+ * `icon`/`tone`, as the Dashboard KPI strip's building block (COLL-02). `icon`
+ * and `tone` are optional and additive: every existing call site (no icon, no
+ * tone) renders exactly as before.
+ */
 export function StatCard({
   value,
   label,
+  icon,
+  tone = "neutral",
+  emphasized,
   onClick,
 }: {
   value: ReactNode;
   label: string;
+  /** Sprite icon shown in a small tinted badge — omit rather than inventing
+   * one (see `NAV_ICON_GAPS` in the back office `Shell`). */
+  icon?: IconName;
+  /** Tints the icon badge and the value — reserve `warning` for a real count
+   * that needs attention (> 0), never a static accent. */
+  tone?: "neutral" | "warning";
+  /** Opt-in "headline KPI" treatment (larger value, a discreet neutral-bordered
+   * frame) — off by default so existing callers (e.g. `Maintenance`'s 3 plain
+   * counters) render exactly as before. */
+  emphasized?: boolean;
   onClick?: () => void;
 }) {
   return (
-    <button type="button" className={styles.statCard} onClick={onClick} disabled={!onClick}>
-      <div className={styles.statValue}>{value}</div>
-      <div className={styles.statLabel}>{label}</div>
+    <button
+      type="button"
+      className={clsx(styles.statCard, tone !== "neutral" && styles[`tone-${tone}`], emphasized && styles.emphasized)}
+      onClick={onClick}
+      disabled={!onClick}
+    >
+      {icon && (
+        <span className={styles.statIcon}>
+          <Icon name={icon} size={18} />
+        </span>
+      )}
+      <span className={styles.statBody}>
+        <span className={styles.statValue}>{value}</span>
+        <span className={styles.statLabel}>{label}</span>
+      </span>
     </button>
   );
 }

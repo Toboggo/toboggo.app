@@ -59,7 +59,14 @@
   flex-shrink: 0;
 }
 
+/* Base preserved exactly as before (Maintenance's 3 icon-less StatCards must
+ * not shift) — `display: flex` with a single child (`.statBody`) lays out
+ * identically to the old two stacked `<div>`s. Icon/tone/hover below are
+ * additive and only activate when a caller opts in. */
 .statCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   padding: var(--space-4);
@@ -68,16 +75,66 @@
   border: none;
   text-align: left;
   font-family: inherit;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.statCard:not(:disabled):hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.statCard:disabled {
+  cursor: default;
+}
+/* Neutral by default — a KPI that needs no action gets no decorative brand
+ * colour, only `tone-warning` (a real count > 0) earns the amber accent. */
+.statIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.tone-warning .statIcon {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.statBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 .statValue {
   font-family: var(--font-heading);
   font-size: 26px;
   font-weight: 700;
 }
+.tone-warning .statValue {
+  color: var(--color-warning-text);
+}
+
+/* Opt-in "headline KPI" frame (Dashboard only — Maintenance never passes
+ * `emphasized`, so its 3 counters are untouched by every rule below). */
+.emphasized {
+  border: 1px solid var(--color-border-neutral);
+  padding: 14px 16px;
+}
+.emphasized .statIcon {
+  width: 28px;
+  height: 28px;
+}
+.emphasized .statValue {
+  font-size: 28px;
+}
 .statLabel {
   color: var(--color-text-muted);
   font-size: 13px;
   margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .table {

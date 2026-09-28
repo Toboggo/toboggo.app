@@ -1,14 +1,71 @@
-.stack {
+/* Largeur de contenu maîtrisée (COLL-02B §1) — scopée au Dashboard seul : ne
+ * touche pas `.bo-content` (partagé par tous les écrans, dont
+ * `Parks`/`ParkDetail` hors périmètre de ce lot). Fluide jusqu'à 1220px, ce
+ * plafond n'est atteint qu'au-delà de ~1440px de fenêtre (1440 - 216 sidebar
+ * - 2×28 padding ≈ 1168px de colonne, déjà sous le plafond) : pleine largeur
+ * à 1280 et 1440, jamais écrasé. */
+.page {
+  max-width: 1220px;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.title {
+  font-size: 22px;
+}
+.subtitle {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
+
+/* ── Surface commune à tous les blocs du Dashboard (COLL-02B §3) ──────────
+ * Volontairement indépendante du composant `Card` partagé (qui n'a que deux
+ * variantes : ombre seule, ou bordure teintée --color-border, la beige de la
+ * palette d'origine) pour ne rien changer aux autres écrans qui le
+ * consomment (Maintenance, Statistiques, Settings, ParkDetail…). Bordure
+ * neutre + ombre très légère, radius un cran moins arrondi (--radius-md
+ * plutôt que --radius-lg) pour un rendu SaaS plus sobre. */
+.neutralCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-neutral);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+}
+
+/* ── Bande KPI ──────────────────────────────────────────────────────────── */
+.kpiStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+/* ── Grille "À traiter" + "Patrimoine" ─────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .sectionTitle {
   font-family: var(--font-heading);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 /* ── « À traiter » ──────────────────────────────────────────────────────── */
@@ -22,11 +79,11 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 9px 0;
+  padding: 7px 0;
   text-align: left;
   background: none;
   border: none;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-neutral);
   font-size: 13.5px;
   color: var(--color-text);
   cursor: pointer;
@@ -42,13 +99,31 @@
 }
 .actionLabel {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: center;
+  gap: 9px;
   min-width: 0;
 }
-.actionHint {
-  font-size: 11.5px;
-  color: var(--color-text-faint);
+.actionText {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.actionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.actionIconSlot {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
   flex-shrink: 0;
 }
 .countBadge {
@@ -60,68 +135,93 @@
   align-items: center;
   justify-content: center;
   background: var(--color-accent);
-  color: var(--color-text);
+  color: #fff;
   font-family: var(--font-heading);
   font-weight: 700;
   font-size: 12px;
   border-radius: var(--radius-pill);
 }
 
-/* Empty state compact — pas une grande carte vide */
+/* Empty state compact — pas une grande carte vide, une seule ligne */
 .empty {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 2px 0;
+  padding: 1px 0;
   color: var(--color-text-muted);
   font-size: 13px;
 }
 .emptyIcon {
-  color: var(--color-primary);
+  color: var(--color-text-faint);
   display: inline-flex;
   flex-shrink: 0;
 }
 
-/* ── Bandeau compteurs de parcs (secondaire) ───────────────────────────── */
-.statStripLabel {
-  font-family: var(--font-heading);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
+/* ── Patrimoine ─────────────────────────────────────────────────────────── */
+.patrimonyBar {
+  display: flex;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--color-bg-alt);
   margin-bottom: 10px;
 }
-.statStrip {
-  display: flex;
-  align-items: stretch;
+.barPublished {
+  background: var(--color-primary);
 }
-.stat {
-  flex: 1;
+.barPending {
+  background: var(--color-accent);
+}
+.barBlocked {
+  background: var(--color-error);
+}
+.patrimonyLegend {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: 2px 14px;
-  text-align: left;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 14px;
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: none;
   border: none;
-  border-left: 1px solid var(--color-border);
+  padding: 1px 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
   cursor: pointer;
 }
-.stat:first-child {
-  border-left: none;
-  padding-left: 2px;
+.legendItem:hover {
+  color: var(--color-text);
 }
-.stat:hover .statValue {
-  color: var(--color-primary-hover);
-}
-.statValue {
-  font-family: var(--font-heading);
+.legendItem strong {
+  color: var(--color-text);
   font-weight: 700;
-  font-size: 20px;
-  line-height: 1.15;
 }
-.statLabel {
-  font-size: 12px;
+.legendDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dotPublished {
+  background: var(--color-primary);
+}
+.dotPending {
+  background: var(--color-accent);
+}
+.dotBlocked {
+  background: var(--color-error);
+}
+.legendTotal {
+  font-size: 12.5px;
   color: var(--color-text-muted);
+  margin-left: auto;
+}
+.legendTotal strong {
+  color: var(--color-text);
+  font-weight: 700;
 }
 
 /* ── Activité récente ──────────────────────────────────────────────────── */
@@ -129,7 +229,7 @@
   display: flex;
   gap: 10px;
   padding: 7px 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-neutral);
 }
 .activityRow:last-child {
   border-bottom: none;
@@ -141,6 +241,9 @@
   background: var(--color-primary);
   margin-top: 6px;
   flex-shrink: 0;
+}
+.activityBody {
+  min-width: 0;
 }
 .activityText {
   font-size: 13px;
@@ -155,13 +258,19 @@
   color: var(--color-text-muted);
 }
 
-@media (max-width: 720px) {
-  .statStrip {
-    flex-wrap: wrap;
-  }
-  .stat {
-    flex: 1 0 40%;
-    border-left: none;
-    padding-left: 2px;
-  }
+/* ── Skeleton (chargement, COLL-02B §10) ───────────────────────────────── */
+.skeletonGap {
+  margin-top: 12px;
+}
+.skeletonGapSm {
+  margin-top: 6px;
+}
+.kpiSkeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.kpiSkeletonBody {
+  flex: 1;
+  min-width: 0;
 }

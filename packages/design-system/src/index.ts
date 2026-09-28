@@ -18,6 +18,7 @@ export * from "./components/ConfirmDialog";
 export * from "./components/Menu";
 export * from "./components/DataTable";
 export * from "./components/Tabs";
+export * from "./components/Skeleton";
 export * from "./useTheme";
 export * from "./useViewport";
 export * from "./usePersistentDraft";

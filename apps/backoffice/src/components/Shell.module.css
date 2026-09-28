@@ -14,25 +14,28 @@
   left: 0;
 }
 
-/* Sidebar = surface structurelle de la marque : vert Toboggo profond
- * (token --color-primary-pressed), pas l'encre neutre d'un template admin.
- * cf. docs/DESIGN-SYSTEM.md §6 (« sidebar back-office = fond coloré »). */
+/* Sidebar = surface structurelle de la marque : vert Toboggo très sombre et
+ * désaturé (token --color-sidebar-bg, COLL-02B §2) — jamais un aplat du vert
+ * de marque plein (--color-primary-pressed, trop "vert plein" pour un SaaS
+ * B2B) ni du noir pur. cf. docs/DESIGN-SYSTEM.md §6. Contraste texte blanc /
+ * fond ≈ 14:1 (AAA), largement au-dessus du AA visé. */
 .sidebar {
-  width: 232px;
+  width: 216px;
   flex-shrink: 0;
-  background: var(--color-primary-pressed);
+  background: var(--color-sidebar-bg);
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: 18px 12px;
+  padding: 16px 10px;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
 }
 .brand {
-  padding: 0 8px;
-  margin-bottom: 6px;
+  padding: 4px 8px 14px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
 }
 .orgLabel {
@@ -40,7 +43,8 @@
   font-size: 12.5px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
-  margin-bottom: 14px;
+  margin-top: 14px;
+  margin-bottom: 10px;
   flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -48,22 +52,27 @@
 }
 .orgSwitch {
   width: 100%;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: inherit;
   border-radius: var(--radius-xs);
-  padding: 7px 10px;
+  padding: 6px 10px;
   font-size: 12.5px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
   cursor: pointer;
   flex-shrink: 0;
 }
 
+/* Séparation nette entre l'identité (logo / collectivité active / switch) et
+ * la navigation — évite que la nav ait l'air de flotter juste sous le switch. */
 .nav {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   flex: 1;
+  padding-top: 14px;
+  margin-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 .group {
   display: flex;
@@ -72,19 +81,19 @@
 }
 .groupTitle {
   font-family: var(--font-heading);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 0 10px 3px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 0 10px 4px;
 }
 .navItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 7px 10px;
+  padding: 6.5px 10px 6.5px 9px;
   border-radius: var(--radius-xs);
   color: rgba(255, 255, 255, 0.75);
   font-size: 13.5px;
@@ -92,19 +101,27 @@
   cursor: pointer;
   background: none;
   border: none;
+  border-left: 3px solid transparent;
   width: 100%;
   text-align: left;
+  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
 }
 .navItem:hover {
   background: rgba(255, 255, 255, 0.07);
   color: #fff;
 }
-/* Actif = repérable immédiatement par la conjonction poids + blanc pur +
- * fond très léger, sans le bloc massif d'un template admin. */
+/* Actif = vert Toboggo (--color-primary, plus clair que le fond
+ * --color-primary-pressed de la sidebar) en liseré + fond clair sobre —
+ * repérable en un coup d'œil sans bloc massif ni couleur d'accent (réservée
+ * aux badges d'attention). */
 .navItem.active {
-  background: rgba(255, 255, 255, 0.11);
+  background: rgba(255, 255, 255, 0.1);
   color: #fff;
   font-weight: 600;
+  border-left-color: var(--color-primary);
+}
+.navItem.active :global(svg) {
+  color: var(--color-primary);
 }
 .navLabel {
   display: inline-flex;

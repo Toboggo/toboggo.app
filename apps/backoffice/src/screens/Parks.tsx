@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
@@ -15,6 +15,7 @@ import {
   type DataTableColumn,
 } from "@toboggo/design-system";
 import {
+  getParkCountryDistribution,
   isValidCoordinate,
   listAllParksForExport,
   listCommunes,
@@ -37,6 +38,7 @@ import {
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkStatusTag, ParkVerificationTag } from "../components/StatusTag";
+import { countryLabel } from "../lib/countryLabels";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
@@ -166,6 +168,39 @@ export default function Parks() {
     enabled: isAdmin,
     staleTime: 60_000,
   });
+
+  // Admin-UI-8D — colonne + filtre Pays : résout un `organization_id` déjà
+  // présent sur chaque ligne (`listParksPage`) sans requête supplémentaire —
+  // même liste que le filtre Collectivité ci-dessus, juste indexée en `Map`.
+  const orgNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const org of organizationsQ.data ?? []) map.set(org.id, org.name);
+    return map;
+  }, [organizationsQ.data]);
+
+  // Pays réellement présents dans le catalogue (jamais une liste figée
+  // FR/ES) — même fonction que la carte "Couverture géographique" du
+  // Dashboard (`getParkCountryDistribution`, bornée au-delà de `max_rows`,
+  // un seul aller-retour skinny `country_code`).
+  const countriesQ = useQuery({
+    queryKey: ["bo-parks-countries"],
+    queryFn: () => getParkCountryDistribution(),
+    enabled: isAdmin,
+    staleTime: 60_000,
+  });
+  // Trié par libellé (pas par volume) pour un menu prévisible. Le pays
+  // actuellement actif est toujours présent dans les options même s'il a 0
+  // parc dans la distribution (ex. juste après un deep-link `?country=ES`
+  // avant que `countriesQ` n'ait fini de charger) — le <select> ne doit
+  // jamais désynchroniser son affichage de l'état réel du filtre.
+  const countryOptions = useMemo(() => {
+    const rows = countriesQ.data ?? [];
+    const sorted = [...rows].sort((a, b) => countryLabel(a.country_code).localeCompare(countryLabel(b.country_code), "fr"));
+    if (country !== "all" && !sorted.some((r) => r.country_code === country)) {
+      sorted.push({ country_code: country, count: 0 });
+    }
+    return sorted;
+  }, [countriesQ.data, country]);
 
   const [qInput, setQInput] = useState(q);
   useEffect(() => {
@@ -337,101 +372,135 @@ export default function Parks() {
     }));
   }
 
-  const columns: DataTableColumn<ParkWithSource>[] = [
-    {
-      key: "name",
-      header: "Parc",
-      sortable: true,
-      render: (park) => (
+  // Admin-UI-8D — colonnes assemblées par rôle plutôt qu'un seul tableau
+  // filtré : la Collectivité garde exactement son jeu de colonnes existant
+  // (Vérification/Signalement/Photos — pertinentes pour son propre
+  // patrimoine, jamais toutes vides comme pour l'Admin sur 2201 parcs
+  // importés OSM), l'Admin bascule sur Pays/Collectivité (voir audit 8D —
+  // Vérification/Signalement/Photos restent disponibles en Park 360, ni
+  // supprimées ni cachées du modèle).
+  const nameColumn: DataTableColumn<ParkWithSource> = {
+    key: "name",
+    header: "Parc",
+    sortable: true,
+    render: (park) => {
+      const meta = parkMeta(park);
+      return (
         <>
           <span className={styles.parkName}>{park.name}</span>
-          <span className={styles.parkMeta}>{parkMeta(park) ?? "Non renseigné"}</span>
+          {meta && <span className={styles.parkMeta}>{meta}</span>}
         </>
+      );
+    },
+  };
+  const statusColumn: DataTableColumn<ParkWithSource> = {
+    key: "status",
+    header: "Statut",
+    width: "1px",
+    render: (park) => <ParkStatusTag status={park.status} />,
+  };
+  const verificationColumn: DataTableColumn<ParkWithSource> = {
+    key: "verification",
+    header: "Vérification",
+    width: "1px",
+    render: (park) => <ParkVerificationTag status={park.verification_status} />,
+  };
+  const sourceColumn: DataTableColumn<ParkWithSource> = {
+    key: "source",
+    header: "Source",
+    width: "1px",
+    render: (park) =>
+      park.source_type ? <Tag>{SOURCE_LABEL[park.source_type]}</Tag> : <span className={styles.muted}>—</span>,
+  };
+  const countryColumn: DataTableColumn<ParkWithSource> = {
+    key: "country",
+    header: "Pays",
+    width: "1px",
+    render: (park) => <span>{countryLabel(park.country_code)}</span>,
+  };
+  const organizationColumn: DataTableColumn<ParkWithSource> = {
+    key: "organization",
+    header: "Collectivité",
+    width: "1px",
+    render: (park) =>
+      park.organization_id ? (
+        <span>{orgNameById.get(park.organization_id) ?? park.organization_id}</span>
+      ) : (
+        <span className={styles.muted}>—</span>
       ),
+  };
+  const reportsColumn: DataTableColumn<ParkWithSource> = {
+    key: "reports",
+    header: "Signalement",
+    width: "1px",
+    align: "center",
+    render: (park) =>
+      park.has_open_report ? (
+        <span className={styles.reportFlag}>
+          <span className={styles.reportDot} aria-hidden="true" />
+          Ouvert
+        </span>
+      ) : (
+        <span className={styles.muted}>—</span>
+      ),
+  };
+  const photosColumn: DataTableColumn<ParkWithSource> = {
+    key: "photos",
+    header: "Photos",
+    width: "1px",
+    align: "center",
+    render: (park) => {
+      const n = (park.photos ?? []).length;
+      return <span className={n ? styles.photoCount : `${styles.photoCount} ${styles.muted}`}>{n}</span>;
     },
-    { key: "status", header: "Statut", width: "1px", render: (park) => <ParkStatusTag status={park.status} /> },
-    {
-      key: "verification",
-      header: "Vérification",
-      width: "1px",
-      render: (park) => <ParkVerificationTag status={park.verification_status} />,
+  };
+  const updatedAtColumn: DataTableColumn<ParkWithSource> = {
+    key: "updated_at",
+    header: "Modifié le",
+    width: "1px",
+    align: "right",
+    sortable: true,
+    render: (park) => <span className={styles.date}>{dateFmt.format(new Date(park.updated_at))}</span>,
+  };
+  const actionsColumn: DataTableColumn<ParkWithSource> = {
+    key: "actions",
+    header: "",
+    width: "1px",
+    align: "right",
+    render: (park) => {
+      const actions = statusActions(park);
+      return (
+        <div className={styles.rowActions} data-dt-stop>
+          <Menu
+            label={`Actions — ${park.name}`}
+            align="end"
+            trigger={
+              <Button
+                variant="ghost"
+                size="sm"
+                className={styles.actionsTrigger}
+                disabled={statusPending}
+                aria-label={`Actions — ${park.name}`}
+              >
+                …
+              </Button>
+            }
+          >
+            <MenuItem onSelect={() => openPark(park)}>Ouvrir la fiche</MenuItem>
+            {actions.map((a) => (
+              <MenuItem key={a.label} onSelect={a.run}>
+                {a.label}
+              </MenuItem>
+            ))}
+          </Menu>
+        </div>
+      );
     },
-    {
-      key: "source",
-      header: "Source",
-      width: "1px",
-      render: (park) =>
-        park.source_type ? <Tag>{SOURCE_LABEL[park.source_type]}</Tag> : <span className={styles.muted}>—</span>,
-    },
-    {
-      key: "reports",
-      header: "Signalement",
-      width: "1px",
-      align: "center",
-      render: (park) =>
-        park.has_open_report ? (
-          <span className={styles.reportFlag}>
-            <span className={styles.reportDot} aria-hidden="true" />
-            Ouvert
-          </span>
-        ) : (
-          <span className={styles.muted}>—</span>
-        ),
-    },
-    {
-      key: "photos",
-      header: "Photos",
-      width: "1px",
-      align: "center",
-      render: (park) => {
-        const n = (park.photos ?? []).length;
-        return <span className={n ? styles.photoCount : `${styles.photoCount} ${styles.muted}`}>{n}</span>;
-      },
-    },
-    {
-      key: "updated_at",
-      header: "Modifié le",
-      width: "1px",
-      align: "right",
-      sortable: true,
-      render: (park) => <span className={styles.date}>{dateFmt.format(new Date(park.updated_at))}</span>,
-    },
-    {
-      key: "actions",
-      header: "",
-      width: "1px",
-      align: "right",
-      render: (park) => {
-        const actions = statusActions(park);
-        return (
-          <div className={styles.rowActions} data-dt-stop>
-            <Menu
-              label={`Actions — ${park.name}`}
-              align="end"
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={styles.actionsTrigger}
-                  disabled={statusPending}
-                  aria-label={`Actions — ${park.name}`}
-                >
-                  …
-                </Button>
-              }
-            >
-              <MenuItem onSelect={() => openPark(park)}>Ouvrir la fiche</MenuItem>
-              {actions.map((a) => (
-                <MenuItem key={a.label} onSelect={a.run}>
-                  {a.label}
-                </MenuItem>
-              ))}
-            </Menu>
-          </div>
-        );
-      },
-    },
-  ];
+  };
+
+  const columns: DataTableColumn<ParkWithSource>[] = isAdmin
+    ? [nameColumn, statusColumn, sourceColumn, countryColumn, organizationColumn, updatedAtColumn, actionsColumn]
+    : [nameColumn, statusColumn, verificationColumn, sourceColumn, reportsColumn, photosColumn, updatedAtColumn, actionsColumn];
 
   return (
     <div>
@@ -532,6 +601,21 @@ export default function Parks() {
             </option>
           ))}
         </Select>
+        {isAdmin && (
+          <Select
+            className={styles.select}
+            label="Pays"
+            value={country}
+            onChange={(e) => updateParams({ country: e.target.value === "all" ? null : e.target.value }, { resetPage: true })}
+          >
+            <option value="all">Tous les pays</option>
+            {countryOptions.map((c) => (
+              <option key={c.country_code} value={c.country_code}>
+                {countryLabel(c.country_code)}
+              </option>
+            ))}
+          </Select>
+        )}
         {isAdmin && (
           <Select
             className={styles.select}

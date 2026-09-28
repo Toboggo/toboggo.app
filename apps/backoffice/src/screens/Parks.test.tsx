@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { listAllParksForExport, listCommunes, listParksPage } from "@toboggo/shared";
+import { getParkCountryDistribution, listAllParksForExport, listCommunes, listParksPage } from "@toboggo/shared";
 import Parks from "./Parks";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -14,6 +14,9 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listParks: vi.fn().mockResolvedValue([]),
     listAllParksForExport: vi.fn().mockResolvedValue([]),
     listCommunes: vi.fn().mockResolvedValue([]),
+    // Admin-UI-8D — sinon la vraie implémentation (Supabase réel) tourne dans
+    // les tests Admin dès que le filtre Pays est monté (`enabled: isAdmin`).
+    getParkCountryDistribution: vi.fn().mockResolvedValue([]),
     logActivity: vi.fn().mockResolvedValue(undefined),
     // Admin-UI-8B : le vrai `downloadCsv` appelle `URL.createObjectURL`, non
     // implémenté par jsdom — mocké comme le reste de la suite (Dashboard.test.tsx).
@@ -194,6 +197,7 @@ describe("Parks — Admin-UI-8B (l'export CSV utilise les filtres réellement ac
     vi.mocked(listCommunes).mockClear().mockResolvedValue([
       { id: "org-lyon", name: "Ville de Lyon" },
     ] as never);
+    vi.mocked(getParkCountryDistribution).mockClear().mockResolvedValue([{ country_code: "FR", count: 2189 }] as never);
   });
 
   it("n'appelle jamais listParks() (non paginée) pour l'export — seulement listAllParksForExport", async () => {
@@ -238,7 +242,7 @@ describe("Parks — Admin-UI-8B (l'export CSV utilise les filtres réellement ac
     );
   });
 
-  it("l'export d'un pays deep-linké (?country=ES) transmet countryCode — non exposé en <Select> mais toujours actif", async () => {
+  it("l'export d'un pays deep-linké (?country=ES) transmet countryCode, cohérent avec le <Select> Pays", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={client}>
@@ -252,10 +256,228 @@ describe("Parks — Admin-UI-8B (l'export CSV utilise les filtres réellement ac
       </QueryClientProvider>,
     );
     await waitFor(() => expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ countryCode: "ES" })));
+    // Admin-UI-8D — le Select reflète bien le pays actif, même si "ES" n'a 0
+    // parc dans la distribution mockée (`[{country_code:"FR",…}]` ci-dessus) :
+    // le filtre actif ne doit jamais désynchroniser l'affichage du <select>.
+    expect((screen.getByLabelText("Pays") as HTMLSelectElement).value).toBe("ES");
 
     fireEvent.click(screen.getByRole("button", { name: "Exporter CSV" }));
     await waitFor(() =>
       expect(listAllParksForExport).toHaveBeenCalledWith(expect.objectContaining({ countryCode: "ES" })),
     );
+  });
+});
+
+describe("Parks — Admin-UI-8D (colonnes Pays/Collectivité, filtre Pays, secondaire sans « Non renseigné »)", () => {
+  const adminRows = [
+    {
+      id: "p-fr-org",
+      name: "Parc Lyon",
+      status: "published",
+      updated_at: "2026-01-01",
+      source_type: "osm",
+      country_code: "FR",
+      organization_id: "org-lyon",
+      formatted_address: "12 rue des Tilleuls, Lyon",
+      min_age: null,
+      max_age: null,
+    },
+    {
+      id: "p-es-noorg",
+      name: "Parc Madrid",
+      status: "published",
+      updated_at: "2026-01-02",
+      source_type: "osm",
+      country_code: "ES",
+      organization_id: null,
+      formatted_address: null,
+      min_age: null,
+      max_age: null,
+    },
+    {
+      id: "p-zz-unknown",
+      name: "Parc Inconnu",
+      status: "published",
+      updated_at: "2026-01-03",
+      source_type: "osm",
+      country_code: "ZZ",
+      organization_id: null,
+      formatted_address: null,
+      min_age: 3,
+      max_age: null,
+    },
+  ];
+
+  beforeEach(() => {
+    perms.canCreatePark = true;
+    perms.canImportParksCsv = false;
+    scope.isAdmin = true;
+    scope.communeId = undefined;
+    vi.mocked(listParksPage).mockClear().mockResolvedValue({
+      rows: adminRows as never,
+      total: 3,
+      page: 1,
+      pageSize: 25,
+      pageCount: 1,
+    });
+    vi.mocked(listCommunes).mockClear().mockResolvedValue([{ id: "org-lyon", name: "Ville de Lyon" }] as never);
+    // Ordre volontairement "France avant Espagne" par volume — le tri du
+    // <select> doit reclasser par libellé (Espagne < France), pas reprendre
+    // cet ordre tel quel.
+    vi.mocked(getParkCountryDistribution)
+      .mockClear()
+      .mockResolvedValue([
+        { country_code: "FR", count: 2189 },
+        { country_code: "ES", count: 5 },
+      ] as never);
+  });
+
+  it("affiche la colonne Pays (libellé lisible depuis country_code)", async () => {
+    renderParks();
+    expect(await screen.findByRole("columnheader", { name: "Pays" })).toBeTruthy();
+    const row = (await screen.findByText("Parc Lyon")).closest("tr")!;
+    expect(within(row).getByText("France")).toBeTruthy();
+  });
+
+  it("un country_code absent de la table de libellés retombe sur le code brut", async () => {
+    renderParks();
+    const row = (await screen.findByText("Parc Inconnu")).closest("tr")!;
+    expect(within(row).getByText("ZZ")).toBeTruthy();
+  });
+
+  it("résout la Collectivité depuis les organisations déjà chargées pour le filtre — un seul appel listCommunes, aucune requête par ligne", async () => {
+    renderParks();
+    const row = (await screen.findByText("Parc Lyon")).closest("tr")!;
+    expect(within(row).getByText("Ville de Lyon")).toBeTruthy();
+    await waitFor(() => expect(listCommunes).toHaveBeenCalledTimes(1));
+  });
+
+  it("affiche un tiret discret quand le parc n'est rattaché à aucune collectivité", async () => {
+    renderParks();
+    const row = (await screen.findByText("Parc Madrid")).closest("tr")!;
+    expect(within(row).getByText("—")).toBeTruthy();
+  });
+
+  it("n'affiche plus « Non renseigné » ni de ligne secondaire vide quand adresse et âge sont absents", async () => {
+    renderParks();
+    const row = (await screen.findByText("Parc Madrid")).closest("tr")!;
+    expect(within(row).queryByText("Non renseigné")).toBeNull();
+    // Le nom est seul dans sa cellule — aucun <span> secondaire vide généré.
+    const nameCell = within(row).getByText("Parc Madrid").closest("td")!;
+    expect(nameCell.querySelectorAll("span")).toHaveLength(1);
+  });
+
+  it("conserve la ligne secondaire (adresse) quand elle est disponible", async () => {
+    renderParks();
+    const row = (await screen.findByText("Parc Lyon")).closest("tr")!;
+    expect(within(row).getByText("12 rue des Tilleuls, Lyon")).toBeTruthy();
+  });
+
+  it("le filtre Pays est visible côté Admin, options triées par libellé, « Tous les pays » en tête", async () => {
+    renderParks();
+    const select = (await screen.findByLabelText("Pays")) as HTMLSelectElement;
+    await waitFor(() => {
+      const optionLabels = Array.from(select.options).map((o) => o.textContent);
+      expect(optionLabels).toEqual(["Tous les pays", "Espagne", "France"]);
+    });
+  });
+
+  it("lecture initiale ?country=ES : transmis à listParksPage et reflété par le <select>", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <MemoryRouter initialEntries={["/parks?country=ES&status=all"]}>
+            <Routes>
+              <Route path="/parks" element={<Parks />} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ countryCode: "ES" })));
+    await screen.findByLabelText("Pays");
+    expect((screen.getByLabelText("Pays") as HTMLSelectElement).value).toBe("ES");
+  });
+
+  it("changer le pays transmet countryCode et remet la page à 1", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <MemoryRouter initialEntries={["/parks?status=all&page=2"]}>
+            <Routes>
+              <Route path="/parks" element={<Parks />} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ page: 2 })));
+    fireEvent.change(await screen.findByLabelText("Pays"), { target: { value: "ES" } });
+    await waitFor(() =>
+      expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ countryCode: "ES", page: 1 })),
+    );
+  });
+
+  it("Réinitialiser efface le pays actif", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <MemoryRouter initialEntries={["/parks?country=ES&status=all"]}>
+            <Routes>
+              <Route path="/parks" element={<Parks />} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ countryCode: "ES" })));
+    fireEvent.click(screen.getByRole("button", { name: "Réinitialiser" }));
+    await waitFor(() =>
+      expect(listParksPage).toHaveBeenLastCalledWith(expect.objectContaining({ countryCode: undefined })),
+    );
+    expect((screen.getByLabelText("Pays") as HTMLSelectElement).value).toBe("all");
+  });
+});
+
+describe("Parks — Admin-UI-8D (vue Collectivité non cassée)", () => {
+  beforeEach(() => {
+    perms.canCreatePark = true;
+    perms.canImportParksCsv = false;
+    scope.isAdmin = false;
+    scope.communeId = "org-1";
+    vi.mocked(listParksPage).mockClear().mockResolvedValue({
+      rows: [
+        {
+          id: "p-1",
+          name: "Parc du Parc",
+          status: "published",
+          updated_at: "2026-01-01",
+          source_type: "osm",
+          verification_status: "unverified",
+          has_open_report: false,
+          photos: [],
+        },
+      ] as never,
+      total: 1,
+      page: 1,
+      pageSize: 25,
+      pageCount: 1,
+    });
+    vi.mocked(getParkCountryDistribution).mockClear();
+  });
+
+  it("garde Vérification/Signalement/Photos et n'affiche ni Pays ni Collectivité", async () => {
+    renderParks();
+    await screen.findByText("Parc du Parc");
+    expect(screen.getByRole("columnheader", { name: "Vérification" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Signalement" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Photos" })).toBeTruthy();
+    expect(screen.queryByRole("columnheader", { name: "Pays" })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Collectivité" })).toBeNull();
+    expect(screen.queryByLabelText("Pays")).toBeNull();
+    expect(getParkCountryDistribution).not.toHaveBeenCalled();
   });
 });

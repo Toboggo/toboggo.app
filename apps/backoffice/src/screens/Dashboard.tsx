@@ -31,6 +31,7 @@ import {
 import { PageHeader } from "../components/PageHeader";
 import { useOrgScope } from "../lib/orgScope";
 import { activityIcon } from "../lib/activityCategory";
+import { COUNTRY_LABEL } from "../lib/countryLabels";
 import styles from "./Dashboard.module.css";
 
 // Fond de carte MapLibre pour « Couverture géographique » (Admin-UI-7D-D §1) —
@@ -822,22 +823,6 @@ function SourceBreakdown({
     </>
   );
 }
-
-// Libellés lisibles pour les codes ISO les plus probables du catalogue —
-// purement cosmétique : un pays absent de ce dictionnaire s'affiche quand
-// même, avec son code brut comme libellé (jamais masqué, jamais bloquant —
-// voir "prévoir l'architecture pour que de futurs pays apparaissent
-// automatiquement", Admin-UI-7D-C §4).
-const COUNTRY_LABEL: Record<string, string> = {
-  FR: "France",
-  ES: "Espagne",
-  BE: "Belgique",
-  CH: "Suisse",
-  DE: "Allemagne",
-  IT: "Italie",
-  PT: "Portugal",
-  LU: "Luxembourg",
-};
 
 /**
  * Admin-UI-7D-D §1 — centroïdes géographiques approximatifs (repères publics

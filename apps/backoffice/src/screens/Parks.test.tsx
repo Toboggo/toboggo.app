@@ -21,11 +21,11 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
   };
 });
 
-const perms = vi.hoisted(() => ({ canCreatePark: true }));
+const perms = vi.hoisted(() => ({ canCreatePark: true, canImportParksCsv: false }));
 vi.mock("../lib/permissions", () => ({
   usePermissions: () => ({
     canCreatePark: perms.canCreatePark,
-    canImportParksCsv: false,
+    canImportParksCsv: perms.canImportParksCsv,
     canEditPark: true,
   }),
 }));
@@ -60,6 +60,7 @@ function renderParks() {
 describe("Parks — création (Lot 3C.4)", () => {
   beforeEach(() => {
     perms.canCreatePark = true;
+    perms.canImportParksCsv = false;
     scope.isAdmin = false;
     scope.communeId = "org-1";
     vi.mocked(listParksPage).mockClear();
@@ -90,9 +91,33 @@ describe("Parks — création (Lot 3C.4)", () => {
   });
 });
 
+describe("Parks — Admin-UI-8C (le contrôle Import CSV utilise le composant Button)", () => {
+  beforeEach(() => {
+    perms.canCreatePark = true;
+    perms.canImportParksCsv = true;
+    scope.isAdmin = false;
+    scope.communeId = "org-1";
+    vi.mocked(listParksPage).mockClear();
+  });
+
+  it("'Importer CSV' est un vrai bouton (pas un <label>) qui déclenche le sélecteur de fichier caché", async () => {
+    renderParks();
+    await waitFor(() => expect(listParksPage).toHaveBeenCalled());
+
+    const button = screen.getByRole("button", { name: "Importer CSV" });
+    expect(button.tagName).toBe("BUTTON");
+
+    const clickSpy = vi.spyOn(HTMLInputElement.prototype, "click");
+    fireEvent.click(button);
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+    clickSpy.mockRestore();
+  });
+});
+
 describe("Parks — Admin-UI-5B (colonne/filtre Source, filtre Collectivité)", () => {
   beforeEach(() => {
     perms.canCreatePark = true;
+    perms.canImportParksCsv = false;
     scope.isAdmin = false;
     scope.communeId = "org-1";
     vi.mocked(listParksPage).mockClear().mockResolvedValue({
@@ -161,6 +186,7 @@ describe("Parks — Admin-UI-5B (colonne/filtre Source, filtre Collectivité)", 
 describe("Parks — Admin-UI-8B (l'export CSV utilise les filtres réellement actifs)", () => {
   beforeEach(() => {
     perms.canCreatePark = true;
+    perms.canImportParksCsv = false;
     scope.isAdmin = true;
     scope.communeId = undefined;
     vi.mocked(listParksPage).mockClear().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 });

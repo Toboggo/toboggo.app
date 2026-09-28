@@ -100,4 +100,24 @@ describe("DataTable", () => {
     );
     expect(screen.getByRole("columnheader", { name: /Nom/ }).getAttribute("aria-sort")).toBe("descending");
   });
+
+  // CSS modules compile to `_<name>_<hash>` here (same transform used by
+  // Card.test.tsx to target its own `variant="admin"` class).
+  describe("variant='admin' (Admin-UI-8C, opt-in, default unchanged)", () => {
+    it("default variant renders exactly as before (no admin-specific classes)", () => {
+      const { container } = render(<DataTable columns={columns} rows={rows} getRowKey={(r) => r.id} />);
+      expect(container.querySelector("div")!.className).not.toMatch(/_admin/);
+      expect(container.querySelector("th")!.className).not.toMatch(/_admin/);
+    });
+
+    it("variant='admin' adds the admin surface/header/row classes", () => {
+      const { container } = render(
+        <DataTable columns={columns} rows={rows} getRowKey={(r) => r.id} variant="admin" />,
+      );
+      expect(container.querySelector("div")!.className).toMatch(/_wrapAdmin_/);
+      expect(container.querySelector("th")!.className).toMatch(/_thAdmin_/);
+      expect(container.querySelector("tbody tr")!.className).toMatch(/_rowAdmin_/);
+      expect(container.querySelector("td")!.className).toMatch(/_tdAdmin_/);
+    });
+  });
 });

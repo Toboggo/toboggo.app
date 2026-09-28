@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Button,
   DataTable,
+  FilterBar,
+  Icon,
   Input,
   Menu,
   MenuItem,
@@ -119,6 +121,8 @@ export default function Parks() {
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   function openPark(park: Park) {
     const qs = searchParams.toString();
@@ -433,6 +437,7 @@ export default function Parks() {
     <div>
       <PageHeader
         title={isAdmin ? "Parcs" : "Mes parcs"}
+        subtitle={isAdmin ? "Gérez le catalogue de parcs référencés sur Toboggo." : undefined}
         actions={
           <>
             {canCreatePark && (
@@ -441,43 +446,56 @@ export default function Parks() {
               </Button>
             )}
             {canImportParksCsv && (
-              <label style={{ display: "inline-flex" }}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "9px 16px",
-                    fontSize: 13,
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    borderRadius: 999,
-                    background: "var(--color-surface)",
-                    border: "1.5px solid var(--color-border-strong)",
-                    cursor: importPending ? "default" : "pointer",
-                    opacity: importPending ? 0.6 : 1,
-                  }}
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={importPending}
+                  onClick={() => csvInputRef.current?.click()}
                 >
                   {importPending ? "Import en cours…" : "Importer CSV"}
-                </span>
-                <input type="file" accept=".csv" hidden disabled={importPending} onChange={importCsv} />
-              </label>
+                </Button>
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv"
+                  hidden
+                  disabled={importPending}
+                  onChange={importCsv}
+                />
+              </>
             )}
             <Button size="sm" variant="secondary" onClick={exportCsv}>
+              <Icon name="ic-download" size={14} />
               Exporter CSV
             </Button>
           </>
         }
       />
 
-      <div className={styles.filterBar}>
-        <Input
-          className={styles.search}
-          label="Rechercher"
-          type="search"
-          placeholder="Nom du parc…"
-          value={qInput}
-          onChange={(e) => setQInput(e.target.value)}
-        />
+      <FilterBar
+        className={styles.filterBar}
+        actions={
+          !isLoading && !isError ? (
+            <span className={styles.count}>
+              {total} parc{total > 1 ? "s" : ""}
+            </span>
+          ) : undefined
+        }
+      >
+        <div className={styles.search}>
+          <span className={styles.searchIcon} aria-hidden="true">
+            <Icon name="ic-search" size={14} />
+          </span>
+          <Input
+            className={styles.searchField}
+            aria-label="Rechercher"
+            type="search"
+            placeholder="Nom du parc…"
+            value={qInput}
+            onChange={(e) => setQInput(e.target.value)}
+          />
+        </div>
         <Select
           className={styles.select}
           label="Statut"
@@ -534,14 +552,10 @@ export default function Parks() {
             Réinitialiser
           </button>
         )}
-        {!isLoading && !isError && (
-          <span className={styles.count}>
-            {total} parc{total > 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
+      </FilterBar>
 
       <DataTable
+        variant={isAdmin ? "admin" : "default"}
         caption={isAdmin ? "Liste des parcs" : "Liste de mes parcs"}
         columns={columns}
         rows={rows}

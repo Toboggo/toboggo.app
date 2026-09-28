@@ -1,8 +1,16 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { getDirectionsUrl, hasValidCoordinates, type MapProvider } from "@toboggo/shared";
+import { trackEvent } from "./analytics";
+import type { RouteProvider } from "./analytics";
 import { useToastStore } from "./toast";
 import { useVisitPrompt } from "./visitPrompt";
+
+const ROUTE_PROVIDER: Record<MapProvider, RouteProvider> = {
+  apple: "apple_maps",
+  google: "google_maps",
+  waze: "waze",
+};
 
 interface DirectionsTarget {
   id: string;
@@ -36,7 +44,10 @@ export function useDirections() {
   function choose(provider: MapProvider) {
     if (!target) return;
     // Fired only once the user actually picks an app — before that we don't
-    // yet know they're really about to leave Toboggo.
+    // yet know they're really about to leave Toboggo. Same moment as
+    // `route_requested`: opening the sheet or cancelling it never tracks
+    // anything, only an actual provider choice does.
+    trackEvent("route_requested", { park_id: target.id, provider: ROUTE_PROVIDER[provider] });
     schedule(target.id, target.displayName);
     // Same-tab navigation, not `window.open(url, "_blank")`: on iOS
     // Safari/PWA, `_blank` opens a new browsing context that the maps

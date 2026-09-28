@@ -78,11 +78,9 @@ export type ContributionType = "add_park" | "add_photo" | "edit_info" | "report"
 
 export type ShareChannel = "whatsapp" | "sms" | "email" | "instagram" | "copy_link";
 
-export type TransportMode = "walk" | "bike" | "car";
-
-/** Provider de navigation externe — conditionnelle, cf. EVENT-TAXONOMY.md
- * `route_requested` : à n'envoyer que lorsqu'une vraie ouverture externe
- * existe (pas encore le cas, Directions.tsx est un mock). */
+/** Provider de navigation externe réellement choisi par l'utilisateur dans
+ * `DirectionsSheet` — mappé depuis `MapProvider` (`packages/shared`) au point
+ * d'émission, voir `lib/directions.ts`. */
 export type RouteProvider = "apple_maps" | "google_maps" | "waze";
 
 export type NotificationType = "resolved" | "new_park" | "thanks" | "recommend";
@@ -179,15 +177,16 @@ export interface AnalyticsEventProperties {
     park_id: string;
     channel: ShareChannel;
   };
-  /** ⚠️ Ne doit pas être considéré comme correctement instrumentable dans
-   * l'état actuel de Directions.tsx (mock) — voir EVENT-TAXONOMY.md et
-   * TRACKING-PLAN.md §2. Type défini dès maintenant pour le socle ; le
-   * `provider` ne doit être envoyé qu'une fois une vraie ouverture externe
-   * implémentée. */
+  /** Émis dans `useDirections().choose()` (`lib/directions.ts`), au moment où
+   * l'utilisateur choisit effectivement un provider dans `DirectionsSheet` —
+   * juste avant la navigation externe réelle. L'ouverture seule du sheet, ou
+   * sa fermeture/annulation, n'émettent rien. Pas de `transport_mode` : cette
+   * propriété appartenait à l'ancien écran Directions (mock, ETA calculée
+   * localement par mode de transport) — le flux actuel n'a plus de sélecteur
+   * de mode, seulement un choix de provider de navigation externe. */
   route_requested: {
     park_id: string;
-    transport_mode: TransportMode;
-    provider?: RouteProvider;
+    provider: RouteProvider;
   };
 
   // --- CONTRIBUTION ---
@@ -274,7 +273,7 @@ export const EVENT_PROPERTY_ALLOWLIST: {
   park_favorited: ["park_id", "discovery_source"],
   park_unfavorited: ["park_id"],
   park_shared: ["park_id", "channel"],
-  route_requested: ["park_id", "transport_mode", "provider"],
+  route_requested: ["park_id", "provider"],
 
   contribution_started: ["contribution_type", "park_id", "entry_point"],
   contribution_completed: ["contribution_type", "park_id", "had_just_in_time_auth", "has_photo"],

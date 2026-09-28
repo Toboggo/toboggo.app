@@ -286,33 +286,31 @@ ci-dessous (traçables au code) :
 - **Priorité** : P0.
 
 ### `route_requested`
-- **⚠️ NE DOIT PAS être considéré comme correctement instrumentable dans l'état actuel du code.**
-  `Directions.tsx` est un mock complet (`ANALYTICS-AUDIT.md` §9ter) : aucune ouverture réelle
-  d'un provider de navigation externe n'existe aujourd'hui. L'événement reste défini ici en P0
-  car il est structurant pour la North Star, mais **son instrumentation définitive doit
-  intervenir seulement avec la mise en place d'une vraie ouverture externe** — pas de développement
-  de l'itinéraire dans ce worktree à cette étape (hors périmètre de cet audit).
-- **Description cible (une fois l'ouverture externe réelle implémentée)** : l'utilisateur déclenche
-  l'ouverture effective d'un provider de navigation externe (Apple Plans, Google Maps ou Waze)
-  vers le parc — l'événement doit représenter **la demande d'ouverture réelle d'un provider
-  externe**, pas simplement l'ouverture de l'écran Directions (cf. `directions_viewed`, qui capte
-  déjà ce signal plus faible) ni un clic sur le bouton "Démarrer" actuel de l'écran mock.
-- **Trigger exact — état actuel (mock, à ne pas considérer comme fiable)** : `startNav()`
-  (`Directions.tsx:45-49`) ne fait qu'activer un state local et un toast, sans sortie de l'app.
-- **Trigger exact — état cible (à instrumenter au moment de la reconstruction de la fonctionnalité,
-  pas maintenant)** : ouverture confirmée d'un lien externe vers le provider choisi (ex. lien
-  `maps://`, `comgooglemaps://`, `waze://` ou équivalent web), au moment du clic qui déclenche
-  effectivement cette ouverture.
-- **Écran/source** : `Directions.tsx` (ou son successeur fonctionnel).
-- **Propriétés** : `park_id`, `transport_mode` (`walk` | `bike` | `car`), et **`provider`
-  (`apple_maps` | `google_maps` | `waze`) — propriété à activer uniquement quand un vrai choix de
-  provider externe existe** ; tant que ce n'est pas le cas, ne pas envoyer cette propriété avec une
-  valeur inventée.
-- **KPI/funnel** : sous-signal de la North Star — voir `TRACKING-PLAN.md` §2 pour la limite
-  explicite sur la fiabilité actuelle de ce signal (mesure une demande, pas un usage réel
-  d'itinéraire, jusqu'à l'implémentation de l'ouverture externe).
-- **Priorité** : P0 (prévu dès le lancement de l'instrumentation), **mais implémentation
-  définitive conditionnée à l'existence d'une vraie ouverture externe** — voir note ci-dessus.
+- **Statut : instrumenté (mise à jour post-refonte de l'Itinéraire).** L'ancien `Directions.tsx`
+  (mock complet, ETA haversine par mode de transport, décrit dans une version antérieure de cette
+  fiche et dans `ANALYTICS-AUDIT.md` §9ter) a été remplacé par un flux réel : `DirectionsSheet`
+  (choix d'un provider de navigation) + `useDirections`/`lib/directions.ts`, qui ouvre une vraie
+  URL externe (`getDirectionsUrl`, `packages/shared/src/utils/externalNav.ts`) vers Apple Plans,
+  Google Maps ou Waze. Il n'existe plus de sélecteur de mode de transport (marche/vélo/voiture) —
+  cette notion a disparu avec l'ancien écran, d'où le retrait de `transport_mode` ci-dessous.
+- **Description** : l'utilisateur choisit effectivement un provider de navigation externe dans
+  `DirectionsSheet` — l'événement représente une vraie demande d'ouverture externe, pas l'ouverture
+  du sheet lui-même (signal plus faible, cf. `directions_viewed`) ni sa fermeture/annulation.
+- **Trigger exact** : `choose(provider)` dans `useDirections` (`lib/directions.ts`), juste avant
+  `window.location.assign(getDirectionsUrl(...))` — au moment du clic sur un provider dans
+  `DirectionsSheet`, jamais à l'ouverture du sheet (`openDirections`) ni à sa fermeture
+  (`onClose`).
+- **Écran/source** : `DirectionsSheet.tsx` via `lib/directions.ts`, utilisé depuis `ParkDetail.tsx`
+  et `ParkPreview.tsx` (les deux points d'entrée partagent le même hook, donc le même point
+  d'instrumentation).
+- **Propriétés** : `park_id`, `provider` (`apple_maps` | `google_maps` | `waze`, **obligatoire** —
+  un vrai choix de provider externe existe désormais). Mapping explicite depuis `MapProvider`
+  (`packages/shared`) : `apple` → `apple_maps`, `google` → `google_maps`, `waze` → `waze`.
+  **Pas de `transport_mode`** (propriété retirée, obsolète — voir note de statut ci-dessus).
+- **KPI/funnel** : sous-signal de la North Star — voir `TRACKING-PLAN.md` §2, mis à jour pour
+  refléter que ce signal correspond désormais à une vraie sortie d'app vers un service de
+  navigation, pas à un clic dans un flow fermé.
+- **Priorité** : P0.
 
 ---
 
@@ -410,8 +408,8 @@ ci-dessous (traçables au code) :
 
 - **P0 (14)** : `app_opened`, `signup_completed`, `login_completed`, `map_viewed`,
   `search_performed`, `search_results_viewed`, `zero_results`, `filter_applied`, `park_viewed`,
-  `park_favorited`, `park_shared`, `route_requested` (⚠️ instrumentation définitive différée,
-  voir sa fiche), `contribution_started`, `contribution_completed`.
+  `park_favorited`, `park_shared`, `route_requested`, `contribution_started`,
+  `contribution_completed`.
 - **P1 (5)** : `signup_started`, `account_deleted`, `filter_cleared`, `park_unfavorited`,
   `contribution_abandoned`.
 - **P2 (7)** : `cluster_clicked`, `filter_opened`, `photo_viewed`, `review_viewed`,
@@ -435,9 +433,8 @@ Total : 26 événements (14 + 5 + 7).
 
 `park_id`, `discovery_source`, `has_photos`, `has_reviews`, `distance_bucket`, `filter_type`,
 `filter_value`, `results_count`, `query_type`, `reason`, `contribution_type`, `step`/`last_step`,
-`channel`, `provider` (`apple_maps`/`google_maps`/`waze` — **conditionnelle**, à n'envoyer que
-lorsqu'un vrai choix de provider de navigation externe existe, cf. `route_requested`),
-`transport_mode`, `notification_type`.
+`channel`, `provider` (`apple_maps`/`google_maps`/`waze`, obligatoire sur `route_requested` —
+mappé depuis le `MapProvider` réel choisi dans `DirectionsSheet`), `notification_type`.
 
 **Explicitement écarté** : une propriété composite `data_completeness` (mentionnée dans les
 exemples candidats) n'est pas définie ici — son calcul nécessiterait une formule inventée non

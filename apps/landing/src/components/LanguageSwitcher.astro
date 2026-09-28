@@ -1,0 +1,45 @@
+---
+/**
+ * Sélecteur de langue — composant construit pour Website-1 mais PAS monté
+ * dans Header.astro / Footer.astro (décision explicite : le site public
+ * reste FR uniquement tant qu'EN et ES ne sont pas entièrement traduits et
+ * validés — Website-7). À monter dans le shell une fois ce lot fait, en
+ * passant `locale={getLangFromUrl(Astro.url)}`.
+ */
+import { LOCALES, type Locale } from "../i18n/config";
+
+interface Props {
+  locale?: Locale;
+}
+
+const { locale = "fr" } = Astro.props;
+
+const LABELS: Record<Locale, string> = { fr: "Français", en: "English", es: "Español" };
+---
+
+<div class="lang-switcher" role="group" aria-label="Langue">
+  {
+    LOCALES.map((code) => (
+      <span class:list={["lang-option", { active: code === locale }]} aria-current={code === locale ? "true" : undefined}>
+        {LABELS[code]}
+      </span>
+    ))
+  }
+</div>
+
+<style>
+  .lang-switcher {
+    display: inline-flex;
+    gap: var(--space-2);
+    font-size: var(--text-xs);
+  }
+
+  .lang-option {
+    color: var(--color-text-faint);
+  }
+
+  .lang-option.active {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+</style>

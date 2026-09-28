@@ -6,6 +6,7 @@ import {
   getParkCountryDistribution,
   getParkStatusCounts,
   isValidCoordinate,
+  listAllParksForExport,
   listOrgParkIds,
   listParks,
   listParksPage,
@@ -357,6 +358,142 @@ describe("listParksPage — Admin-UI-5B (filtre Source, filtre Collectivité, co
 
     const eqArgs = calls(queriesByTable["park_public"][0], "eq");
     expect(eqArgs).toContainEqual(["country_code", "ES"]);
+  });
+});
+
+describe("listAllParksForExport — Admin-UI-8B (export CSV, jamais listParks() ni un tableau tronqué par max_rows)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  function calls(q: { calls: { method: string; args: unknown[] }[] }, method: string) {
+    return q.calls.filter((c) => c.method === method).map((c) => c.args);
+  }
+
+  it("un catalogue sous max_rows tient en une seule page", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [{ id: "p1" }, { id: "p2" }], error: null, count: 2 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const rows = await listAllParksForExport();
+
+    expect(rows.map((r) => r.id)).toEqual(["p1", "p2"]);
+    expect(queriesByTable["park_public"]).toHaveLength(1);
+    expect(calls(queriesByTable["park_public"][0], "range")[0]).toEqual([0, 999]);
+  });
+
+  it("0 résultat : un seul appel, aucune page supplémentaire, tableau vide", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: [], error: null, count: 0 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    expect(await listAllParksForExport()).toEqual([]);
+    expect(queriesByTable["park_public"]).toHaveLength(1);
+  });
+
+  it("régression >1000 : 2500 parcs répartis sur 3 pages — aucune ligne perdue, aucune dupliquée, arrêt exact à la dernière page", async () => {
+    const total = 2500;
+    const page0 = Array.from({ length: 1000 }, (_, i) => ({ id: `p-${i}` }));
+    const page1 = Array.from({ length: 1000 }, (_, i) => ({ id: `p-${1000 + i}` }));
+    const page2 = Array.from({ length: 500 }, (_, i) => ({ id: `p-${2000 + i}` }));
+
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: (calls) => {
+        const rangeCall = calls.find((c) => c.method === "range");
+        const [from] = (rangeCall?.args ?? [0]) as [number, number];
+        if (from === 0) return { data: page0, error: null, count: total };
+        if (from === 1000) return { data: page1, error: null };
+        return { data: page2, error: null };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    const rows = await listAllParksForExport();
+
+    expect(rows).toHaveLength(total);
+    expect(new Set(rows.map((r) => r.id)).size).toBe(total); // aucune duplication
+    // Toutes les lignes 0..2499 sont présentes, dans l'ordre des pages.
+    expect(rows.map((r) => r.id)).toEqual(Array.from({ length: total }, (_, i) => `p-${i}`));
+    // Exactement 3 requêtes (2500 / 1000 par page) — jamais une 4e de trop,
+    // jamais une seule requête tronquée à 1000.
+    expect(queriesByTable["park_public"]).toHaveLength(3);
+    expect(calls(queriesByTable["park_public"][0], "range")[0]).toEqual([0, 999]);
+    expect(calls(queriesByTable["park_public"][1], "range")[0]).toEqual([1000, 1999]);
+    expect(calls(queriesByTable["park_public"][2], "range")[0]).toEqual([2000, 2999]);
+  });
+
+  it("propage les mêmes filtres (statut, source, pays, recherche, tri) à chaque page, y compris au-delà de la première", async () => {
+    const total = 1500;
+    const page0 = Array.from({ length: 1000 }, (_, i) => ({ id: `p-${i}`, park_sources: [{ source_type: "osm" }] }));
+    const page1 = Array.from({ length: 500 }, (_, i) => ({ id: `p-${1000 + i}`, park_sources: [{ source_type: "osm" }] }));
+
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: (calls) => {
+        const rangeCall = calls.find((c) => c.method === "range");
+        const [from] = (rangeCall?.args ?? [0]) as [number, number];
+        if (from === 0) return { data: page0, error: null, count: total };
+        return { data: page1, error: null };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listAllParksForExport({
+      status: ["published"],
+      sourceTypes: ["osm"],
+      countryCode: "ES",
+      q: "gourg",
+      sort: "name",
+      order: "asc",
+    });
+
+    for (const q of queriesByTable["park_public"]) {
+      expect(calls(q, "in")).toContainEqual(["moderation_status", ["published"]]);
+      expect(calls(q, "in")).toContainEqual(["park_sources.source_type", ["osm"]]);
+      expect(calls(q, "eq")).toContainEqual(["country_code", "ES"]);
+      expect(calls(q, "ilike")).toContainEqual(["name", "%gourg%"]);
+      expect(calls(q, "order")[0]).toEqual(["name", { ascending: true }]);
+    }
+  });
+
+  it("une erreur sur une page intermédiaire (pas la première) est bien remontée, jamais avalée", async () => {
+    const total = 2200;
+    const page0 = Array.from({ length: 1000 }, (_, i) => ({ id: `p-${i}` }));
+
+    const { client } = makeFakeSupabase({
+      park_public: (calls) => {
+        const rangeCall = calls.find((c) => c.method === "range");
+        const [from] = (rangeCall?.args ?? [0]) as [number, number];
+        if (from === 0) return { data: page0, error: null, count: total };
+        if (from === 1000) return { data: null, error: { message: "boom" } };
+        return { data: [], error: null };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await expect(listAllParksForExport()).rejects.toEqual({ message: "boom" });
+  });
+
+  it("une erreur sur la toute première page est remontée sans tenter aucune autre page", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      park_public: { data: null, error: { message: "boom" } },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await expect(listAllParksForExport()).rejects.toEqual({ message: "boom" });
+    expect(queriesByTable["park_public"]).toHaveLength(1);
+  });
+
+  it("respecte la même restriction communeId/organizationId que listParksPage (via resolveIdRestriction partagé)", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
+      organization_parks: { data: [{ park_id: "p1" }], error: null },
+      park_public: { data: [{ id: "p1" }], error: null, count: 1 },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+
+    await listAllParksForExport({ communeId: "org-1" });
+
+    const inArgs = calls(queriesByTable["park_public"][0], "in");
+    expect(inArgs).toContainEqual(["id", ["p1"]]);
   });
 });
 

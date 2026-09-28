@@ -352,10 +352,42 @@ export async function listParkSourcesByIds(parkIds: string[]): Promise<Map<strin
   return map;
 }
 
-export async function listParksPage(opts: ListParksPageOpts = {}): Promise<ParksPage> {
-  const supabase = getSupabase();
-  const page = Math.max(1, Math.trunc(opts.page ?? 1));
-  const pageSize = Math.max(1, Math.trunc(opts.pageSize ?? PARKS_PAGE_SIZE));
+type RowWithEmbeddedSource = Park & { park_sources: { source_type: SourceType }[] | null };
+
+function mapParkRows(data: unknown): ParkWithSource[] {
+  const rows = (data ?? []) as unknown as RowWithEmbeddedSource[];
+  return rows.map(({ park_sources, ...park }) => ({
+    ...park,
+    source_type: park_sources?.[0]?.source_type ?? null,
+  }));
+}
+
+/**
+ * `communeId` (session scope) and `organizationId` ("Collectivité" filter)
+ * both resolve to their own id list, intersected into a single restriction —
+ * naturally bounded (one organisation's parks), shared by `listParksPage` and
+ * `listAllParksForExport` so this resolution never drifts between the two.
+ */
+async function resolveIdRestriction(opts: { communeId?: string; organizationId?: string }): Promise<string[] | null> {
+  const idLists: string[][] = [];
+  if (opts.communeId) idLists.push(await listOrgParkIds(opts.communeId));
+  if (opts.organizationId) idLists.push(await listOrgParkIds(opts.organizationId));
+  if (!idLists.length) return null;
+  return idLists.reduce((a, b) => a.filter((id) => b.includes(id)));
+}
+
+/**
+ * Every filter shared by `listParksPage` and `listAllParksForExport`, applied
+ * to a fresh (unpaginated) `park_public` query — the single place these two
+ * callers' filtering logic can diverge is if one of them stops calling this.
+ * `idRestriction` is resolved separately (`resolveIdRestriction`, async)
+ * since a query builder itself can't await.
+ */
+function buildParksQuery(
+  supabase: ReturnType<typeof getSupabase>,
+  opts: Pick<ListParksPageOpts, "q" | "status" | "verification" | "sourceTypes" | "countryCode" | "sort" | "order">,
+  idRestriction: string[] | null,
+) {
   const sort: ParksSortKey = opts.sort ?? "updated_at";
   const ascending = (opts.order ?? "desc") === "asc";
 
@@ -364,10 +396,10 @@ export async function listParksPage(opts: ListParksPageOpts = {}): Promise<Parks
   // no follow-up per-page query. Filtering by source switches the embed to
   // `!inner`, turning it into a real SQL join that restricts rows server-side
   // via `.in("park_sources.source_type", …)`. This is deliberate: unlike
-  // `communeId`/`organizationId` below (always a small, one-organisation id
-  // set), a source type can match most of the catalog (e.g. "osm" matches
-  // 2201/2201 parks locally) — collecting every matching id client-side and
-  // sending `id=in.(…)` would build a multi-hundred-KB URL and fail outright
+  // `idRestriction` below (always a small, one-organisation id set), a source
+  // type can match most of the catalog (e.g. "osm" matches 2201/2201 parks
+  // locally) — collecting every matching id client-side and sending
+  // `id=in.(…)` would build a multi-hundred-KB URL and fail outright
   // (confirmed locally: PostgREST/the browser reject it). The join has no such
   // limit. A park with more than one matching `park_sources` row (not expected
   // in practice, see `getParkSourceDistribution`) would appear twice under an
@@ -386,43 +418,85 @@ export async function listParksPage(opts: ListParksPageOpts = {}): Promise<Parks
   if (sourceFilterActive) {
     query = query.in("park_sources.source_type", opts.sourceTypes!);
   }
-
-  // `communeId` (session scope) and `organizationId` ("Collectivité" filter)
-  // both resolve to their own id list, intersected into a single
-  // `.in("id", …)` call — naturally bounded (one organisation's parks), so
-  // this pattern stays safe here (unlike the Source filter above).
-  const idLists: string[][] = [];
-  if (opts.communeId) idLists.push(await listOrgParkIds(opts.communeId));
-  if (opts.organizationId) idLists.push(await listOrgParkIds(opts.organizationId));
-  if (idLists.length) {
-    const idRestriction = idLists.reduce((a, b) => a.filter((id) => b.includes(id)));
+  if (idRestriction) {
     query = query.in("id", idRestriction.length ? idRestriction : [NO_MATCH_SENTINEL]);
   }
-
   if (opts.status?.length) query = query.in("moderation_status", opts.status);
   if (opts.verification?.length) query = query.in("verification_status", opts.verification);
   if (opts.countryCode) query = query.eq("country_code", opts.countryCode);
   const q = opts.q?.trim();
   if (q) query = query.ilike("name", `%${q}%`);
 
+  return query;
+}
+
+export async function listParksPage(opts: ListParksPageOpts = {}): Promise<ParksPage> {
+  const supabase = getSupabase();
+  const page = Math.max(1, Math.trunc(opts.page ?? 1));
+  const pageSize = Math.max(1, Math.trunc(opts.pageSize ?? PARKS_PAGE_SIZE));
+
+  const idRestriction = await resolveIdRestriction(opts);
   const from = (page - 1) * pageSize;
-  query = query.range(from, from + pageSize - 1);
+  const query = buildParksQuery(supabase, opts, idRestriction).range(from, from + pageSize - 1);
 
   const { data, error, count } = await query;
   if (error) throw error;
-  type RowWithEmbeddedSource = Park & { park_sources: { source_type: SourceType }[] | null };
-  const rows = (data ?? []) as unknown as RowWithEmbeddedSource[];
   const total = count ?? 0;
   return {
-    rows: rows.map(({ park_sources, ...park }) => ({
-      ...park,
-      source_type: park_sources?.[0]?.source_type ?? null,
-    })),
+    rows: mapParkRows(data),
     total,
     page,
     pageSize,
     pageCount: Math.max(1, Math.ceil(total / pageSize)),
   };
+}
+
+// Server-side page size for `listAllParksForExport` below — deliberately
+// aligned with PostgREST's own `max_rows` (`supabase/config.toml`, 1000
+// locally, same reasoning as `COUNTRY_PAGE_SIZE`) rather than fighting it: a
+// `.range()` request for more rows than `max_rows` is silently truncated to
+// it, which is exactly the bug this function exists to avoid (confirmed:
+// `exportCsv` used to call the unbounded `listParks()`, capped at 1000 rows
+// out of 2201+ real local parks). Never raise this above `max_rows`.
+const EXPORT_PAGE_SIZE = 1000;
+
+export type ListAllParksOpts = Omit<ListParksPageOpts, "page" | "pageSize">;
+
+/**
+ * Admin-UI-8B — every `park_public` row matching the given filters, fetched
+ * in full regardless of catalog size: never `listParks()` (unbounded,
+ * silently truncated past `max_rows`) and never a single `.range()`/`.limit()`
+ * bigger than `max_rows` (same truncation, just moved). Reuses
+ * `buildParksQuery`/`resolveIdRestriction` — the exact same filter logic as
+ * `listParksPage` — so the CSV export can never drift from what the list
+ * itself would show for the same filters. The first page's exact `count`
+ * (PostgREST `{ count: "exact" }`, real `SELECT count(*)`, not a `.length`)
+ * tells us how many more pages are needed; those are then fetched in
+ * parallel (their number is already known), mirroring
+ * `getParkCountryDistribution`'s pattern.
+ */
+export async function listAllParksForExport(opts: ListAllParksOpts = {}): Promise<ParkWithSource[]> {
+  const supabase = getSupabase();
+  const idRestriction = await resolveIdRestriction(opts);
+
+  const first = await buildParksQuery(supabase, opts, idRestriction).range(0, EXPORT_PAGE_SIZE - 1);
+  if (first.error) throw first.error;
+  const total = first.count ?? 0;
+  const rows = mapParkRows(first.data);
+  if (total <= EXPORT_PAGE_SIZE) return rows;
+
+  const pageCount = Math.ceil(total / EXPORT_PAGE_SIZE);
+  const rest = await Promise.all(
+    Array.from({ length: pageCount - 1 }, (_, i) => {
+      const from = (i + 1) * EXPORT_PAGE_SIZE;
+      return buildParksQuery(supabase, opts, idRestriction).range(from, from + EXPORT_PAGE_SIZE - 1);
+    }),
+  );
+  for (const page of rest) {
+    if (page.error) throw page.error;
+    rows.push(...mapParkRows(page.data));
+  }
+  return rows;
 }
 
 // ── Write path ────────────────────────────────────────────────────────────

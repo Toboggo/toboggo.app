@@ -14,11 +14,10 @@ import {
 } from "@toboggo/design-system";
 import {
   isValidCoordinate,
+  listAllParksForExport,
   listCommunes,
-  listOrgParkIds,
   listParks,
   listParksPage,
-  listParkSourcesByIds,
   setParkStatus,
   toCsv,
   downloadCsv,
@@ -210,37 +209,39 @@ export default function Parks() {
   const total = data?.total ?? 0;
   const pageCount = data?.pageCount ?? 1;
 
+  // Admin-UI-8B — mêmes options que la requête `listParksPage` ci-dessus
+  // (mêmes variables `status`/`verification`/`source`/`organizationId`/
+  // `country`/`q`/`sort`, juste sans page/pageSize) : l'export ne peut pas
+  // diverger des filtres réellement actifs sur la liste, par construction —
+  // une seule implémentation des filtres, jamais deux. `listAllParksForExport`
+  // pagine côté serveur jusqu'au `count` exact réel (jamais `listParks()`,
+  // plafonnée à `max_rows` et donc silencieusement tronquée au-delà de 1000
+  // parcs — le bug corrigé par ce lot).
   function exportCsv() {
     void (async () => {
       try {
-        const all = await listParks({ communeId });
-        let filtered = all
-          .filter((p) => status === "all" || p.status === status)
-          .filter((p) => verification === "all" || p.verification_status === verification)
-          .filter((p) => country === "all" || p.country_code === country)
-          .filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()));
-        if (organizationId) {
-          const orgParkIds = new Set(await listOrgParkIds(organizationId));
-          filtered = filtered.filter((p) => orgParkIds.has(p.id));
-        }
-        // Un seul appel groupé pour toutes les lignes exportées (pas un par
-        // parc) — même principe que la colonne Source de la liste paginée.
-        const sourceByParkId = await listParkSourcesByIds(filtered.map((p) => p.id));
-        if (source !== "all") filtered = filtered.filter((p) => sourceByParkId.get(p.id) === source);
+        const rows = await listAllParksForExport({
+          communeId,
+          q,
+          status: status === "all" ? undefined : [status],
+          verification: verification === "all" ? undefined : [verification],
+          sourceTypes: source === "all" ? undefined : [source],
+          organizationId: organizationId || undefined,
+          countryCode: country === "all" ? undefined : country,
+          sort: sort.key,
+          order: sort.order,
+        });
         const csv = toCsv(
-          filtered.map((p) => {
-            const parkSource = sourceByParkId.get(p.id);
-            return {
-              Nom: p.name,
-              Adresse: p.formatted_address ?? "",
-              Latitude: p.latitude ?? p.lat ?? "",
-              Longitude: p.longitude ?? p.lng ?? "",
-              Statut: p.status,
-              Vérification: p.verification_status,
-              Source: parkSource ? SOURCE_LABEL[parkSource] : "",
-              Photos: (p.photos ?? []).length,
-            };
-          }),
+          rows.map((p) => ({
+            Nom: p.name,
+            Adresse: p.formatted_address ?? "",
+            Latitude: p.latitude ?? p.lat ?? "",
+            Longitude: p.longitude ?? p.lng ?? "",
+            Statut: p.status,
+            Vérification: p.verification_status,
+            Source: p.source_type ? SOURCE_LABEL[p.source_type] : "",
+            Photos: (p.photos ?? []).length,
+          })),
           ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Source", "Photos"],
         );
         downloadCsv("toboggo-parcs.csv", csv);

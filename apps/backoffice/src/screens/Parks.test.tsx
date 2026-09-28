@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { listCommunes, listParksPage } from "@toboggo/shared";
+import { listAllParksForExport, listCommunes, listParksPage } from "@toboggo/shared";
 import Parks from "./Parks";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -12,8 +12,12 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     ...actual,
     listParksPage: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 }),
     listParks: vi.fn().mockResolvedValue([]),
+    listAllParksForExport: vi.fn().mockResolvedValue([]),
     listCommunes: vi.fn().mockResolvedValue([]),
     logActivity: vi.fn().mockResolvedValue(undefined),
+    // Admin-UI-8B : le vrai `downloadCsv` appelle `URL.createObjectURL`, non
+    // implémenté par jsdom — mocké comme le reste de la suite (Dashboard.test.tsx).
+    downloadCsv: vi.fn(),
   };
 });
 
@@ -150,6 +154,82 @@ describe("Parks — Admin-UI-5B (colonne/filtre Source, filtre Collectivité)", 
     fireEvent.change(select, { target: { value: "org-lyon" } });
     await waitFor(() =>
       expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ organizationId: "org-lyon" })),
+    );
+  });
+});
+
+describe("Parks — Admin-UI-8B (l'export CSV utilise les filtres réellement actifs)", () => {
+  beforeEach(() => {
+    perms.canCreatePark = true;
+    scope.isAdmin = true;
+    scope.communeId = undefined;
+    vi.mocked(listParksPage).mockClear().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 });
+    vi.mocked(listAllParksForExport).mockClear().mockResolvedValue([]);
+    vi.mocked(listCommunes).mockClear().mockResolvedValue([
+      { id: "org-lyon", name: "Ville de Lyon" },
+    ] as never);
+  });
+
+  it("n'appelle jamais listParks() (non paginée) pour l'export — seulement listAllParksForExport", async () => {
+    renderParks();
+    await waitFor(() => expect(listParksPage).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Exporter CSV" }));
+    await waitFor(() => expect(listAllParksForExport).toHaveBeenCalledTimes(1));
+  });
+
+  it("transmet exactement les mêmes filtres actifs (statut, source, collectivité, recherche, tri) que ceux utilisés par la liste elle-même", async () => {
+    renderParks();
+    await waitFor(() => expect(screen.getByText("Ville de Lyon")).toBeTruthy());
+
+    fireEvent.change(screen.getByLabelText("Statut"), { target: { value: "published" } });
+    fireEvent.change(screen.getByLabelText("Source"), { target: { value: "osm" } });
+    fireEvent.change(screen.getByLabelText("Collectivité"), { target: { value: "org-lyon" } });
+    fireEvent.change(screen.getByLabelText("Rechercher"), { target: { value: "Jean" } });
+    await waitFor(() =>
+      expect(listParksPage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: ["published"],
+          sourceTypes: ["osm"],
+          organizationId: "org-lyon",
+          q: "Jean",
+        }),
+      ),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Exporter CSV" }));
+    await waitFor(() =>
+      expect(listAllParksForExport).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: ["published"],
+          sourceTypes: ["osm"],
+          organizationId: "org-lyon",
+          q: "Jean",
+          countryCode: undefined,
+          sort: "updated_at",
+          order: "desc",
+        }),
+      ),
+    );
+  });
+
+  it("l'export d'un pays deep-linké (?country=ES) transmet countryCode — non exposé en <Select> mais toujours actif", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <MemoryRouter initialEntries={["/parks?country=ES&status=all"]}>
+            <Routes>
+              <Route path="/parks" element={<Parks />} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ countryCode: "ES" })));
+
+    fireEvent.click(screen.getByRole("button", { name: "Exporter CSV" }));
+    await waitFor(() =>
+      expect(listAllParksForExport).toHaveBeenCalledWith(expect.objectContaining({ countryCode: "ES" })),
     );
   });
 });

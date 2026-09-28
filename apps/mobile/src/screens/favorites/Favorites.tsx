@@ -4,23 +4,32 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, EmptyState } from "@toboggo/design-system";
 import { listParksByIds } from "@toboggo/shared";
-import { TopBar } from "../../components/TopBar";
 import { BottomTabs } from "../../components/BottomTabs";
 import { ParkCard } from "../../components/ParkCard";
 import { useSession } from "../../lib/session";
+import styles from "./Favorites.module.css";
 
 export default function Favorites() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
+  const { t: tCommon } = useTranslation("common");
+  const { t: tErr } = useTranslation("errors");
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
   const [compareMode, setCompareMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const { data: parks = [] } = useQuery({
+  const {
+    data: parks = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery({
     queryKey: ["favorite-parks", favorites],
     queryFn: () => listParksByIds(favorites),
   });
+
+  const hasItems = parks.length > 0;
 
   function toggleSelect(id: string) {
     setSelected((s) => {
@@ -32,50 +41,89 @@ export default function Favorites() {
   }
 
   return (
-    <div className="screen screen-with-tabs">
-      <TopBar
-        title={t("favorites.title")}
-        onBack={() => navigate("/map")}
-        right={
-          parks.length > 0 ? (
-            <button
-              onClick={() => setCompareMode((c) => !c)}
-              style={{ background: "none", border: "none", color: "var(--color-primary)", fontFamily: "var(--font-heading)", fontWeight: 600, cursor: "pointer" }}
-            >
-              {compareMode ? t("action.cancel", { ns: "common" }) : t("favorites.compare")}
+    <div className={styles.screen}>
+      <header className={styles.header}>
+        <div className={styles.headerTop}>
+          <div className={styles.headerIdentity}>
+            <img className={styles.headerIcon} src="/profile/icon-favorite.svg" alt="" aria-hidden="true" />
+            <div className={styles.headerText}>
+              <h1 className={styles.headerTitle}>{t("favorites.headerTitle")}</h1>
+              {favorites.length > 0 && (
+                <p className={styles.headerCount}>{t("favorites.count", { count: favorites.length })}</p>
+              )}
+            </div>
+          </div>
+          {hasItems && (
+            <button type="button" className={styles.compareBtn} onClick={() => setCompareMode((c) => !c)}>
+              {compareMode ? tCommon("action.cancel") : t("favorites.compare")}
             </button>
-          ) : null
-        }
-      />
-      <div style={{ padding: "0 16px", display: "flex", flexDirection: "column", gap: 10 }}>
-        {parks.length === 0 ? (
-          <EmptyState iconName="ic-heart" title={t("favorites.emptyTitle")} description={t("favorites.emptyDesc")} />
-        ) : (
-          parks.map((park) =>
-            compareMode ? (
-              <label
-                key={park.id}
-                style={{ display: "flex", alignItems: "center", gap: 10, background: "var(--color-surface)", borderRadius: 14, padding: 10 }}
-              >
-                <input type="checkbox" checked={selected.has(park.id)} onChange={() => toggleSelect(park.id)} />
-                <div style={{ flex: 1 }}>
-                  <ParkCard park={park} />
-                </div>
-              </label>
-            ) : (
-              <ParkCard
-                key={park.id}
-                park={park}
-                favorite
-                onToggleFavorite={() => toggleFavoriteAction(park.id)}
-              />
-            ),
-          )
+          )}
+        </div>
+        <p className={styles.headerSubtitle}>{t("favorites.headerSubtitle")}</p>
+      </header>
+
+      {/* Lot 2 : rangée de filtres/chips (À proximité, Récents, …) viendra ici. */}
+
+      <div className={styles.body}>
+        {isLoading && (
+          <div className={styles.skeletonList} aria-hidden="true">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className={styles.skeletonRow} />
+            ))}
+          </div>
+        )}
+
+        {!isLoading && isError && (
+          <>
+            <EmptyState icon="⚠️" title={tErr("generic")} />
+            <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => refetch()}>
+              {tCommon("action.retry")}
+            </Button>
+          </>
+        )}
+
+        {!isLoading && !isError && !hasItems && (
+          <>
+            <EmptyState iconName="ic-heart" title={t("favorites.emptyTitle")} description={t("favorites.emptyDesc")} />
+            <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => navigate("/map")}>
+              {tCommon("nav.explore")}
+            </Button>
+          </>
+        )}
+
+        {!isLoading && !isError && hasItems && (
+          <div className={styles.list}>
+            {parks.map((park) =>
+              compareMode ? (
+                <label key={park.id} className={styles.compareRow}>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(park.id)}
+                    onChange={() => toggleSelect(park.id)}
+                    aria-label={park.name}
+                  />
+                  <div className={styles.compareCard}>
+                    <ParkCard park={park} location={park.city} />
+                  </div>
+                </label>
+              ) : (
+                <ParkCard
+                  key={park.id}
+                  park={park}
+                  location={park.city}
+                  favorite
+                  onToggleFavorite={() => toggleFavoriteAction(park.id)}
+                />
+              ),
+            )}
+          </div>
         )}
       </div>
 
+      {/* Lot 2/3 : CTA découverte ("Explorer") + section conseils viendront ici. */}
+
       {compareMode && selected.size >= 2 && (
-        <div style={{ position: "fixed", bottom: 100, left: "50%", transform: "translateX(-50%)", zIndex: 40 }}>
+        <div className={styles.compareFloat}>
           <Button onClick={() => navigate(`/compare?ids=${Array.from(selected).join(",")}`)}>
             {t("favorites.compareCount", { count: selected.size })}
           </Button>

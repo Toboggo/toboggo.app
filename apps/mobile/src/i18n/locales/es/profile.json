@@ -118,6 +118,10 @@
   "signOut": "Cerrar sesión",
   "favorites": {
     "title": "Favoritos",
+    "headerTitle": "Mis favoritos",
+    "headerSubtitle": "Tus lugares favoritos, siempre a mano.",
+    "count_one": "{{count}} parque guardado",
+    "count_other": "{{count}} parques guardados",
     "compare": "Comparar",
     "compareCount": "Comparar ({{count}})",
     "emptyTitle": "Aún no tienes parques favoritos.",

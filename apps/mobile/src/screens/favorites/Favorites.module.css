@@ -1,0 +1,120 @@
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* Fond Favoris volontairement blanc (maquette) — --color-bg reste la teinte
+     crème globale partagée par les autres écrans ; --color-surface est déjà
+     le blanc pur réutilisé par Profil pour la même raison (voir CLAUDE.md §9). */
+  background: var(--color-surface);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(var(--bottom-nav-h) + 16px);
+}
+
+.header {
+  padding: calc(20px + var(--safe-top)) 16px 14px;
+}
+.headerTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.headerIdentity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.headerIcon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+}
+.headerText {
+  min-width: 0;
+}
+.headerTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 21px;
+  color: var(--color-text);
+  margin: 0;
+}
+.headerCount {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.headerSubtitle {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+.compareBtn {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  padding: 6px 4px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.body {
+  padding: 0 16px;
+  flex: 1;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.compareRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+.compareCard {
+  flex: 1;
+  min-width: 0;
+}
+
+.skeletonList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.skeletonRow {
+  height: 68px;
+  border-radius: var(--radius-lg);
+  background: var(--color-border);
+  opacity: 0.5;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.compareFloat {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+}

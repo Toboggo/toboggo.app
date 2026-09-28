@@ -204,3 +204,58 @@ describe("ParkCard carousel — same vertical structure whatever the name length
     ]);
   });
 });
+
+// `row` variant — used by Favorites and NotifResolved. `location` (LOT 1A,
+// added for Favorites) must never change existing callers that don't pass it.
+describe("ParkCard row variant", () => {
+  function renderRow(
+    p: Park,
+    props: { distanceM?: number; location?: string | null; favorite?: boolean; onToggleFavorite?: () => void } = {},
+  ) {
+    const { container } = render(
+      <MemoryRouter>
+        <ParkCard
+          park={p}
+          distanceM={props.distanceM}
+          location={props.location}
+          favorite={props.favorite}
+          onToggleFavorite={props.onToggleFavorite}
+          variant="row"
+        />
+      </MemoryRouter>,
+    );
+    return container.firstElementChild as HTMLElement;
+  }
+  const meta = (row: HTMLElement) => norm(row.querySelector('[class*="_meta_"]')?.textContent);
+
+  it("keeps the pre-existing meta line (distance · age, no location) when `location` isn't passed", () => {
+    const row = renderRow(park({ age_min: 3, age_max: 6 }), { distanceM: 350 });
+    expect(meta(row)).toBe("350 m · 3–6 ans");
+  });
+
+  it("shows the location only when there is no known distance", () => {
+    const withLocation = renderRow(park({ age_min: 3, age_max: 6 }), { location: "Lyon" });
+    expect(meta(withLocation)).toBe("Lyon · 3–6 ans");
+
+    const distanceWins = renderRow(park({ age_min: 3, age_max: 6 }), { distanceM: 350, location: "Lyon" });
+    expect(meta(distanceWins)).toBe("350 m · 3–6 ans");
+  });
+
+  it("never fabricates a location when the park has none", () => {
+    const row = renderRow(park(), { location: null });
+    expect(meta(row)).toBe("");
+  });
+
+  it("still shows photo, name, rating, review count and the favourite heart", () => {
+    const row = renderRow(park({ photos: ["https://example.test/p.jpg"], rating: 4.5, review_count: 12 }), {
+      favorite: true,
+      onToggleFavorite: vi.fn(),
+    });
+    const q = within(row);
+    const photo = row.querySelector('[style*="background-image"]') as HTMLElement;
+    expect(photo.style.backgroundImage).toContain("https://example.test/p.jpg");
+    expect(q.getByText("4,5")).toBeTruthy();
+    expect(q.getByText("(12)")).toBeTruthy();
+    expect(q.getByRole("button", { name: "Retirer des favoris" })).toBeTruthy();
+  });
+});

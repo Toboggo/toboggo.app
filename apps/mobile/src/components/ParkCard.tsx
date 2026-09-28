@@ -71,6 +71,7 @@ function FavButton({
 export function ParkCard({
   park,
   distanceM,
+  location,
   favorite,
   onToggleFavorite,
   onOpen,
@@ -78,6 +79,9 @@ export function ParkCard({
 }: {
   park: Park;
   distanceM?: number;
+  /** Free-text location line (e.g. city), shown by the `row` variant only when no
+   * distance is known — never fabricated when the park has none. */
+  location?: string | null;
   favorite?: boolean;
   onToggleFavorite?: () => void;
   /** Overrides the default "navigate to the park page" tap behaviour. */
@@ -177,16 +181,17 @@ export function ParkCard({
     );
   }
 
+  // Distance takes priority when known; `location` (e.g. city) only fills in
+  // when there's no distance to show — never both at once.
+  const metaLead = distanceM != null ? f.distance(distanceM) : location || null;
+  const metaLine = [metaLead, ageBand].filter(Boolean).join(" · ");
+
   return (
     <div className={styles.row} {...activate}>
       <ParkPhoto park={park} className={styles.thumb} markSize={22} />
       <div className={styles.body}>
         <div className={styles.name}>{displayName}</div>
-        <div className={styles.meta}>
-          {distanceM != null ? f.distance(distanceM) : ""}
-          {distanceM != null && ageBand ? " · " : ""}
-          {ageBand ?? ""}
-        </div>
+        <div className={styles.meta}>{metaLine}</div>
         {hasRating(park) && (
           <StarRating value={park.rating} valueText={f.rating(park.rating)} count={park.review_count} size="sm" />
         )}

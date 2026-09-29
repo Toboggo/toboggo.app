@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { Icon, StarRating, type IconName } from "@toboggo/design-system";
 import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
-import { hasRating, keyAttributes } from "../lib/parkDisplay";
+import { equipmentChips, hasRating, keyAttributes } from "../lib/parkDisplay";
+import { useFeatureLabel } from "../lib/featureLabel";
 import { useFormat } from "../i18n/useFormat";
 import styles from "./ParkCard.module.css";
 
@@ -79,22 +80,26 @@ export function ParkCard({
 }: {
   park: Park;
   distanceM?: number;
-  /** Free-text location line (e.g. city), shown by the `row` variant only when no
-   * distance is known — never fabricated when the park has none. */
+  /** Free-text location line (e.g. city). The `row` variant shows it only when no
+   * distance is known; `favorite` shows it alongside the distance. Never
+   * fabricated when the park has none. */
   location?: string | null;
   favorite?: boolean;
   onToggleFavorite?: () => void;
   /** Overrides the default "navigate to the park page" tap behaviour. */
   onOpen?: () => void;
   /**
-   * `row` — compact horizontal item (favourites, notifications).
+   * `row` — compact horizontal item (favourites' compare-select mode, notifications).
    * `list` — richer horizontal item for the Explore results list.
    * `carousel` — vertical, photo-first (Explore's "Autour de vous" strip).
+   * `favorite` — richer horizontal item for the Favorites list (bigger photo,
+   * location + distance, age, up to 3 known equipment/amenities + "+X").
    */
-  variant?: "row" | "list" | "carousel";
+  variant?: "row" | "list" | "carousel" | "favorite";
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("features");
+  const featureLabel = useFeatureLabel();
   const f = useFormat();
   const displayName = getParkDisplayName(park, t);
   const open = () => (onOpen ? onOpen() : navigate(`/park/${park.id}`));
@@ -176,6 +181,42 @@ export function ParkCard({
               ))}
             </div>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "favorite") {
+    // Location and distance can both be shown at once here (unlike `row`,
+    // which picks one) — that's the richer Favorites layout.
+    const metaBits = [location || null, distanceM != null ? f.distance(distanceM) : null].filter(Boolean);
+    const chips = equipmentChips(park);
+    const shownChips = chips.slice(0, 3);
+    const extraCount = chips.length - shownChips.length;
+    return (
+      <div className={styles.favCard} {...activate}>
+        <ParkPhoto park={park} className={styles.favPhoto} markSize={32} />
+        <div className={styles.favBody}>
+          <div className={styles.favTop}>
+            <div className={styles.favName}>{displayName}</div>
+            {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} />}
+          </div>
+          {metaBits.length > 0 && <div className={styles.favMeta}>{metaBits.join(" · ")}</div>}
+          {(ageBand || shownChips.length > 0) && (
+            <div className={styles.favChips}>
+              {ageBand && <span className={styles.chip}>{ageBand}</span>}
+              {shownChips.map((c) => {
+                const label = featureLabel(c.code);
+                return (
+                  <span key={c.code} className={styles.favFact} role="img" aria-label={label} title={label}>
+                    <Icon name={c.icon} size={13} />
+                  </span>
+                );
+              })}
+              {extraCount > 0 && <span className={styles.chip}>{`+${extraCount}`}</span>}
+            </div>
+          )}
+          <CompactRating park={park} />
         </div>
       </div>
     );

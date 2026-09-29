@@ -95,7 +95,8 @@
   gap: 10px;
 }
 .skeletonRow {
-  height: 68px;
+  /* Matches the `favorite` ParkCard variant's natural height (92px photo + padding). */
+  height: 116px;
   border-radius: var(--radius-lg);
   background: var(--color-border);
   opacity: 0.5;

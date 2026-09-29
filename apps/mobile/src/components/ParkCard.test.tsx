@@ -259,3 +259,124 @@ describe("ParkCard row variant", () => {
     expect(q.getByRole("button", { name: "Retirer des favoris" })).toBeTruthy();
   });
 });
+
+// LOT 1B — `favorite` variant (Favorites list). New composition, so exercised
+// on its own rather than piggy-backing the `row` assertions above.
+describe("ParkCard favorite variant", () => {
+  function renderFavorite(
+    p: Park,
+    props: {
+      distanceM?: number;
+      location?: string | null;
+      favorite?: boolean;
+      onOpen?: () => void;
+      onToggleFavorite?: () => void;
+    } = {},
+  ) {
+    const { container } = render(
+      <MemoryRouter>
+        <ParkCard
+          park={p}
+          distanceM={props.distanceM}
+          location={props.location}
+          favorite={props.favorite}
+          onOpen={props.onOpen}
+          onToggleFavorite={props.onToggleFavorite}
+          variant="favorite"
+        />
+      </MemoryRouter>,
+    );
+    return container.firstElementChild as HTMLElement;
+  }
+  const meta = (card: HTMLElement) => norm(card.querySelector('[class*="_favMeta_"]')?.textContent);
+  const factLabels = (card: HTMLElement) =>
+    Array.from(card.querySelectorAll('[class*="_favFact_"]')).map((el) => el.getAttribute("aria-label"));
+  const chipTexts = (card: HTMLElement) => Array.from(card.querySelectorAll('[class*="_chip_"]')).map((el) => norm(el.textContent));
+
+  const full = park({
+    name: "Parc Voltaire",
+    city: "Lyon",
+    photos: ["https://example.test/p.jpg"],
+    rating: 4.6,
+    review_count: 31,
+    age_min: 3,
+    age_max: 6,
+    play_equipment: ["toboggan", "swing"],
+    pmr: true,
+  });
+
+  it("shows photo, name, location + distance on one line, age, equipment, rating and reviews", () => {
+    const card = renderFavorite(full, { distanceM: 850, location: "Lyon" });
+    const q = within(card);
+    const photo = card.querySelector('[style*="background-image"]') as HTMLElement;
+    expect(photo.style.backgroundImage).toContain("https://example.test/p.jpg");
+    expect(q.getByText("Parc Voltaire")).toBeTruthy();
+    expect(meta(card)).toBe("Lyon · 850 m");
+    expect(chipTexts(card)).toContain("3–6 ans");
+    expect(factLabels(card)).toEqual(["Toboggan", "Balançoire", "Accès fauteuil roulant"]);
+    expect(q.getByText("4,6")).toBeTruthy();
+    expect(q.getByText("(31)")).toBeTruthy();
+  });
+
+  it("shows only the location when there is no user position (never fabricates a distance)", () => {
+    const card = renderFavorite(full, { location: "Lyon", distanceM: undefined });
+    expect(meta(card)).toBe("Lyon");
+  });
+
+  it("renders no meta line at all when neither location nor distance is known", () => {
+    const card = renderFavorite(park({ name: "Parc Sully" }));
+    expect(card.querySelector('[class*="_favMeta_"]')).toBeNull();
+  });
+
+  it("falls back to the branded placeholder when the park has no photo", () => {
+    const card = renderFavorite(park({ name: "Parc Sully" }));
+    expect(card.querySelector('[style*="background-image"]')).toBeNull();
+    expect(within(card).getByRole("img", { name: /photo/i })).toBeTruthy();
+  });
+
+  it("keeps a long name intact in the DOM (only visually clamped to 2 lines by CSS)", () => {
+    const longName = "Aire de jeux du Quai Sully-Chaliès et du jardin des Plantes de Millau";
+    const card = renderFavorite(park({ name: longName }));
+    expect(within(card).getByText(longName)).toBeTruthy();
+  });
+
+  it("shows at most 3 equipment/amenity icons and a +X for the rest", () => {
+    const card = renderFavorite(
+      park({ play_equipment: ["toboggan", "swing", "sandbox", "springs"], pmr: true, shade: true }),
+    );
+    expect(factLabels(card)).toEqual(["Toboggan", "Balançoire", "Bac à sable"]);
+    expect(chipTexts(card)).toContain("+3"); // springs, shade, pmr left out
+  });
+
+  it("shows no equipment icons and no age chip when the park has neither", () => {
+    const card = renderFavorite(park({ name: "Parc Sully" }));
+    expect(card.querySelector('[class*="_favChips_"]')).toBeNull();
+  });
+
+  it("shows the age chip alone when there's an age but no known equipment", () => {
+    const card = renderFavorite(park({ age_min: 0, age_max: 12 }));
+    expect(chipTexts(card)).toEqual(["Tout âge"]);
+    expect(factLabels(card)).toEqual([]);
+  });
+
+  it("never fabricates a rating when the park has none", () => {
+    const card = renderFavorite(park({ name: "Parc Sully" }));
+    expect(card.textContent).not.toMatch(/\(\d+\)/);
+  });
+
+  it("clicking the card opens the park", () => {
+    const onOpen = vi.fn();
+    const card = renderFavorite(full, { onOpen });
+    fireEvent.click(card);
+    expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("removing the favorite calls onToggleFavorite without opening the card", () => {
+    const onOpen = vi.fn();
+    const onToggleFavorite = vi.fn();
+    const card = renderFavorite(full, { favorite: true, onOpen, onToggleFavorite });
+    fireEvent.click(within(card).getByRole("button", { name: "Retirer des favoris" }));
+    expect(onToggleFavorite).toHaveBeenCalledTimes(1);
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+});

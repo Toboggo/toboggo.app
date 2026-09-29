@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, EmptyState } from "@toboggo/design-system";
-import { listParksByIds } from "@toboggo/shared";
+import { haversineMeters, listParksByIds } from "@toboggo/shared";
 import { BottomTabs } from "../../components/BottomTabs";
 import { ParkCard } from "../../components/ParkCard";
 import { useSession } from "../../lib/session";
+import { useGeo } from "../../lib/geo";
 import styles from "./Favorites.module.css";
 
 export default function Favorites() {
@@ -16,6 +17,9 @@ export default function Favorites() {
   const { t: tErr } = useTranslation("errors");
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
+  // Passive read only — never triggers a permission prompt from this screen;
+  // `hasFix` is true only once a real position (GPS or a picked city) exists.
+  const { lat, lng, hasFix } = useGeo();
   const [compareMode, setCompareMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
@@ -110,7 +114,9 @@ export default function Favorites() {
                 <ParkCard
                   key={park.id}
                   park={park}
+                  variant="favorite"
                   location={park.city}
+                  distanceM={hasFix ? haversineMeters(lat, lng, park.lat, park.lng) : undefined}
                   favorite
                   onToggleFavorite={() => toggleFavoriteAction(park.id)}
                 />

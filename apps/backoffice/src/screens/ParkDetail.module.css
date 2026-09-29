@@ -152,17 +152,20 @@
   color: var(--color-text-faint);
 }
 
-/* ── Onglet Vue d'ensemble ──────────────────────────────────────────────── */
+/* ── Onglet Vue d'ensemble (Admin-UI-9C) ──────────────────────────────────
+ * `auto-fit` (pas `auto-fill`) : les 3 blocs restants (Localisation,
+ * Équipements & services, Photos) se répartissent toute la largeur
+ * disponible sans laisser de colonne vide à droite sur desktop large. */
 .overviewGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
   align-items: start;
 }
 .overviewCard {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .overviewCardHeader {
   display: flex;
@@ -190,11 +193,6 @@
 }
 .overviewLink:hover {
   text-decoration: underline;
-}
-.overviewTagRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
 }
 .overviewFeatList {
   list-style: none;

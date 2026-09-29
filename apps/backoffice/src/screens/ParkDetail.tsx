@@ -286,7 +286,7 @@ export default function ParkDetail() {
       />
 
       <TabPanel idBase="park" value="overview" active={tab === "overview"}>
-        <OverviewPanel park={park} sources={sources} onNavigateTab={handleTabChange} />
+        <OverviewPanel park={park} onNavigateTab={handleTabChange} />
       </TabPanel>
       <TabPanel idBase="park" value="info" active={tab === "info"}>
         <InfoPanel park={park} canEdit={canEditPark} onDirtyChange={setInfoDirty} />

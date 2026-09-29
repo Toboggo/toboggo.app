@@ -7,7 +7,10 @@ import {
   getOrganization,
   getPark,
   getParkHistory,
+  listFeatures,
+  listMedia,
   listParkEditsWithDetails,
+  listParkFeatures,
   listReportsForPark,
   listReviewsForPark,
   listSources,
@@ -155,34 +158,107 @@ describe("ParkDetail — /parks/:id", () => {
       "Historique",
     ]);
     expect(screen.getByRole("tab", { name: "Vue d'ensemble" }).getAttribute("aria-selected")).toBe("true");
-    // real, present secondary info — never invented (header + carte de la Vue d'ensemble)
+    // real, present secondary info — never invented (header + carte Localisation)
     expect(screen.getAllByText("1 rue du Test, 12100 Millau").length).toBeGreaterThanOrEqual(1);
-    // le statut de vérification est désormais TOUJOURS visible (entête +
-    // carte "Statuts & métadonnées" de la Vue d'ensemble), même "non vérifié"
-    // (le "—" de ParkVerificationTag, jamais masqué).
+    // le statut de vérification (non vérifié) est visible dans l'entête — le
+    // "—" discret de ParkVerificationTag (Admin-UI-9B), jamais masqué.
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
   });
 
-  it("Vue d'ensemble : synthèse dense avec les données réellement disponibles", async () => {
-    vi.mocked(listSources).mockResolvedValue([
-      { id: "s1", park_id: "p1", source_type: "osm", source_name: null, source_url: null, license: null, last_synced_at: null, created_at: "2026-01-01" },
-    ] as never);
-    renderDetail();
-    await screen.findByRole("heading", { name: "Parc des Sources" });
-    expect(screen.getByText("Identité & localisation")).toBeTruthy();
-    expect(screen.getByText("Statuts & métadonnées")).toBeTruthy();
-    expect(screen.getByText("Source & provenance")).toBeTruthy();
-    expect(screen.getAllByText("Équipements & services").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("OpenStreetMap").length).toBeGreaterThanOrEqual(1);
-  });
+  describe("Admin-UI-9C — Vue d'ensemble", () => {
+    it("ne répète plus le nom du parc (déjà dans l'entête 9B)", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      // L'ancien <dt>Nom</dt> de la carte Localisation a disparu — le nom
+      // n'apparaît plus que dans l'entête (h1) et le fil d'Ariane (9B), jamais
+      // une 3e fois dans une carte de la Vue d'ensemble.
+      expect(screen.queryByText("Nom")).toBeNull();
+      expect(screen.getAllByText("Parc des Sources")).toHaveLength(2);
+    });
 
-  it("Vue d'ensemble : inchangée par 5D — toujours exactement 4 liens 'Voir l'onglet', pas de nouveau bloc", async () => {
-    renderDetail();
-    await screen.findByRole("heading", { name: "Parc des Sources" });
-    // Identité, Statuts, Équipements, Photos renvoient vers un onglet ; Source
-    // n'en a pas — inchangé depuis 5C, aucun bloc Avis/Signalements/
-    // Modifications proposées ajouté à la Vue d'ensemble par ce lot.
-    expect(screen.getAllByRole("button", { name: "Voir l'onglet" })).toHaveLength(4);
+    it("ne montre plus les cards 'Statuts & métadonnées' ni 'Source & provenance' (doublons du header 9B)", async () => {
+      vi.mocked(listSources).mockResolvedValue([
+        { id: "s1", park_id: "p1", source_type: "osm", source_name: null, source_url: null, license: null, last_synced_at: null, created_at: "2026-01-01" },
+      ] as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.queryByText("Statuts & métadonnées")).toBeNull();
+      expect(screen.queryByText("Source & provenance")).toBeNull();
+      // "OpenStreetMap" reste visible une fois — dans l'entête (9B), plus dans
+      // une carte Overview dédiée qui n'existe plus.
+      expect(screen.getAllByText("OpenStreetMap")).toHaveLength(1);
+    });
+
+    it("renomme la carte en 'Localisation' et garde Équipements & services / Photos", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getByText("Localisation")).toBeTruthy();
+      expect(screen.queryByText("Identité & localisation")).toBeNull();
+      expect(screen.getAllByText("Équipements & services").length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText("Photos").length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("exactement 3 liens 'Voir l'onglet' désormais (Localisation, Équipements, Photos)", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getAllByRole("button", { name: "Voir l'onglet" })).toHaveLength(3);
+    });
+
+    it("n'affiche jamais 'Adresse non renseignée' — la ligne Adresse est omise si absente", async () => {
+      vi.mocked(getPark).mockReset().mockResolvedValue(
+        makePark({ formatted_address: null, address_line: null, city: null, postal_code: null }) as never,
+      );
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.queryByText("Adresse non renseignée")).toBeNull();
+      expect(screen.queryByText("Adresse")).toBeNull();
+    });
+
+    it("garde les coordonnées même sans adresse (uniquement lat/lng) — ParkLocationEditor toujours monté", async () => {
+      vi.mocked(getPark).mockReset().mockResolvedValue(
+        makePark({ formatted_address: null, address_line: null, city: null, postal_code: null }) as never,
+      );
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      // `mapStyleUrl()` est mocké à `null` dans cette suite (pas de vraie carte
+      // MapLibre en test, cf. ParkLocationEditor) — les coordonnées discrètes
+      // restent le signal testable que le bloc Localisation reste utile même
+      // sans adresse.
+      expect(screen.getByText("44.100000, 3.070000")).toBeTruthy();
+    });
+
+    it("Équipements & services : résumé réel quand des caractéristiques sont renseignées", async () => {
+      vi.mocked(listFeatures).mockResolvedValueOnce([
+        { id: "f1", code: "toilets", category: "service", label_key: "toilets", icon_key: null, value_set: null, sort_order: 1, is_active: true },
+      ] as never);
+      vi.mocked(listParkFeatures).mockResolvedValueOnce([
+        { park_id: "p1", feature_id: "f1", status: "available", value: null, quantity: null, note: null, source_id: null, verified_at: null, updated_at: "2026-01-01" },
+      ] as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(await screen.findByText("1 / 1")).toBeTruthy();
+    });
+
+    it("Équipements & services : empty state sobre quand rien n'est renseigné", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(await screen.findByText(/Aucune caractéristique renseignée|Catalogue indisponible/)).toBeTruthy();
+    });
+
+    it("Photos : aperçu + compteur réels quand des photos existent", async () => {
+      vi.mocked(listMedia).mockResolvedValueOnce([
+        { id: "m1", park_id: "p1", url: "https://cdn/a.jpg", status: "approved", is_cover: false, caption: null, source: "user", source_url: null, author: null, license: null, attribution: null, created_at: "2026-01-01" },
+      ] as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(await screen.findByText("1 photo")).toBeTruthy();
+    });
+
+    it("Photos : empty state compact quand aucune photo", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(await screen.findByText("Aucune photo pour ce parc")).toBeTruthy();
+    });
   });
 
   it("Avis : affiche les avis réels (note, auteur, date, statut, contenu) avec état vide propre", async () => {
@@ -288,9 +364,11 @@ describe("ParkDetail — /parks/:id", () => {
     renderDetail();
     await screen.findByRole("heading", { name: "Parc des Sources" });
     fireEvent.click(screen.getByRole("tab", { name: "Données / Informations" }));
-    // description + ages are null on the fixture
-    expect(await screen.findByText("Non renseigné")).toBeTruthy();
-    expect(screen.getAllByText("Non renseigné").length).toBeGreaterThanOrEqual(3);
+    // description + ages (+ source OSM) sont absents sur la fixture — plusieurs
+    // occurrences existent d'emblée, donc `findAllByText` (pas `findByText`,
+    // ambigu dès qu'il y a plus d'une correspondance) pour attendre l'onglet.
+    const matches = await screen.findAllByText("Non renseigné");
+    expect(matches.length).toBeGreaterThanOrEqual(3);
   });
 
   it("shows a not-found state when the park cannot be loaded", async () => {

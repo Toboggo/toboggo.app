@@ -1,8 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Tag } from "@toboggo/design-system";
-import { listFeatures, listMedia, listParkFeatures, type Park, type ParkSource, type SourceType } from "@toboggo/shared";
-import { ParkStatusTag, ParkVerificationTag } from "../../components/StatusTag";
+import { Card } from "@toboggo/design-system";
+import { listFeatures, listMedia, listParkFeatures, type Park } from "@toboggo/shared";
 import { groupFeatures, isValueFeature } from "../../lib/featureCatalogue";
 import { ParkLocationEditor } from "./ParkLocationEditor";
 import styles from "../ParkDetail.module.css";
@@ -12,29 +11,6 @@ import styles from "../ParkDetail.module.css";
  * `../ParkDetail`, pour ne pas créer de dépendance circulaire entre les deux
  * fichiers (ParkDetail → OverviewPanel → ParkDetail). */
 export type OverviewNavigableTab = "info" | "features" | "photos" | "history";
-
-const OPERATIONAL_LABEL: Record<Park["operational_status"], string> = {
-  active: "Ouvert",
-  temporarily_closed: "Fermé temporairement",
-  partially_closed: "Partiellement fermé",
-  under_construction: "En travaux",
-  permanently_closed: "Fermé définitivement",
-  unknown: "Inconnu",
-};
-
-// Même libellés que ParkDetail.tsx / Parks.tsx / Photos.tsx — pas de 2e
-// formulation pour les mêmes 7 valeurs de `source_type`.
-const SOURCE_LABEL: Record<SourceType, string> = {
-  user: "Contributeur",
-  municipality: "Collectivité",
-  toboggo: "Toboggo",
-  open_data: "Open data",
-  partner: "Partenaire",
-  osm: "OpenStreetMap",
-  other: "Autre",
-};
-
-const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 
 /** Lignes d'adresse structurée — même logique que InfoPanel (dupliquée
  * volontairement : affichage pur, pas de logique métier à mutualiser). */
@@ -63,11 +39,9 @@ function CardHeader({ title, onNavigate }: { title: string; onNavigate?: () => v
 
 export function OverviewPanel({
   park,
-  sources,
   onNavigateTab,
 }: {
   park: Park;
-  sources: ParkSource[];
   onNavigateTab: (tab: OverviewNavigableTab) => void;
 }) {
   const { data: catalogue = [] } = useQuery({ queryKey: ["features-catalogue"], queryFn: () => listFeatures() });
@@ -102,32 +76,33 @@ export function OverviewPanel({
 
   const photos = media.filter((m) => m.status !== "rejected");
   const addr = addressLines(park);
+  const hasAge = park.min_age != null || park.max_age != null;
 
   return (
     <div className={styles.panel}>
       <div className={styles.overviewGrid}>
-        <Card className={styles.overviewCard}>
-          <CardHeader title="Identité & localisation" onNavigate={() => onNavigateTab("info")} />
-          <dl className={styles.dl}>
-            <dt>Nom</dt>
-            <dd>{park.name}</dd>
-            <dt>Adresse</dt>
-            {addr.length > 0 ? (
-              <dd className={styles.addrLines}>
-                {addr.map((line, i) => (
-                  <span key={i}>{line}</span>
-                ))}
-              </dd>
-            ) : (
-              <dd className={styles.empty}>Adresse non renseignée</dd>
-            )}
-            <dt>Âges</dt>
-            <dd className={park.min_age == null && park.max_age == null ? styles.empty : undefined}>
-              {park.min_age != null || park.max_age != null
-                ? `${park.min_age ?? "?"}–${park.max_age ?? "?"} ans`
-                : "Non renseigné"}
-            </dd>
-          </dl>
+        <Card className={styles.overviewCard} variant="admin">
+          <CardHeader title="Localisation" onNavigate={() => onNavigateTab("info")} />
+          {(addr.length > 0 || hasAge) && (
+            <dl className={styles.dl}>
+              {addr.length > 0 && (
+                <>
+                  <dt>Adresse</dt>
+                  <dd className={styles.addrLines}>
+                    {addr.map((line, i) => (
+                      <span key={i}>{line}</span>
+                    ))}
+                  </dd>
+                </>
+              )}
+              {hasAge && (
+                <>
+                  <dt>Âges</dt>
+                  <dd>{`${park.min_age ?? "?"}–${park.max_age ?? "?"} ans`}</dd>
+                </>
+              )}
+            </dl>
+          )}
           <ParkLocationEditor
             editing={false}
             latitude={park.latitude != null ? String(park.latitude) : ""}
@@ -135,40 +110,7 @@ export function OverviewPanel({
           />
         </Card>
 
-        <Card className={styles.overviewCard}>
-          <CardHeader title="Statuts & métadonnées" onNavigate={() => onNavigateTab("info")} />
-          <dl className={styles.dl}>
-            <dt>Publication</dt>
-            <dd>
-              <ParkStatusTag status={park.status} />
-            </dd>
-            <dt>Exploitation</dt>
-            <dd>{OPERATIONAL_LABEL[park.operational_status]}</dd>
-            <dt>Vérification</dt>
-            <dd>
-              <ParkVerificationTag status={park.verification_status} />
-            </dd>
-            <dt>Créé le</dt>
-            <dd>{park.created_at ? dateFmt.format(new Date(park.created_at)) : "Non renseigné"}</dd>
-            <dt>Modifié le</dt>
-            <dd>{park.updated_at ? dateFmt.format(new Date(park.updated_at)) : "Non renseigné"}</dd>
-          </dl>
-        </Card>
-
-        <Card className={styles.overviewCard}>
-          <CardHeader title="Source & provenance" />
-          {sources.length > 0 ? (
-            <div className={styles.overviewTagRow}>
-              {sources.map((s) => (
-                <Tag key={s.id}>{SOURCE_LABEL[s.source_type]}</Tag>
-              ))}
-            </div>
-          ) : (
-            <p className={styles.empty}>Provenance non renseignée</p>
-          )}
-        </Card>
-
-        <Card className={styles.overviewCard}>
+        <Card className={styles.overviewCard} variant="admin">
           <CardHeader title="Équipements & services" onNavigate={() => onNavigateTab("features")} />
           {totalFeatures === 0 ? (
             <p className={styles.empty}>Catalogue indisponible</p>
@@ -190,7 +132,7 @@ export function OverviewPanel({
           )}
         </Card>
 
-        <Card className={styles.overviewCard}>
+        <Card className={styles.overviewCard} variant="admin">
           <CardHeader title="Photos" onNavigate={() => onNavigateTab("photos")} />
           {photos.length === 0 ? (
             <p className={styles.empty}>Aucune photo pour ce parc</p>

@@ -52,6 +52,8 @@
   line-height: 1.4;
 }
 .compareBtn {
+  display: inline-flex;
+  align-items: center;
   background: none;
   border: none;
   color: var(--color-primary);
@@ -59,7 +61,8 @@
   font-weight: 600;
   font-size: 13.5px;
   cursor: pointer;
-  padding: 6px 4px;
+  padding: 10px 6px;
+  min-height: 40px;
   flex-shrink: 0;
   white-space: nowrap;
 }

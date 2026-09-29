@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { ParkCard } from "../../components/ParkCard";
 import { useSession } from "../../lib/session";
 import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo";
 import { DEFAULT_RADIUS_KM } from "../../lib/nearbyRadius";
+import { trackEvent } from "../../lib/analytics";
 import styles from "./Favorites.module.css";
 
 type FilterKey = "all" | "nearby";
@@ -20,6 +21,17 @@ export default function Favorites() {
   const { t: tErr } = useTranslation("errors");
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
+
+  // `favorite_revisited` (EVENT-TAXONOMY.md — "l'utilisateur consulte sa liste
+  // de favoris", trigger = montage de Favorites.tsx) — once per mount, not on
+  // every re-render triggered by a filter change or a fetch.
+  const revisitedTracked = useRef(false);
+  useEffect(() => {
+    if (revisitedTracked.current) return;
+    revisitedTracked.current = true;
+    trackEvent("favorite_revisited", { favorites_count: favorites.length });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Passive read only — never triggers a permission prompt from this screen;
   // `hasFix` is true only once a real position (GPS or a picked city) exists.
   const { lat, lng, hasFix } = useGeo();

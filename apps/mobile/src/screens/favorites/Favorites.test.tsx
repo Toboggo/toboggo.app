@@ -38,6 +38,9 @@ vi.mock("../../lib/session", () => ({
   },
 }));
 
+const analyticsMock = vi.hoisted(() => ({ trackEvent: vi.fn() }));
+vi.mock("../../lib/analytics", () => ({ trackEvent: analyticsMock.trackEvent }));
+
 // `geo.hasFix/lat/lng` control what the screen sees; `setLocation`/`setPermission`
 // let tests assert the real geolocation flow is invoked (never auto-triggered).
 const geo = vi.hoisted(() => ({
@@ -98,6 +101,7 @@ beforeEach(() => {
   geo.setLocation.mockClear();
   geo.setPermission.mockClear();
   requestBrowserLocationMock.mockReset();
+  analyticsMock.trackEvent.mockClear();
 });
 
 describe("Favorites — states", () => {
@@ -383,5 +387,29 @@ describe("Favorites — discover CTA & tips", () => {
     );
     fireEvent.click(await screen.findByText("Écrire un avis"));
     expect(await screen.findByTestId("rate-screen")).toBeTruthy();
+  });
+});
+
+// LOT 3 — `favorite_revisited` (EVENT-TAXONOMY.md: fires once on mount, with
+// the real favorites count — not on every filter change or re-render).
+describe("Favorites — analytics", () => {
+  it("fires favorite_revisited once on mount with the real favorites count", async () => {
+    sess.favorites = ["p1", "p2"];
+    listParksByIdsMock.mockResolvedValue([park({ id: "p1" }), park({ id: "p2", name: "Parc Lumière" })]);
+    renderFavorites();
+    await screen.findByText("Parc de la Mairie");
+    expect(analyticsMock.trackEvent).toHaveBeenCalledTimes(1);
+    expect(analyticsMock.trackEvent).toHaveBeenCalledWith("favorite_revisited", { favorites_count: 2 });
+  });
+
+  it("fires with a count of 0 on the empty state, and does not re-fire when a filter is toggled", async () => {
+    sess.favorites = ["p1"];
+    listParksByIdsMock.mockResolvedValue([park({ name: "Parc Voltaire" })]);
+    renderFavorites();
+    await screen.findByText("Parc Voltaire");
+    expect(analyticsMock.trackEvent).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "À proximité" }));
+    fireEvent.click(screen.getByRole("button", { name: "Tous (1)" }));
+    expect(analyticsMock.trackEvent).toHaveBeenCalledTimes(1);
   });
 });

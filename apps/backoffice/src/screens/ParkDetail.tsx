@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Button, Menu, MenuItem, Tabs, TabPanel, useToast } from "@toboggo/design-system";
 import {
+  getOrganization,
   getPark,
   listParkEditsWithDetails,
   listReportsForPark,
@@ -15,6 +16,7 @@ import {
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkStatusTag, ParkVerificationTag } from "../components/StatusTag";
+import { countryLabel } from "../lib/countryLabels";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
@@ -67,12 +69,43 @@ const SOURCE_LABEL: Record<SourceType, string> = {
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 
+// Admin-UI-9B — même lien de retour dans les 3 états (chargement/erreur/
+// chargé) : seul le libellé (Admin/Collectivité) et la présence d'un fil
+// courant (nom du parc, connu seulement une fois `park` chargé) diffèrent.
+function Breadcrumb({
+  isAdmin,
+  backTo,
+  onBack,
+  current,
+}: {
+  isAdmin: boolean;
+  backTo: string;
+  onBack: (e: React.MouseEvent) => void;
+  current?: string;
+}) {
+  return (
+    <nav className={styles.breadcrumb} aria-label="Fil d'Ariane">
+      <a href={backTo} onClick={onBack}>
+        {isAdmin ? "Parcs" : "Mes parcs"}
+      </a>
+      {current && (
+        <>
+          <span className={styles.crumbSep} aria-hidden="true">
+            ›
+          </span>
+          <span className={styles.crumbCurrent}>{current}</span>
+        </>
+      )}
+    </nav>
+  );
+}
+
 export default function ParkDetail() {
   const { id = "" } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
-  const { communeId } = useOrgScope();
+  const { isAdmin, communeId } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
   const { canEditPark } = usePermissions();
 
@@ -91,14 +124,26 @@ export default function ParkDetail() {
 
   // Source réelle (`park_sources.source_type`) — même donnée que la colonne
   // Source de /parks (Admin-UI-5B), affichée ici dans l'entête + la Vue
-  // d'ensemble. Un parc a normalement une seule ligne (cf. commentaire de
-  // `getParkSourceDistribution`) ; la première est retenue si plusieurs.
+  // d'ensemble. Toutes les sources sont affichées (Admin-UI-9B) — un parc n'a
+  // normalement qu'une seule ligne (cf. commentaire de
+  // `getParkSourceDistribution`), mais ne s'arrête plus arbitrairement à la
+  // première s'il y en a plusieurs.
   const { data: sources = [] } = useQuery({
     queryKey: ["park-sources", id],
     queryFn: () => listSources(id),
     enabled: !!id,
   });
-  const primarySource = sources[0]?.source_type;
+
+  // Admin-UI-9B — Collectivité dans l'entête : fiche unique, donc une
+  // requête ciblée par id (pas de N+1 — contrairement à une liste, il n'y a
+  // ici qu'un seul `organization_id` à résoudre). `enabled` évite l'appel
+  // tant que `park` n'a pas encore chargé ou que le parc n'est rattaché à
+  // aucune collectivité.
+  const { data: organization } = useQuery({
+    queryKey: ["park-organization", park?.organization_id],
+    queryFn: () => getOrganization(park!.organization_id!),
+    enabled: !!park?.organization_id,
+  });
 
   // Mêmes clés react-query que ReviewsPanel/ReportsPanel/ParkEditsPanel — un
   // seul fetch partagé (cache), utilisé ici uniquement pour les petits
@@ -146,6 +191,7 @@ export default function ParkDetail() {
   if (isLoading) {
     return (
       <div>
+        <Breadcrumb isAdmin={!!isAdmin} backTo={backTo} onBack={goBack} />
         <PageHeader title="Fiche du parc" />
         <p className={styles.stateBox}>Chargement…</p>
       </div>
@@ -155,6 +201,7 @@ export default function ParkDetail() {
   if (isError || !park) {
     return (
       <div>
+        <Breadcrumb isAdmin={!!isAdmin} backTo={backTo} onBack={goBack} />
         <PageHeader title="Parc introuvable" />
         <p className={styles.stateBox}>Ce parc n'existe pas ou n'est pas accessible avec votre compte.</p>
         <div style={{ textAlign: "center" }}>
@@ -167,20 +214,13 @@ export default function ParkDetail() {
   }
 
   const transitions = canEditPark ? parkStatusTransitions(park.status) : [];
+  const sourceLabel = sources.length > 0 ? sources.map((s) => SOURCE_LABEL[s.source_type]).join(", ") : "—";
 
   return (
     <div>
-      <nav className={styles.breadcrumb} aria-label="Fil d'Ariane">
-        <a href={backTo} onClick={goBack}>
-          Mes parcs
-        </a>
-        <span className={styles.crumbSep} aria-hidden="true">
-          ›
-        </span>
-        <span className={styles.crumbCurrent}>{park.name}</span>
-      </nav>
+      <Breadcrumb isAdmin={!!isAdmin} backTo={backTo} onBack={goBack} current={park.name} />
 
-      <div className={styles.header}>
+      <div className={styles.header} data-testid="park-header">
         {park.cover_photo ? (
           <img className={styles.cover} src={park.cover_photo} alt={`Photo de ${park.name}`} />
         ) : (
@@ -193,11 +233,13 @@ export default function ParkDetail() {
             <ParkStatusTag status={park.status} />
             <ParkVerificationTag status={park.verification_status} />
           </div>
-          <div className={styles.secondary}>
-            {park.formatted_address ?? "Adresse non renseignée"}
-          </div>
+          {park.formatted_address && <div className={styles.secondary}>{park.formatted_address}</div>}
           <div className={styles.headerMeta}>
-            <span>{primarySource ? SOURCE_LABEL[primarySource] : "Source non renseignée"}</span>
+            <span>{sourceLabel}</span>
+            <span aria-hidden="true">·</span>
+            <span>{countryLabel(park.country_code)}</span>
+            <span aria-hidden="true">·</span>
+            <span>{organization?.name ?? "—"}</span>
             <span aria-hidden="true">·</span>
             <span>Modifié le {dateFmt.format(new Date(park.updated_at))}</span>
           </div>

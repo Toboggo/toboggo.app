@@ -1,9 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfirmDialogProvider, ToastProvider } from "@toboggo/design-system";
-import { getPark, getParkHistory, listParkEditsWithDetails, listReportsForPark, listReviewsForPark, listSources } from "@toboggo/shared";
+import {
+  getOrganization,
+  getPark,
+  getParkHistory,
+  listParkEditsWithDetails,
+  listReportsForPark,
+  listReviewsForPark,
+  listSources,
+} from "@toboggo/shared";
 import ParkDetail from "./ParkDetail";
 
 // MapLibre (pulled in by InfoPanel → ParkLocationEditor) — never instantiated
@@ -23,6 +31,8 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listMedia: vi.fn().mockResolvedValue([]),
     listExternalIds: vi.fn().mockResolvedValue([]),
     listSources: vi.fn().mockResolvedValue([]),
+    // Admin-UI-9B — Collectivité dans l'entête : requête ciblée par id.
+    getOrganization: vi.fn().mockResolvedValue(null),
     setParkStatus: vi.fn().mockResolvedValue(undefined),
     logActivity: vi.fn().mockResolvedValue(undefined),
     updatePark: vi.fn().mockResolvedValue(undefined),
@@ -56,7 +66,8 @@ vi.mock("../lib/permissions", () => ({
     canResolveReport: perms.canResolveReport,
   }),
 }));
-vi.mock("../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: "org-1" }) }));
+const scope = vi.hoisted(() => ({ isAdmin: false, communeId: "org-1" as string | undefined }));
+vi.mock("../lib/orgScope", () => ({ useOrgScope: () => scope }));
 vi.mock("../lib/orgSession", () => ({
   useOrgSession: (sel?: (s: unknown) => unknown) => {
     const state = { userName: "Testeur", userId: "u1" };
@@ -79,6 +90,8 @@ function makePark(over: Record<string, unknown> = {}) {
     min_age: null,
     max_age: null,
     description: null,
+    country_code: "FR",
+    organization_id: null,
     created_at: "2026-01-02T10:00:00Z",
     updated_at: "2026-02-03T12:00:00Z",
     ...over,
@@ -116,9 +129,12 @@ describe("ParkDetail — /parks/:id", () => {
     perms.canReplyToReview = false;
     perms.canDeleteReview = false;
     perms.canResolveReport = true;
+    scope.isAdmin = false;
+    scope.communeId = "org-1";
     vi.mocked(getPark).mockReset().mockResolvedValue(makePark() as never);
     vi.mocked(getParkHistory).mockReset().mockResolvedValue([]);
     vi.mocked(listSources).mockReset().mockResolvedValue([]);
+    vi.mocked(getOrganization).mockReset().mockResolvedValue(null);
     vi.mocked(listReviewsForPark).mockReset().mockResolvedValue([]);
     vi.mocked(listReportsForPark).mockReset().mockResolvedValue([]);
     vi.mocked(listParkEditsWithDetails).mockReset().mockResolvedValue([]);
@@ -334,5 +350,113 @@ describe("ParkDetail — /parks/:id", () => {
     expect(screen.queryByText("app")).toBeNull();
     expect(screen.queryByText(/Modifiéapp/)).toBeNull();
     expect(screen.queryByText(/b385e7b6/)).toBeNull();
+  });
+
+  describe("Admin-UI-9B — entête", () => {
+    it("breadcrumb Admin : 'Parcs' (pas 'Mes parcs'), lien vers /parks", async () => {
+      scope.isAdmin = true;
+      scope.communeId = undefined;
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      const link = screen.getByRole("link", { name: "Parcs" }) as HTMLAnchorElement;
+      expect(link.getAttribute("href")).toBe("/parks?status=pending&page=2");
+      expect(screen.queryByRole("link", { name: "Mes parcs" })).toBeNull();
+    });
+
+    it("breadcrumb Collectivité : 'Mes parcs'", async () => {
+      renderDetail(); // scope par défaut du beforeEach : isAdmin=false
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getByRole("link", { name: "Mes parcs" })).toBeTruthy();
+      expect(screen.queryByRole("link", { name: "Parcs" })).toBeNull();
+    });
+
+    it("breadcrumb identique (même lien) pendant le chargement — pas de rupture de structure", async () => {
+      let resolveGetPark!: (p: unknown) => void;
+      vi.mocked(getPark).mockReset().mockReturnValue(
+        new Promise((resolve) => {
+          resolveGetPark = resolve;
+        }) as never,
+      );
+      scope.isAdmin = true;
+      scope.communeId = undefined;
+      renderDetail();
+      expect(await screen.findByRole("link", { name: "Parcs" })).toBeTruthy();
+      resolveGetPark(makePark());
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getByRole("link", { name: "Parcs" })).toBeTruthy();
+    });
+
+    it("Pays : libellé lisible depuis country_code", async () => {
+      vi.mocked(getPark).mockReset().mockResolvedValue(makePark({ country_code: "ES" }) as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getByText("Espagne")).toBeTruthy();
+    });
+
+    it("Pays : un code absent de la table de libellés retombe sur le code brut", async () => {
+      vi.mocked(getPark).mockReset().mockResolvedValue(makePark({ country_code: "ZZ" }) as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getByText("ZZ")).toBeTruthy();
+    });
+
+    it("Collectivité présente : résolue via une requête ciblée par organization_id, sans N+1", async () => {
+      vi.mocked(getPark).mockReset().mockResolvedValue(makePark({ organization_id: "org-lyon" }) as never);
+      vi.mocked(getOrganization).mockReset().mockResolvedValue({ id: "org-lyon", name: "Ville de Lyon" } as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(await screen.findByText("Ville de Lyon")).toBeTruthy();
+      expect(getOrganization).toHaveBeenCalledTimes(1);
+      expect(getOrganization).toHaveBeenCalledWith("org-lyon");
+    });
+
+    it("Collectivité absente : tiret discret, jamais 'Non renseigné', et getOrganization n'est pas appelée", async () => {
+      renderDetail(); // organization_id: null sur la fixture par défaut
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      const header = screen.getByTestId("park-header");
+      expect(within(header).queryByText(/Non renseigné/)).toBeNull();
+      // Vérification (non vérifié) ET Source (aucune) sont aussi "—" ici —
+      // au moins une occurrence prouve que Collectivité retombe bien dessus.
+      expect(within(header).getAllByText("—").length).toBeGreaterThanOrEqual(1);
+      expect(getOrganization).not.toHaveBeenCalled();
+    });
+
+    it("Source : affiche toutes les sources réelles, pas seulement la première", async () => {
+      vi.mocked(listSources).mockResolvedValue([
+        { id: "s1", park_id: "p1", source_type: "osm", source_name: null, source_url: null, license: null, last_synced_at: null, created_at: "2026-01-01" },
+        { id: "s2", park_id: "p1", source_type: "municipality", source_name: null, source_url: null, license: null, last_synced_at: null, created_at: "2026-01-01" },
+      ] as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getByText("OpenStreetMap, Collectivité")).toBeTruthy();
+    });
+
+    it("Adresse absente : ni 'Adresse non renseignée' ni ligne secondaire vide dans l'entête", async () => {
+      vi.mocked(getPark).mockReset().mockResolvedValue(makePark({ formatted_address: null }) as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.queryByText("Adresse non renseignée")).toBeNull();
+    });
+
+    it("Adresse présente : affichée discrètement dans l'entête", async () => {
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.getAllByText("1 rue du Test, 12100 Millau").length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("le menu Actions reste propre (absent) quand aucune transition n'est disponible — permissions inchangées", async () => {
+      perms.canEditPark = false;
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      expect(screen.queryByRole("button", { name: "Actions du parc" })).toBeNull();
+    });
+
+    it("les transitions de statut existantes restent inchangées (Bloqué → Débloquer)", async () => {
+      vi.mocked(getPark).mockReset().mockResolvedValue(makePark({ status: "blocked" }) as never);
+      renderDetail();
+      await screen.findByRole("heading", { name: "Parc des Sources" });
+      fireEvent.click(screen.getByRole("button", { name: "Actions du parc" }));
+      expect(screen.getByRole("menuitem", { name: "Débloquer" })).toBeTruthy();
+    });
   });
 });

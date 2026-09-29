@@ -125,7 +125,24 @@
     "compare": "Comparar",
     "compareCount": "Comparar ({{count}})",
     "emptyTitle": "Aún no tienes parques favoritos.",
-    "emptyDesc": "Toca el corazón de un parque para añadirlo aquí."
+    "emptyDesc": "Toca el corazón de un parque para añadirlo aquí.",
+    "filters": {
+      "groupLabel": "Filtrar mis favoritos",
+      "all": "Todos ({{count}})",
+      "nearby": "Cerca de ti",
+      "emptyTitle": "Ningún favorito coincide con este filtro.",
+      "emptyReset": "Ver todos mis favoritos",
+      "nearbyLocationTitle": "Activa tu ubicación",
+      "nearbyLocationDesc": "Permite la ubicación para ver tus favoritos a menos de {{radius}} km."
+    },
+    "discover": {
+      "title": "¿Buscas nuevos parques?",
+      "desc": "Explora el mapa y añade tus lugares favoritos."
+    },
+    "tips": {
+      "title": "Nuestros consejos",
+      "location": "Activar la ubicación"
+    }
   },
   "compare": {
     "title": "Comparar",

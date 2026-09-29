@@ -1,4 +1,5 @@
 import { type Park } from "@toboggo/shared";
+import { equipmentIcon, serviceIcon, type IconName } from "@toboggo/design-system";
 
 /**
  * Presentation guards for park data that is often absent on real (OSM-sourced)
@@ -37,4 +38,35 @@ export function keyAttributes(
   if (p.wc) out.push("toilets");
   if (p.pmr) out.push("accessible");
   return out.slice(0, 2);
+}
+
+const SERVICE_KEYS = ["wc", "shade", "fenced", "pmr", "benches", "water", "parking"] as const;
+
+export interface EquipmentChip {
+  /** Raw catalogue code (`park.play_equipment` entry or service key) — resolve
+   * to a label via `useFeatureLabel()`. */
+  code: string;
+  icon: IconName;
+}
+
+/**
+ * Play-equipment + amenity codes actually present on the park, in a stable
+ * order (equipment first, then amenities), restricted to codes that already
+ * have a validated sprite icon (`equipmentIcon`/`serviceIcon`) — a code
+ * without one is simply left out here rather than falling back to an emoji,
+ * so the caller's overflow count ("+X") stays honest about everything real
+ * that isn't shown, whether because of the 3-chip cap or a missing icon.
+ */
+export function equipmentChips(
+  p: Pick<Park, "play_equipment" | "wc" | "shade" | "fenced" | "pmr" | "benches" | "water" | "parking">,
+): EquipmentChip[] {
+  const fromEquipment = (p.play_equipment ?? []).flatMap((code) => {
+    const icon = equipmentIcon(code);
+    return icon ? [{ code, icon }] : [];
+  });
+  const fromServices = SERVICE_KEYS.filter((code) => p[code]).flatMap((code) => {
+    const icon = serviceIcon(code);
+    return icon ? [{ code, icon }] : [];
+  });
+  return [...fromEquipment, ...fromServices];
 }

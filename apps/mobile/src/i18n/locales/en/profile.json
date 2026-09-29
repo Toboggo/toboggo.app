@@ -118,10 +118,31 @@
   "signOut": "Sign out",
   "favorites": {
     "title": "Favorites",
+    "headerTitle": "My favorites",
+    "headerSubtitle": "Your favorite spots, always at hand.",
+    "count_one": "{{count}} park saved",
+    "count_other": "{{count}} parks saved",
     "compare": "Compare",
     "compareCount": "Compare ({{count}})",
     "emptyTitle": "No favorite parks yet.",
-    "emptyDesc": "Tap the heart on a park to add it here."
+    "emptyDesc": "Tap the heart on a park to add it here.",
+    "filters": {
+      "groupLabel": "Filter my favorites",
+      "all": "All ({{count}})",
+      "nearby": "Nearby",
+      "emptyTitle": "No favorites match this filter.",
+      "emptyReset": "See all my favorites",
+      "nearbyLocationTitle": "Turn on your location",
+      "nearbyLocationDesc": "Allow location access to see your favorites within {{radius}} km."
+    },
+    "discover": {
+      "title": "Looking for new parks?",
+      "desc": "Explore the map and add your favorite spots."
+    },
+    "tips": {
+      "title": "Our tips",
+      "location": "Turn on location"
+    }
   },
   "compare": {
     "title": "Compare",

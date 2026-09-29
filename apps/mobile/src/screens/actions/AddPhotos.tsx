@@ -2,7 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@toboggo/design-system";
-import { addParkPhotos, getParkDisplayName, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
+import {
+  addParkPhotos,
+  canDecodeImage,
+  getParkDisplayName,
+  ImageValidationError,
+  looksLikeHeic,
+  uploadPhoto,
+  validateImageFile,
+} from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { ParkPicker } from "../../components/ParkPicker";
@@ -17,6 +25,13 @@ interface PhotoPick {
   file: File;
   preview: string;
 }
+
+// Photothèque (LOT photo-library) — plafond client uniquement, aucune règle
+// serveur ne le contraint (`addParkPhotos` accepte n'importe quel nombre
+// d'URLs). Remplace l'ancienne grille figée à 4 cases : ce chiffre-là ne
+// répondait à aucune règle produit documentée, juste à la mise en page 2x2
+// d'origine.
+const MAX_PHOTOS = 5;
 
 // Brouillon persistant (LOT 3D.F) — délibérément absent ici, et `requireAccount`
 // / `pendingResume` délibérément conservés tels quels. Raisons :
@@ -42,23 +57,7 @@ interface PhotoPick {
 // ne doit jamais se retrouver avec des `File` en main que nous savons ne pas
 // pouvoir restaurer après une redirection OAuth pleine page. Le sélecteur
 // natif (`<input type="file">`) n'est même pas rendu tant que l'utilisateur
-// n'est pas connecté (voir `pickTileStyle` / le rendu conditionnel ci-dessous).
-
-const pickTileStyle: React.CSSProperties = {
-  aspectRatio: "1",
-  borderRadius: 14,
-  border: "2px dashed var(--color-border-strong)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 24,
-  cursor: "pointer",
-  color: "var(--color-text-faint)",
-  width: "100%",
-  background: "transparent",
-  padding: 0,
-  font: "inherit",
-};
+// n'est pas connecté (voir le rendu conditionnel ci-dessous).
 
 // Named stepper shared with the other contribution wizards (see AddPark). The
 // three stages are stable across entry points: arriving with `?park=` just
@@ -81,6 +80,8 @@ export default function AddPhotos() {
   const [picks, setPicks] = useState<PhotoPick[]>([]);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
 
   // `contribution_started` — une fois par montage. Limite documentée : ce
   // wizard n'a pas de marqueur `?resume=1` (il utilise `requireAccount`, pas
@@ -107,17 +108,46 @@ export default function AddPhotos() {
   picksRef.current = picks;
   useEffect(() => () => picksRef.current.forEach((p) => URL.revokeObjectURL(p.preview)), []);
 
-  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  // Sert les deux sources (caméra et photothèque) : la caméra ne renvoie
+  // jamais qu'un seul fichier, la photothèque peut en renvoyer plusieurs
+  // (jusqu'à MAX_PHOTOS au total). Chaque fichier passe par la même
+  // validation que l'ancien chemin caméra-only ; un fichier invalide ne bloque
+  // pas les autres.
+  //
+  // Cas HEIC/HEIF (LOT photo-library, point 3) : un HEIC que ce navigateur ne
+  // sait pas décoder serait de toute façon rejeté par Storage plus tard (le
+  // bucket `park-photos` n'accepte que jpeg/png/webp) — mais alors caché
+  // derrière le toast générique `image.uploadFailed`, potentiellement bien
+  // après la sélection, mêlé à d'autres photos valides déjà en attente. La
+  // sonde `canDecodeImage` l'intercepte ici, avant même l'aperçu, avec un
+  // message explicite. Safari (HEIC nativement décodable) n'est jamais
+  // concerné par ce détour : `canDecodeImage` y réussit comme `compressImage`
+  // le fera ensuite à l'envoi.
+  async function onPickFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (!file) return;
-    try {
-      validateImageFile(file);
-    } catch (err) {
-      showToast(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.invalid"));
-      return;
+    if (!files.length) return;
+
+    const remaining = Math.max(0, MAX_PHOTOS - picks.length);
+    const accepted = files.slice(0, remaining);
+    const overflow = files.length > accepted.length;
+
+    const newPicks: PhotoPick[] = [];
+    for (const file of accepted) {
+      try {
+        validateImageFile(file);
+      } catch (err) {
+        showToast(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.invalid"));
+        continue;
+      }
+      if (looksLikeHeic(file) && !(await canDecodeImage(file))) {
+        showToast(tErr("image.heicUnsupported"));
+        continue;
+      }
+      newPicks.push({ file, preview: URL.createObjectURL(file) });
     }
-    setPicks((p) => [...p, { file, preview: URL.createObjectURL(file) }].slice(0, 4));
+    if (newPicks.length) setPicks((p) => [...p, ...newPicks].slice(0, MAX_PHOTOS));
+    if (overflow) showToast(tErr("image.tooMany", { max: MAX_PHOTOS }));
   }
 
   function removePick(i: number) {
@@ -227,35 +257,61 @@ export default function AddPhotos() {
       {step === 1 && (
         <div style={{ padding: "0 20px" }}>
           <h2 style={{ fontSize: 16, marginBottom: 16 }}>{park && getParkDisplayName(park, t)}</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i}>
-                {picks[i] ? (
-                  <div style={{ position: "relative" }}>
-                    <div style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${picks[i].preview})`, backgroundSize: "cover", backgroundPosition: "center" }} />
-                    <button
-                      type="button"
-                      aria-label={t("common.removePhoto")}
-                      onClick={() => removePick(i)}
-                      style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}
-                    >
-                      <Icon name="ic-close" size={14} />
-                    </button>
-                  </div>
-                ) : userId ? (
-                  <label style={pickTileStyle}>
-                    +<input type="file" accept="image/*" capture="environment" hidden onChange={onPickFile} />
-                  </label>
-                ) : (
-                  // Invité : pas de <input type="file"> du tout — le sélecteur
-                  // natif ne doit jamais s'ouvrir avant l'authentification.
-                  <button type="button" style={pickTileStyle} onClick={requirePhotoAuth}>
-                    +
+
+          {picks.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+              {picks.map((pick, i) => (
+                <div key={i} style={{ position: "relative" }}>
+                  <div style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${pick.preview})`, backgroundSize: "cover", backgroundPosition: "center" }} />
+                  <button
+                    type="button"
+                    aria-label={t("common.removePhoto")}
+                    onClick={() => removePick(i)}
+                    style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}
+                  >
+                    <Icon name="ic-close" size={14} />
                   </button>
-                )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 10 }}>
+            {t("addPhotos.counter", { count: picks.length, max: MAX_PHOTOS })}
+          </p>
+
+          {picks.length < MAX_PHOTOS &&
+            (userId ? (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <Button type="button" variant="secondary" size="sm" block onClick={() => cameraInputRef.current?.click()}>
+                    📷 {t("addPhotos.takePhoto")}
+                  </Button>
+                  <Button type="button" variant="secondary" size="sm" block onClick={() => libraryInputRef.current?.click()}>
+                    🖼️ {t("addPhotos.chooseFromLibrary")}
+                  </Button>
+                </div>
+                {/* Deux inputs distincts : `capture` force l'ouverture directe
+                    de l'appareil photo (un seul cliché) — l'imposer sur
+                    l'input photothèque empêchait jusqu'ici tout accès à la
+                    pellicule sur mobile. L'input photothèque, sans `capture`,
+                    ouvre le sélecteur natif et accepte une sélection multiple. */}
+                <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onPickFiles} />
+                <input ref={libraryInputRef} type="file" accept="image/*" multiple hidden onChange={onPickFiles} />
+              </>
+            ) : (
+              // Invité : pas de <input type="file"> du tout — le sélecteur
+              // natif ne doit jamais s'ouvrir avant l'authentification.
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <Button type="button" variant="secondary" size="sm" block onClick={requirePhotoAuth}>
+                  📷 {t("addPhotos.takePhoto")}
+                </Button>
+                <Button type="button" variant="secondary" size="sm" block onClick={requirePhotoAuth}>
+                  🖼️ {t("addPhotos.chooseFromLibrary")}
+                </Button>
               </div>
             ))}
-          </div>
+
           <PhotoTip />
           {!userId && (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>

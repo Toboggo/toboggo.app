@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -92,8 +92,22 @@ function fileInput(container: HTMLElement): HTMLInputElement | null {
   return container.querySelector('input[type="file"]');
 }
 
+// The camera input carries `capture` — the library one deliberately doesn't,
+// so it (and only it) can open the native multi-select picker.
+function cameraInput(container: HTMLElement): HTMLInputElement | null {
+  return container.querySelector('input[type="file"][capture]');
+}
+
+function libraryInput(container: HTMLElement): HTMLInputElement | null {
+  return container.querySelector('input[type="file"]:not([capture])');
+}
+
 function pick(container: HTMLElement, file = makeFile()) {
   fireEvent.change(fileInput(container)!, { target: { files: [file] } });
+}
+
+function pickFromLibrary(container: HTMLElement, files: File[]) {
+  fireEvent.change(libraryInput(container)!, { target: { files } });
 }
 
 beforeEach(() => {
@@ -112,20 +126,29 @@ describe("AddPhotos — account required BEFORE the file picker (LOT 3D.F, point
     expect(fileInput(container)).toBeNull();
   });
 
-  it("guest clicks a pick tile → auth is triggered instead of a file dialog; nothing uploaded", async () => {
+  it("guest clicks either action → auth is triggered instead of a file dialog; nothing uploaded", async () => {
     renderPhotos();
     await screen.findByText("Square Voltaire");
-    fireEvent.click(screen.getAllByRole("button", { name: "+" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Prendre une photo/ }));
 
     await screen.findByText("LOGIN");
     expect(uploadPhoto).not.toHaveBeenCalled();
     expect(addParkPhotos).not.toHaveBeenCalled();
   });
 
+  it("guest clicks the library action → auth is triggered too, not just the camera one", async () => {
+    renderPhotos();
+    await screen.findByText("Square Voltaire");
+    fireEvent.click(screen.getByRole("button", { name: /Choisir dans la photothèque/ }));
+
+    await screen.findByText("LOGIN");
+    expect(uploadPhoto).not.toHaveBeenCalled();
+  });
+
   it("after auth completes, the user lands back on AddPhotos and can now pick normally", async () => {
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
-    fireEvent.click(screen.getAllByRole("button", { name: "+" })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Prendre une photo/ }));
     await screen.findByText("LOGIN");
 
     // Just-in-time login completes — the stashed resume fires and routes back.
@@ -275,5 +298,172 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     resolveUpload("https://x/photo.jpg");
     await waitFor(() => expect(addParkPhotos).toHaveBeenCalledTimes(1));
     expect(uploadPhoto).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("AddPhotos — take a photo vs choose from the library", () => {
+  it("both actions are offered, each behind its own input", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    expect(screen.getByRole("button", { name: /Prendre une photo/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Choisir dans la photothèque/ })).toBeTruthy();
+    expect(cameraInput(container)).toBeTruthy();
+    expect(libraryInput(container)).toBeTruthy();
+  });
+
+  it("only the camera input carries `capture` — the library one must not force the camera open", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    expect(cameraInput(container)?.getAttribute("capture")).toBe("environment");
+    expect(libraryInput(container)?.hasAttribute("capture")).toBe(false);
+    expect(libraryInput(container)?.hasAttribute("multiple")).toBe(true);
+  });
+
+  it("the camera action still accepts a single shot, unchanged", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    fireEvent.change(cameraInput(container)!, { target: { files: [makeFile("shot.jpg")] } });
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1);
+  });
+
+  it("picking several photos at once from the library previews them all and updates the counter", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    pickFromLibrary(container, [makeFile("a.jpg"), makeFile("b.jpg"), makeFile("c.jpg")]);
+
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(3);
+    expect(screen.getByText("3 / 5 photos")).toBeTruthy();
+  });
+
+  it("removing one picked photo individually keeps the others", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    pickFromLibrary(container, [makeFile("a.jpg"), makeFile("b.jpg")]);
+    fireEvent.click(container.querySelectorAll('button[aria-label="Retirer cette photo"]')[0]);
+
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1);
+    expect(screen.getByText("1 / 5 photos")).toBeTruthy();
+  });
+
+  it("caps at 5 photos total: a library selection that would exceed the limit is truncated, with a toast", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    pickFromLibrary(container, [
+      makeFile("a.jpg"),
+      makeFile("b.jpg"),
+      makeFile("c.jpg"),
+      makeFile("d.jpg"),
+      makeFile("e.jpg"),
+      makeFile("f.jpg"),
+    ]);
+
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(5);
+    expect(screen.getByText("5 / 5 photos")).toBeTruthy();
+    expect(toasts.list).toContain("Vous pouvez ajouter 5 photos maximum.");
+    // Both actions disappear once the cap is reached — nothing left to add.
+    expect(screen.queryByRole("button", { name: /Prendre une photo/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Choisir dans la photothèque/ })).toBeNull();
+  });
+
+  it("an invalid file in a multi-select is rejected with a toast, valid ones in the same batch are still kept", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    const notAnImage = new File(["x"], "notes.txt", { type: "text/plain" });
+    pickFromLibrary(container, [makeFile("a.jpg"), notAnImage]);
+
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1);
+    expect(toasts.list).toContain("Ce fichier n’est pas une image.");
+  });
+
+  it("submitting photos picked from the library goes through the same upload/moderation pipeline as the camera path", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    pickFromLibrary(container, [makeFile("a.jpg"), makeFile("b.jpg")]);
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
+
+    await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
+    expect(uploadPhoto).toHaveBeenCalledWith("parkPhotos", expect.any(File), "u1");
+    await waitFor(() =>
+      expect(addParkPhotos).toHaveBeenCalledWith("p1", ["https://x/photo.jpg", "https://x/photo.jpg"], {
+        source: "user",
+        userId: "u1",
+      }),
+    );
+    expect(await screen.findByText("Photo envoyée !")).toBeTruthy();
+  });
+});
+
+describe("AddPhotos — HEIC/HEIF caught before upload, not after (LOT photo-library, point 3)", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("a HEIC file this browser can't decode is rejected up front with an explicit message — never reaches upload, never shows as a preview", async () => {
+    sess.userId = "u1";
+    // Simulates most Chromium engines, which have no built-in HEIC decoder.
+    vi.stubGlobal("createImageBitmap", vi.fn().mockRejectedValue(new Error("no heic decoder")));
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    const heicFile = new File(["x"], "IMG_0001.heic", { type: "image/heic" });
+    fireEvent.change(libraryInput(container)!, { target: { files: [heicFile] } });
+
+    await waitFor(() =>
+      expect(toasts.list).toContain(
+        "Cette photo HEIC ne peut pas être traitée sur cet appareil. Essayez une photo JPG, PNG ou WebP.",
+      ),
+    );
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(0);
+    expect(uploadPhoto).not.toHaveBeenCalled();
+  });
+
+  it("a HEIC file this browser CAN decode (e.g. Safari) is accepted like any other photo", async () => {
+    sess.userId = "u1";
+    // Simulates Safari's native HEIC decoder — createImageBitmap succeeds.
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn().mockResolvedValue({ width: 10, height: 10, close: () => {} }),
+    );
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    const heicFile = new File(["x"], "IMG_0002.heic", { type: "image/heic" });
+    fireEvent.change(libraryInput(container)!, { target: { files: [heicFile] } });
+
+    await waitFor(() =>
+      expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1),
+    );
+    expect(toasts.list).not.toContain(
+      "Cette photo HEIC ne peut pas être traitée sur cet appareil. Essayez une photo JPG, PNG ou WebP.",
+    );
+  });
+
+  it("a non-HEIC file is never subjected to the decode probe at all", async () => {
+    sess.userId = "u1";
+    const probe = vi.fn();
+    vi.stubGlobal("createImageBitmap", probe);
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    pickFromLibrary(container, [makeFile("a.jpg")]);
+
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1);
+    expect(probe).not.toHaveBeenCalled();
   });
 });

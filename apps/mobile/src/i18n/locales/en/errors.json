@@ -5,7 +5,9 @@
     "not_an_image": "This file is not an image.",
     "too_large": "This image is too large (25 MB maximum).",
     "invalid": "Invalid image",
-    "uploadFailed": "Photo upload failed"
+    "uploadFailed": "Photo upload failed",
+    "tooMany": "You can add up to {{max}} photos.",
+    "heicUnsupported": "This HEIC photo can't be processed on this device. Try a JPG, PNG or WebP photo instead."
   },
   "auth": {
     "invalidCredentials": "Incorrect email or password.",

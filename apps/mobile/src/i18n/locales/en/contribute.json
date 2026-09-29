@@ -148,6 +148,9 @@
     }
   },
   "addPhotos": {
+    "takePhoto": "Take a photo",
+    "chooseFromLibrary": "Choose from library",
+    "counter": "{{count}} / {{max}} photos",
     "doneTitle": "Photo sent!",
     "doneBody_one": "Thank you! Your photo will appear on the park page after our team reviews it.",
     "doneBody_other": "Thank you! Your photos will appear on the park page after our team reviews it.",

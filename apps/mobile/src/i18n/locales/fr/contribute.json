@@ -148,6 +148,9 @@
     }
   },
   "addPhotos": {
+    "takePhoto": "Prendre une photo",
+    "chooseFromLibrary": "Choisir dans la photothèque",
+    "counter": "{{count}} / {{max}} photos",
     "doneTitle": "Photo envoyée !",
     "doneBody_one": "Merci ! Votre photo sera visible sur la fiche du parc après vérification par notre équipe.",
     "doneBody_other": "Merci ! Vos photos seront visibles sur la fiche du parc après vérification par notre équipe.",

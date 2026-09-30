@@ -14,7 +14,6 @@ import {
 import { WizardHeader } from "../../components/WizardHeader";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { ParkPicker } from "../../components/ParkPicker";
-import { PhotoTip } from "../../components/PhotoTip";
 import { usePark } from "../../lib/parksQuery";
 import { requireAccount, useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
@@ -256,7 +255,10 @@ export default function AddPhotos() {
 
       {step === 1 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 16 }}>{park && getParkDisplayName(park, t)}</h2>
+          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park && getParkDisplayName(park, t)}</h2>
+          <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", marginBottom: 12 }}>
+            {t("addPhotos.subtitle")}
+          </p>
 
           {picks.length > 0 && (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
@@ -283,13 +285,19 @@ export default function AddPhotos() {
           {picks.length < MAX_PHOTOS &&
             (userId ? (
               <>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <Button type="button" variant="secondary" size="sm" block onClick={() => cameraInputRef.current?.click()}>
-                    📷 {t("addPhotos.takePhoto")}
-                  </Button>
-                  <Button type="button" variant="secondary" size="sm" block onClick={() => libraryInputRef.current?.click()}>
-                    🖼️ {t("addPhotos.chooseFromLibrary")}
-                  </Button>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <PhotoSourceRow
+                    tone="primary"
+                    icon={<CameraIcon />}
+                    label={t("addPhotos.takePhoto")}
+                    onClick={() => cameraInputRef.current?.click()}
+                  />
+                  <PhotoSourceRow
+                    tone="neutral"
+                    icon={<GalleryIcon />}
+                    label={t("addPhotos.chooseFromLibrary")}
+                    onClick={() => libraryInputRef.current?.click()}
+                  />
                 </div>
                 {/* Deux inputs distincts : `capture` force l'ouverture directe
                     de l'appareil photo (un seul cliché) — l'imposer sur
@@ -302,17 +310,30 @@ export default function AddPhotos() {
             ) : (
               // Invité : pas de <input type="file"> du tout — le sélecteur
               // natif ne doit jamais s'ouvrir avant l'authentification.
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <Button type="button" variant="secondary" size="sm" block onClick={requirePhotoAuth}>
-                  📷 {t("addPhotos.takePhoto")}
-                </Button>
-                <Button type="button" variant="secondary" size="sm" block onClick={requirePhotoAuth}>
-                  🖼️ {t("addPhotos.chooseFromLibrary")}
-                </Button>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <PhotoSourceRow tone="primary" icon={<CameraIcon />} label={t("addPhotos.takePhoto")} onClick={requirePhotoAuth} />
+                <PhotoSourceRow tone="neutral" icon={<GalleryIcon />} label={t("addPhotos.chooseFromLibrary")} onClick={requirePhotoAuth} />
               </div>
             ))}
 
-          <PhotoTip />
+          <div
+            style={{
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 8,
+              background: "var(--color-warning-bg)",
+              color: "var(--color-warning-text)",
+              borderRadius: "var(--radius-sm)",
+              padding: "12px 14px",
+              fontSize: 13,
+              marginTop: 16,
+            }}
+          >
+            <BulbIcon />
+            <span>
+              <strong>{t("photoTip.label")}</strong> — {t("photoTip.text")}
+            </span>
+          </div>
           {!userId && (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
               {t("common.accountRequiredPhotos")}
@@ -324,5 +345,100 @@ export default function AddPhotos() {
         </div>
       )}
     </div>
+  );
+}
+
+// Ligne pleine largeur "source de photo" (caméra / photothèque) — d'après la
+// dernière maquette validée par le fondateur. Pictogrammes en SVG inline,
+// propres à cet écran : pas de symbole caméra/photothèque dans
+// `icons-sprite.svg` (voir
+// DESIGN-SYSTEM §7 — le sprite existe mais `<Icon>` n'est adopté nulle part
+// dans l'app ; ajouter ces deux-là ici n'engage pas une migration du système
+// d'icônes global).
+function PhotoSourceRow({
+  tone,
+  icon,
+  label,
+  onClick,
+}: {
+  tone: "primary" | "neutral";
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        width: "100%",
+        padding: "15px 16px",
+        borderRadius: 14,
+        border: tone === "primary" ? "1px solid transparent" : "1px solid var(--color-border)",
+        background: tone === "primary" ? "var(--color-primary-tint)" : "var(--color-surface)",
+        color: "var(--color-text)",
+        cursor: "pointer",
+        font: "inherit",
+        textAlign: "left",
+      }}
+    >
+      <span style={{ display: "flex", color: tone === "primary" ? "var(--color-primary)" : "var(--color-text-muted)", flexShrink: 0 }}>
+        {icon}
+      </span>
+      <span style={{ flex: 1, fontWeight: 600, fontSize: 15 }}>{label}</span>
+      <Chevron />
+    </button>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
+      <circle cx="12" cy="13" r="3.2" />
+    </svg>
+  );
+}
+
+function GalleryIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <circle cx="8.5" cy="9.5" r="1.6" />
+      <path d="M21 16.5 15.5 11 6 20" />
+    </svg>
+  );
+}
+
+function BulbIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ flexShrink: 0, marginTop: 1 }}
+      aria-hidden
+    >
+      <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .8 1.7v.3h5.6v-.3c0-.7.3-1.3.8-1.7A6 6 0 0 0 12 3Z" />
+    </svg>
+  );
+}
+
+// Même tracé/mêmes réglages que le chevron déjà utilisé ailleurs dans l'app
+// (Settings.tsx, Profile.tsx, LegalIndex.tsx, About.tsx) — repris tel quel
+// plutôt que réinventé, cohérence oblige.
+function Chevron() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-text-faint)", flexShrink: 0 }} aria-hidden>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
   );
 }

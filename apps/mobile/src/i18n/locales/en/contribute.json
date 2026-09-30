@@ -148,6 +148,7 @@
     }
   },
   "addPhotos": {
+    "subtitle": "Add photos to share this place with the community.",
     "takePhoto": "Take a photo",
     "chooseFromLibrary": "Choose from library",
     "counter": "{{count}} / {{max}} photos",

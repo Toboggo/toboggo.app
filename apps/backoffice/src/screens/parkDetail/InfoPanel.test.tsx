@@ -94,9 +94,66 @@ describe("InfoPanel — structured address + location (Lot 3C.3)", () => {
     expect(screen.queryByText(/null/)).toBeNull();
   });
 
-  it("read mode: all address fields empty → 'Adresse non renseignée'", () => {
+  it("read mode: all address fields empty → la ligne Adresse est omise, jamais 'Adresse non renseignée' (Admin-UI-9D)", () => {
     renderPanel(makePark({ address_line: null, postal_code: null, city: null, formatted_address: "—" }));
-    expect(screen.getByText("Adresse non renseignée")).toBeTruthy();
+    expect(screen.queryByText("Adresse non renseignée")).toBeNull();
+    expect(screen.queryByText("Adresse")).toBeNull();
+    // La carte/coordonnées restent utiles même sans adresse.
+    expect(screen.getByText("44.099776, 3.111459")).toBeTruthy();
+  });
+
+  // ── Admin-UI-9D — mode lecture restructuré ─────────────────────────────
+  it("read mode: ne répète plus Statut/Vérification/Source générale/Modifié le (désormais dans l'entête 360)", () => {
+    renderPanel();
+    expect(screen.queryByText("Publication")).toBeNull();
+    expect(screen.queryByText("Vérification")).toBeNull();
+    expect(screen.queryByText("Modifié le")).toBeNull();
+    // L'ancien libellé "Source" (colonne Statut/Métadonnées) a disparu — ne
+    // pas confondre avec "Identifiant OSM" (donnée propre à cet onglet).
+    expect(screen.queryByText("Source")).toBeNull();
+    expect(screen.queryByText("Nom")).toBeNull();
+  });
+
+  it("read mode: garde Exploitation — jamais dans l'entête, toujours affichée", () => {
+    renderPanel(makePark({ operational_status: "temporarily_closed" }));
+    expect(screen.getByText("Exploitation")).toBeTruthy();
+    expect(screen.getByText("Fermé temporairement")).toBeTruthy();
+  });
+
+  it("read mode: garde Créé le", () => {
+    renderPanel();
+    expect(screen.getByText("Créé le")).toBeTruthy();
+  });
+
+  it("read mode: garde l'identifiant externe OSM quand il existe", async () => {
+    vi.mocked(listExternalIds).mockResolvedValueOnce([
+      { park_id: "p1", provider: "osm", external_id: "node/123456" },
+    ] as never);
+    renderPanel();
+    expect(await screen.findByText("Identifiant OSM")).toBeTruthy();
+    expect(screen.getByText("node/123456")).toBeTruthy();
+  });
+
+  it("read mode: omet la ligne Identifiant OSM quand aucune source externe n'existe", async () => {
+    renderPanel();
+    await screen.findByText("Créé le");
+    expect(screen.queryByText("Identifiant OSM")).toBeNull();
+  });
+
+  it("read mode: âges et description omis proprement quand absents, affichés quand présents", () => {
+    const { unmount } = renderPanel(makePark({ min_age: null, max_age: null, description: null }));
+    expect(screen.queryByText("Âge minimum")).toBeNull();
+    expect(screen.queryByText("Âge maximum")).toBeNull();
+    expect(screen.queryByText("Description")).toBeNull();
+    expect(screen.queryByText("Non renseigné")).toBeNull();
+    unmount();
+
+    renderPanel(makePark({ min_age: 3, max_age: 10, description: "Ombragé, sol souple" }));
+    expect(screen.getByText("Âge minimum")).toBeTruthy();
+    expect(screen.getByText("3 ans")).toBeTruthy();
+    expect(screen.getByText("Âge maximum")).toBeTruthy();
+    expect(screen.getByText("10 ans")).toBeTruthy();
+    expect(screen.getByText("Ombragé, sol souple")).toBeTruthy();
   });
 
   // ── Save path ────────────────────────────────────────────────────────────

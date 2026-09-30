@@ -360,15 +360,19 @@ describe("ParkDetail — /parks/:id", () => {
     expect(screen.getByRole("menuitem", { name: "Bloquer" })).toBeTruthy();
   });
 
-  it("renders 'Non renseigné' for genuinely absent fields", async () => {
+  it("Admin-UI-9D : les champs facultatifs absents (âges, description, OSM) sont omis proprement, jamais 'Non renseigné'", async () => {
     renderDetail();
     await screen.findByRole("heading", { name: "Parc des Sources" });
     fireEvent.click(screen.getByRole("tab", { name: "Données / Informations" }));
-    // description + ages (+ source OSM) sont absents sur la fixture — plusieurs
-    // occurrences existent d'emblée, donc `findAllByText` (pas `findByText`,
-    // ambigu dès qu'il y a plus d'une correspondance) pour attendre l'onglet.
-    const matches = await screen.findAllByText("Non renseigné");
-    expect(matches.length).toBeGreaterThanOrEqual(3);
+    // description + ages + identifiant OSM sont absents sur la fixture.
+    await screen.findByText("Créé le");
+    expect(screen.queryByText("Non renseigné")).toBeNull();
+    expect(screen.queryByText("Âge minimum")).toBeNull();
+    expect(screen.queryByText("Âge maximum")).toBeNull();
+    expect(screen.queryByText("Description")).toBeNull();
+    expect(screen.queryByText("Identifiant OSM")).toBeNull();
+    // Exploitation, elle, est toujours renseignée (valeur par défaut réelle).
+    expect(screen.getByText("Exploitation")).toBeTruthy();
   });
 
   it("shows a not-found state when the park cannot be loaded", async () => {
@@ -382,7 +386,7 @@ describe("ParkDetail — /parks/:id", () => {
     const { unmount } = renderDetail();
     await screen.findByRole("heading", { name: "Parc des Sources" });
     fireEvent.click(screen.getByRole("tab", { name: "Données / Informations" }));
-    await screen.findByText("Nom");
+    await screen.findByText("Créé le");
     expect(screen.queryByRole("button", { name: "Modifier" })).toBeNull();
     unmount();
 

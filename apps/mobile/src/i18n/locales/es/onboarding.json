@@ -3,7 +3,6 @@
   "splash": {
     "headline": "Encuentra\nel parque ideal\npara tus hijos",
     "tagline": "Miles de parques valorados\npor padres y madres como tú.",
-    "continueApple": "Continuar con Apple",
     "continueGoogle": "Continuar con Google",
     "continueEmail": "Continuar con un correo electrónico",
     "continuePhone": "Continuar con un número de teléfono",
@@ -16,7 +15,6 @@
     "subtitle": "Elige tu método\npara iniciar sesión en Toboggo.",
     "email": { "title": "Con tu correo electrónico", "subtitle": "Rápido y seguro" },
     "phone": { "title": "Con tu número de teléfono", "subtitle": "Recibe un código por SMS" },
-    "apple": { "title": "Con Apple", "subtitle": "Inicio de sesión con un solo gesto" },
     "google": { "title": "Con Google", "subtitle": "Inicio de sesión con un solo gesto" }
   },
   "auth": {
@@ -38,7 +36,6 @@
     "forgotPassword": "¿Has olvidado la contraseña?",
     "resetSent": "Enlace de restablecimiento enviado a {{email}}. Revisa tu correo electrónico.",
     "continueGoogle": "Continuar con Google",
-    "continueApple": "Continuar con Apple",
     "haveAccount": "¿Ya tienes una cuenta?",
     "noAccount": "¿Aún no tienes cuenta?",
     "switchToLogin": "Iniciar sesión",

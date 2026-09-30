@@ -6,10 +6,10 @@ import { Logo } from "@toboggo/design-system";
 import { Illustration } from "../../illustrations";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
-import { AppleIcon, GoogleIcon, MailIcon, PhoneIcon } from "./authIcons";
+import { GoogleIcon, MailIcon, PhoneIcon } from "./authIcons";
 import styles from "./Splash.module.css";
 
-/** Mail / Phone follow the brand green here (Apple / Google keep their own marks). */
+/** Mail / Phone follow the brand green here (Google keeps its own mark). */
 const brandTint = { display: "inline-flex", color: "var(--color-primary)" } as const;
 
 export default function Splash() {
@@ -52,10 +52,6 @@ export default function Splash() {
       </div>
 
       <div className={styles.sheet}>
-        <button type="button" className={styles.socialBtn} onClick={comingSoon}>
-          <AppleIcon size={17} />
-          <span>{t("splash.continueApple")}</span>
-        </button>
         <button type="button" className={styles.socialBtn} onClick={continueWithGoogle}>
           <GoogleIcon size={17} />
           <span>{t("splash.continueGoogle")}</span>

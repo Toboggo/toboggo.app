@@ -6,7 +6,7 @@ import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
 import { takeResumeRoute } from "../../lib/resumeRoute";
 import { trackEvent } from "../../lib/analytics";
-import { AppleIcon, ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
+import { ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -182,10 +182,6 @@ export default function AuthForm() {
         <button type="button" className={styles.social} onClick={continueWithGoogle}>
           <GoogleIcon size={17} />
           <span>{t("auth.continueGoogle")}</span>
-        </button>
-        <button type="button" className={styles.social} onClick={() => showToast(tCommon("comingSoon"))}>
-          <AppleIcon size={16} />
-          <span>{t("auth.continueApple")}</span>
         </button>
 
         <p className={styles.switch}>

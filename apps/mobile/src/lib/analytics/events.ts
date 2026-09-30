@@ -37,6 +37,8 @@ export type AppEnvironment = "staging" | "production";
 export interface CommonProperties {
   is_authenticated: boolean;
   app_version: string;
+  /** Hash court du commit du build (`__BUILD_ID__`), distinct de `app_version`. */
+  build_id: string;
   locale: string;
   environment: AppEnvironment;
 }

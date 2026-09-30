@@ -7,6 +7,13 @@ import { AnalyticsProvider } from "./lib/analytics";
 import App from "./App";
 import "./i18n";
 import "./index.css";
+import { initPreloadErrorGuard, initPwaUpdates } from "./lib/pwa/pwaUpdate";
+
+// Service worker + mises à jour (prod uniquement : pas de SW en dev Vite).
+if (import.meta.env.PROD) {
+  initPreloadErrorGuard();
+  initPwaUpdates();
+}
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

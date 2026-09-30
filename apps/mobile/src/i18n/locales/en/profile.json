@@ -200,7 +200,8 @@
   "about": {
     "title": "About Toboggo",
     "tagline": "Thousands of parks rated\nby parents like you.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "build": "Build {{build}}"
   },
   "group": {
     "title": "Group outing",

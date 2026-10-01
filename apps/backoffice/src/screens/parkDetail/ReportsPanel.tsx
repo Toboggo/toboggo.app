@@ -4,6 +4,7 @@ import { Button, DataTable, type DataTableColumn } from "@toboggo/design-system"
 import { listReportsForPark, REPORT_REASON_LABEL, type Report } from "@toboggo/shared";
 import { ReportModal, type ReportWithPark } from "../../components/ReportModal";
 import { ReportSeverityTag, ReportStatusTag } from "../../components/StatusTag";
+import { useOrgScope } from "../../lib/orgScope";
 import { usePermissions } from "../../lib/permissions";
 import { queryClient } from "../../lib/queryClient";
 import styles from "../ParkDetail.module.css";
@@ -15,6 +16,7 @@ const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short
 const SEVERITY_RANK: Record<Report["severity"], number> = { critical: 0, high: 1, medium: 2, low: 3 };
 
 export function ReportsPanel({ parkId, parkName }: { parkId: string; parkName: string }) {
+  const { isAdmin } = useOrgScope();
   const { canResolveReport } = usePermissions();
   const [selected, setSelected] = useState<ReportWithPark | null>(null);
 
@@ -52,6 +54,7 @@ export function ReportsPanel({ parkId, parkName }: { parkId: string; parkName: s
   return (
     <div className={styles.panel}>
       <DataTable
+        variant={isAdmin ? "admin" : "default"}
         caption={`Signalements — ${parkName}`}
         columns={columns}
         rows={sorted}

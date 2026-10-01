@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { listAuditLog, type Report } from "@toboggo/shared";
+import { listAuditLog, resolveReport, dismissReport, reopenReport, createMaintenance, type Report } from "@toboggo/shared";
 import { ReportModal, type ReportWithPark } from "./ReportModal";
 
 function makeReport(over: Partial<ReportWithPark> = {}): ReportWithPark {
@@ -81,6 +81,10 @@ function renderModal(report: ReportWithPark, canManage = true, onClose: () => vo
 describe("ReportModal (Lot Admin-2 hardening)", () => {
   beforeEach(() => {
     vi.mocked(listAuditLog).mockClear();
+    vi.mocked(resolveReport).mockClear();
+    vi.mocked(dismissReport).mockClear();
+    vi.mocked(reopenReport).mockClear();
+    vi.mocked(createMaintenance).mockClear();
   });
 
   it("garde le formulaire de traitement disponible pour un signalement 'in_progress'", () => {
@@ -127,5 +131,72 @@ describe("ReportModal (Lot Admin-2 hardening)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
     expect(onClose).toHaveBeenCalled();
     expect(screen.getByTestId("location").textContent).toBe("/parks/p42");
+  });
+
+  it("Admin-UI-9H-B : Résoudre appelle resolveReport avec la note saisie, puis ferme la modale", async () => {
+    scope.isAdmin = true;
+    const onClose = vi.fn();
+    renderModal(makeReport({ id: "r9", status: "open" }), true, onClose);
+    fireEvent.change(screen.getByLabelText(/Note de traitement/), { target: { value: "Réparé." } });
+    fireEvent.click(screen.getByRole("button", { name: "Résoudre" }));
+    await waitFor(() => expect(resolveReport).toHaveBeenCalledWith("r9", "Réparé.", undefined));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("Admin-UI-9H-B : Ignorer appelle dismissReport avec la note saisie, puis ferme la modale", async () => {
+    scope.isAdmin = true;
+    const onClose = vi.fn();
+    renderModal(makeReport({ id: "r9", status: "open" }), true, onClose);
+    fireEvent.change(screen.getByLabelText(/Note de traitement/), { target: { value: "Sans suite." } });
+    fireEvent.click(screen.getByRole("button", { name: "Ignorer" }));
+    await waitFor(() => expect(dismissReport).toHaveBeenCalledWith("r9", "Sans suite."));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("Admin-UI-9H-B : Réouvrir appelle reopenReport, puis ferme la modale", async () => {
+    scope.isAdmin = true;
+    const onClose = vi.fn();
+    renderModal(makeReport({ id: "r9", status: "resolved" }), true, onClose);
+    fireEvent.click(screen.getByRole("button", { name: "Réouvrir le signalement" }));
+    await waitFor(() => expect(reopenReport).toHaveBeenCalledWith("r9"));
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("Admin-UI-9H-B : pour une Collectivité, propose la photo après réparation et le contrôle de suivi", () => {
+    scope.isAdmin = false;
+    renderModal(makeReport({ status: "open" }));
+    expect(screen.getByText("Ajouter une photo après réparation")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Programmer un contrôle de suivi" })).toBeTruthy();
+  });
+
+  it("Admin-UI-9H-B : pour un Admin, la photo après réparation et le contrôle de suivi sont absents", () => {
+    scope.isAdmin = true;
+    renderModal(makeReport({ status: "open" }));
+    expect(screen.queryByText("Ajouter une photo après réparation")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Programmer un contrôle de suivi" })).toBeNull();
+  });
+
+  it("Admin-UI-9H-B : pour une Collectivité, programmer un contrôle de suivi crée la maintenance et navigue vers /maintenance", async () => {
+    scope.isAdmin = false;
+    const onClose = vi.fn();
+    renderModal(makeReport({ id: "r9", park_id: "p1", status: "open" }), true, onClose);
+    fireEvent.click(screen.getByRole("button", { name: "Programmer un contrôle de suivi" }));
+    await waitFor(() => expect(createMaintenance).toHaveBeenCalled());
+    expect(onClose).toHaveBeenCalled();
+    expect(screen.getByTestId("location").textContent).toBe("/maintenance");
+  });
+
+  it("Admin-UI-9H-B : canManage=false affiche un message au lieu des actions de traitement", () => {
+    scope.isAdmin = true;
+    renderModal(makeReport({ status: "open" }), false);
+    expect(screen.getByText("Vous n'avez pas les droits pour traiter ce signalement.")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Résoudre" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Ignorer" })).toBeNull();
+  });
+
+  it("Admin-UI-9H-B : canManage=false sur un signalement déjà résolu n'offre pas Réouvrir", () => {
+    scope.isAdmin = true;
+    renderModal(makeReport({ status: "resolved" }), false);
+    expect(screen.queryByRole("button", { name: "Réouvrir le signalement" })).toBeNull();
   });
 });

@@ -200,7 +200,8 @@
   "about": {
     "title": "Acerca de Toboggo",
     "tagline": "Miles de parques valorados\npor padres y madres como tú.",
-    "version": "Versión {{version}}"
+    "version": "Versión {{version}}",
+    "build": "Compilación {{build}}"
   },
   "group": {
     "title": "Salida en grupo",

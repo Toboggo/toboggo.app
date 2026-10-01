@@ -200,7 +200,8 @@
   "about": {
     "title": "À propos de Toboggo",
     "tagline": "Des milliers de parcs notés\npar des parents comme vous.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "build": "Build {{build}}"
   },
   "group": {
     "title": "Sortie de groupe",

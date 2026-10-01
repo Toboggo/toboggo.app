@@ -18,6 +18,26 @@ const STYLE_URL = mapStyleUrl();
 // close enough to read the surrounding streets, wide enough to see nearby parks.
 const RECENTER_ZOOM = 13.5;
 const DEFAULT_ZOOM = 13;
+// Highest zoom a place's bbox may be fitted at — a tiny bbox (one street) must
+// not zoom the map in past readable context.
+const FIT_MAX_ZOOM = 16;
+// Zoom for a place without a bbox, by provider place type: precise targets get
+// a closer view than the generic city-level recentre.
+const PRECISE_PLACE_TYPES = ["address", "poi", "street", "neighbourhood"];
+
+/** A geographic destination the camera should frame (see `viewport` prop). */
+export interface MapViewport {
+  /** Bumped by the parent for every new destination — the effect's only trigger. */
+  id: number;
+  lat: number;
+  lng: number;
+  bbox?: [number, number, number, number];
+  placeType?: string[];
+}
+
+function isValidBbox(b: MapViewport["bbox"]): b is [number, number, number, number] {
+  return !!b && b.every(Number.isFinite) && b[0] < b[2] && b[1] < b[3];
+}
 
 type ParkPoint = Park & { distance_m?: number };
 
@@ -39,6 +59,7 @@ export function MapCanvas({
   selectedId,
   onSelect,
   recenterSignal,
+  viewport = null,
   showUser = false,
   insets,
   onBackgroundTap,
@@ -49,6 +70,8 @@ export function MapCanvas({
   selectedId: string | null;
   onSelect: (id: string) => void;
   recenterSignal: number;
+  /** Explicit place destination: fitted to its bbox when reliable, else eased to its point. */
+  viewport?: MapViewport | null;
   showUser?: boolean;
   /** Pixels hidden by the floating header (top) and the bottom sheet (bottom). */
   insets?: { top: number; bottom: number };
@@ -284,6 +307,40 @@ export function MapCanvas({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterSignal, mapEpoch]);
+
+  // Camera for a searched place — one single move per destination (`viewport.id`),
+  // framed on its bbox (a city and a street don't get the same view). The store
+  // centre was already set by the caller, so the parks query fires once; the
+  // camera itself never triggers a fetch.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !viewport) return;
+    const padTop = (insetsRef.current?.top ?? 0) + 16;
+    const padBottom = (insetsRef.current?.bottom ?? 0) + 16;
+    try {
+      if (isValidBbox(viewport.bbox)) {
+        const [w, s, e, n] = viewport.bbox;
+        map.fitBounds(
+          [
+            [w, s],
+            [e, n],
+          ],
+          { padding: { top: padTop, bottom: padBottom, left: 24, right: 24 }, maxZoom: FIT_MAX_ZOOM, duration: 600 },
+        );
+      } else {
+        const precise = viewport.placeType?.some((t) => PRECISE_PLACE_TYPES.includes(t));
+        map.easeTo({
+          center: [viewport.lng, viewport.lat],
+          zoom: precise ? FIT_MAX_ZOOM : RECENTER_ZOOM,
+          offset: [0, centreOffsetY(map)],
+          duration: 600,
+        });
+      }
+    } catch {
+      /* map disposing */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewport?.id, mapEpoch]);
 
   if (!STYLE_URL) {
     return (

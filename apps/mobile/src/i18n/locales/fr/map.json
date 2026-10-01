@@ -7,7 +7,9 @@
     "suggestedCities": "Villes suggérées",
     "parks": "Parcs",
     "places": "Lieux",
-    "noResults": "Aucun résultat pour « {{query}} »."
+    "noPlace": "Aucun lieu trouvé pour « {{query}} »",
+    "error": "La recherche de lieux est indisponible pour le moment. Réessayez.",
+    "searching": "Recherche en cours…"
   },
   "filters": {
     "title": "Filtres",
@@ -38,6 +40,7 @@
   },
   "nearby": {
     "title": "Autour de vous",
+    "titlePlace": "Autour de {{place}}",
     "subtitle_one": "{{count}} parc à moins de {{distance}}",
     "subtitle_other": "{{count}} parcs à moins de {{distance}}",
     "subtitleNone": "Aucun parc à moins de {{distance}}",

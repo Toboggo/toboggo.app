@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Tag, useConfirm, useToast } from "@toboggo/design-system";
 import { deleteMedia, listPendingMedia, setMediaStatus, setParkCover, type PendingMedia } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
+import { ParkLink } from "../components/ParkLink";
 import { useOrgScope } from "../lib/orgScope";
 import { queryClient } from "../lib/queryClient";
 
@@ -75,7 +76,7 @@ export default function Photos() {
                 />
               </a>
               <div style={{ padding: 12 }}>
-                <div style={{ fontWeight: 600, fontSize: 14 }}>{m.park?.name ?? "Parc inconnu"}</div>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{m.park ? <ParkLink parkId={m.park.id}>{m.park.name}</ParkLink> : "Parc inconnu"}</div>
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0 10px" }}>
                   <Tag tone="primary">{SOURCE_LABEL[m.source ?? "other"] ?? "Provenance inconnue"}</Tag>
                   <Tag>{new Date(m.created_at).toLocaleDateString("fr-FR")}</Tag>

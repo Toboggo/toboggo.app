@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Input, Segmented, StarRating, useConfirm } from "@toboggo/design-system";
 import { deleteReview, listReviews, replyToReview, toCsv, downloadCsv } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
+import { ParkLink } from "../components/ParkLink";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
@@ -99,7 +100,7 @@ export default function Reviews() {
             <div key={r.id} style={{ padding: 14, background: "var(--color-surface)", borderRadius: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <div>
-                  <strong>{r.author_name}</strong> sur {r.parks?.name}
+                  <strong>{r.author_name}</strong> sur {r.park_id ? <ParkLink parkId={r.park_id}>{r.parks?.name}</ParkLink> : r.parks?.name}
                 </div>
                 {canDeleteReview && (
                   <button

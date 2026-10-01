@@ -51,7 +51,13 @@ export type IconName =
   | "ic-report-safety"
   | "ic-report-clean"
   | "ic-report-info"
-  | "ic-report-other";
+  | "ic-report-other"
+  | "ic-camera"
+  | "ic-building"
+  | "ic-search"
+  | "ic-download"
+  | "ic-trash"
+  | "ic-warning";
 
 const SPRITE_URL = "/icons-sprite.svg"; // servi depuis public/ de chaque app
 let injected = false;

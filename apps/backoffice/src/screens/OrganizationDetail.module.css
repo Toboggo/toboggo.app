@@ -1,0 +1,177 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 12px;
+}
+.breadcrumb a {
+  color: var(--color-primary-hover);
+  font-weight: 600;
+  text-decoration: none;
+}
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+.crumbSep {
+  color: var(--color-text-faint);
+}
+.crumbCurrent {
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stateBox {
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+.stateBoxInline {
+  padding: 4px 0;
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.title {
+  font-size: 20px;
+}
+.tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.parkLink {
+  color: var(--color-primary-hover);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 13px;
+}
+.parkLink:hover {
+  text-decoration: underline;
+}
+
+.meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+.metaLabel {
+  color: var(--color-text-muted);
+  margin-right: 4px;
+}
+
+/* ── Vue d'ensemble (compteurs réels) ────────────────────────────────────── */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.statBox {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.statValue {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.1;
+}
+.statLabel {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.section {
+  margin-bottom: 24px;
+}
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* ── Activité récente ──────────────────────────────────────────────────── */
+.activityRow {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.activityRow:last-child {
+  border-bottom: none;
+}
+.activityDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.activityIconWrap {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-text-faint);
+  display: inline-flex;
+}
+.activityText {
+  font-size: 13px;
+}
+.activityMeta {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+}
+
+/* ── Cellule « Parc » (table) ─────────────────────────────────────────── */
+.parkName {
+  display: block;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.parkMeta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+.viewAffordance {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .statsRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}

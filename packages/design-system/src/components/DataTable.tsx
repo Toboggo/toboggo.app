@@ -37,6 +37,13 @@ export interface DataTableProps<T> {
   loadingRows?: number;
   /** Accessible name for the table. */
   caption?: string;
+  /**
+   * Admin-UI-8C: opt-in dense surface matching `Card`'s `variant="admin"`
+   * (7B) — neutral admin border/radius, contrasted header, denser rows.
+   * Defaults to `"default"`, which renders exactly as before; existing
+   * consumers (Reports/Organizations/Validation/…) are unaffected.
+   */
+  variant?: "default" | "admin";
 }
 
 /**
@@ -59,7 +66,9 @@ export function DataTable<T>({
   error,
   loadingRows = 6,
   caption,
+  variant = "default",
 }: DataTableProps<T>) {
+  const admin = variant === "admin";
   const colCount = columns.length;
 
   function toggleSort(key: string) {
@@ -69,7 +78,7 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={styles.wrap}>
+    <div className={clsx(styles.wrap, admin && styles.wrapAdmin)}>
       <table className={styles.table}>
         {caption && <caption className={styles.srOnly}>{caption}</caption>}
         <colgroup>
@@ -93,7 +102,12 @@ export function DataTable<T>({
                   key={c.key}
                   scope="col"
                   aria-sort={ariaSort}
-                  className={clsx(styles.th, c.align === "right" && styles.right, c.align === "center" && styles.center)}
+                  className={clsx(
+                    styles.th,
+                    admin && styles.thAdmin,
+                    c.align === "right" && styles.right,
+                    c.align === "center" && styles.center,
+                  )}
                 >
                   {c.sortable && onSortChange ? (
                     <button type="button" className={styles.sortBtn} onClick={() => toggleSort(c.key)}>
@@ -113,11 +127,16 @@ export function DataTable<T>({
         <tbody>
           {state === "loading" &&
             Array.from({ length: loadingRows }).map((_, i) => (
-              <tr key={`skel-${i}`} className={styles.row}>
+              <tr key={`skel-${i}`} className={clsx(styles.row, admin && styles.rowAdmin)}>
                 {columns.map((c) => (
                   <td
                     key={c.key}
-                    className={clsx(styles.td, c.align === "right" && styles.right, c.align === "center" && styles.center)}
+                    className={clsx(
+                      styles.td,
+                      admin && styles.tdAdmin,
+                      c.align === "right" && styles.right,
+                      c.align === "center" && styles.center,
+                    )}
                   >
                     <div className={styles.skelBar} style={{ width: `${45 + ((i * 13 + c.key.length * 7) % 45)}%` }} />
                   </td>
@@ -147,7 +166,7 @@ export function DataTable<T>({
               return (
                 <tr
                   key={key}
-                  className={clsx(styles.row, onRowClick && styles.clickable)}
+                  className={clsx(styles.row, admin && styles.rowAdmin, onRowClick && styles.clickable)}
                   onClick={
                     onRowClick
                       ? (e) => {
@@ -161,6 +180,7 @@ export function DataTable<T>({
                     const content = c.render(row);
                     const cls = clsx(
                       styles.td,
+                      admin && styles.tdAdmin,
                       c.align === "right" && styles.right,
                       c.align === "center" && styles.center,
                     );

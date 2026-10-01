@@ -17,6 +17,13 @@ body,
   padding: 20px 28px 56px;
 }
 
+/* Admin-UI-7C — fond Admin clair/neutre (remplace le fond crème hérité de
+ * <body>) : scoped à ".bo-shell-admin" (posé par Shell.tsx uniquement quand
+ * isAdmin), donc sans effet sur le BO Collectivité ni sur l'app mobile. */
+.bo-shell-admin .bo-content {
+  background: var(--color-bg-admin);
+}
+
 @media (max-width: 860px) {
   .bo-content {
     padding: 16px 16px 90px;

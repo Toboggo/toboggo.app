@@ -6,14 +6,20 @@ import {
   canEditPark,
   canImportParksCsv,
   canManageTeam,
+  canModerateMedia,
   canReplyToReview,
   canResolveReport,
+  canReviewParkEdit,
   type PermissionRoleContext,
 } from "./permissions";
 
 const admin: PermissionRoleContext = { isAdmin: true, isGestionnaireOrAbove: true };
 const gestionnaire: PermissionRoleContext = { isAdmin: false, isGestionnaireOrAbove: true };
 const contributeur: PermissionRoleContext = { isAdmin: false, isGestionnaireOrAbove: false };
+/** Staff `support` : `isAdmin` (org null) mais PAS `isGestionnaireOrAbove`
+ * (rôle exclu de la liste gestionnaire/super_admin/moderation) — le cas
+ * exact que `review_park_edit()` (0037) refuse via `is_toboggo_admin`. */
+const supportStaff: PermissionRoleContext = { isAdmin: true, isGestionnaireOrAbove: false };
 
 describe("permissions — D. an action never appears available to a role it would fail for", () => {
   it("a contributeur cannot create/import parks (organization_parks insert requires gestionnaire)", () => {
@@ -39,6 +45,18 @@ describe("permissions — D. an action never appears available to a role it woul
 
   it("a contributeur cannot edit the commune settings (organizations_update is gestionnaire+/staff only)", () => {
     expect(canEditCommuneSettings(contributeur)).toBe(false);
+  });
+
+  it("a contributeur cannot review a park_edit (review_park_edit is gestionnaire+/admin only)", () => {
+    expect(canReviewParkEdit(contributeur)).toBe(false);
+  });
+
+  it("a support staff member cannot review a park_edit — review_park_edit's is_toboggo_admin() gate excludes support, unlike the broader isAdmin used elsewhere", () => {
+    expect(canReviewParkEdit(supportStaff)).toBe(false);
+  });
+
+  it("a contributeur cannot moderate park photos — park_media_update/delete's manages_park() would in fact allow it (any org member), but the product keeps this gestionnaire+/staff only, same convention as canEditPark/canResolveReport", () => {
+    expect(canModerateMedia(contributeur)).toBe(false);
   });
 });
 
@@ -66,5 +84,15 @@ describe("permissions — G. existing staff/admin capabilities do not regress", 
 
   it("a gestionnaire does not get the staff-only review delete capability", () => {
     expect(canDeleteReview(gestionnaire)).toBe(false);
+  });
+
+  it("a Toboggo admin (super_admin/moderation) and a gestionnaire can both review park_edits", () => {
+    expect(canReviewParkEdit(admin)).toBe(true);
+    expect(canReviewParkEdit(gestionnaire)).toBe(true);
+  });
+
+  it("a Toboggo admin and a gestionnaire can both moderate park photos", () => {
+    expect(canModerateMedia(admin)).toBe(true);
+    expect(canModerateMedia(gestionnaire)).toBe(true);
   });
 });

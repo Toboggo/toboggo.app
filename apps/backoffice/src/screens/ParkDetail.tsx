@@ -1,10 +1,22 @@
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import clsx from "clsx";
 import { Button, Menu, MenuItem, Tabs, TabPanel, useToast } from "@toboggo/design-system";
-import { getPark, logActivity, setParkStatus } from "@toboggo/shared";
+import {
+  getOrganization,
+  getPark,
+  listParkEditsWithDetails,
+  listReportsForPark,
+  listReviewsForPark,
+  listSources,
+  logActivity,
+  setParkStatus,
+  type SourceType,
+} from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkStatusTag, ParkVerificationTag } from "../components/StatusTag";
+import { countryLabel } from "../lib/countryLabels";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
@@ -12,32 +24,94 @@ import { useAsyncAction } from "../lib/useAsyncAction";
 import { useUnsavedChangesGuard } from "../lib/useUnsavedChangesGuard";
 import { parkStatusTransitions } from "../lib/parkStatus";
 import { queryClient } from "../lib/queryClient";
+import { OverviewPanel } from "./parkDetail/OverviewPanel";
 import { InfoPanel } from "./parkDetail/InfoPanel";
 import { FeaturesPanel } from "./parkDetail/FeaturesPanel";
 import { PhotosPanel } from "./parkDetail/PhotosPanel";
+import { ReviewsPanel } from "./parkDetail/ReviewsPanel";
+import { ReportsPanel } from "./parkDetail/ReportsPanel";
+import { ParkEditsPanel } from "./parkDetail/ParkEditsPanel";
 import { HistoryPanel } from "./parkDetail/HistoryPanel";
 import styles from "./ParkDetail.module.css";
 
-type TabValue = "info" | "features" | "photos" | "history";
-const TABS = [
-  { value: "info", label: "Informations" },
-  { value: "features", label: "Caractéristiques" },
+export type TabValue = "overview" | "info" | "features" | "photos" | "reviews" | "reports" | "edits" | "history";
+const TAB_ORDER: { value: TabValue; label: string }[] = [
+  { value: "overview", label: "Vue d'ensemble" },
+  { value: "info", label: "Données / Informations" },
+  { value: "features", label: "Équipements & services" },
   { value: "photos", label: "Photos" },
+  { value: "reviews", label: "Avis" },
+  { value: "reports", label: "Signalements" },
+  { value: "edits", label: "Modifications proposées" },
   { value: "history", label: "Historique" },
-] as const;
+];
+
+function tabLabel(base: string, count: number, alert = false) {
+  return (
+    <>
+      {base}
+      {count > 0 && <span className={clsx(styles.tabCount, alert && styles.tabCountAlert)}>{count}</span>}
+    </>
+  );
+}
+
+// Même libellés que Parks.tsx (`SOURCE_LABEL`) / Photos.tsx / PhotosPanel.tsx —
+// pas de 2e formulation pour les mêmes 7 valeurs de `source_type`.
+const SOURCE_LABEL: Record<SourceType, string> = {
+  user: "Contributeur",
+  municipality: "Collectivité",
+  toboggo: "Toboggo",
+  open_data: "Open data",
+  partner: "Partenaire",
+  osm: "OpenStreetMap",
+  other: "Autre",
+};
+
+const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+
+// Admin-UI-9B — même lien de retour dans les 3 états (chargement/erreur/
+// chargé) : seul le libellé (Admin/Collectivité) et la présence d'un fil
+// courant (nom du parc, connu seulement une fois `park` chargé) diffèrent.
+function Breadcrumb({
+  isAdmin,
+  backTo,
+  onBack,
+  current,
+}: {
+  isAdmin: boolean;
+  backTo: string;
+  onBack: (e: React.MouseEvent) => void;
+  current?: string;
+}) {
+  return (
+    <nav className={styles.breadcrumb} aria-label="Fil d'Ariane">
+      <a href={backTo} onClick={onBack}>
+        {isAdmin ? "Parcs" : "Mes parcs"}
+      </a>
+      {current && (
+        <>
+          <span className={styles.crumbSep} aria-hidden="true">
+            ›
+          </span>
+          <span className={styles.crumbCurrent}>{current}</span>
+        </>
+      )}
+    </nav>
+  );
+}
 
 export default function ParkDetail() {
   const { id = "" } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
-  const { communeId } = useOrgScope();
+  const { isAdmin, communeId } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
   const { canEditPark } = usePermissions();
 
   const backTo = `/parks${location.search}`;
 
-  const [tab, setTab] = useState<TabValue>("info");
+  const [tab, setTab] = useState<TabValue>("overview");
   const [infoDirty, setInfoDirty] = useState(false);
   const [featuresDirty, setFeaturesDirty] = useState(false);
   const confirmIfDirty = useUnsavedChangesGuard(infoDirty || featuresDirty);
@@ -47,6 +121,50 @@ export default function ParkDetail() {
     queryFn: () => getPark(id),
     enabled: !!id,
   });
+
+  // Source réelle (`park_sources.source_type`) — même donnée que la colonne
+  // Source de /parks (Admin-UI-5B), affichée ici dans l'entête + la Vue
+  // d'ensemble. Toutes les sources sont affichées (Admin-UI-9B) — un parc n'a
+  // normalement qu'une seule ligne (cf. commentaire de
+  // `getParkSourceDistribution`), mais ne s'arrête plus arbitrairement à la
+  // première s'il y en a plusieurs.
+  const { data: sources = [] } = useQuery({
+    queryKey: ["park-sources", id],
+    queryFn: () => listSources(id),
+    enabled: !!id,
+  });
+
+  // Admin-UI-9B — Collectivité dans l'entête : fiche unique, donc une
+  // requête ciblée par id (pas de N+1 — contrairement à une liste, il n'y a
+  // ici qu'un seul `organization_id` à résoudre). `enabled` évite l'appel
+  // tant que `park` n'a pas encore chargé ou que le parc n'est rattaché à
+  // aucune collectivité.
+  const { data: organization } = useQuery({
+    queryKey: ["park-organization", park?.organization_id],
+    queryFn: () => getOrganization(park!.organization_id!),
+    enabled: !!park?.organization_id,
+  });
+
+  // Mêmes clés react-query que ReviewsPanel/ReportsPanel/ParkEditsPanel — un
+  // seul fetch partagé (cache), utilisé ici uniquement pour les petits
+  // compteurs réels sur les onglets.
+  const { data: reviews = [] } = useQuery({
+    queryKey: ["park-reviews", id],
+    queryFn: () => listReviewsForPark(id),
+    enabled: !!id,
+  });
+  const { data: reports = [] } = useQuery({
+    queryKey: ["park-reports", id],
+    queryFn: () => listReportsForPark(id),
+    enabled: !!id,
+  });
+  const { data: edits = [] } = useQuery({
+    queryKey: ["park-edits-details", id],
+    queryFn: () => listParkEditsWithDetails({ parkId: id }),
+    enabled: !!id,
+  });
+  const openReportsCount = reports.filter((r) => r.status === "open").length;
+  const pendingEditsCount = edits.filter((e) => e.status === "pending").length;
 
   const { run: runStatus, pending: statusPending } = useAsyncAction(
     async (next: Parameters<typeof setParkStatus>[1], note: string) => {
@@ -73,6 +191,7 @@ export default function ParkDetail() {
   if (isLoading) {
     return (
       <div>
+        <Breadcrumb isAdmin={!!isAdmin} backTo={backTo} onBack={goBack} />
         <PageHeader title="Fiche du parc" />
         <p className={styles.stateBox}>Chargement…</p>
       </div>
@@ -82,6 +201,7 @@ export default function ParkDetail() {
   if (isError || !park) {
     return (
       <div>
+        <Breadcrumb isAdmin={!!isAdmin} backTo={backTo} onBack={goBack} />
         <PageHeader title="Parc introuvable" />
         <p className={styles.stateBox}>Ce parc n'existe pas ou n'est pas accessible avec votre compte.</p>
         <div style={{ textAlign: "center" }}>
@@ -94,25 +214,13 @@ export default function ParkDetail() {
   }
 
   const transitions = canEditPark ? parkStatusTransitions(park.status) : [];
-  const secondary =
-    park.formatted_address ||
-    (park.min_age != null || park.max_age != null
-      ? `${park.min_age ?? "?"}–${park.max_age ?? "?"} ans`
-      : null);
+  const sourceLabel = sources.length > 0 ? sources.map((s) => SOURCE_LABEL[s.source_type]).join(", ") : "—";
 
   return (
     <div>
-      <nav className={styles.breadcrumb} aria-label="Fil d'Ariane">
-        <a href={backTo} onClick={goBack}>
-          Mes parcs
-        </a>
-        <span className={styles.crumbSep} aria-hidden="true">
-          ›
-        </span>
-        <span className={styles.crumbCurrent}>{park.name}</span>
-      </nav>
+      <Breadcrumb isAdmin={!!isAdmin} backTo={backTo} onBack={goBack} current={park.name} />
 
-      <div className={styles.header}>
+      <div className={styles.header} data-testid="park-header">
         {park.cover_photo ? (
           <img className={styles.cover} src={park.cover_photo} alt={`Photo de ${park.name}`} />
         ) : (
@@ -123,11 +231,18 @@ export default function ParkDetail() {
           <h1 className={styles.title}>{park.name}</h1>
           <div className={styles.tags}>
             <ParkStatusTag status={park.status} />
-            {park.verification_status !== "unverified" && (
-              <ParkVerificationTag status={park.verification_status} />
-            )}
+            <ParkVerificationTag status={park.verification_status} />
           </div>
-          {secondary && <div className={styles.secondary}>{secondary}</div>}
+          {park.formatted_address && <div className={styles.secondary}>{park.formatted_address}</div>}
+          <div className={styles.headerMeta}>
+            <span>{sourceLabel}</span>
+            <span aria-hidden="true">·</span>
+            <span>{countryLabel(park.country_code)}</span>
+            <span aria-hidden="true">·</span>
+            <span>{organization?.name ?? "—"}</span>
+            <span aria-hidden="true">·</span>
+            <span>Modifié le {dateFmt.format(new Date(park.updated_at))}</span>
+          </div>
         </div>
 
         {transitions.length > 0 && (
@@ -162,9 +277,17 @@ export default function ParkDetail() {
         idBase="park"
         value={tab}
         onValueChange={handleTabChange}
-        items={TABS.map((t) => ({ value: t.value, label: t.label }))}
+        items={TAB_ORDER.map((t) => {
+          if (t.value === "reviews") return { value: t.value, label: tabLabel(t.label, reviews.length) };
+          if (t.value === "reports") return { value: t.value, label: tabLabel(t.label, openReportsCount, true) };
+          if (t.value === "edits") return { value: t.value, label: tabLabel(t.label, pendingEditsCount, true) };
+          return { value: t.value, label: t.label };
+        })}
       />
 
+      <TabPanel idBase="park" value="overview" active={tab === "overview"}>
+        <OverviewPanel park={park} onNavigateTab={handleTabChange} />
+      </TabPanel>
       <TabPanel idBase="park" value="info" active={tab === "info"}>
         <InfoPanel park={park} canEdit={canEditPark} onDirtyChange={setInfoDirty} />
       </TabPanel>
@@ -173,6 +296,15 @@ export default function ParkDetail() {
       </TabPanel>
       <TabPanel idBase="park" value="photos" active={tab === "photos"}>
         <PhotosPanel parkId={park.id} canManage={canEditPark} />
+      </TabPanel>
+      <TabPanel idBase="park" value="reviews" active={tab === "reviews"}>
+        <ReviewsPanel parkId={park.id} />
+      </TabPanel>
+      <TabPanel idBase="park" value="reports" active={tab === "reports"}>
+        <ReportsPanel parkId={park.id} parkName={park.name} />
+      </TabPanel>
+      <TabPanel idBase="park" value="edits" active={tab === "edits"}>
+        <ParkEditsPanel parkId={park.id} parkName={park.name} />
       </TabPanel>
       <TabPanel idBase="park" value="history" active={tab === "history"}>
         <HistoryPanel parkId={park.id} />

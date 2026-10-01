@@ -1,15 +1,53 @@
+/* Admin-UI-8C — `FilterBar` (design-system, 7B) now owns the row layout
+ * itself (`.bar`/`.filters`/`.actions`: flex, wrap, gap, right-aligned
+ * actions). `.filterBar` here is passed as its own `className` and only
+ * carries the field-sizing fix below + the compact "admin" look shared with
+ * `DataTable`'s `variant="admin"` right below it (neutral border, tighter
+ * radius — Admin-UI-7B `--color-border-admin`/`--radius-xs`, not the beige
+ * `--color-border-strong`/`--radius-sm` of a standalone form field). */
 .filterBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
+/* `FieldWrap` (design-system) sets its own outer <label> to `width: 100%`,
+ * meant for a vertical form — as a flex child of `.filters` that would
+ * stretch each field to fill the whole bar instead of sizing to its own
+ * content. Scoped to *direct* children of the filters row (one level under
+ * `.filterBar`, i.e. `.filters > label`, reached without knowing its hashed
+ * class name) so it does NOT reach the label nested a level deeper inside
+ * `.search` below, whose own inner label must keep filling that 240px box. */
+.filterBar > div > label {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 .search {
+  position: relative;
+  display: flex;
+  align-items: center;
   width: 240px;
+  flex: 0 0 auto;
+}
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-text-faint);
+  pointer-events: none;
+  display: flex;
+}
+.searchField {
+  padding: 8px 12px 8px 34px;
+  font-size: 13px;
+  border-radius: var(--radius-xs);
+  border-color: var(--color-border-admin);
 }
 .select {
   min-width: 150px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: var(--radius-xs);
+  border-color: var(--color-border-admin);
 }
 .reset {
   background: none;
@@ -21,10 +59,9 @@
   padding: 8px 4px;
 }
 .count {
-  margin-left: auto;
-  align-self: center;
   font-size: 12.5px;
   color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 /* ── Cellule « Parc » ─────────────────────────────────────────────────── */
@@ -119,8 +156,5 @@
 @media (max-width: 640px) {
   .search {
     width: 100%;
-  }
-  .count {
-    margin-left: 0;
   }
 }

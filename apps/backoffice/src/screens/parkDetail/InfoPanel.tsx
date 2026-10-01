@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Select, Textarea, useToast, usePersistentDraft } from "@toboggo/design-system";
+import { Button, Card, Input, Select, Textarea, useToast, usePersistentDraft } from "@toboggo/design-system";
 import {
   buildDraftKey,
   isValidCoordinate,
@@ -52,27 +52,7 @@ const OPERATIONAL_LABEL: Record<ParkOperationalStatus, string> = {
   unknown: "Inconnu",
 };
 
-const MODERATION_LABEL: Record<Park["status"], string> = {
-  draft: "Brouillon",
-  pending: "En attente",
-  published: "Publié",
-  blocked: "Bloqué",
-  rejected: "Refusé",
-};
-
-const VERIFICATION_LABEL: Record<Park["verification_status"], string> = {
-  unverified: "Non vérifié",
-  community_verified: "Vérifié par la communauté",
-  organization_verified: "Vérifié par la collectivité",
-  toboggo_verified: "Vérifié par Toboggo",
-};
-
 const dateTimeFmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short" });
-
-function Value({ children }: { children: React.ReactNode }) {
-  const empty = children == null || children === "";
-  return <dd className={empty ? styles.empty : undefined}>{empty ? "Non renseigné" : children}</dd>;
-}
 
 /** Lignes d'adresse structurée pour le mode lecture — jamais de `null`,
  * `undefined` ni de chaîne sentinelle, et jamais d'adresse fabriquée. */
@@ -380,68 +360,67 @@ export function InfoPanel({
         </div>
       )}
       <div className={styles.sectionGrid}>
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Identité</h3>
-          <dl className={styles.dl}>
-            <dt>Nom</dt>
-            <Value>{park.name}</Value>
-            <dt>Adresse</dt>
-            {addr.length > 0 ? (
+        {/* Admin-UI-9D — Statut de publication, Vérification, Source générale
+         * et Modifié le sont désormais dans l'entête (9B) : plus jamais
+         * répétés ici. Nom : déjà le h1 de l'entête (même choix qu'Overview,
+         * 9C). Seules les données propres à cet onglet restent. */}
+        <Card className={styles.section} variant="admin">
+          <h3 className={styles.infoSectionTitle}>Localisation</h3>
+          {addr.length > 0 && (
+            <dl className={styles.dl}>
+              <dt>Adresse</dt>
               <dd className={styles.addrLines}>
                 {addr.map((line, i) => (
                   <span key={i}>{line}</span>
                 ))}
               </dd>
-            ) : (
-              <dd className={styles.empty}>Adresse non renseignée</dd>
+            </dl>
+          )}
+          <ParkLocationEditor editing={false} latitude={initial.latitude} longitude={initial.longitude} />
+        </Card>
+
+        <Card className={styles.section} variant="admin">
+          <h3 className={styles.infoSectionTitle}>Public</h3>
+          <dl className={styles.dl}>
+            {park.min_age != null && (
+              <>
+                <dt>Âge minimum</dt>
+                <dd>{`${park.min_age} an${park.min_age > 1 ? "s" : ""}`}</dd>
+              </>
             )}
-          </dl>
-        </section>
-
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Localisation</h3>
-          <ParkLocationEditor
-            editing={false}
-            latitude={initial.latitude}
-            longitude={initial.longitude}
-          />
-        </section>
-
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Public</h3>
-          <dl className={styles.dl}>
-            <dt>Âge minimum</dt>
-            <Value>{park.min_age != null ? `${park.min_age} an${park.min_age > 1 ? "s" : ""}` : null}</Value>
-            <dt>Âge maximum</dt>
-            <Value>{park.max_age != null ? `${park.max_age} an${park.max_age > 1 ? "s" : ""}` : null}</Value>
-            <dt>Description</dt>
-            <Value>{park.description}</Value>
-          </dl>
-        </section>
-
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Statut</h3>
-          <dl className={styles.dl}>
-            <dt>Publication</dt>
-            <Value>{MODERATION_LABEL[park.status]}</Value>
+            {park.max_age != null && (
+              <>
+                <dt>Âge maximum</dt>
+                <dd>{`${park.max_age} an${park.max_age > 1 ? "s" : ""}`}</dd>
+              </>
+            )}
+            {park.description && (
+              <>
+                <dt>Description</dt>
+                <dd>{park.description}</dd>
+              </>
+            )}
+            {/* Jamais dans l'entête (qui porte le statut de PUBLICATION, pas
+             * l'état d'exploitation réel du terrain) — toujours renseigné,
+             * jamais "Non renseigné". */}
             <dt>Exploitation</dt>
-            <Value>{OPERATIONAL_LABEL[park.operational_status]}</Value>
-            <dt>Vérification</dt>
-            <Value>{VERIFICATION_LABEL[park.verification_status]}</Value>
+            <dd>{OPERATIONAL_LABEL[park.operational_status]}</dd>
           </dl>
-        </section>
+        </Card>
 
-        <section className={styles.section}>
-          <h3 className={styles.sectionTitle}>Métadonnées</h3>
+        <Card className={styles.section} variant="admin">
+          <h3 className={styles.infoSectionTitle}>Références techniques</h3>
           <dl className={styles.dl}>
+            {osm && (
+              <>
+                <dt>Identifiant OSM</dt>
+                <dd>{osm.external_id}</dd>
+              </>
+            )}
             <dt>Créé le</dt>
-            <Value>{park.created_at ? dateTimeFmt.format(new Date(park.created_at)) : null}</Value>
-            <dt>Modifié le</dt>
-            <Value>{park.updated_at ? dateTimeFmt.format(new Date(park.updated_at)) : null}</Value>
-            <dt>Source</dt>
-            <Value>{osm ? `OpenStreetMap (${osm.external_id})` : null}</Value>
+            <dd>{dateTimeFmt.format(new Date(park.created_at))}</dd>
           </dl>
-        </section>
+        </Card>
       </div>
     </div>
   );

@@ -78,6 +78,36 @@ export function canEditCommuneSettings(ctx: PermissionRoleContext): boolean {
   return ctx.isGestionnaireOrAbove;
 }
 
+/**
+ * `review_park_edit()` (RLS, migration 0037) imposes a filter STRICTER than
+ * plain staff/gestionnaire: `is_toboggo_admin` only (super_admin/moderation —
+ * `support` explicitly excluded) for staff, `is_org_gestionnaire` for a
+ * collectivité. Unlike `canEditPark` above, `ctx.isAdmin` must NOT be OR'd in
+ * here — it is broad staff (includes `support`), which the RPC itself
+ * refuses. `isGestionnaireOrAbove` alone is exactly the right gate: it's
+ * computed from `currentRole()`, scoped to whichever org is active, and
+ * already only returns true for gestionnaire/super_admin/moderation — the
+ * same 3 roles the RPC accepts, whether the active org is "admin" or a
+ * commune.
+ */
+export function canReviewParkEdit(ctx: PermissionRoleContext): boolean {
+  return ctx.isGestionnaireOrAbove;
+}
+
+/**
+ * `park_media_update` / `park_media_delete` (RLS, migration 0027) both key off
+ * `manages_park()`, which — exactly like `parks_update` (see `canEditPark`) —
+ * actually allows ANY member of the owning organisation (even `contributeur`)
+ * or any Toboggo staff role (including `support`), with no role filter of its
+ * own. Kept stricter here on purpose, same product convention already applied
+ * to `canEditPark` / `canResolveReport`: only gestionnaire+/staff moderate
+ * media from the UI, so a `contributeur` never sees Approuver/Refuser/
+ * Supprimer for a resource RLS would in fact let them write.
+ */
+export function canModerateMedia(ctx: PermissionRoleContext): boolean {
+  return ctx.isAdmin || ctx.isGestionnaireOrAbove;
+}
+
 export interface Permissions {
   canCreatePark: boolean;
   canImportParksCsv: boolean;
@@ -87,6 +117,8 @@ export interface Permissions {
   canDeleteReview: boolean;
   canManageTeam: boolean;
   canEditCommuneSettings: boolean;
+  canReviewParkEdit: boolean;
+  canModerateMedia: boolean;
 }
 
 /** Reads the current role from `orgSession`/`orgScope` and derives every
@@ -105,5 +137,7 @@ export function usePermissions(): Permissions {
     canDeleteReview: canDeleteReview(ctx),
     canManageTeam: canManageTeam(ctx),
     canEditCommuneSettings: canEditCommuneSettings(ctx),
+    canReviewParkEdit: canReviewParkEdit(ctx),
+    canModerateMedia: canModerateMedia(ctx),
   };
 }

@@ -1,18 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Button,
   DataTable,
+  FilterBar,
+  Icon,
   Input,
   Menu,
   MenuItem,
   Select,
+  Tag,
   useToast,
   type DataTableColumn,
 } from "@toboggo/design-system";
 import {
+  getParkCountryDistribution,
   isValidCoordinate,
+  listAllParksForExport,
+  listCommunes,
   listParks,
   listParksPage,
   setParkStatus,
@@ -22,13 +28,17 @@ import {
   createPark,
   logActivity,
   PARKS_PAGE_SIZE,
+  type Organization,
   type Park,
   type ParkStatus,
   type ParksSortKey,
+  type ParkWithSource,
+  type SourceType,
   type VerificationStatus,
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkStatusTag, ParkVerificationTag } from "../components/StatusTag";
+import { countryLabel } from "../lib/countryLabels";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
@@ -70,6 +80,20 @@ const VERIFICATION_LABEL: Record<VerificationStatus | "all", string> = {
   toboggo_verified: "Vérifié Toboggo",
 };
 
+// Même libellés que Photos.tsx (`SOURCE_LABEL`) / PhotosPanel.tsx — pas de 2e
+// formulation pour les mêmes 7 valeurs de `source_type`.
+const SOURCE_VALUES: (SourceType | "all")[] = ["all", "osm", "open_data", "municipality", "partner", "user", "toboggo", "other"];
+const SOURCE_LABEL: Record<SourceType | "all", string> = {
+  all: "Toutes sources",
+  user: "Contributeur",
+  municipality: "Collectivité",
+  toboggo: "Toboggo",
+  open_data: "Open data",
+  partner: "Partenaire",
+  osm: "OpenStreetMap",
+  other: "Autre",
+};
+
 const SORT_KEYS: ParksSortKey[] = ["name", "created_at", "updated_at"];
 const DEFAULT_SORT = "-updated_at";
 
@@ -100,6 +124,8 @@ export default function Parks() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
   function openPark(park: Park) {
     const qs = searchParams.toString();
     navigate(`/parks/${park.id}${qs ? `?${qs}` : ""}`);
@@ -116,11 +142,65 @@ export default function Parks() {
     verificationParam && VERIFICATION_VALUES.includes(verificationParam as VerificationStatus | "all")
       ? (verificationParam as VerificationStatus | "all")
       : "all";
+  const sourceParam = searchParams.get("source");
+  const source: SourceType | "all" =
+    sourceParam && SOURCE_VALUES.includes(sourceParam as SourceType | "all") ? (sourceParam as SourceType | "all") : "all";
+  // Filtre "Collectivité" — admin uniquement (une session collectivité est déjà
+  // scopée à sa propre organisation via `communeId`, donc redondante ici).
+  const organizationId = isAdmin ? searchParams.get("organization") ?? "" : "";
+  // `country` (Admin-UI-7D-C — Dashboard "Couverture géographique" → synthèse →
+  // détail). Contrairement à `source`/`status`, `country_code` est un champ
+  // ouvert (pas un enum fermé) : pas de liste de valeurs valides à vérifier
+  // ici, sinon un futur pays réel serait rejeté silencieusement. Deep-link
+  // uniquement pour l'instant — pas de <Select> dédié dans ce lot (périmètre
+  // volontairement minimal, cf. Admin-UI-7D-C §5).
+  const country = searchParams.get("country") ?? "all";
   const q = searchParams.get("q")?.trim() ?? "";
   const page = Math.max(1, Number(searchParams.get("page")) || 1);
   const sort = parseSort(searchParams.get("sort"));
 
-  const hasActiveFilters = q !== "" || status !== defaultStatus || verification !== "all";
+  const hasActiveFilters =
+    q !== "" || status !== defaultStatus || verification !== "all" || source !== "all" || organizationId !== "" || country !== "all";
+
+  const organizationsQ = useQuery({
+    queryKey: ["bo-parks-organizations"],
+    queryFn: () => listCommunes(),
+    enabled: isAdmin,
+    staleTime: 60_000,
+  });
+
+  // Admin-UI-8D — colonne + filtre Pays : résout un `organization_id` déjà
+  // présent sur chaque ligne (`listParksPage`) sans requête supplémentaire —
+  // même liste que le filtre Collectivité ci-dessus, juste indexée en `Map`.
+  const orgNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const org of organizationsQ.data ?? []) map.set(org.id, org.name);
+    return map;
+  }, [organizationsQ.data]);
+
+  // Pays réellement présents dans le catalogue (jamais une liste figée
+  // FR/ES) — même fonction que la carte "Couverture géographique" du
+  // Dashboard (`getParkCountryDistribution`, bornée au-delà de `max_rows`,
+  // un seul aller-retour skinny `country_code`).
+  const countriesQ = useQuery({
+    queryKey: ["bo-parks-countries"],
+    queryFn: () => getParkCountryDistribution(),
+    enabled: isAdmin,
+    staleTime: 60_000,
+  });
+  // Trié par libellé (pas par volume) pour un menu prévisible. Le pays
+  // actuellement actif est toujours présent dans les options même s'il a 0
+  // parc dans la distribution (ex. juste après un deep-link `?country=ES`
+  // avant que `countriesQ` n'ait fini de charger) — le <select> ne doit
+  // jamais désynchroniser son affichage de l'état réel du filtre.
+  const countryOptions = useMemo(() => {
+    const rows = countriesQ.data ?? [];
+    const sorted = [...rows].sort((a, b) => countryLabel(a.country_code).localeCompare(countryLabel(b.country_code), "fr"));
+    if (country !== "all" && !sorted.some((r) => r.country_code === country)) {
+      sorted.push({ country_code: country, count: 0 });
+    }
+    return sorted;
+  }, [countriesQ.data, country]);
 
   const [qInput, setQInput] = useState(q);
   useEffect(() => {
@@ -147,13 +227,16 @@ export default function Parks() {
   }
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, page, sort }],
+    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, source, organizationId, country, page, sort }],
     queryFn: () =>
       listParksPage({
         communeId,
         q,
         status: status === "all" ? undefined : [status],
         verification: verification === "all" ? undefined : [verification],
+        sourceTypes: source === "all" ? undefined : [source],
+        organizationId: organizationId || undefined,
+        countryCode: country === "all" ? undefined : country,
         sort: sort.key,
         order: sort.order,
         page,
@@ -165,25 +248,40 @@ export default function Parks() {
   const total = data?.total ?? 0;
   const pageCount = data?.pageCount ?? 1;
 
+  // Admin-UI-8B — mêmes options que la requête `listParksPage` ci-dessus
+  // (mêmes variables `status`/`verification`/`source`/`organizationId`/
+  // `country`/`q`/`sort`, juste sans page/pageSize) : l'export ne peut pas
+  // diverger des filtres réellement actifs sur la liste, par construction —
+  // une seule implémentation des filtres, jamais deux. `listAllParksForExport`
+  // pagine côté serveur jusqu'au `count` exact réel (jamais `listParks()`,
+  // plafonnée à `max_rows` et donc silencieusement tronquée au-delà de 1000
+  // parcs — le bug corrigé par ce lot).
   function exportCsv() {
     void (async () => {
       try {
-        const all = await listParks({ communeId });
-        const filtered = all
-          .filter((p) => status === "all" || p.status === status)
-          .filter((p) => verification === "all" || p.verification_status === verification)
-          .filter((p) => !q || p.name.toLowerCase().includes(q.toLowerCase()));
+        const rows = await listAllParksForExport({
+          communeId,
+          q,
+          status: status === "all" ? undefined : [status],
+          verification: verification === "all" ? undefined : [verification],
+          sourceTypes: source === "all" ? undefined : [source],
+          organizationId: organizationId || undefined,
+          countryCode: country === "all" ? undefined : country,
+          sort: sort.key,
+          order: sort.order,
+        });
         const csv = toCsv(
-          filtered.map((p) => ({
+          rows.map((p) => ({
             Nom: p.name,
             Adresse: p.formatted_address ?? "",
             Latitude: p.latitude ?? p.lat ?? "",
             Longitude: p.longitude ?? p.lng ?? "",
             Statut: p.status,
             Vérification: p.verification_status,
+            Source: p.source_type ? SOURCE_LABEL[p.source_type] : "",
             Photos: (p.photos ?? []).length,
           })),
-          ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Photos"],
+          ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Source", "Photos"],
         );
         downloadCsv("toboggo-parcs.csv", csv);
       } catch {
@@ -274,99 +372,141 @@ export default function Parks() {
     }));
   }
 
-  const columns: DataTableColumn<Park>[] = [
-    {
-      key: "name",
-      header: "Parc",
-      sortable: true,
-      render: (park) => (
+  // Admin-UI-8D — colonnes assemblées par rôle plutôt qu'un seul tableau
+  // filtré : la Collectivité garde exactement son jeu de colonnes existant
+  // (Vérification/Signalement/Photos — pertinentes pour son propre
+  // patrimoine, jamais toutes vides comme pour l'Admin sur 2201 parcs
+  // importés OSM), l'Admin bascule sur Pays/Collectivité (voir audit 8D —
+  // Vérification/Signalement/Photos restent disponibles en Park 360, ni
+  // supprimées ni cachées du modèle).
+  const nameColumn: DataTableColumn<ParkWithSource> = {
+    key: "name",
+    header: "Parc",
+    sortable: true,
+    render: (park) => {
+      const meta = parkMeta(park);
+      return (
         <>
           <span className={styles.parkName}>{park.name}</span>
-          <span className={styles.parkMeta}>{parkMeta(park) ?? "Non renseigné"}</span>
+          {meta && <span className={styles.parkMeta}>{meta}</span>}
         </>
+      );
+    },
+  };
+  const statusColumn: DataTableColumn<ParkWithSource> = {
+    key: "status",
+    header: "Statut",
+    width: "1px",
+    render: (park) => <ParkStatusTag status={park.status} />,
+  };
+  const verificationColumn: DataTableColumn<ParkWithSource> = {
+    key: "verification",
+    header: "Vérification",
+    width: "1px",
+    render: (park) => <ParkVerificationTag status={park.verification_status} />,
+  };
+  const sourceColumn: DataTableColumn<ParkWithSource> = {
+    key: "source",
+    header: "Source",
+    width: "1px",
+    render: (park) =>
+      park.source_type ? <Tag>{SOURCE_LABEL[park.source_type]}</Tag> : <span className={styles.muted}>—</span>,
+  };
+  const countryColumn: DataTableColumn<ParkWithSource> = {
+    key: "country",
+    header: "Pays",
+    width: "1px",
+    render: (park) => <span>{countryLabel(park.country_code)}</span>,
+  };
+  const organizationColumn: DataTableColumn<ParkWithSource> = {
+    key: "organization",
+    header: "Collectivité",
+    width: "1px",
+    render: (park) =>
+      park.organization_id ? (
+        <span>{orgNameById.get(park.organization_id) ?? park.organization_id}</span>
+      ) : (
+        <span className={styles.muted}>—</span>
       ),
+  };
+  const reportsColumn: DataTableColumn<ParkWithSource> = {
+    key: "reports",
+    header: "Signalement",
+    width: "1px",
+    align: "center",
+    render: (park) =>
+      park.has_open_report ? (
+        <span className={styles.reportFlag}>
+          <span className={styles.reportDot} aria-hidden="true" />
+          Ouvert
+        </span>
+      ) : (
+        <span className={styles.muted}>—</span>
+      ),
+  };
+  const photosColumn: DataTableColumn<ParkWithSource> = {
+    key: "photos",
+    header: "Photos",
+    width: "1px",
+    align: "center",
+    render: (park) => {
+      const n = (park.photos ?? []).length;
+      return <span className={n ? styles.photoCount : `${styles.photoCount} ${styles.muted}`}>{n}</span>;
     },
-    { key: "status", header: "Statut", width: "1px", render: (park) => <ParkStatusTag status={park.status} /> },
-    {
-      key: "verification",
-      header: "Vérification",
-      width: "1px",
-      render: (park) => <ParkVerificationTag status={park.verification_status} />,
+  };
+  const updatedAtColumn: DataTableColumn<ParkWithSource> = {
+    key: "updated_at",
+    header: "Modifié le",
+    width: "1px",
+    align: "right",
+    sortable: true,
+    render: (park) => <span className={styles.date}>{dateFmt.format(new Date(park.updated_at))}</span>,
+  };
+  const actionsColumn: DataTableColumn<ParkWithSource> = {
+    key: "actions",
+    header: "",
+    width: "1px",
+    align: "right",
+    render: (park) => {
+      const actions = statusActions(park);
+      return (
+        <div className={styles.rowActions} data-dt-stop>
+          <Menu
+            label={`Actions — ${park.name}`}
+            align="end"
+            trigger={
+              <Button
+                variant="ghost"
+                size="sm"
+                className={styles.actionsTrigger}
+                disabled={statusPending}
+                aria-label={`Actions — ${park.name}`}
+              >
+                …
+              </Button>
+            }
+          >
+            <MenuItem onSelect={() => openPark(park)}>Ouvrir la fiche</MenuItem>
+            {actions.map((a) => (
+              <MenuItem key={a.label} onSelect={a.run}>
+                {a.label}
+              </MenuItem>
+            ))}
+          </Menu>
+        </div>
+      );
     },
-    {
-      key: "reports",
-      header: "Signalement",
-      width: "1px",
-      align: "center",
-      render: (park) =>
-        park.has_open_report ? (
-          <span className={styles.reportFlag}>
-            <span className={styles.reportDot} aria-hidden="true" />
-            Ouvert
-          </span>
-        ) : (
-          <span className={styles.muted}>—</span>
-        ),
-    },
-    {
-      key: "photos",
-      header: "Photos",
-      width: "1px",
-      align: "center",
-      render: (park) => {
-        const n = (park.photos ?? []).length;
-        return <span className={n ? styles.photoCount : `${styles.photoCount} ${styles.muted}`}>{n}</span>;
-      },
-    },
-    {
-      key: "updated_at",
-      header: "Modifié le",
-      width: "1px",
-      align: "right",
-      sortable: true,
-      render: (park) => <span className={styles.date}>{dateFmt.format(new Date(park.updated_at))}</span>,
-    },
-    {
-      key: "actions",
-      header: "",
-      width: "1px",
-      align: "right",
-      render: (park) => {
-        const actions = statusActions(park);
-        return (
-          <div className={styles.rowActions} data-dt-stop>
-            <Menu
-              label={`Actions — ${park.name}`}
-              align="end"
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={styles.actionsTrigger}
-                  disabled={statusPending}
-                  aria-label={`Actions — ${park.name}`}
-                >
-                  …
-                </Button>
-              }
-            >
-              <MenuItem onSelect={() => openPark(park)}>Ouvrir la fiche</MenuItem>
-              {actions.map((a) => (
-                <MenuItem key={a.label} onSelect={a.run}>
-                  {a.label}
-                </MenuItem>
-              ))}
-            </Menu>
-          </div>
-        );
-      },
-    },
-  ];
+  };
+
+  const columns: DataTableColumn<ParkWithSource>[] = isAdmin
+    ? [nameColumn, statusColumn, sourceColumn, countryColumn, organizationColumn, updatedAtColumn, actionsColumn]
+    : [nameColumn, statusColumn, verificationColumn, sourceColumn, reportsColumn, photosColumn, updatedAtColumn, actionsColumn];
 
   return (
     <div>
       <PageHeader
         title={isAdmin ? "Parcs" : "Mes parcs"}
+        subtitle={isAdmin ? "Gérez le catalogue de parcs référencés sur Toboggo." : undefined}
         actions={
           <>
             {canCreatePark && (
@@ -375,43 +515,56 @@ export default function Parks() {
               </Button>
             )}
             {canImportParksCsv && (
-              <label style={{ display: "inline-flex" }}>
-                <span
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    padding: "9px 16px",
-                    fontSize: 13,
-                    fontFamily: "var(--font-heading)",
-                    fontWeight: 600,
-                    borderRadius: 999,
-                    background: "var(--color-surface)",
-                    border: "1.5px solid var(--color-border-strong)",
-                    cursor: importPending ? "default" : "pointer",
-                    opacity: importPending ? 0.6 : 1,
-                  }}
+              <>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={importPending}
+                  onClick={() => csvInputRef.current?.click()}
                 >
                   {importPending ? "Import en cours…" : "Importer CSV"}
-                </span>
-                <input type="file" accept=".csv" hidden disabled={importPending} onChange={importCsv} />
-              </label>
+                </Button>
+                <input
+                  ref={csvInputRef}
+                  type="file"
+                  accept=".csv"
+                  hidden
+                  disabled={importPending}
+                  onChange={importCsv}
+                />
+              </>
             )}
             <Button size="sm" variant="secondary" onClick={exportCsv}>
+              <Icon name="ic-download" size={14} />
               Exporter CSV
             </Button>
           </>
         }
       />
 
-      <div className={styles.filterBar}>
-        <Input
-          className={styles.search}
-          label="Rechercher"
-          type="search"
-          placeholder="Nom du parc…"
-          value={qInput}
-          onChange={(e) => setQInput(e.target.value)}
-        />
+      <FilterBar
+        className={styles.filterBar}
+        actions={
+          !isLoading && !isError ? (
+            <span className={styles.count}>
+              {total} parc{total > 1 ? "s" : ""}
+            </span>
+          ) : undefined
+        }
+      >
+        <div className={styles.search}>
+          <span className={styles.searchIcon} aria-hidden="true">
+            <Icon name="ic-search" size={14} />
+          </span>
+          <Input
+            className={styles.searchField}
+            aria-label="Rechercher"
+            type="search"
+            placeholder="Nom du parc…"
+            value={qInput}
+            onChange={(e) => setQInput(e.target.value)}
+          />
+        </div>
         <Select
           className={styles.select}
           label="Statut"
@@ -436,19 +589,57 @@ export default function Parks() {
             </option>
           ))}
         </Select>
+        <Select
+          className={styles.select}
+          label="Source"
+          value={source}
+          onChange={(e) => updateParams({ source: e.target.value === "all" ? null : e.target.value }, { resetPage: true })}
+        >
+          {SOURCE_VALUES.map((v) => (
+            <option key={v} value={v}>
+              {SOURCE_LABEL[v]}
+            </option>
+          ))}
+        </Select>
+        {isAdmin && (
+          <Select
+            className={styles.select}
+            label="Pays"
+            value={country}
+            onChange={(e) => updateParams({ country: e.target.value === "all" ? null : e.target.value }, { resetPage: true })}
+          >
+            <option value="all">Tous les pays</option>
+            {countryOptions.map((c) => (
+              <option key={c.country_code} value={c.country_code}>
+                {countryLabel(c.country_code)}
+              </option>
+            ))}
+          </Select>
+        )}
+        {isAdmin && (
+          <Select
+            className={styles.select}
+            label="Collectivité"
+            value={organizationId}
+            onChange={(e) => updateParams({ organization: e.target.value || null }, { resetPage: true })}
+          >
+            <option value="">Toutes collectivités</option>
+            {(organizationsQ.data ?? []).map((org: Organization) => (
+              <option key={org.id} value={org.id}>
+                {org.name}
+              </option>
+            ))}
+          </Select>
+        )}
         {hasActiveFilters && (
           <button type="button" className={styles.reset} onClick={resetFilters}>
             Réinitialiser
           </button>
         )}
-        {!isLoading && !isError && (
-          <span className={styles.count}>
-            {total} parc{total > 1 ? "s" : ""}
-          </span>
-        )}
-      </div>
+      </FilterBar>
 
       <DataTable
+        variant={isAdmin ? "admin" : "default"}
         caption={isAdmin ? "Liste des parcs" : "Liste de mes parcs"}
         columns={columns}
         rows={rows}

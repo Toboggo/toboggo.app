@@ -198,7 +198,7 @@ export function ParkOverview({
         )}
       </Panel>
 
-      <ReportModal report={selected} parkName={park.name} onClose={closeReport} canManage={canResolveReport} />
+      <ReportModal report={selected} parkName={park.name} onClose={closeReport} canManage={canResolveReport} linkToPark={false} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@toboggo/design-system";
 import { REPORT_REASON_LABEL, type Report } from "@toboggo/shared";
+import { ParkLink } from "../../components/ParkLink";
 import { ReportStatusTag } from "../../components/StatusTag";
 import { Panel, PanelEmpty } from "../../components/Panel";
 import { relativeTime } from "../../lib/relativeTime";
@@ -33,7 +34,7 @@ export function RecentReportsPanel({ reports }: { reports: (Report & { parks?: {
               {r.photo && <img className={styles.panelThumb} src={r.photo} alt="" />}
               <div className={styles.panelRowBody}>
                 <div className={styles.panelRowTitle}>
-                  {r.parks?.name ?? "Parc"} <span className={styles.panelRowMuted}>· {REPORT_REASON_LABEL[r.category]}</span>
+                  <ParkLink parkId={r.park_id}>{r.parks?.name ?? "Parc"}</ParkLink> <span className={styles.panelRowMuted}>· {REPORT_REASON_LABEL[r.category]}</span>
                 </div>
                 <div className={styles.panelRowMeta}>
                   <time dateTime={r.created_at} title={new Date(r.created_at).toLocaleString("fr-FR")}>

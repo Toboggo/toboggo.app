@@ -1,4 +1,5 @@
 import type { Json, ParkEdit, Park } from "@toboggo/shared";
+import { ParkLink } from "../../components/ParkLink";
 import { Panel, PanelEmpty, CountBadge } from "../../components/Panel";
 import { relativeTime } from "../../lib/relativeTime";
 import styles from "../Dashboard.module.css";
@@ -44,7 +45,13 @@ export function PendingEditsPanel({ edits, parkById }: { edits: ParkEdit[]; park
             return (
               <li key={edit.id} className={styles.panelRow}>
                 <div className={styles.panelRowBody}>
-                  <div className={styles.panelRowTitle}>{(edit.park_id && parkById.get(edit.park_id)?.name) ?? "Parc"}</div>
+                  <div className={styles.panelRowTitle}>
+                    {edit.park_id && parkById.has(edit.park_id) ? (
+                      <ParkLink parkId={edit.park_id}>{parkById.get(edit.park_id)!.name}</ParkLink>
+                    ) : (
+                      "Parc"
+                    )}
+                  </div>
                   <div className={styles.panelRowMeta}>
                     {labels.length > 0 ? labels.join(", ") : "Modification proposée"} ·{" "}
                     <time dateTime={edit.created_at} title={new Date(edit.created_at).toLocaleString("fr-FR")}>

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@toboggo/design-system";
 import type { Maintenance, Park } from "@toboggo/shared";
+import { ParkLink } from "../../components/ParkLink";
 import { Panel, PanelEmpty, CountBadge } from "../../components/Panel";
 import styles from "../Dashboard.module.css";
 
@@ -34,7 +35,9 @@ export function UpcomingMaintenancePanel({ items, parkById }: { items: Maintenan
           {recent.map((item) => (
             <li key={item.id} className={styles.panelRow}>
               <div className={styles.panelRowBody}>
-                <div className={styles.panelRowTitle}>{parkById.get(item.park_id)?.name ?? "Parc"}</div>
+                <div className={styles.panelRowTitle}>
+                  {parkById.has(item.park_id) ? <ParkLink parkId={item.park_id}>{parkById.get(item.park_id)!.name}</ParkLink> : "Parc"}
+                </div>
                 <div className={styles.panelRowMeta}>
                   {new Date(item.date).toLocaleDateString("fr-FR")}
                   {item.note && ` · ${item.note}`} · {item.assignee ?? "Non assigné"}

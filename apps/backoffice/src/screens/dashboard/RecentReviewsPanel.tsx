@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button, StarRating, Tag } from "@toboggo/design-system";
 import type { Review } from "@toboggo/shared";
+import { ParkLink } from "../../components/ParkLink";
 import { Panel, PanelEmpty } from "../../components/Panel";
 import { relativeTime } from "../../lib/relativeTime";
 import styles from "../Dashboard.module.css";
@@ -53,7 +54,7 @@ export function RecentReviewsPanel({
             <li key={r.id} className={styles.panelRow}>
               <div className={styles.panelRowBody}>
                 <div className={styles.panelRowTitle}>
-                  <StarRating value={r.rating} size="sm" showValue={false} /> {r.parks?.name ?? "Parc"}
+                  <StarRating value={r.rating} size="sm" showValue={false} /> <ParkLink parkId={r.park_id}>{r.parks?.name ?? "Parc"}</ParkLink>
                 </div>
                 {excerpt(r.comment) && <div className={styles.panelRowComment}>« {excerpt(r.comment)} »</div>}
                 <div className={styles.panelRowMeta}>

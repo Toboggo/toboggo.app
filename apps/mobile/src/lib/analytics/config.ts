@@ -1,4 +1,5 @@
 import type { PostHogConfig } from "posthog-js";
+import { sanitizeCaptureResult } from "./sanitizeUrl";
 
 /**
  * Options PostHog privacy-safe, indépendantes de la clé/hôte (injectés par
@@ -25,6 +26,12 @@ import type { PostHogConfig } from "posthog-js";
  * docs/analytics/PRIVACY-RULES.md), pas une décision technique définitive.
  */
 export const ANALYTICS_PRIVACY_OPTIONS: Partial<PostHogConfig> = {
+  // --- Sécurité URL : `$current_url`/`$referrer`/`$initial_*` sont ajoutés
+  // automatiquement par posthog-js et peuvent contenir le hash OAuth Supabase
+  // (`#access_token=…&refresh_token=…`). Réduits à origin + pathname avant
+  // tout envoi, sur TOUS les événements (voir `sanitizeUrl.ts`). ---
+  before_send: sanitizeCaptureResult,
+
   // --- Mandaté explicitement (aucune autocapture, aucun pageview auto) ---
   autocapture: false,
   capture_pageview: false,

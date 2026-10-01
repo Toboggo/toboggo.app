@@ -9,6 +9,25 @@ import {
   type Profile,
 } from "@toboggo/shared";
 import { registerIsAuthenticated, trackEvent } from "./analytics";
+import { clearGoogleLoginMarker, consumeGoogleLoginMarker, isNewAccount } from "./googleLogin";
+import { hasPendingResumeRoute } from "./resumeRoute";
+
+// Retour OAuth Google : émis une seule fois, uniquement si le marqueur posé par
+// `startGoogleLogin()` existe (jamais sur restauration de session ni
+// TOKEN_REFRESHED ; la consommation atomique rend les notifications auth
+// multiples inoffensives). Compte tout juste créé → `signup_completed`,
+// compte existant → `login_completed` (voir `isNewAccount`).
+function trackGoogleAuthIfPending(user: { created_at?: string | null; last_sign_in_at?: string | null }) {
+  if (!consumeGoogleLoginMarker()) return;
+  if (isNewAccount(user)) {
+    trackEvent("signup_completed", {
+      provider: "google",
+      entry_point: hasPendingResumeRoute() ? "contribution_resume" : "splash",
+    });
+  } else {
+    trackEvent("login_completed", { provider: "google" });
+  }
+}
 
 interface SessionState {
   userId: string | null;
@@ -39,8 +58,11 @@ export const useSession = create<SessionState>((set, get) => ({
     getSession()
       .then((session) => {
         if (session?.user) {
+          trackGoogleAuthIfPending(session.user);
           void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
         } else {
+          // OAuth échoué/abandonné : le marqueur ne doit pas survivre.
+          clearGoogleLoginMarker();
           set({ loading: false });
         }
       })
@@ -59,6 +81,7 @@ export const useSession = create<SessionState>((set, get) => ({
       if (userId && userId === current) return;
 
       if (!userId) {
+        clearGoogleLoginMarker();
         set({ userId: null, profile: null, loading: false });
         return;
       }
@@ -67,6 +90,7 @@ export const useSession = create<SessionState>((set, get) => ({
       // contribution) or a genuine account switch.
       getSession().then((session) => {
         if (session?.user) {
+          trackGoogleAuthIfPending(session.user);
           void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
         }
       });

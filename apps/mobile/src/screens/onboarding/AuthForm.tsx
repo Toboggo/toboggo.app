@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { signIn, signUp, sendPasswordReset, signInWithGoogle } from "@toboggo/shared";
+import { signIn, signUp, sendPasswordReset } from "@toboggo/shared";
 import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
 import { takeResumeRoute } from "../../lib/resumeRoute";
 import { trackEvent } from "../../lib/analytics";
+import { clearGoogleLoginMarker, startGoogleLogin } from "../../lib/googleLogin";
 import { ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 
@@ -45,6 +46,9 @@ export default function AuthForm() {
       return;
     }
     setLoading(true);
+    // Un login email volontaire annule tout marqueur Google resté d'un essai
+    // abandonné — sinon sa session serait comptée comme un login Google.
+    clearGoogleLoginMarker();
     try {
       if (isSignup) {
         const res = await signUp(email, password, email.split("@")[0]);
@@ -104,7 +108,7 @@ export default function AuthForm() {
 
   const continueWithGoogle = async () => {
     try {
-      await signInWithGoogle();
+      await startGoogleLogin();
     } catch {
       showToast(tErr("auth.googleUnavailable"));
     }

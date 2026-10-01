@@ -12,6 +12,9 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
 ---
 
 <footer class="site-footer">
+  <svg class="footer-wave" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 22C150 6 300 34 450 22C600 10 750 34 900 22C1000 14 1100 18 1200 22V0H0Z" fill="var(--color-primary-tint)" />
+  </svg>
   <div class="wrap footer-inner">
     <div class="footer-brand">
       <Logo />
@@ -47,9 +50,17 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
 
 <style>
   .site-footer {
-    border-top: 1px solid var(--color-border);
-    padding: var(--space-8) 0 var(--space-6);
-    background: var(--color-bg-alt);
+    position: relative;
+    padding: 56px 0 var(--space-6);
+    background: var(--color-bg);
+  }
+
+  /* Onde légère plutôt qu'un simple filet : séparation douce avec la page,
+     vert d'eau très clair (--color-primary-tint), pas d'aplat plein. */
+  .footer-wave {
+    display: block;
+    width: 100%;
+    height: 32px;
   }
 
   .footer-inner {

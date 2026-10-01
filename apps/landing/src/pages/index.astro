@@ -1,242 +1,28 @@
 ---
 /**
- * Home migrée depuis l'ancien index.html statique, dans le nouveau shell
- * Astro. Refonte complète de la home = Website-2 (hors périmètre ici).
- *
- * Neutralisée par rapport à l'original (décision explicite Website-1) :
- * - bloc stats fictif (2 400+ parcs / 18 000+ avis / 4.8/5) retiré ;
- * - témoignages fictifs retirés ;
- * - bandeau presse fictif retiré ;
- * - boutons App Store / Google Play (href="#") retirés — remplacés par un
- *   CTA générique "Découvrir Toboggo" vers la section "Comment ça marche" ;
- * - badge "disponible sur iOS & Android" retiré (affirmation non vérifiable
- *   tant qu'il n'y a pas de vraie présence store à lier).
- * Emojis de la grille de critères remplacés par le sprite d'icônes officiel.
+ * Homepage (Website-2). Ordre des sections validé, ne pas réordonner ni en
+ * ajouter — voir le brief Website-2. Chaque section vit dans son propre
+ * composant sous components/home/, cette page ne fait qu'assembler.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Container from "../components/Container.astro";
-import Button from "../components/Button.astro";
-
-const criteria = [
-  { icon: "ic-toilets", label: "Toilettes" },
-  { icon: "ic-shade", label: "Ombragé" },
-  { icon: "ic-fence", label: "Clôturé" },
-  { icon: "ic-pmr", label: "Accès PMR" },
-  { icon: "ic-bench", label: "Bancs" },
-  { icon: "ic-water", label: "Point d'eau" },
-  { icon: "ic-parking", label: "Parking" },
-  { icon: "ic-age", label: "Tranche d'âge" },
-];
+import Hero from "../components/home/Hero.astro";
+import NearbyParks from "../components/home/NearbyParks.astro";
+import HowItWorks from "../components/home/HowItWorks.astro";
+import AppShowcase from "../components/home/AppShowcase.astro";
+import AudienceSplit from "../components/home/AudienceSplit.astro";
+import Community from "../components/home/Community.astro";
+import Guides from "../components/home/Guides.astro";
 ---
 
 <BaseLayout
-  title="Le bon parc de jeux, juste à côté"
-  description="Trouvez une aire de jeux adaptée à l'âge de votre enfant, vérifiez WC, ombre et clôture avant de partir, et rejoignez-la en un tap."
+  title="Trouvez le terrain de jeu qui leur correspond"
+  description="Toboggo aide les familles à trouver les aires de jeux adaptées à leurs enfants, simplement et autour d'elles."
 >
-  <section class="hero">
-    <Container>
-      <h1>Le bon parc de jeux, juste à côté.</h1>
-      <p>Trouvez une aire de jeux adaptée à l'âge de votre enfant, vérifiez WC, ombre et clôture avant de partir, et rejoignez-la en un tap.</p>
-      <div class="hero-actions">
-        <Button href="#comment-ca-marche">Découvrir Toboggo</Button>
-      </div>
-    </Container>
-  </section>
-
-  <section id="comment-ca-marche">
-    <Container>
-      <h2 class="section-title">Comment ça marche</h2>
-      <div class="steps">
-        <div class="step-card">
-          <div class="step-num">1</div>
-          <h3>Cherchez autour de vous</h3>
-          <p class="step-desc">La carte affiche les parcs les plus proches, triés par distance.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">2</div>
-          <h3>Filtrez ce qui compte</h3>
-          <p class="step-desc">Âge, WC, ombre, clôture, accès PMR — en quelques taps.</p>
-        </div>
-        <div class="step-card">
-          <div class="step-num">3</div>
-          <h3>Rejoignez-le en un tap</h3>
-          <p class="step-desc">Itinéraire immédiat, à pied, à vélo ou en voiture.</p>
-        </div>
-      </div>
-    </Container>
-  </section>
-
-  <section id="fonctionnalites">
-    <Container>
-      <h2 class="section-title">Tous les critères qui rassurent</h2>
-      <p class="section-subtitle">Chaque parc est renseigné par la communauté, pas par un algorithme.</p>
-      <div class="criteria-grid">
-        {
-          criteria.map((c) => (
-            <div class="criteria-card">
-              <svg class="criteria-icon" width="28" height="28" aria-hidden="true">
-                <use href={`/icons-sprite.svg#${c.icon}`} />
-              </svg>
-              {c.label}
-            </div>
-          ))
-        }
-      </div>
-    </Container>
-  </section>
-
-  <section>
-    <Container class="cta-band">
-      <h2>Prêt à trouver le prochain parc ?</h2>
-      <p class="cta-sub">Gratuit, sans publicité intrusive, alimenté par les familles.</p>
-      <Button href="#comment-ca-marche">Découvrir Toboggo</Button>
-    </Container>
-  </section>
-
-  <section>
-    <Container style="max-width:680px;">
-      <h2 class="section-title" style="font-size:26px;">Questions fréquentes</h2>
-      <details class="faq-item">
-        <summary>Faut-il un compte pour utiliser Toboggo ?</summary>
-        <p>Non — la carte et la recherche sont libres. Un compte est nécessaire pour noter, ajouter un parc ou laisser un avis.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Comment les informations sont-elles vérifiées ?</summary>
-        <p>Chaque parc ajouté par la communauté est vérifié par notre équipe avant publication.</p>
-      </details>
-      <details class="faq-item">
-        <summary>L'app est-elle payante ?</summary>
-        <p>Non, elle est et restera gratuite pour les familles.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Je suis une collectivité, comment gérer mes parcs ?</summary>
-        <p>Un back-office dédié permet aux collectivités partenaires de gérer leurs fiches. Contactez-nous pour l'activer.</p>
-      </details>
-      <details class="faq-item">
-        <summary>Comment signaler un problème sur un parc ?</summary>
-        <p>Depuis la fiche du parc dans l'app, bouton « Signaler un problème ».</p>
-      </details>
-      <p style="text-align:center;margin-top:24px;"><a href="/faq">Voir toutes les questions →</a></p>
-    </Container>
-  </section>
+  <Hero />
+  <NearbyParks />
+  <HowItWorks />
+  <AppShowcase />
+  <AudienceSplit />
+  <Community />
+  <Guides />
 </BaseLayout>
-
-<style>
-  .hero {
-    padding-top: var(--space-8);
-    padding-bottom: var(--space-8);
-    text-align: center;
-  }
-
-  .hero h1 {
-    font-size: clamp(32px, 5vw, 52px);
-    max-width: 720px;
-    margin: 0 auto var(--space-4);
-  }
-
-  .hero p {
-    max-width: 560px;
-    margin: 0 auto var(--space-7);
-    color: var(--color-text-muted);
-    font-size: 17px;
-  }
-
-  .hero-actions {
-    display: flex;
-    justify-content: center;
-  }
-
-  .section-title {
-    text-align: center;
-    font-size: 28px;
-  }
-
-  .section-subtitle {
-    text-align: center;
-    color: var(--color-text-muted);
-    max-width: 520px;
-    margin: 0 auto var(--space-8);
-  }
-
-  .steps {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-6);
-    margin-top: var(--space-8);
-  }
-
-  .step-card,
-  .criteria-card {
-    background: var(--color-surface);
-    border-radius: var(--radius-md);
-    padding: var(--space-6);
-    box-shadow: var(--shadow-sm);
-  }
-
-  .step-num {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--color-primary);
-    color: var(--color-on-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-heading);
-    font-weight: 700;
-    margin-bottom: var(--space-3);
-  }
-
-  .step-desc {
-    color: var(--color-text-muted);
-    font-size: 14px;
-  }
-
-  .criteria-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: var(--space-4);
-  }
-
-  .criteria-card {
-    text-align: center;
-    padding: var(--space-5) var(--space-3);
-  }
-
-  .criteria-icon {
-    display: block;
-    margin: 0 auto var(--space-2);
-    color: var(--color-primary);
-  }
-
-  :global(.cta-band) {
-    background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-    color: var(--color-on-primary);
-    border-radius: var(--radius-lg);
-    padding: 56px var(--space-8);
-    text-align: center;
-  }
-
-  :global(.cta-band h2) {
-    color: var(--color-on-primary);
-  }
-
-  .cta-sub {
-    color: rgba(255, 255, 255, 0.9);
-  }
-
-  :global(.cta-band .btn-primary) {
-    background: var(--color-surface);
-    color: var(--color-primary-hover);
-  }
-
-  @media (max-width: 800px) {
-    .steps {
-      grid-template-columns: 1fr;
-    }
-
-    .criteria-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-</style>

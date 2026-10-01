@@ -173,3 +173,17 @@ section {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   Home (Website-2) — motif partagé entre les sections
+   ============================================================ */
+.eyebrow {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary-hover);
+  margin-bottom: var(--space-3);
+}

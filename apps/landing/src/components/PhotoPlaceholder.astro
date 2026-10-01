@@ -1,0 +1,69 @@
+---
+/**
+ * Emplacement photo générique. `src` optionnelle :
+ * - fournie  → vraie image, object-fit cover ;
+ * - absente  → placeholder neutre (même convention que le placeholder "pas
+ *   de photo" de l'app : LogoMark sur fond teinté, voir
+ *   docs/DESIGN-SYSTEM.md §13). Tracé du mark dupliqué depuis Logo.astro
+ *   (même convention de duplication que CLAUDE.md §9).
+ *
+ * Remplacement futur : passer `src="/images/home/xxx.webp"` suffit, aucun
+ * changement de layout nécessaire.
+ */
+interface Props {
+  src?: string;
+  alt: string;
+  /** Valeur CSS aspect-ratio, ex. "4 / 3". */
+  ratio?: string;
+  class?: string;
+  loading?: "lazy" | "eager";
+}
+
+const { src, alt, ratio = "4 / 3", class: className, loading = "lazy" } = Astro.props;
+---
+
+{
+  src ? (
+    <img
+      src={src}
+      alt={alt}
+      loading={loading}
+      decoding="async"
+      fetchpriority={loading === "eager" ? "high" : "auto"}
+      class:list={["photo-slot", className]}
+      style={`aspect-ratio:${ratio}`}
+    />
+  ) : (
+    <div
+      class:list={["photo-slot", "photo-slot--empty", className]}
+      style={`aspect-ratio:${ratio}`}
+      role="img"
+      aria-label={alt}
+    >
+      <svg width="30" height="30" viewBox="0 0 56 56" aria-hidden="true">
+        <path d="M17 15 L39 15 M28 15 L28 30" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" />
+        <path d="M28 30 C28 39 34 39 34 45" fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" />
+        <circle cx="34" cy="45" r="4.2" fill="currentColor" />
+      </svg>
+    </div>
+  )
+}
+
+<style>
+  .photo-slot {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+  }
+
+  .photo-slot--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary-tint);
+    color: var(--color-primary);
+    opacity: 0.6;
+  }
+</style>

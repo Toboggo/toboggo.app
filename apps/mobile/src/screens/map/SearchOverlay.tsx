@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getParkDisplayName,
+  isExactNameMatch,
   rankPlaces,
   searchParks,
   searchPlaces,
@@ -44,6 +45,22 @@ function placesQuery(query: string, language: string) {
     queryFn: ({ signal }: { signal?: AbortSignal }) => searchPlaces(query, signal, language, { throwOnError: true }),
     staleTime: PLACES_STALE_MS,
   };
+}
+
+/**
+ * Ordre des sections de résultats. Les LIEUX passent avant les PARCS
+ * uniquement quand le meilleur lieu porte exactement le nom saisi (ville,
+ * commune…) ET qu'aucun parc ne porte ce même nom exact — sinon la requête
+ * est ambiguë ou orientée parc et l'ordre historique (PARCS d'abord) reste.
+ * Purement indicatif : Entrée résout toujours un lieu, quel que soit l'ordre.
+ */
+export function shouldListPlacesFirst(
+  query: string,
+  places: Pick<GeoPlace, "name">[] | undefined,
+  parkNames: string[],
+): boolean {
+  if (!places?.length || !isExactNameMatch(query, places[0].name)) return false;
+  return !parkNames.some((name) => isExactNameMatch(query, name));
 }
 
 function toSelectedPark(p: Park): SelectedPark {
@@ -234,8 +251,48 @@ export function SearchOverlay({
 
   const noParks = !results?.length;
   const noPlaces = !places?.length;
+  // Lieu exact avant les parcs — seulement une fois la saisie réglée (le
+  // géocodage est débouncé : pas de bascule d'ordre pendant la frappe).
+  const placesFirst =
+    debouncedQuery.trim() === query.trim() &&
+    shouldListPlacesFirst(
+      query,
+      places,
+      (results ?? []).map((p) => getParkDisplayName(p, t)),
+    );
   const pending =
     active && (resolving || resultsFetching || placesFetching || debouncedQuery.trim() !== query.trim());
+
+  const parksSection =
+    (results?.length ?? 0) > 0 ? (
+      <>
+        <div className={styles.sectionTitle}>{t("search.parks")}</div>
+        {results!.map((p) => (
+          <button key={p.id} className={styles.row} onClick={() => selectPark(p)}>
+            <span className={styles.rowIcon}><Icon name="logo-pictogram-mono" size={20} /></span>
+            <span className={styles.rowBody}>
+              <span className={styles.rowName}>{getParkDisplayName(p, t)}</span>
+              {p.formatted_address && <span className={styles.rowSub}>{p.formatted_address}</span>}
+            </span>
+          </button>
+        ))}
+      </>
+    ) : null;
+  const placesSection =
+    (places?.length ?? 0) > 0 ? (
+      <>
+        <div className={styles.sectionTitle}>{t("search.places")}</div>
+        {places!.map((place) => (
+          <button key={place.id} className={styles.row} onClick={() => selectGeographicLocation(place)}>
+            <span className={styles.rowIcon}><Icon name="ic-explore" size={18} /></span>
+            <span className={styles.rowBody}>
+              <span className={styles.rowName}>{place.name}</span>
+              <span className={styles.rowSub}>{place.context ?? place.label}</span>
+            </span>
+          </button>
+        ))}
+      </>
+    ) : null;
 
   return (
     <div className={styles.overlay}>
@@ -297,42 +354,8 @@ export function SearchOverlay({
 
         {active && (
           <>
-            {(results?.length ?? 0) > 0 && (
-              <>
-                <div className={styles.sectionTitle}>{t("search.parks")}</div>
-                {results!.map((p) => (
-                  <button
-                    key={p.id}
-                    className={styles.row}
-                    onClick={() => selectPark(p)}
-                  >
-                    <span className={styles.rowIcon}><Icon name="ic-slide" size={18} /></span>
-                    <span className={styles.rowBody}>
-                      <span className={styles.rowName}>{getParkDisplayName(p, t)}</span>
-                      {p.formatted_address && <span className={styles.rowSub}>{p.formatted_address}</span>}
-                    </span>
-                  </button>
-                ))}
-              </>
-            )}
-            {(places?.length ?? 0) > 0 && (
-              <>
-                <div className={styles.sectionTitle}>{t("search.places")}</div>
-                {places!.map((place) => (
-                  <button
-                    key={place.id}
-                    className={styles.row}
-                    onClick={() => selectGeographicLocation(place)}
-                  >
-                    <span className={styles.rowIcon}><Icon name="ic-explore" size={18} /></span>
-                    <span className={styles.rowBody}>
-                      <span className={styles.rowName}>{place.name}</span>
-                      <span className={styles.rowSub}>{place.context ?? place.label}</span>
-                    </span>
-                  </button>
-                ))}
-              </>
-            )}
+            {placesFirst ? placesSection : parksSection}
+            {placesFirst ? parksSection : placesSection}
             {feedback && (
               <p className={styles.note} role="status">
                 {feedback.kind === "error" ? t("search.error") : t("search.noPlace", { query: feedback.query })}

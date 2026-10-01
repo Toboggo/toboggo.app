@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Button, Menu, MenuItem, Tabs, TabPanel, useToast } from "@toboggo/design-system";
-import { getPark, logActivity, setParkStatus } from "@toboggo/shared";
+import { logActivity, setParkStatus } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkStatusTag, ParkVerificationTag } from "../components/StatusTag";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
 import { useAsyncAction } from "../lib/useAsyncAction";
+import { useScopedPark } from "../lib/useScopedPark";
 import { useUnsavedChangesGuard } from "../lib/useUnsavedChangesGuard";
 import { parkStatusTransitions } from "../lib/parkStatus";
 import { queryClient } from "../lib/queryClient";
@@ -16,6 +16,7 @@ import { InfoPanel } from "./parkDetail/InfoPanel";
 import { FeaturesPanel } from "./parkDetail/FeaturesPanel";
 import { PhotosPanel } from "./parkDetail/PhotosPanel";
 import { HistoryPanel } from "./parkDetail/HistoryPanel";
+import { ParkOverview } from "./parkDetail/ParkOverview";
 import styles from "./ParkDetail.module.css";
 
 type TabValue = "info" | "features" | "photos" | "history";
@@ -31,9 +32,9 @@ export default function ParkDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const toast = useToast();
-  const { communeId } = useOrgScope();
+  const { communeId, isAdmin } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
-  const { canEditPark } = usePermissions();
+  const { canEditPark, canResolveReport } = usePermissions();
 
   const backTo = `/parks${location.search}`;
 
@@ -42,18 +43,14 @@ export default function ParkDetail() {
   const [featuresDirty, setFeaturesDirty] = useState(false);
   const confirmIfDirty = useUnsavedChangesGuard(infoDirty || featuresDirty);
 
-  const { data: park, isLoading, isError } = useQuery({
-    queryKey: ["park", id],
-    queryFn: () => getPark(id),
-    enabled: !!id,
-  });
+  const { data: park, isLoading, isError } = useScopedPark(id);
 
   const { run: runStatus, pending: statusPending } = useAsyncAction(
     async (next: Parameters<typeof setParkStatus>[1], note: string) => {
       if (!park) return;
       await setParkStatus(park.id, next, note);
       await logActivity(communeId ?? null, userName, `${note} : ${park.name}`);
-      for (const key of [["park", id], ["park-history", id], ["bo-parks-page"], ["bo-parks"], ["dash-parks"], ["shell-pending-parks"]]) {
+      for (const key of [["park", id], ["park-history", id], ["park-reports", id], ["bo-parks-page"], ["bo-parks"], ["dash-parks"], ["shell-pending-parks"]]) {
         void queryClient.invalidateQueries({ queryKey: key });
       }
     },
@@ -156,6 +153,15 @@ export default function ParkDetail() {
           </div>
         )}
       </div>
+
+      {!isAdmin && (
+        <ParkOverview
+          park={park}
+          canEdit={canEditPark}
+          canResolveReport={canResolveReport}
+          onOpenTab={(t) => void handleTabChange(t)}
+        />
+      )}
 
       <Tabs
         label="Sections du parc"

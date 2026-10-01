@@ -52,6 +52,52 @@ export function getAnalyticsClient(): PostHog | null {
 }
 
 /**
+ * Identité PostHog de l'utilisateur authentifié courant — `null` = anonyme.
+ *
+ * Source de vérité unique de « cet utilisateur est identifié côté analytics »,
+ * mise à jour de façon SYNCHRONE dès que `session.ts` apprend l'id Supabase
+ * (callback `onAuthStateChange`, qui s'exécute avant même que
+ * `signIn()`/`signUp()` ne rende la main à l'écran) — d'où `is_authenticated`
+ * correct sur `login_completed`/`signup_completed`, là où le store de session
+ * (`userId`, renseigné après le chargement asynchrone du profil) ne l'est pas
+ * encore.
+ */
+let identifiedUserId: string | null = null;
+
+/**
+ * Rattache les événements à l'UUID Supabase (jamais e-mail, nom, ni aucune
+ * propriété : `identify(userId)` seul — PRIVACY-RULES.md §1/§3). Idempotent :
+ * rappeler avec le même id (TOKEN_REFRESHED, restauration + SIGNED_IN) ne fait
+ * rien. Si un AUTRE compte était déjà identifié sans passage par la
+ * déconnexion, on `reset()` d'abord : jamais de fusion A → B.
+ *
+ * La persistance reste `memory` (config.ts) : au rechargement le `distinct_id`
+ * anonyme est neuf, et ce `identify()` (déclenché à la restauration de session)
+ * le rattache à la même personne — un utilisateur connecté = une personne.
+ */
+export function identifyAnalyticsUser(userId: string): void {
+  const posthogClient = getAnalyticsClient();
+  if (!posthogClient || !userId) return;
+  if (identifiedUserId === userId) return;
+  if (identifiedUserId !== null) posthogClient.reset();
+  posthogClient.identify(userId);
+  identifiedUserId = userId;
+}
+
+/**
+ * À la déconnexion : `reset()` PostHog (nouveau `distinct_id` anonyme) pour que
+ * le compte suivant sur ce navigateur ne soit jamais fusionné avec celui-ci.
+ * No-op si personne n'est identifié — une navigation invité n'est pas coupée
+ * par un événement auth « pas de session ».
+ */
+export function resetAnalyticsIdentity(): void {
+  const posthogClient = getAnalyticsClient();
+  if (!posthogClient || identifiedUserId === null) return;
+  posthogClient.reset();
+  identifiedUserId = null;
+}
+
+/**
  * Filtre `properties` à l'allowlist déclarée pour cet événement dans
  * `EVENT_PROPERTY_ALLOWLIST` — seules ces clés quittent jamais ce module,
  * même si l'appelant a fourni davantage (ex. un spread accidentel d'un objet
@@ -94,6 +140,13 @@ export function trackEvent<E extends AnalyticsEventName>(event: E, properties: A
   // environnement, par ex. avec une valeur par défaut "production".
   const environment = getAppEnvironment();
   if (!environment) return;
-  const payload = { ...getCommonProperties(environment), ...filterToAllowlist(event, properties) };
+  const common = getCommonProperties(environment);
+  const payload = {
+    ...common,
+    // Authentifié = session connue du store OU identité analytics déjà posée
+    // (voir `identifiedUserId`) — cohérent dès la fin de `signIn()`/`signUp()`.
+    is_authenticated: common.is_authenticated || identifiedUserId !== null,
+    ...filterToAllowlist(event, properties),
+  };
   posthogClient.capture(event, payload);
 }

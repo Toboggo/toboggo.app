@@ -11,7 +11,7 @@
  * ne doit l'appeler.
  */
 export { AnalyticsProvider } from "./AnalyticsProvider";
-export { trackEvent, isAnalyticsConfigured } from "./client";
+export { trackEvent, isAnalyticsConfigured, identifyAnalyticsUser, resetAnalyticsIdentity } from "./client";
 export { registerIsAuthenticated } from "./commonProperties";
 export { distanceBucket } from "./events";
 export type { AnalyticsEventName, AnalyticsEventProperties, RouteProvider } from "./events";

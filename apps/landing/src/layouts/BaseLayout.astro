@@ -2,19 +2,40 @@
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import "../styles/global.css";
+import { SITE_URL, SITE_NAME, SITE_LOCALE, DEFAULT_OG_IMAGE, DEFAULT_OG_IMAGE_ALT, CONTACT_EMAIL } from "../config/site";
 
 interface Props {
   title: string;
   description: string;
   /** Pages "shell only" (Website-3/4/5/6) : pas encore indexées, pas dans le sitemap. */
   noindex?: boolean;
-  /** Aucune image OG par défaut : pas d'asset réel généré pour l'instant (voir Website-1 §Assets). */
+  /** Chemin d'une image de partage (défaut : icône de marque, voir config/site.ts). */
   ogImage?: string;
+  ogImageAlt?: string;
+  /** Page d'erreur : pas de canonical ni d'og:url (l'URL réelle n'est pas /404/). */
+  errorPage?: boolean;
+  /** Objets JSON-LD supplémentaires propres à la page (ex. FAQPage). */
+  jsonLd?: Record<string, unknown>[];
 }
 
-const { title, description, noindex = false, ogImage } = Astro.props;
-const canonicalURL = new URL(Astro.url.pathname, Astro.site);
-const pageTitle = `${title} — Toboggo`;
+const { title, description, noindex = false, ogImage = DEFAULT_OG_IMAGE, ogImageAlt = DEFAULT_OG_IMAGE_ALT, jsonLd = [], errorPage = false } = Astro.props;
+// Canonical toujours bâti sur SITE_URL (jamais sur l'hôte de la requête, ex. un
+// déploiement preview), avec le même slash final que le sitemap.
+const canonicalURL = new URL(Astro.url.pathname, SITE_URL);
+const pageTitle = `${title} — ${SITE_NAME}`;
+const ogImageURL = new URL(ogImage, SITE_URL);
+
+// Organization : uniquement des faits déjà publics sur le site. Pas de raison
+// sociale, adresse ni réseaux sociaux tant qu'ils ne sont pas confirmés.
+const organization = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_NAME,
+  url: SITE_URL,
+  logo: new URL("/icon-512.png", SITE_URL).toString(),
+  email: CONTACT_EMAIL,
+};
+const structuredData = [organization, ...jsonLd.map((item) => ({ "@context": "https://schema.org", ...item }))];
 ---
 
 <!doctype html>
@@ -24,15 +45,23 @@ const pageTitle = `${title} — Toboggo`;
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonicalURL} />
+    {!errorPage && <link rel="canonical" href={canonicalURL} />}
     {noindex && <meta name="robots" content="noindex,nofollow" />}
 
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:locale" content={SITE_LOCALE} />
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonicalURL} />
-    {ogImage && <meta property="og:image" content={new URL(ogImage, Astro.site)} />}
-    <meta name="twitter:card" content="summary_large_image" />
+    {!errorPage && <meta property="og:url" content={canonicalURL} />}
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:alt" content={ogImageAlt} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+    <meta name="twitter:image:alt" content={ogImageAlt} />
+    {structuredData.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

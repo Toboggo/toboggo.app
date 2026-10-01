@@ -1,10 +1,8 @@
 import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
+import { SITE_URL } from "./src/config/site.ts";
 
-// URL réellement déployée aujourd'hui (voir docs/architecture/database-migration.md
-// §11 CHECKPOINT). À remplacer si/quand un domaine personnalisé est attaché au
-// projet Vercel "toboggo-website" — n'affecte que le sitemap et les canonicals.
-const SITE_URL = "https://toboggo-website.vercel.app";
+// Domaine centralisé dans src/config/site.ts (canonicals, OG, sitemap, robots.txt).
 
 // Pages "shell only" de Website-1 : le Header/Footer y pointe déjà (pour ne
 // jamais afficher de lien mort) mais leur contenu réel arrive dans un lot

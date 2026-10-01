@@ -1,9 +1,9 @@
 ---
 /**
  * "Des parcs près de chez vous" (Website-2 §3) — démonstration visuelle,
- * PAS un Explorer web fonctionnel. Données : voir ../../data/demoParks.ts.
- * Photos réelles à ajouter sous /images/home/parks/ quand elles existent et
- * sont vérifiées (voir commentaire dans demoParks.ts) — aucune créée ici.
+ * PAS un Explorer web fonctionnel. Données : parcs réels de Millau, figés en
+ * dur (voir ../../data/demoParks.ts). Photos à ajouter sous
+ * /images/home/parks/ uniquement quand elles sont vérifiées — aucune ici.
  */
 import PhotoPlaceholder from "../PhotoPlaceholder.astro";
 import { DEMO_PARKS } from "../../data/demoParks";
@@ -21,9 +21,10 @@ import { DEMO_PARKS } from "../../data/demoParks";
         {
           DEMO_PARKS.map((park) => (
             <article class="park-card">
-              <PhotoPlaceholder alt={park.name} ratio="1 / 1" src={park.image} />
+              <PhotoPlaceholder alt={park.imageAlt ?? park.name} ratio="1 / 1" src={park.image} />
               <h3>{park.name}</h3>
-              {park.attribute && <p class="park-attr">{park.attribute}</p>}
+              {park.ageLabel && <p class="park-attr">{park.ageLabel}</p>}
+              <p class="park-feats">{park.features.slice(0, 3).join(" · ")}</p>
             </article>
           ))
         }
@@ -139,6 +140,13 @@ import { DEMO_PARKS } from "../../data/demoParks";
     margin: 0;
     color: var(--color-text-muted);
     font-size: 13px;
+  }
+
+  .park-feats {
+    margin: 2px 0 0;
+    color: var(--color-text-faint);
+    font-size: 12.5px;
+    line-height: 1.35;
   }
 
   @media (prefers-reduced-motion: no-preference) {

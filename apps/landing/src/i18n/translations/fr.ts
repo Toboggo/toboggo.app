@@ -34,5 +34,6 @@ export const fr: Dictionary = {
       cookies: "Cookies",
     },
     copyright: "© 2026 Toboggo. Fait avec ♥ pour les familles.",
+    dataCredit: "Certaines données de parcs :",
   },
 };

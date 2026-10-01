@@ -187,3 +187,221 @@ section {
   color: var(--color-primary-hover);
   margin-bottom: var(--space-3);
 }
+
+/* ============================================================
+   Pages secondaires (Website-3A) — fonctionnalités, collectivités,
+   à propos, guides. Même langage visuel que la home : tokens uniquement.
+   ============================================================ */
+.page-hero {
+  padding: var(--space-8) 0 72px;
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.page-hero h1 {
+  font-size: clamp(30px, 6vw, 46px);
+  margin: 0 auto var(--space-4);
+  max-width: 760px;
+}
+
+.page-hero .lead {
+  max-width: 600px;
+  margin: 0 auto var(--space-6);
+  color: var(--color-text-muted);
+  font-size: 17px;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
+.page-section {
+  padding: 72px 0;
+}
+
+.page-section--tint {
+  background: var(--color-primary-tint);
+}
+
+.page-section--white {
+  background: var(--color-surface);
+}
+
+.section-head {
+  max-width: 640px;
+  margin: 0 auto var(--space-7);
+  text-align: center;
+}
+
+.section-head h2 {
+  font-size: 30px;
+  margin: 0 0 var(--space-3);
+}
+
+.section-head p {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.info-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.page-section--white .info-card {
+  background: var(--color-bg);
+  box-shadow: none;
+}
+
+.info-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  margin-bottom: var(--space-3);
+}
+
+.info-card h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-base);
+}
+
+.info-card p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 14.5px;
+}
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-7);
+  align-items: center;
+}
+
+.split-copy h2 {
+  font-size: 28px;
+  margin: 0 0 var(--space-3);
+}
+
+.split-copy p {
+  color: var(--color-text-muted);
+  margin: 0 0 var(--space-3);
+}
+
+.split-phones {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.split-phones > * {
+  width: 100%;
+  max-width: 190px;
+}
+
+.check-list {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.check-list li {
+  position: relative;
+  padding-left: 28px;
+  font-size: 14.5px;
+}
+
+.check-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+}
+
+.check-list li::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.3em;
+  width: 16px;
+  height: 16px;
+  background: var(--color-primary);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.5l2.4 2.4 4.6-5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.5 8.5l2.4 2.4 4.6-5' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 100% no-repeat;
+}
+
+.page-cta {
+  text-align: center;
+  padding: 72px 0 96px;
+}
+
+.page-cta h2 {
+  font-size: 28px;
+  margin: 0 0 var(--space-3);
+}
+
+.page-cta p {
+  max-width: 520px;
+  margin: 0 auto var(--space-5);
+  color: var(--color-text-muted);
+}
+
+.note {
+  max-width: 640px;
+  margin: var(--space-6) auto 0;
+  text-align: center;
+  color: var(--color-text-faint);
+  font-size: var(--text-sm);
+}
+
+@media (min-width: 640px) {
+  .card-grid--2,
+  .card-grid--3,
+  .card-grid--4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .card-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .card-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-8);
+  }
+
+  .split--reverse .split-copy {
+    order: 2;
+  }
+}

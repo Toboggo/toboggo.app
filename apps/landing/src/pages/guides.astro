@@ -1,15 +1,66 @@
 ---
-/** Placeholder "shell only" — contenu réel = Website-4. Voir fonctionnalites.astro. */
+/**
+ * Index éditorial (Website-3A). AUCUN article n'existe : les 3 sujets de
+ * data/demoGuides.ts sont présentés comme « à venir », sans date, auteur,
+ * catégorie ni lien. Pas de route /guides/[slug] tant qu'il n'y a pas de vrai
+ * article. Reste noindex et hors sitemap (voir astro.config.mjs).
+ */
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Container from "../components/Container.astro";
+import PageHero from "../components/PageHero.astro";
+import PhotoPlaceholder from "../components/PhotoPlaceholder.astro";
+import Button from "../components/Button.astro";
+import { DEMO_GUIDES } from "../data/demoGuides";
 ---
 
-<BaseLayout title="Guides &amp; idées" description="Cette page arrive bientôt." noindex>
-  <Container>
-    <div class="doc-section">
-      <h1>Guides &amp; idées</h1>
-      <p>Cette page est en cours de construction.</p>
-      <p><a href="/">← Retour à l'accueil</a></p>
+<BaseLayout
+  title="Guides & idées"
+  description="Les guides et idées de sorties Toboggo arrivent bientôt : choisir une aire de jeux, préparer une sortie en famille."
+  noindex
+>
+  <PageHero
+    eyebrow="Guides & idées"
+    title="Des conseils pour mieux choisir vos sorties."
+    lead="Nos premiers guides sont en préparation. Voici les sujets que nous prévoyons d'aborder."
+  />
+
+  <section class="page-section page-section--tint">
+    <div class="wrap">
+      <ul class="card-grid card-grid--3 guide-list">
+        {
+          DEMO_GUIDES.map((guide) => (
+            <li class="guide-item">
+              <PhotoPlaceholder alt={guide.imageAlt ?? guide.title} ratio="3 / 2" src={guide.image} />
+              <span class="guide-soon">À venir</span>
+              <h2>{guide.title}</h2>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="note">Aucun guide n'est encore publié. En attendant, la FAQ répond aux questions les plus fréquentes.</p>
+      <div class="page-actions" style="margin-top:24px;">
+        <Button href="/faq" variant="secondary">Consulter la FAQ</Button>
+        <Button href="/fonctionnalites" variant="secondary">Découvrir les fonctionnalités</Button>
+      </div>
     </div>
-  </Container>
+  </section>
 </BaseLayout>
+
+<style>
+  .guide-item h2 {
+    font-size: var(--text-base);
+    font-weight: 600;
+    line-height: 1.35;
+    margin: var(--space-2) 0 0;
+  }
+
+  .guide-soon {
+    display: inline-block;
+    margin-top: var(--space-3);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-primary-hover);
+  }
+</style>

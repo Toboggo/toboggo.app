@@ -1,27 +1,49 @@
 ---
+/**
+ * Mentions légales — EN ATTENTE des vraies informations de la société.
+ * Les coordonnées précédentes (raison sociale, capital, RCS, adresse) étaient
+ * fictives et ont été supprimées : ne JAMAIS en inventer. Chaque champ
+ * « À compléter avant publication » doit être renseigné par le fondateur
+ * avant de retirer `noindex` ici et de rajouter la page au sitemap
+ * (voir astro.config.mjs → SHELL_ONLY_PATHS).
+ */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Container from "../components/Container.astro";
+
+const TODO = "À compléter avant publication";
 ---
 
-<BaseLayout title="Mentions légales" description="Mentions légales du site Toboggo.">
+<BaseLayout title="Mentions légales" description="Mentions légales du site Toboggo." noindex>
   <Container>
     <div class="doc-section">
       <h1>Mentions légales</h1>
-      <p class="doc-updated">Dernière mise à jour : 12 août 2026 — informations à remplacer par celles de votre société avant mise en production.</p>
+      <p class="doc-updated">Page en cours de rédaction — les informations marquées « {TODO} » seront renseignées avant publication.</p>
 
       <h2>Éditeur</h2>
-      <p>Toboggo SAS, SAS au capital de 10 000 €, RCS Paris 912 345 678, siège social : 14 rue des Tilleuls, 75011 Paris.</p>
+      <ul class="legal-fields">
+        <li><span>Raison sociale</span><em class="todo">{TODO}</em></li>
+        <li><span>Forme juridique</span><em class="todo">{TODO}</em></li>
+        <li><span>Capital social</span><em class="todo">{TODO}</em></li>
+        <li><span>Numéro d'immatriculation (RCS)</span><em class="todo">{TODO}</em></li>
+        <li><span>Adresse du siège social</span><em class="todo">{TODO}</em></li>
+        <li><span>Contact</span><a href="mailto:contact@toboggo.app">contact@toboggo.app</a></li>
+      </ul>
 
       <h2>Directeur de la publication</h2>
-      <p>Le représentant légal de Toboggo SAS.</p>
+      <ul class="legal-fields">
+        <li><span>Nom</span><em class="todo">{TODO}</em></li>
+      </ul>
 
       <h2>Hébergement</h2>
-      <p>Hébergé au sein de l'Union Européenne. Coordonnées de l'hébergeur disponibles sur demande à <a href="mailto:contact@toboggo.app">contact@toboggo.app</a>.</p>
+      <ul class="legal-fields">
+        <li><span>Hébergeur</span><em class="todo">{TODO}</em></li>
+        <li><span>Adresse de l'hébergeur</span><em class="todo">{TODO}</em></li>
+      </ul>
 
       <h2>Propriété intellectuelle</h2>
-      <p>La marque, le logo et les contenus éditoriaux de ce site appartiennent à Toboggo SAS. Les données de localisation des parcs sont fournies par la communauté sous licence de contribution ouverte.</p>
+      <p>La marque, le logo et les contenus éditoriaux de ce site appartiennent à leur éditeur. Les données de localisation des parcs sont fournies par la communauté et par des sources ouvertes. Certaines données de parcs proviennent d'OpenStreetMap : <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>, disponibles sous licence <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">ODbL</a>.</p>
 
-      <h2>RGPD</h2>
+      <h2>Données personnelles</h2>
       <p>Voir notre page <a href="/cgu#confidentialite">Confidentialité</a> pour le détail du traitement de vos données personnelles.</p>
 
       <h2>Cookies</h2>
@@ -29,3 +51,34 @@ import Container from "../components/Container.astro";
     </div>
   </Container>
 </BaseLayout>
+
+<style>
+  .legal-fields {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .legal-fields li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 14.5px;
+  }
+
+  .legal-fields span {
+    color: var(--color-text-muted);
+  }
+
+  .todo {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--color-warning-text);
+    background: var(--color-warning-bg);
+    border-radius: var(--radius-xs);
+    padding: 2px 8px;
+  }
+</style>

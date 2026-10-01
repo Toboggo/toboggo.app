@@ -4,11 +4,13 @@ import { SITE_URL } from "./src/config/site.ts";
 
 // Domaine centralisé dans src/config/site.ts (canonicals, OG, sitemap, robots.txt).
 
-// Pages "shell only" de Website-1 : le Header/Footer y pointe déjà (pour ne
-// jamais afficher de lien mort) mais leur contenu réel arrive dans un lot
-// dédié (Website-3/4/5/6). Exclues du sitemap ; chacune pose aussi son propre
-// <meta name="robots" content="noindex,nofollow"> via BaseLayout (voir pages).
-const SHELL_ONLY_PATHS = ["/fonctionnalites", "/guides", "/collectivites", "/a-propos"];
+// Pages volontairement hors sitemap : elles posent aussi leur propre
+// <meta name="robots" content="noindex,nofollow"> via BaseLayout.
+// - /guides : aucun vrai article tant que le contenu éditorial n'existe pas ;
+// - /mentions-legales : informations société à compléter (champs « À compléter
+//   avant publication »).
+// Retirer une page de cette liste ET son `noindex` seulement quand elle est finalisée.
+const SHELL_ONLY_PATHS = ["/guides", "/mentions-legales"];
 
 export default defineConfig({
   site: SITE_URL,

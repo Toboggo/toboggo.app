@@ -32,5 +32,7 @@ export interface Dictionary {
       cookies: string;
     };
     copyright: string;
+    /** Introduction de la mention d'attribution OpenStreetMap (le lien ODbL/OSM, lui, est fixe). */
+    dataCredit: string;
   };
 }

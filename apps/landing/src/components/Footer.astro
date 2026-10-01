@@ -45,7 +45,17 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     </nav>
   </div>
 
-  <div class="wrap footer-bottom">{dict.footer.copyright}</div>
+  <div class="wrap footer-bottom">
+    <p>{dict.footer.copyright}</p>
+    <!-- Attribution OpenStreetMap : les données de parcs importées d'OSM sont sous
+         licence ODbL, qui impose la mention « © OpenStreetMap contributors »
+         avec un lien vers la page de licence. -->
+    <p>
+      {dict.footer.dataCredit}
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
+      (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">ODbL</a>)
+    </p>
+  </div>
 </footer>
 
 <style>
@@ -103,6 +113,19 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     margin-top: var(--space-8);
     color: var(--color-text-muted);
     font-size: var(--text-xs);
+  }
+
+  .footer-bottom p {
+    margin: 0 0 var(--space-1);
+  }
+
+  .footer-bottom a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  .footer-bottom a:hover {
+    color: var(--color-primary-hover);
   }
 
   @media (max-width: 800px) {

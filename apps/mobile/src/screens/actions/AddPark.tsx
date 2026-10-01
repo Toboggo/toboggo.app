@@ -29,7 +29,7 @@ import { WizardHeader } from "../../components/WizardHeader";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { AddParkSearch } from "../../components/AddParkSearch";
 import { PinField } from "../../components/PinField";
-import { PhotoTip } from "../../components/PhotoTip";
+import { PhotoPicker } from "../../components/PhotoPicker";
 import { useFormat } from "../../i18n/useFormat";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../../lib/geo";
@@ -39,6 +39,9 @@ import { setResumeRoute } from "../../lib/resumeRoute";
 import { trackEvent } from "../../lib/analytics";
 
 // Stepper keys resolved against the `contribute` namespace.
+// Plafond client des photos du brouillon (inchangé).
+const MAX_PHOTOS = 4;
+
 const STEPS = ["steps.park", "steps.location", "steps.info", "steps.photos", "steps.verify"];
 const TOTAL_STEPS = STEPS.length;
 
@@ -239,20 +242,28 @@ export default function AddPark() {
     }
   }
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !userId) return;
+  // Caméra (1 fichier) ou photothèque (plusieurs) : chaque fichier est envoyé
+  // tout de suite (le brouillon ne garde que des URLs), dans la limite des
+  // places restantes. Un fichier refusé n'empêche pas les suivants.
+  async function addFiles(files: File[]) {
+    if (!files.length || !userId) return;
+    const remaining = Math.max(0, MAX_PHOTOS - draft.photos.length);
+    const accepted = files.slice(0, remaining);
     setUploading(true);
     try {
-      const url = await uploadPhoto("parkPhotos", file, userId);
-      setDraft((d) => ({ ...d, photos: [...d.photos, url].slice(0, 4) }));
-    } catch (err) {
-      showToast(
-        err instanceof ImageValidationError
-          ? tErr(`image.${err.code}`)
-          : tErr("image.uploadFailed"),
-      );
+      for (const file of accepted) {
+        try {
+          const url = await uploadPhoto("parkPhotos", file, userId);
+          setDraft((d) => ({ ...d, photos: [...d.photos, url].slice(0, MAX_PHOTOS) }));
+        } catch (err) {
+          showToast(
+            err instanceof ImageValidationError
+              ? tErr(`image.${err.code}`)
+              : tErr("image.uploadFailed"),
+          );
+        }
+      }
+      if (files.length > accepted.length) showToast(tErr("image.tooMany", { max: MAX_PHOTOS }));
     } finally {
       setUploading(false);
     }
@@ -482,51 +493,15 @@ export default function AddPark() {
           <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
             {t("addPark.photosHint")}
           </p>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {draft.photos.map((p, i) => (
-              <div key={i} style={{ position: "relative", width: 80, height: 80 }}>
-                <div style={{ width: 80, height: 80, borderRadius: 14, backgroundImage: `url(${p})`, backgroundSize: "cover" }} />
-                <button
-                  type="button"
-                  aria-label={t("common.removePhoto")}
-                  onClick={() => removePhoto(i)}
-                  style={{ position: "absolute", top: -6, right: -6, width: 24, height: 24, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.6)", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                >
-                  <Icon name="ic-close" size={12} />
-                </button>
-              </div>
-            ))}
-            {draft.photos.length < 4 && (
-              <label
-                style={{
-                  width: 80,
-                  height: 80,
-                  borderRadius: 14,
-                  border: "2px dashed var(--color-border-strong)",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 4,
-                  cursor: "pointer",
-                  color: "var(--color-text-faint)",
-                }}
-              >
-                {uploading ? (
-                  <span style={{ fontSize: 11 }}>…</span>
-                ) : (
-                  <>
-                    <Icon name="ic-plus" size={20} />
-                    <span style={{ fontSize: 9.5, fontWeight: 600, textAlign: "center", padding: "0 4px", lineHeight: 1.15 }}>
-                      {t("common.addPhoto")}
-                    </span>
-                  </>
-                )}
-                <input type="file" accept="image/*" hidden onChange={onPickFile} disabled={uploading} />
-              </label>
-            )}
-          </div>
-          <PhotoTip />
+          <PhotoPicker
+            previews={draft.photos}
+            max={MAX_PHOTOS}
+            onFiles={addFiles}
+            onRemove={removePhoto}
+            canPick={Boolean(userId)}
+            onRequireAuth={() => showToast(t("common.accountRequiredPhotos"))}
+            busy={uploading}
+          />
           <Button block style={{ marginTop: 24 }} onClick={() => setStep(4)}>
             {draft.photos.length > 0 ? t("common.continue") : t("common.skip")}
           </Button>

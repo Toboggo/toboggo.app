@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { listParksPage } from "@toboggo/shared";
+import { listParks, listParksPage } from "@toboggo/shared";
 import Parks from "./Parks";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -12,6 +12,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     ...actual,
     listParksPage: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 }),
     listParks: vi.fn().mockResolvedValue([]),
+    listPendingParkEditsForOrg: vi.fn().mockResolvedValue([]),
     logActivity: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -24,9 +25,11 @@ vi.mock("../lib/permissions", () => ({
     canEditPark: true,
   }),
 }));
-vi.mock("../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: false, communeId: "org-1" }) }));
+const scope = vi.hoisted(() => ({ isAdmin: true }));
+vi.mock("../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: scope.isAdmin, communeId: scope.isAdmin ? undefined : "org-1" }) }));
+const session = { userName: "Testeur", isGestionnaireOrAbove: () => true, communes: [{ id: "org-1", name: "Ville de Lyon" }] };
 vi.mock("../lib/orgSession", () => ({
-  useOrgSession: () => ({ userName: "Testeur", isGestionnaireOrAbove: () => true }),
+  useOrgSession: (sel?: (s: typeof session) => unknown) => (sel ? sel(session) : session),
 }));
 
 function LocationProbe() {
@@ -51,9 +54,10 @@ function renderParks() {
   );
 }
 
-describe("Parks — création (Lot 3C.4)", () => {
+describe("Parks (admin) — création (Lot 3C.4)", () => {
   beforeEach(() => {
     perms.canCreatePark = true;
+    scope.isAdmin = true;
     vi.mocked(listParksPage).mockClear();
   });
 
@@ -79,5 +83,21 @@ describe("Parks — création (Lot 3C.4)", () => {
     renderParks();
     await waitFor(() => expect(listParksPage).toHaveBeenCalled());
     expect(screen.queryByRole("button", { name: "Ajouter un parc" })).toBeNull();
+  });
+});
+
+describe("Parks — dispatch admin / collectivité (COLL-03B)", () => {
+  it("a collectivité gets the patrimoine view (full list, no server pagination); the admin keeps the paginated table", async () => {
+    scope.isAdmin = false;
+    vi.mocked(listParksPage).mockClear();
+    vi.mocked(listParks).mockClear();
+    const { unmount } = renderParks();
+    await waitFor(() => expect(listParks).toHaveBeenCalled());
+    expect(listParksPage).not.toHaveBeenCalled();
+    unmount();
+
+    scope.isAdmin = true;
+    renderParks();
+    await waitFor(() => expect(listParksPage).toHaveBeenCalled());
   });
 });

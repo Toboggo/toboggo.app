@@ -2,7 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@toboggo/design-system";
 import { REPORT_REASON_LABEL, type Report } from "@toboggo/shared";
 import { ReportStatusTag } from "../../components/StatusTag";
-import { DashboardPanel, PanelEmpty, relativeTime } from "./shared";
+import { Panel, PanelEmpty } from "../../components/Panel";
+import { relativeTime } from "../../lib/relativeTime";
 import styles from "../Dashboard.module.css";
 
 const MAX_ROWS = 5;
@@ -12,7 +13,7 @@ export function RecentReportsPanel({ reports }: { reports: (Report & { parks?: {
   const recent = reports.slice(0, MAX_ROWS);
 
   return (
-    <DashboardPanel
+    <Panel
       title="Signalements récents"
       icon="ic-flag"
       action={
@@ -45,6 +46,6 @@ export function RecentReportsPanel({ reports }: { reports: (Report & { parks?: {
           ))}
         </ul>
       )}
-    </DashboardPanel>
+    </Panel>
   );
 }

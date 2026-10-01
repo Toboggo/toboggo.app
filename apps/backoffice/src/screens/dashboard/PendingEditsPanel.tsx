@@ -1,5 +1,6 @@
 import type { Json, ParkEdit, Park } from "@toboggo/shared";
-import { DashboardPanel, PanelEmpty, relativeTime } from "./shared";
+import { Panel, PanelEmpty, CountBadge } from "../../components/Panel";
+import { relativeTime } from "../../lib/relativeTime";
 import styles from "../Dashboard.module.css";
 
 const MAX_ROWS = 5;
@@ -29,10 +30,10 @@ export function PendingEditsPanel({ edits, parkById }: { edits: ParkEdit[]; park
     // (§5) — a plain, honest count badge in the header instead of a dead
     // link. This header badge is now the only place that count appears
     // (COLL-02D §2 — the old "À traiter" row duplicated it).
-    <DashboardPanel
+    <Panel
       title="Infos à vérifier"
       icon="ic-question"
-      action={edits.length > 0 && <span className={styles.countBadge}>{edits.length}</span>}
+      action={edits.length > 0 && <CountBadge>{edits.length}</CountBadge>}
     >
       {recent.length === 0 ? (
         <PanelEmpty icon="ic-question" text="Aucune information à vérifier." />
@@ -56,6 +57,6 @@ export function PendingEditsPanel({ edits, parkById }: { edits: ParkEdit[]; park
           })}
         </ul>
       )}
-    </DashboardPanel>
+    </Panel>
   );
 }

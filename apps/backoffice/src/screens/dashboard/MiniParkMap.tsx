@@ -4,7 +4,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { mapStyleUrl, type Park } from "@toboggo/shared";
 import { Button } from "@toboggo/design-system";
-import { DashboardPanel, PanelEmpty } from "./shared";
+import { Panel, PanelEmpty } from "../../components/Panel";
 import styles from "../Dashboard.module.css";
 
 const STYLE_URL = mapStyleUrl();
@@ -61,7 +61,7 @@ export function MiniParkMap({ parks }: { parks: Park[] }) {
   const totalViews = parks.reduce((sum, p) => sum + (p.views ?? 0), 0);
 
   return (
-    <DashboardPanel
+    <Panel
       title="Carte de vos parcs"
       icon="ic-explore"
       action={
@@ -83,6 +83,6 @@ export function MiniParkMap({ parks }: { parks: Park[] }) {
           </p>
         </>
       )}
-    </DashboardPanel>
+    </Panel>
   );
 }

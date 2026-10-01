@@ -18,6 +18,7 @@ export const es: Dictionary = {
       fonctionnalites: "Funcionalidades",
       guides: "Guías e ideas",
       collectivites: "Para ayuntamientos",
+      airesDeJeux: "Parques infantiles",
     },
     aPropos: {
       heading: "Acerca de",

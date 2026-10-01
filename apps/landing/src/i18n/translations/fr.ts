@@ -18,6 +18,7 @@ export const fr: Dictionary = {
       fonctionnalites: "Fonctionnalités",
       guides: "Guides & idées",
       collectivites: "Collectivités",
+      airesDeJeux: "Aires de jeux",
     },
     aPropos: {
       heading: "À propos",

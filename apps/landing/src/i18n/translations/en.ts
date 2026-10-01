@@ -18,6 +18,7 @@ export const en: Dictionary = {
       fonctionnalites: "Features",
       guides: "Guides & ideas",
       collectivites: "For local authorities",
+      airesDeJeux: "Playgrounds",
     },
     aPropos: {
       heading: "About",

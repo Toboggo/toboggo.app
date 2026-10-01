@@ -16,6 +16,7 @@ export interface Dictionary {
       fonctionnalites: string;
       guides: string;
       collectivites: string;
+      airesDeJeux: string;
     };
     aPropos: {
       heading: string;

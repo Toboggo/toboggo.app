@@ -1,0 +1,253 @@
+---
+/**
+ * Page SEO locale d'une ville (Website-3B). Générée au BUILD depuis Supabase
+ * (lecture seule) — aucune donnée de parc n'est copiée dans le dépôt. Seules
+ * les villes de lib/seo/cities.ts sont générées. Indexable uniquement si
+ * lib/seo/eligibility.ts le décide, sinon noindex,follow et hors sitemap.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import SeoParkCard from "../../components/SeoParkCard.astro";
+import Button from "../../components/Button.astro";
+import { cityPath, HUB_PATH } from "../../lib/seo/cities";
+import { loadCities, type CityPageData } from "../../lib/seo/cityPage";
+import { breadcrumbLd, parksItemListLd } from "../../lib/seo/jsonld";
+import { groupByMinAge, hasUsefulAgeSections, repeatedStreets } from "../../lib/seo/insights";
+import { ageLabel, formatAddress } from "../../lib/seo/parks";
+
+export async function getStaticPaths() {
+  const cities = await loadCities(import.meta.env);
+  return (cities ?? []).map((data) => ({ params: { city: data.city.slug }, props: { data } }));
+}
+
+interface Props {
+  data: CityPageData;
+}
+
+const { data } = Astro.props;
+const { city, listed, documented, others, eligibility } = data;
+const total = listed.length;
+const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
+
+const ageGroups = groupByMinAge(documented);
+const streets = repeatedStreets(listed);
+const builtOn = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date());
+
+const title = `Aires de jeux à ${city.name}`;
+const description = `${total} ${plural(total, "aire de jeux référencée", "aires de jeux référencées")} à ${city.name} : adresses, tranches d'âge et équipements déclarés. Trouvez le parc adapté à vos enfants avec Toboggo.`;
+
+const jsonLd = [
+  breadcrumbLd([
+    { name: "Accueil", path: "/" },
+    { name: "Aires de jeux", path: HUB_PATH },
+    { name: city.name, path: cityPath(city) },
+  ]),
+  parksItemListLd([...documented, ...others], city.countryCode),
+];
+---
+
+<BaseLayout title={title} description={description} robots={eligibility.eligible ? undefined : "noindex,follow"} jsonLd={jsonLd}>
+  <section class="city-hero">
+    <div class="wrap">
+      <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Aires de jeux", href: HUB_PATH }, { label: city.name }]} />
+      <h1>{title}</h1>
+      <p class="lead">
+        Toboggo référence {total} {plural(total, "aire de jeux", "aires de jeux")} à {city.name} ({city.department}).
+        {documented.length > 0 && ` ${documented.length} ${plural(documented.length, "est déjà détaillée", "sont déjà détaillées")} : tranche d'âge, équipements et accessibilité tels qu'ils ont été déclarés.`}
+      </p>
+      <p class="city-stat"><strong>{total}</strong> {plural(total, "aire de jeux", "aires de jeux")} à {city.name}</p>
+    </div>
+  </section>
+
+  {
+    documented.length > 0 && (
+      <section class="page-section page-section--tint">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>Aires de jeux à découvrir à {city.name}</h2>
+            <p>Les informations proviennent d'OpenStreetMap et des contributions à Toboggo. Elles sont déclarées et pas toutes vérifiées sur place : en cas d'écart, signalez-le depuis la fiche du parc dans l'app.</p>
+          </div>
+          <ul class="card-grid card-grid--2 park-grid">
+            {documented.map((park) => <SeoParkCard park={park} />)}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    hasUsefulAgeSections(ageGroups) && (
+      <section class="page-section page-section--white">
+        <div class="wrap narrow">
+          <div class="section-head">
+            <h2>Aires de jeux selon l'âge des enfants</h2>
+            <p>Tranche d'âge déclarée pour chaque aire de jeux détaillée.</p>
+          </div>
+          <dl class="age-groups">
+            {ageGroups.map((group) => (
+              <div class="age-group">
+                <dt>Dès {group.minAge} {group.minAge > 1 ? "ans" : "an"}</dt>
+                <dd>
+                  <ul>
+                    {group.parks.map((park) => (
+                      <li>
+                        {park.name} <span class="muted">({ageLabel(park)})</span>
+                      </li>
+                    ))}
+                  </ul>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    others.length > 0 && (
+      <section class="page-section">
+        <div class="wrap narrow">
+          <div class="section-head">
+            <h2>Autres aires de jeux référencées à {city.name}</h2>
+            <p>Ces aires de jeux sont localisées mais pas encore détaillées. Vous pouvez compléter leur fiche depuis l'app Toboggo.</p>
+          </div>
+          <ul class="other-list">
+            {others.map((park) => {
+              const address = formatAddress(park);
+              const age = ageLabel(park);
+              return (
+                <li>
+                  <strong>{park.name}</strong>
+                  {address && <span> — {address}</span>}
+                  {age && <span class="muted"> · {age}</span>}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="page-section page-section--tint">
+    <div class="wrap narrow">
+      <div class="section-head">
+        <h2>Où trouver une aire de jeux à {city.name} ?</h2>
+      </div>
+      <p class="where">
+        Chaque aire de jeux est localisée par ses coordonnées : la carte de l'app Toboggo affiche celles qui sont autour de vous, avec un rayon de recherche réglable.
+        {streets.length > 0 && ` Plusieurs aires de jeux sont référencées sur la même rue : ${streets.map((s) => `${s.street} (${s.count})`).join(", ")}.`}
+      </p>
+      <p class="data-note">Données consultées le {builtOn}. Certaines données : © OpenStreetMap contributors (ODbL).</p>
+    </div>
+  </section>
+
+  <section class="page-cta">
+    <div class="wrap">
+      <h2>Trouvez le parc qui convient à vos enfants</h2>
+      <p>Filtrez par âge et par équipements, comparez, gardez vos favoris.</p>
+      <div class="page-actions">
+        <Button href="/#app-toboggo">Découvrir Toboggo</Button>
+        <Button href="/fonctionnalites" variant="secondary">Voir les fonctionnalités</Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .city-hero {
+    padding: var(--space-6) 0 56px;
+    background: var(--color-surface);
+  }
+
+  .city-hero h1 {
+    font-size: clamp(30px, 6vw, 46px);
+    margin: var(--space-5) 0 var(--space-3);
+  }
+
+  .city-hero .lead {
+    max-width: 640px;
+    margin: 0 0 var(--space-5);
+    color: var(--color-text-muted);
+    font-size: 17px;
+  }
+
+  .city-stat {
+    display: inline-block;
+    margin: 0;
+    padding: var(--space-3) var(--space-5);
+    border-radius: var(--radius-md);
+    background: var(--color-primary-tint);
+    color: var(--color-primary-hover);
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  .city-stat strong {
+    font-size: var(--text-2xl);
+    margin-right: var(--space-1);
+  }
+
+  .park-grid {
+    align-items: start;
+  }
+
+  .narrow {
+    max-width: 720px;
+  }
+
+  .age-groups {
+    margin: 0;
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .age-group {
+    background: var(--color-bg);
+    border-radius: var(--radius-md);
+    padding: var(--space-4) var(--space-5);
+  }
+
+  .age-group dt {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    margin-bottom: var(--space-2);
+  }
+
+  .age-group dd {
+    margin: 0;
+  }
+
+  .age-group ul,
+  .other-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .age-group li,
+  .other-list li {
+    padding: var(--space-2) 0;
+    font-size: 14.5px;
+  }
+
+  .other-list li + li {
+    border-top: 1px solid var(--color-border);
+  }
+
+  .muted {
+    color: var(--color-text-muted);
+  }
+
+  .where {
+    margin: 0 0 var(--space-4);
+    color: var(--color-text-muted);
+  }
+
+  .data-note {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-faint);
+  }
+</style>

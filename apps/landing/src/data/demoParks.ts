@@ -17,6 +17,9 @@
  *   exact de apps/mobile/src/i18n/locales/fr/features.json (jamais inventé) ;
  *   les équipements sans libellé FR existant (bascule, éclairage, accès
  *   poussettes…) ne sont volontairement pas repris ici ;
+ * - `fence_status` est lu avec sa VALEUR : « Clôture » seulement si fully_fenced ;
+ *   Viastels est partially_fenced (« Clôture partielle ») et Victoire – Haut
+ *   not_fenced (aucune mention de clôture) ;
  * - aucune ville affichée : le champ `city` n'est pas renseigné pour tous ;
  * - aucune note ni nombre d'avis (aucune donnée fiable).
  *
@@ -71,7 +74,6 @@ export const DEMO_PARKS: DemoPark[] = [
       "Carrousel",
       "Bac à sable",
       "Structure d’escalade",
-      "Clôture",
       "Bancs",
       "Parking",
       "Accès fauteuil roulant",
@@ -80,7 +82,7 @@ export const DEMO_PARKS: DemoPark[] = [
   {
     name: "Aire de jeux de Viastels",
     ageLabel: "De 2 à 9 ans",
-    features: ["Ombrage", "Toboggan", "Bac à sable", "Clôture", "Bancs", "Parking", "Accès fauteuil roulant"],
+    features: ["Ombrage", "Toboggan", "Bac à sable", "Clôture partielle", "Bancs", "Parking", "Accès fauteuil roulant"],
   },
   {
     name: "Aire de jeux de Gourg de bade",

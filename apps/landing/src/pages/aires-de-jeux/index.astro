@@ -1,0 +1,111 @@
+---
+/**
+ * Hub /aires-de-jeux/ — racine SEO. Ne présente que les villes ÉLIGIBLES de
+ * lib/seo/cities.ts (aujourd'hui : Millau, ville pilote). Indexable seulement
+ * s'il y a au moins une ville éligible ; sinon noindex,follow.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../components/Breadcrumb.astro";
+import Button from "../../components/Button.astro";
+import { cityPath, HUB_PATH } from "../../lib/seo/cities";
+import { loadCities } from "../../lib/seo/cityPage";
+import { breadcrumbLd, citiesItemListLd } from "../../lib/seo/jsonld";
+
+const cities = ((await loadCities(import.meta.env)) ?? []).filter((c) => c.eligibility.eligible);
+const indexable = cities.length > 0;
+
+const jsonLd = [
+  breadcrumbLd([
+    { name: "Accueil", path: "/" },
+    { name: "Aires de jeux", path: HUB_PATH },
+  ]),
+  ...(indexable ? [citiesItemListLd(cities)] : []),
+];
+---
+
+<BaseLayout
+  title="Aires de jeux"
+  description="Trouvez les aires de jeux adaptées à vos enfants avec Toboggo : tranche d'âge, équipements et accessibilité. Découvrez Millau, notre première ville."
+  robots={indexable ? undefined : "noindex,follow"}
+  jsonLd={jsonLd}
+>
+  <section class="hub-hero">
+    <div class="wrap">
+      <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Aires de jeux" }]} />
+      <h1>Aires de jeux</h1>
+      <p class="lead">
+        Toboggo aide les familles à trouver les aires de jeux adaptées à leurs enfants : tranche d'âge, équipements, services et accessibilité, sur une seule application.
+      </p>
+    </div>
+  </section>
+
+  <section class="page-section page-section--tint">
+    <div class="wrap narrow">
+      <div class="section-head">
+        <h2>Villes disponibles</h2>
+        <p>Millau est notre première ville : les aires de jeux y sont référencées avec leur adresse et leurs équipements déclarés.</p>
+      </div>
+      {
+        indexable ? (
+          <ul class="card-grid city-list">
+            {cities.map((c) => (
+              <li class="info-card">
+                <h3>
+                  <a href={cityPath(c.city)}>Aires de jeux à {c.city.name}</a>
+                </h3>
+                <p>
+                  {c.listed.length} {c.listed.length > 1 ? "aires de jeux référencées" : "aire de jeux référencée"} ({c.city.department}).
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p class="note">Aucune ville n'est disponible pour le moment.</p>
+        )
+      }
+    </div>
+  </section>
+
+  <section class="page-cta">
+    <div class="wrap">
+      <h2>Découvrez Toboggo</h2>
+      <p>Une carte, des filtres par âge et par équipements, des favoris : tout pour choisir le bon parc.</p>
+      <div class="page-actions">
+        <Button href="/#app-toboggo">Découvrir Toboggo</Button>
+        <Button href="/fonctionnalites" variant="secondary">Voir les fonctionnalités</Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .hub-hero {
+    padding: var(--space-6) 0 56px;
+    background: var(--color-surface);
+  }
+
+  .hub-hero h1 {
+    font-size: clamp(30px, 6vw, 46px);
+    margin: var(--space-5) 0 var(--space-3);
+  }
+
+  .hub-hero .lead {
+    max-width: 640px;
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 17px;
+  }
+
+  .narrow {
+    max-width: 720px;
+  }
+
+  .city-list .info-card h3 a {
+    color: var(--color-text);
+    text-decoration: none;
+  }
+
+  .city-list .info-card h3 a:hover {
+    color: var(--color-primary-hover);
+  }
+</style>

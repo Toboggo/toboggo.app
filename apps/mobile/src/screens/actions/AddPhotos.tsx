@@ -316,32 +316,68 @@ export default function AddPhotos() {
               </div>
             ))}
 
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              gap: 8,
-              background: "var(--color-warning-bg)",
-              color: "var(--color-warning-text)",
-              borderRadius: "var(--radius-sm)",
-              padding: "12px 14px",
-              fontSize: 13,
-              marginTop: 16,
-            }}
-          >
-            <BulbIcon />
-            <span>
-              <strong>{t("photoTip.label")}</strong> — {t("photoTip.text")}
-            </span>
-          </div>
+          <TipBlock label={t("photoTip.label")} text={t("photoTip.text")} />
           {!userId && (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
               {t("common.accountRequiredPhotos")}
             </p>
           )}
+          <Button block disabled={!picks.length} style={{ marginTop: 16 }} onClick={() => setStep(2)}>
+            {t("common.continue")}
+          </Button>
+        </div>
+      )}
+
+      {step === 2 && (
+        // Étape réellement atteinte désormais — jusqu'ici "Confirmation" n'était
+        // qu'un libellé de stepper jamais rendu (le bouton de l'étape Photos
+        // envoyait directement). L'upload/la création de la contribution ne se
+        // déclenchent qu'ici, sur clic explicite ; "Modifier les photos" revient
+        // à l'étape 1 sans toucher à `picks` (état du composant, inchangé par un
+        // simple changement de `step`).
+        <div style={{ padding: "0 20px" }}>
+          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("steps.confirmation")}</h2>
+          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+            {park && getParkDisplayName(park, t)}
+          </p>
+          <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
+            {t("addPhotos.readyCount", { count: picks.length })}
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+            {picks.map((pick, i) => (
+              <div
+                key={i}
+                style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${pick.preview})`, backgroundSize: "cover", backgroundPosition: "center" }}
+              />
+            ))}
+          </div>
+
+          <TipBlock label={t("photoTip.label")} text={t("photoTip.text")} />
+
           <Button block loading={saving} disabled={!picks.length} style={{ marginTop: 16 }} onClick={submit}>
             {t("addPhotos.submit", { count: picks.length })}
           </Button>
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "center",
+              background: "none",
+              border: "none",
+              color: "var(--color-primary)",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: "pointer",
+              padding: 12,
+              marginTop: 4,
+            }}
+          >
+            {t("addPhotos.editPhotos")}
+          </button>
         </div>
       )}
     </div>
@@ -410,6 +446,34 @@ function GalleryIcon() {
       <circle cx="8.5" cy="9.5" r="1.6" />
       <path d="M21 16.5 15.5 11 6 20" />
     </svg>
+  );
+}
+
+// Bloc Conseil — partagé entre l'étape Photos et l'étape Confirmation (texte
+// identique dans les deux). Reprend le composant `PhotoTip` partagé (même
+// clés i18n `photoTip.*`) sans l'utiliser directement : `PhotoTip` est aussi
+// monté par RatePark/ReportProblem/AddPark, et lui ajouter le pictogramme ici
+// aurait changé ces trois écrans hors du périmètre de ce lot.
+function TipBlock({ label, text }: { label: string; text: string }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 8,
+        background: "var(--color-warning-bg)",
+        color: "var(--color-warning-text)",
+        borderRadius: "var(--radius-sm)",
+        padding: "12px 14px",
+        fontSize: 13,
+        marginTop: 16,
+      }}
+    >
+      <BulbIcon />
+      <span>
+        <strong>{label}</strong> — {text}
+      </span>
+    </div>
   );
 }
 

@@ -110,6 +110,13 @@ function pickFromLibrary(container: HTMLElement, files: File[]) {
   fireEvent.change(libraryInput(container)!, { target: { files } });
 }
 
+// The Photos step's main button no longer uploads anything — it only moves to
+// the Confirmation step (see AddPhotos.tsx). Every test that used to click
+// "Envoyer" straight after picking now goes through here first.
+function goToConfirmation() {
+  fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+}
+
 beforeEach(() => {
   localStorage.clear();
   sess.userId = null;
@@ -168,6 +175,8 @@ describe("AddPhotos — account required BEFORE the file picker (LOT 3D.F, point
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container);
+    goToConfirmation();
+    await screen.findByRole("button", { name: /Envoyer/ });
 
     sess.userId = null; // simulate an external logout mid-form
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
@@ -185,6 +194,8 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     await screen.findByText("Square Voltaire");
     expect(localStorage.length).toBe(0);
     pick(container);
+    expect(localStorage.length).toBe(0);
+    goToConfirmation();
     expect(localStorage.length).toBe(0);
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
     await waitFor(() => expect(addParkPhotos).toHaveBeenCalledTimes(1));
@@ -222,6 +233,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container, makeFile("a.jpg"));
+    goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
 
     await waitFor(() => expect(uploadPhoto).toHaveBeenCalledWith("parkPhotos", expect.any(File), "u1"));
@@ -235,6 +247,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container);
+    goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
 
     // Server error details are never surfaced verbatim — a generic, translated
@@ -249,6 +262,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container, makeFile("a.jpg"));
+    goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
     await screen.findByText("Photo envoyée !");
 
@@ -262,6 +276,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container, makeFile("a.jpg"));
+    goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
     await screen.findByText("Photo envoyée !");
 
@@ -276,6 +291,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     await screen.findByText("Square Voltaire");
     pick(container, makeFile("a.jpg"));
     pick(container, makeFile("b.jpg"));
+    goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
 
     const heading = await screen.findByText("Photo envoyée !");
@@ -291,6 +307,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container);
+    goToConfirmation();
     const sendButton = screen.getByRole("button", { name: /Envoyer/ });
     fireEvent.click(sendButton);
     fireEvent.click(sendButton); // second click — button is now loading/disabled
@@ -395,6 +412,7 @@ describe("AddPhotos — take a photo vs choose from the library", () => {
     await screen.findByText("Square Voltaire");
 
     pickFromLibrary(container, [makeFile("a.jpg"), makeFile("b.jpg")]);
+    goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
 
     await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(2));
@@ -465,5 +483,90 @@ describe("AddPhotos — HEIC/HEIF caught before upload, not after (LOT photo-lib
 
     expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1);
     expect(probe).not.toHaveBeenCalled();
+  });
+});
+
+describe("AddPhotos — real Confirmation step (Continuer / Modifier les photos)", () => {
+  it("picking a photo alone never uploads anything", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+
+    pick(container);
+
+    expect(uploadPhoto).not.toHaveBeenCalled();
+    expect(addParkPhotos).not.toHaveBeenCalled();
+  });
+
+  it("clicking \"Continuer\" moves to the Confirmation step without uploading anything", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container);
+
+    goToConfirmation();
+
+    // "Confirmation" also appears as a (future/current) stepper label at every
+    // step — the heading is what proves the screen itself changed.
+    expect(await screen.findByRole("heading", { name: "Confirmation" })).toBeTruthy();
+    expect(uploadPhoto).not.toHaveBeenCalled();
+    expect(addParkPhotos).not.toHaveBeenCalled();
+  });
+
+  it("the selected photos are carried over to the Confirmation step, with a ready-to-send count", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pickFromLibrary(container, [makeFile("a.jpg"), makeFile("b.jpg")]);
+
+    goToConfirmation();
+
+    await screen.findByText("2 photos prêtes à être envoyées");
+    // Two thumbnails, not the pick tiles/actions — Confirmation is read-only.
+    expect(container.querySelectorAll('[style*="background-image"]')).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: /Prendre une photo/ })).toBeNull();
+  });
+
+  it("\"Modifier les photos\" returns to the Photos step without losing the selection", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pickFromLibrary(container, [makeFile("a.jpg"), makeFile("b.jpg")]);
+    goToConfirmation();
+    await screen.findByText("2 photos prêtes à être envoyées");
+
+    fireEvent.click(screen.getByRole("button", { name: "Modifier les photos" }));
+
+    expect(await screen.findByText("2 / 5 photos")).toBeTruthy();
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(2);
+  });
+
+  it("the upload only fires on \"Envoyer\" in Confirmation, never before", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container);
+    goToConfirmation();
+    await screen.findByText("1 photo prête à être envoyée");
+    expect(uploadPhoto).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
+
+    await waitFor(() => expect(uploadPhoto).toHaveBeenCalledTimes(1));
+    expect(addParkPhotos).toHaveBeenCalledTimes(1);
+  });
+
+  it("the back arrow from Confirmation also returns to Photos without losing the selection", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container, makeFile("a.jpg"));
+    goToConfirmation();
+    await screen.findByText("1 photo prête à être envoyée");
+
+    fireEvent.click(screen.getByLabelText("Retour"));
+
+    expect(await screen.findByText("1 / 5 photos")).toBeTruthy();
+    expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1);
   });
 });

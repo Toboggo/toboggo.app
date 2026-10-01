@@ -9,8 +9,13 @@ describe("deriveMapZeroResultReason", () => {
     expect(deriveMapZeroResultReason(true, true, 3, "Lyon")).toBeNull();
   });
 
-  it("prioritizes location_denied over every other reason", () => {
-    expect(deriveMapZeroResultReason(false, true, 2, "Lyon")).toBe("location_denied");
+  it("prioritizes location_denied over filters when no destination is active", () => {
+    expect(deriveMapZeroResultReason(false, true, 2, null)).toBe("location_denied");
+  });
+
+  it("lets an explicit destination win over a denied location", () => {
+    expect(deriveMapZeroResultReason(false, true, 0, "Barcelone")).toBe("place_not_found");
+    expect(deriveMapZeroResultReason(false, true, 2, "Barcelone")).toBe("filters_active");
   });
 
   it("is filters_active when filters are on and location isn't denied", () => {

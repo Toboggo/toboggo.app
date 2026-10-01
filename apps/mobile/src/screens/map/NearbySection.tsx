@@ -16,12 +16,15 @@ export function NearbyHeader({
   radiusKm,
   onOpenZone,
   onExpand,
+  placeLabel,
 }: {
   count: number;
   radiusKm: RadiusKm;
   onOpenZone: () => void;
   /** Peek only: raises the sheet one snap (same as tapping the handle). */
   onExpand?: () => void;
+  /** Explicitly searched destination — the title then reads "Autour de <place>". */
+  placeLabel?: string | null;
 }) {
   const { t } = useTranslation("map");
   const f = useFormat();
@@ -32,7 +35,7 @@ export function NearbyHeader({
         <BinocularsIcon size={20} />
       </span>
       <div className={styles.headText}>
-        <div className={styles.title}>{t("nearby.title")}</div>
+        <div className={styles.title}>{placeLabel ? t("nearby.titlePlace", { place: placeLabel }) : t("nearby.title")}</div>
         <div className={styles.subtitle}>
           {count > 0 ? t("nearby.subtitle", { count, distance }) : t("nearby.subtitleNone", { distance })}
         </div>

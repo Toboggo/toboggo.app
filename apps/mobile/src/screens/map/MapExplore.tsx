@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { BottomSheet, Icon, useBottomNavHeight, useViewportHeight, type Snap } from "@toboggo/design-system";
 import { mapStyleUrl } from "@toboggo/shared";
 import { trackEvent, type AnalyticsEventProperties } from "../../lib/analytics";
-import { MapCanvas } from "./MapCanvas";
+import { MapCanvas, type MapViewport } from "./MapCanvas";
 import { SearchOverlay } from "./SearchOverlay";
 import { FiltersSheet } from "./FiltersSheet";
 import { ParkPreview } from "./ParkPreview";
@@ -47,7 +47,9 @@ const SNAPS_SINGLE: Snap[] = ["fit"];
  * Décision pure (testable sans monter l'écran) : laquelle des 4 raisons de
  * "0 résultat" de `renderSheet()` s'applique, ou `null` s'il y a des
  * résultats. Reflète EXACTEMENT l'ordre de priorité du rendu ci-dessous —
- * toute modification de l'un doit se répercuter sur l'autre.
+ * toute modification de l'un doit se répercuter sur l'autre. Une destination
+ * explicitement recherchée (`placeLabel`) l'emporte sur l'état de permission
+ * GPS : "localisation désactivée" ne vaut que sans destination active.
  */
 export function deriveMapZeroResultReason(
   hasResults: boolean,
@@ -56,7 +58,7 @@ export function deriveMapZeroResultReason(
   placeLabel: string | null,
 ): AnalyticsEventProperties["zero_results"]["reason"] | null {
   if (hasResults) return null;
-  if (locationPermissionDenied) return "location_denied";
+  if (locationPermissionDenied && !placeLabel) return "location_denied";
   if (filterCount > 0) return "filters_active";
   if (placeLabel) return "place_not_found";
   return "default_area";
@@ -82,6 +84,8 @@ export default function MapExplore() {
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recenterSignal, setRecenterSignal] = useState(0);
+  // Destination géographique explicitement recherchée (cadrée sur sa bbox).
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
   const [nearbyContext, setNearbyContext] = useState<NearbyContext>("nearby");
   const [radiusOpen, setRadiusOpen] = useState(false);
   const radiusKm = useNearbyRadius((s) => s.radiusKm);
@@ -206,6 +210,7 @@ export default function MapExplore() {
       const { setLocation, setPermission } = useGeo.getState();
       setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       setPermission("granted");
+      setViewport(null); // retour à la position réelle : plus de destination cadrée à rejouer
       setRecenterSignal((n) => n + 1);
     } catch {
       useGeo.getState().setPermission("denied");
@@ -333,7 +338,7 @@ export default function MapExplore() {
       );
     }
     if (!hasResults) {
-      if (permission === "denied") {
+      if (permission === "denied" && !placeLabel) {
         return (
           <SheetState
             iconName="ic-explore"
@@ -404,6 +409,7 @@ export default function MapExplore() {
         radiusKm={radiusKm}
         onOpenZone={() => setRadiusOpen(true)}
         onExpand={snap === 0 ? () => setSnap(1) : undefined}
+        placeLabel={placeLabel}
       />
     );
     if (snap === 0) return header;
@@ -454,6 +460,7 @@ export default function MapExplore() {
         onSelect={setSelectedId}
         onBackgroundTap={handleMapBackgroundTap}
         recenterSignal={recenterSignal}
+        viewport={viewport}
         showUser={permission === "granted"}
         insets={mapInsets}
       />
@@ -554,14 +561,31 @@ export default function MapExplore() {
       {searchOpen && (
         <SearchOverlay
           onClose={() => setSearchOpen(false)}
-          onSelectPark={(id) => {
+          // Parc choisi explicitement : on recentre sur lui ET on déplace la zone
+          // chargée (centre du store), sinon un parc hors des 20 km actuels ne
+          // serait jamais dans `parks` et la fiche ne s'ouvrirait pas.
+          onSelectPark={(park) => {
             setSearchOpen(false);
-            setSelectedId(id);
+            if (park.lat != null && park.lng != null) {
+              useGeo.getState().setLocation(park.lat, park.lng, park.city ?? park.name);
+              setRecenterSignal((n) => n + 1);
+            }
+            setSelectedId(park.id);
           }}
+          // Lieu géographique : « explorer cette zone » — aucun parc sélectionné.
+          // Le centre du store change une seule fois (une seule requête de
+          // parcs) ; la caméra se cale sur la bbox via `viewport`.
           onSelectPlace={(place) => {
             setSearchOpen(false);
+            setSelectedId(null);
             useGeo.getState().setLocation(place.lat, place.lng, place.name);
-            setRecenterSignal((n) => n + 1);
+            setViewport((v) => ({
+              id: (v?.id ?? 0) + 1,
+              lat: place.lat,
+              lng: place.lng,
+              bbox: place.bbox,
+              placeType: place.placeType,
+            }));
           }}
         />
       )}

@@ -24,6 +24,9 @@ const seoExclusions = sitemapExclusions(await loadCities(env));
 export default defineConfig({
   site: SITE_URL,
   output: "static",
+  // Une seule URL par page : toujours avec slash final (canonicals, sitemap, liens
+  // internes et vercel.json "trailingSlash" vont dans le même sens).
+  trailingSlash: "always",
   integrations: [
     sitemap({
       filter: (page) => {

@@ -6,11 +6,11 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
 
 const LINKS = [
   { href: "/", label: dict.nav.accueil },
-  { href: "/fonctionnalites", label: dict.nav.fonctionnalites },
+  { href: "/fonctionnalites/", label: dict.nav.fonctionnalites },
   { href: "/aires-de-jeux/", label: dict.nav.airesDeJeux },
-  { href: "/guides", label: dict.nav.guides },
-  { href: "/collectivites", label: dict.nav.collectivites },
-  { href: "/a-propos", label: dict.nav.aPropos },
+  { href: "/guides/", label: dict.nav.guides },
+  { href: "/collectivites/", label: dict.nav.collectivites },
+  { href: "/a-propos/", label: dict.nav.aPropos },
 ];
 // Page courante : "/" seulement sur l'accueil ; les autres par préfixe de chemin.
 const path = Astro.url.pathname;

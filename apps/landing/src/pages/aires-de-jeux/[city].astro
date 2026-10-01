@@ -33,7 +33,8 @@ const ageGroups = groupByMinAge(documented);
 const streets = repeatedStreets(listed);
 const builtOn = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date());
 
-const title = `Aires de jeux à ${city.name}`;
+const h1 = `Aires de jeux à ${city.name}`;
+const title = `${h1} : équipements et âges`;
 const description = `${total} ${plural(total, "aire de jeux référencée", "aires de jeux référencées")} à ${city.name} : adresses, tranches d'âge et équipements déclarés. Trouvez le parc adapté à vos enfants avec Toboggo.`;
 
 const jsonLd = [
@@ -50,7 +51,7 @@ const jsonLd = [
   <section class="city-hero">
     <div class="wrap">
       <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Aires de jeux", href: HUB_PATH }, { label: city.name }]} />
-      <h1>{title}</h1>
+      <h1>{h1}</h1>
       <p class="lead">
         Toboggo référence {total} {plural(total, "aire de jeux", "aires de jeux")} à {city.name} ({city.department}).
         {documented.length > 0 && ` ${documented.length} ${plural(documented.length, "est déjà détaillée", "sont déjà détaillées")} : tranche d'âge, équipements et accessibilité tels qu'ils ont été déclarés.`}

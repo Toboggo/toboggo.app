@@ -4,6 +4,7 @@ export const en: Dictionary = {
   nav: {
     accueil: "Home",
     fonctionnalites: "Features",
+    airesDeJeux: "Playgrounds",
     guides: "Guides & ideas",
     collectivites: "For local authorities",
     aPropos: "About",

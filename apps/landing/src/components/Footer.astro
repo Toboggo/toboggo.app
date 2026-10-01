@@ -22,7 +22,7 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     </div>
 
     <nav class="footer-col" aria-label={dict.footer.explorer.heading}>
-      <h3>{dict.footer.explorer.heading}</h3>
+      <p class="footer-title">{dict.footer.explorer.heading}</p>
       <a href="/fonctionnalites">{dict.footer.explorer.fonctionnalites}</a>
       <a href="/guides">{dict.footer.explorer.guides}</a>
       <a href="/aires-de-jeux/">{dict.footer.explorer.airesDeJeux}</a>
@@ -30,7 +30,7 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     </nav>
 
     <nav class="footer-col" aria-label={dict.footer.aPropos.heading}>
-      <h3>{dict.footer.aPropos.heading}</h3>
+      <p class="footer-title">{dict.footer.aPropos.heading}</p>
       <a href="/a-propos#mission">{dict.footer.aPropos.mission}</a>
       <a href="/a-propos#histoire">{dict.footer.aPropos.histoire}</a>
       <a href="/contact">{dict.footer.aPropos.contact}</a>
@@ -38,7 +38,7 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     </nav>
 
     <nav class="footer-col" aria-label={dict.footer.legal.heading}>
-      <h3>{dict.footer.legal.heading}</h3>
+      <p class="footer-title">{dict.footer.legal.heading}</p>
       <a href="/cgu#confidentialite">{dict.footer.legal.confidentialite}</a>
       <a href="/cgu#cgu">{dict.footer.legal.cgu}</a>
       <a href="/mentions-legales">{dict.footer.legal.mentionsLegales}</a>
@@ -92,7 +92,7 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     gap: var(--space-3);
   }
 
-  .footer-col h3 {
+  .footer-col .footer-title {
     font-family: var(--font-heading);
     font-size: var(--text-sm);
     font-weight: 700;

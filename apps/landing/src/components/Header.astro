@@ -3,6 +3,18 @@ import Logo from "./Logo.astro";
 import { getDictionary, getLangFromUrl } from "../i18n/utils";
 
 const dict = getDictionary(getLangFromUrl(Astro.url));
+
+const LINKS = [
+  { href: "/", label: dict.nav.accueil },
+  { href: "/fonctionnalites", label: dict.nav.fonctionnalites },
+  { href: "/aires-de-jeux/", label: dict.nav.airesDeJeux },
+  { href: "/guides", label: dict.nav.guides },
+  { href: "/collectivites", label: dict.nav.collectivites },
+  { href: "/a-propos", label: dict.nav.aPropos },
+];
+// Page courante : "/" seulement sur l'accueil ; les autres par préfixe de chemin.
+const path = Astro.url.pathname;
+const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWith(href.replace(/\/$/, "")));
 ---
 
 <header class="site-header">
@@ -10,11 +22,7 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     <Logo />
 
     <nav class="nav-links" id="primary-nav" aria-label="Navigation principale">
-      <a href="/">{dict.nav.accueil}</a>
-      <a href="/fonctionnalites">{dict.nav.fonctionnalites}</a>
-      <a href="/guides">{dict.nav.guides}</a>
-      <a href="/collectivites">{dict.nav.collectivites}</a>
-      <a href="/a-propos">{dict.nav.aPropos}</a>
+      {LINKS.map((link) => <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined}>{link.label}</a>)}
       <a class="btn btn-primary" href="/#comment-ca-marche">{dict.cta.decouvrir}</a>
     </nav>
 
@@ -74,8 +82,22 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     font-weight: 600;
   }
 
-  .nav-links a:not(.btn):hover {
+  .nav-links a:not(.btn):hover,
+  .nav-links a[aria-current="page"]:not(.btn) {
     color: var(--color-primary-hover);
+  }
+
+  .nav-links a[aria-current="page"]:not(.btn) {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+
+  /* 6 liens + CTA : on resserre avant le menu mobile (800px) pour éviter tout débordement */
+  @media (max-width: 1040px) {
+    .nav-links {
+      gap: var(--space-5);
+    }
   }
 
   .nav-toggle {

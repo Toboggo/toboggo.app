@@ -2,6 +2,7 @@ export interface Dictionary {
   nav: {
     accueil: string;
     fonctionnalites: string;
+    airesDeJeux: string;
     guides: string;
     collectivites: string;
     aPropos: string;

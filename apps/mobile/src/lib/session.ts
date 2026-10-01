@@ -8,7 +8,7 @@ import {
   updateProfile as apiUpdateProfile,
   type Profile,
 } from "@toboggo/shared";
-import { registerIsAuthenticated, trackEvent } from "./analytics";
+import { identifyAnalyticsUser, registerIsAuthenticated, resetAnalyticsIdentity, trackEvent } from "./analytics";
 import { clearGoogleLoginMarker, consumeGoogleLoginMarker, isNewAccount } from "./googleLogin";
 import { hasPendingResumeRoute } from "./resumeRoute";
 
@@ -58,6 +58,9 @@ export const useSession = create<SessionState>((set, get) => ({
     getSession()
       .then((session) => {
         if (session?.user) {
+          // Restauration / retour OAuth : identité analytics AVANT tout
+          // événement auth, pour que signup/login_completed lui soient rattachés.
+          identifyAnalyticsUser(session.user.id);
           trackGoogleAuthIfPending(session.user);
           void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
         } else {
@@ -70,6 +73,12 @@ export const useSession = create<SessionState>((set, get) => ({
 
     onAuthStateChange((userId) => {
       const current = get().userId;
+
+      // Identité analytics, synchrone et en premier : cet appel s'exécute
+      // pendant `signIn()`/`signUp()`, donc avant le `trackEvent` de l'écran.
+      // Idempotent (TOKEN_REFRESHED/SIGNED_IN répétés) ; SIGNED_OUT → reset.
+      if (userId) identifyAnalyticsUser(userId);
+      else resetAnalyticsIdentity();
 
       // supabase-js re-emits SIGNED_IN / TOKEN_REFRESHED every time the tab or
       // installed PWA regains visibility (GoTrueClient._recoverAndRefresh), not

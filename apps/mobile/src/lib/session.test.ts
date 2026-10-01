@@ -42,11 +42,15 @@ const favMock = vi.hoisted(() => ({
 const analyticsMock = vi.hoisted(() => ({
   trackEvent: vi.fn(),
   registerIsAuthenticated: vi.fn(),
+  identifyAnalyticsUser: vi.fn(),
+  resetAnalyticsIdentity: vi.fn(),
 }));
 
 vi.mock("./analytics", () => ({
   trackEvent: analyticsMock.trackEvent,
   registerIsAuthenticated: analyticsMock.registerIsAuthenticated,
+  identifyAnalyticsUser: analyticsMock.identifyAnalyticsUser,
+  resetAnalyticsIdentity: analyticsMock.resetAnalyticsIdentity,
 }));
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -111,6 +115,8 @@ beforeEach(() => {
   supa.profileCalls = 0;
   favMock.apiToggleFavorite.mockReset().mockResolvedValue([]);
   analyticsMock.trackEvent.mockReset();
+  analyticsMock.identifyAnalyticsUser.mockReset();
+  analyticsMock.resetAnalyticsIdentity.mockReset();
   sessionStore.clear();
   localStore.clear();
   useSession.setState({ userId: null, profile: null, loading: true, guestMode: false, pendingResume: null });
@@ -408,5 +414,60 @@ describe("login_completed (Google OAuth)", () => {
     authMock.emit("user-1");
     await flush();
     expect(analyticsMock.trackEvent).not.toHaveBeenCalled();
+  });
+});
+
+// Identité analytics (LOT 2) : voir `identifyAnalyticsUser` (analytics/client.ts).
+describe("analytics identity wiring", () => {
+  it("anonymous start (no session) → nothing identified", async () => {
+    useSession.getState().init();
+    authMock.emit(null); // INITIAL_SESSION sans session
+    await flush();
+    expect(analyticsMock.identifyAnalyticsUser).not.toHaveBeenCalled();
+  });
+
+  it("restoring an existing session → identifies that user (same id on every reload)", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    await flush();
+    expect(analyticsMock.identifyAnalyticsUser).toHaveBeenCalledWith("user-1");
+  });
+
+  it("auth event (SIGNED_IN) → identifies synchronously, before any async profile load", () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    authMock.emit("user-1");
+    expect(analyticsMock.identifyAnalyticsUser).toHaveBeenCalledWith("user-1");
+  });
+
+  it("Google return: identify happens BEFORE signup/login_completed", async () => {
+    markGoogleLoginStarted();
+    supa.session = SESSION;
+    useSession.getState().init();
+    authMock.emit("user-1");
+    await flush();
+    const identifyOrder = analyticsMock.identifyAnalyticsUser.mock.invocationCallOrder[0];
+    const trackOrder = analyticsMock.trackEvent.mock.invocationCallOrder[0];
+    expect(identifyOrder).toBeLessThan(trackOrder);
+  });
+
+  it("SIGNED_OUT → resets the analytics identity", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    await flush();
+    authMock.emit(null);
+    expect(analyticsMock.resetAnalyticsIdentity).toHaveBeenCalledTimes(1);
+  });
+
+  it("account A signs out, account B signs in → reset then identify(B), never A→B", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    await flush();
+    authMock.emit(null);
+    authMock.emit("user-2");
+    expect(analyticsMock.identifyAnalyticsUser.mock.calls.map((c) => c[0])).toEqual(["user-1", "user-2"]);
+    expect(analyticsMock.resetAnalyticsIdentity.mock.invocationCallOrder[0]).toBeLessThan(
+      analyticsMock.identifyAnalyticsUser.mock.invocationCallOrder[1],
+    );
   });
 });

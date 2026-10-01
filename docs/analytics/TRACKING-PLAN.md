@@ -176,6 +176,17 @@ Ce tracking plan a été écrit avant l'implémentation ; cette section reflète
 - **Sécurité URL** : `before_send` (`lib/analytics/sanitizeUrl.ts`) réduit `$current_url`,
   `$referrer`, `$initial_*` à `origin + pathname` — le hash OAuth Supabase n'atteint jamais PostHog.
 
+### Identité PostHog — `identify` / `reset` (LOT 2)
+
+- `identify(<UUID Supabase>)` seul, sans propriété, posé de façon synchrone dans le callback
+  `onAuthStateChange` de `session.ts` (pendant `signIn()`/`signUp()`, donc avant
+  `login_completed`/`signup_completed`) et à la restauration de session ; idempotent.
+- `reset()` sur SIGNED_OUT (et avant d'identifier un autre compte si aucune déconnexion n'a été vue).
+- `is_authenticated` = session connue OU identité analytics posée : cohérent dès la fin de
+  `signIn()`/`signUp()` (avant, `login_completed` partait avec `false` car `useSession.userId`
+  n'est renseigné qu'après le chargement asynchrone du profil).
+- Persistance inchangée (`memory`) — voir `PRIVACY-RULES.md` §7bis.
+
 ### `route_requested` — instrumenté après la reconstruction du flux Itinéraire
 
 Le flux Itinéraire a été reconstruit (`DirectionsSheet` + `useDirections`/`lib/directions.ts`,

@@ -233,8 +233,17 @@ survit pas à un rechargement de page ou à la fermeture de l'app — chaque nou
 utilisateur non connecté est vue comme un nouvel anonyme. Les KPI reposant sur des utilisateurs
 anonymes uniques dans la durée (nouveaux vs returning avant inscription, funnels multi-sessions
 pour un invité) seront sous-évalués jusqu'à ce que ce point soit tranché. Un utilisateur connecté
-reste, lui, correctement identifié (Supabase `userId` comme `distinct_id`), pas affecté par cette
-limite.
+est, lui, rattaché à une seule personne PostHog : `identifyAnalyticsUser(userId)`
+(`lib/analytics/client.ts`, appelé par `lib/session.ts` dès que l'id Supabase est connu —
+connexion, inscription, restauration de session au démarrage) appelle `posthog.identify(<UUID
+Supabase>)` **sans aucune propriété** (ni e-mail, ni nom). Comme la persistance reste `memory`,
+chaque rechargement repart d'un `distinct_id` anonyme neuf, immédiatement rattaché à la même
+personne par cet `identify()` (un événement `$identify` par chargement — attendu). À la
+déconnexion, `resetAnalyticsIdentity()` appelle `posthog.reset()` : le compte suivant sur ce
+navigateur n'est jamais fusionné avec le précédent. Aucun stockage navigateur n'est ajouté : la
+décision de consentement du §8 n'est pas anticipée. Limite restante : un invité qui s'inscrit
+après un rechargement (ex. retour Google/e-mail de confirmation) perd le lien avec sa navigation
+anonyme précédente.
 
 ## 8. Points nécessitant une validation RGPD/CNIL — ne pas trancher seul
 

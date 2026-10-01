@@ -91,6 +91,16 @@ function normalizeForMatch(value: string): string {
 }
 
 /**
+ * `name` correspond-il EXACTEMENT à la saisie (insensible à la casse, aux
+ * accents et aux espaces superflus) ? Rang 0 de `rankPlaces` ; sert aussi à
+ * décider si un lieu ou un parc « est » ce que l'utilisateur a tapé.
+ */
+export function isExactNameMatch(query: string, name: string): boolean {
+  const q = normalizeForMatch(query);
+  return q !== "" && normalizeForMatch(name) === q;
+}
+
+/**
  * Classe les lieux d'une recherche pour une validation « Entrée » : nom exact
  * (insensible à la casse et aux accents), puis nom commençant par la saisie,
  * puis nom la contenant, puis le reste. À rang égal, l'ordre du fournisseur est

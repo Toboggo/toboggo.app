@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { rankPlaces, searchPlaces, type GeoPlace } from "./geocode";
+import { isExactNameMatch, rankPlaces, searchPlaces, type GeoPlace } from "./geocode";
 
 const place = (name: string, extra: Partial<GeoPlace> = {}): GeoPlace => ({
   id: name,
@@ -34,6 +34,22 @@ describe("rankPlaces", () => {
 
   it("is generic — no city-specific rule", () => {
     expect(rankPlaces("Madrid", [place("Madridejos"), place("Madrid")])[0].name).toBe("Madrid");
+  });
+});
+
+describe("isExactNameMatch", () => {
+  it("ignores case, accents and surrounding / repeated spaces", () => {
+    expect(isExactNameMatch("toulouse", "Toulouse")).toBe(true);
+    expect(isExactNameMatch("TOULOUSE", "Toulouse")).toBe(true);
+    expect(isExactNameMatch("  Toulouse ", "Toulouse")).toBe(true);
+    expect(isExactNameMatch("Orleans", "Orléans")).toBe(true);
+    expect(isExactNameMatch("saint  denis", "Saint-Denis")).toBe(false); // punctuation is not normalised away
+  });
+
+  it("rejects prefixes, inclusions and empty queries", () => {
+    expect(isExactNameMatch("Toulouse", "Toulouse-Lautrec")).toBe(false);
+    expect(isExactNameMatch("Toulouse", "Gare de Toulouse")).toBe(false);
+    expect(isExactNameMatch("", "")).toBe(false);
   });
 });
 

@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { searchParks, searchPlaces, type GeoPlace, type Park } from "@toboggo/shared";
 import "../../i18n/testInit";
-import { SearchOverlay } from "./SearchOverlay";
+import { SearchOverlay, shouldListPlacesFirst } from "./SearchOverlay";
 import fr from "../../i18n/locales/fr/map.json";
 import en from "../../i18n/locales/en/map.json";
 import es from "../../i18n/locales/es/map.json";
@@ -74,7 +74,7 @@ beforeEach(() => {
 });
 
 describe("SearchOverlay — Entrée = recherche géographique", () => {
-  it("Enter resolves the PLACE even when a PARK result is listed first — no park is selected", async () => {
+  it("Enter resolves the PLACE even when PARK results are listed — no park is selected", async () => {
     vi.mocked(searchParks).mockResolvedValue([PARK]);
     vi.mocked(searchPlaces).mockResolvedValue([BARCELONA, VENEZUELA]);
     const input = setup();
@@ -224,5 +224,133 @@ describe("SearchOverlay — no emoji, i18n", () => {
     }
     expect(Object.keys(en.search).sort()).toEqual(Object.keys(fr.search).sort());
     expect(Object.keys(es.search).sort()).toEqual(Object.keys(fr.search).sort());
+  });
+});
+
+// ── Ordre LIEUX / PARCS ────────────────────────────────────────────────────
+const TOULOUSE: GeoPlace = { id: "tls", name: "Toulouse", label: "Toulouse, France", context: "Occitanie, France", lat: 43.6, lng: 1.44 };
+const MILLAU: GeoPlace = { id: "mil", name: "Millau", label: "Millau, France", context: "Occitanie, France", lat: 44.1, lng: 3.08 };
+const park = (id: string, name: string, address: string) =>
+  ({ ...PARK, id, name, formatted_address: address }) as unknown as Park;
+const PARKS_IN_CITY = [
+  park("p-a", "Aire de jeux", "Allée Charles Denat, 31000 Toulouse"),
+  park("p-b", "Aire de jeu du télégraphe", "Rue Claude Chappe, 31000 Toulouse"),
+];
+
+const sectionOrder = () =>
+  [...document.querySelectorAll('[class*="sectionTitle"]')].map((el) => el.textContent);
+// CSS uppercases the titles visually only; the DOM text is the i18n string.
+const norm = (xs: (string | null)[]) => xs.map((x) => (x ?? "").toLowerCase());
+const PLACES_FIRST = norm([fr.search.places, fr.search.parks]);
+
+describe("SearchOverlay — ordre des sections", () => {
+  it("exact place name → LIEUX before PARCS (case, accents and spaces ignored)", async () => {
+    vi.mocked(searchParks).mockResolvedValue(PARKS_IN_CITY);
+    vi.mocked(searchPlaces).mockResolvedValue([TOULOUSE]);
+    for (const value of ["Toulouse", "toulouse", "TOULOUSE", "Toulouse "]) {
+      const input = setup();
+      type(input, value);
+      await screen.findByText("Allée Charles Denat, 31000 Toulouse");
+      await screen.findByText("Occitanie, France");
+      await waitFor(() => expect(norm(sectionOrder())).toEqual(PLACES_FIRST));
+      input.unmountOverlay();
+      document.body.innerHTML = "";
+    }
+  });
+
+  it("Barcelone and Millau: the exact place comes first", async () => {
+    vi.mocked(searchParks).mockResolvedValue([park("p-c", "Aire de jeux", "Avenue de Barcelone")]);
+    vi.mocked(searchPlaces).mockResolvedValue([BARCELONA, VENEZUELA]);
+    let input = setup();
+    type(input, "Barcelone");
+    await screen.findByText("Catalogne, Espagne");
+    await waitFor(() => expect(norm(sectionOrder())).toEqual(PLACES_FIRST));
+    expect(screen.getAllByRole("button").find((b) => b.textContent?.startsWith("Barcelone"))?.textContent).toContain("Catalogne, Espagne");
+    input.unmountOverlay();
+
+    vi.mocked(searchPlaces).mockResolvedValue([MILLAU]);
+    input = setup();
+    type(input, "Millau");
+    await screen.findByText("Occitanie, France");
+    await waitFor(() => expect(norm(sectionOrder())).toEqual(PLACES_FIRST));
+  });
+
+  it("park-oriented query (no exact place name) keeps PARCS first", async () => {
+    vi.mocked(searchParks).mockResolvedValue([park("p-d", "Parc de la Ramée", "Chemin de la Ramée, Toulouse")]);
+    vi.mocked(searchPlaces).mockResolvedValue([{ ...TOULOUSE, id: "x", name: "Ramée", label: "Ramée, France", context: undefined }]);
+    const input = setup();
+    type(input, "Parc de la Ramée");
+    await screen.findByText("Chemin de la Ramée, Toulouse");
+    await screen.findByText("Ramée, France");
+    expect(norm(sectionOrder())).toEqual(norm([fr.search.parks, fr.search.places]));
+  });
+
+  it("a park with the exact queried name keeps PARCS first, even if the place also matches exactly", async () => {
+    vi.mocked(searchParks).mockResolvedValue([park("p-e", "Barcelone", "1 rue X")]);
+    vi.mocked(searchPlaces).mockResolvedValue([BARCELONA]);
+    const input = setup();
+    type(input, "Barcelone");
+    await screen.findByText("1 rue X");
+    await screen.findByText("Catalogne, Espagne");
+    expect(norm(sectionOrder())).toEqual(norm([fr.search.parks, fr.search.places]));
+  });
+
+  it("prefix / inclusion place match keeps today's order (PARCS first)", async () => {
+    vi.mocked(searchParks).mockResolvedValue(PARKS_IN_CITY);
+    vi.mocked(searchPlaces).mockResolvedValue([{ ...TOULOUSE, id: "l", name: "Toulouse-Lautrec", label: "Toulouse-Lautrec, France", context: undefined }]);
+    const input = setup();
+    type(input, "Toulouse");
+    await screen.findByText("Toulouse-Lautrec, France");
+    await screen.findByText("Allée Charles Denat, 31000 Toulouse");
+    expect(norm(sectionOrder())).toEqual(norm([fr.search.parks, fr.search.places]));
+  });
+
+  it("no relevant place → only PARCS, as before", async () => {
+    vi.mocked(searchParks).mockResolvedValue(PARKS_IN_CITY);
+    vi.mocked(searchPlaces).mockResolvedValue([]);
+    const input = setup();
+    type(input, "Toulouse");
+    await screen.findByText("Allée Charles Denat, 31000 Toulouse");
+    await waitFor(() => expect(placeCalls()).toBeGreaterThan(0));
+    expect(norm(sectionOrder())).toEqual(norm([fr.search.parks]));
+  });
+
+  it("homonyms: the existing geographic ranking decides which place is listed first", async () => {
+    vi.mocked(searchParks).mockResolvedValue(PARKS_IN_CITY);
+    vi.mocked(searchPlaces).mockResolvedValue([VENEZUELA, BARCELONA]); // provider order kept between equal matches
+    const input = setup();
+    type(input, "Barcelone");
+    await waitFor(() => expect(norm(sectionOrder())).toEqual(PLACES_FIRST));
+    enter(input);
+    await waitFor(() => expect(onSelectPlace).toHaveBeenCalledTimes(1));
+    expect(onSelectPlace.mock.calls[0][0]).toMatchObject({ lat: VENEZUELA.lat }); // same place as the first listed
+  });
+
+  it("Enter stays geographic, and park / place clicks are unchanged, whatever the order", async () => {
+    vi.mocked(searchParks).mockResolvedValue(PARKS_IN_CITY);
+    vi.mocked(searchPlaces).mockResolvedValue([TOULOUSE]);
+    const input = setup();
+    type(input, "Toulouse");
+    await waitFor(() => expect(norm(sectionOrder())).toEqual(PLACES_FIRST));
+
+    enter(input);
+    await waitFor(() => expect(onSelectPlace).toHaveBeenCalledTimes(1));
+    expect(onSelectPark).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText("Allée Charles Denat, 31000 Toulouse"));
+    expect(onSelectPark).toHaveBeenCalledWith(expect.objectContaining({ id: "p-a" }));
+    fireEvent.click(screen.getByText("Occitanie, France"));
+    expect(onSelectPlace).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("shouldListPlacesFirst", () => {
+  it("is generic: exact first place and no exact-named park", () => {
+    expect(shouldListPlacesFirst("Madrid", [{ name: "Madrid" }], ["Parc A"])).toBe(true);
+    expect(shouldListPlacesFirst("madrid", [{ name: "Madrid" }], [])).toBe(true);
+    expect(shouldListPlacesFirst("Madrid", [{ name: "Madrid" }], ["madrid"])).toBe(false);
+    expect(shouldListPlacesFirst("Madrid", [{ name: "Madridejos" }, { name: "Madrid" }], [])).toBe(false); // only the best place counts
+    expect(shouldListPlacesFirst("Madrid", [], [])).toBe(false);
+    expect(shouldListPlacesFirst("Madrid", undefined, [])).toBe(false);
   });
 });

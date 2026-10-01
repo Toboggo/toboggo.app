@@ -151,33 +151,30 @@ jamais dupliquer un chiffre déjà disponible par une requête Supabase.
 Ce tracking plan a été écrit avant l'implémentation ; cette section reflète ce qui est
 **effectivement câblé dans le code** à ce jour, pour éviter toute ambiguïté de comptage.
 
-**13 des 13 événements P0 instrumentés, aucun câblage partiel autre que `login_completed` :**
-`app_opened`, `signup_completed`, `login_completed` (**email uniquement**, voir ci-dessous),
+**13 des 13 événements P0 instrumentés :**
+`app_opened`, `signup_completed`, `login_completed` (email + Google, voir ci-dessous),
 `map_viewed`, `search_performed`, `search_results_viewed`, `zero_results`, `filter_applied`,
 `park_viewed`, `park_favorited`, `park_shared`, `route_requested` (voir ci-dessous),
 `contribution_started`, `contribution_completed`.
 
-### `login_completed` — email instrumenté, Google OAuth non instrumenté
+### `login_completed` / `signup_completed` — email et Google OAuth instrumentés
 
-- **Email/mot de passe** : instrumenté, déclenché juste après le succès de `signIn()` dans
-  `AuthForm.tsx` — signal fiable, un seul point de code, pas de risque de double comptage.
-- **Google OAuth** : **non instrumenté**, délibérément. Raison : `signInWithGoogle()` déclenche une
-  redirection pleine page vers Google — la fonction ne "voit" jamais le succès (l'exécution JS
-  s'arrête à la redirection). Le succès n'est observable qu'au retour, dans le gestionnaire
-  `onAuthStateChange` de `session.ts` — mais ce même gestionnaire traite AUSSI la restauration
-  d'une session déjà existante au démarrage normal de l'app, sans marqueur permettant de
-  distinguer les deux cas de façon fiable. Instrumenter ce chemin sans un vrai correctif
-  risquerait un double comptage (ou un comptage de faux positifs sur chaque reload d'un
-  utilisateur déjà connecté) — pire que ne pas mesurer du tout.
-- **Correctif futur envisageable** (non implémenté ici) : introduire un marqueur explicite avant
-  le redirect (ex. un flag `localStorage` posé juste avant `signInWithGoogle()`, consommé une
-  seule fois par le gestionnaire au retour) ou un callback OAuth dédié qui court-circuite le
-  chemin de restauration normale. Aucune donnée personnelle supplémentaire requise pour cela — un
-  simple marqueur technique, pas une info utilisateur.
-- **Conséquence sur les KPI** : "taux d'usage réel Google vs e-mail" (question produit explicite,
-  §1) reste **partiellement répondue** — seul le volume `email` est fiable tant que ce correctif
-  n'est pas fait. Ne pas présenter un taux Google/email calculé sur les seules données actuelles
-  comme complet.
+- **Email/mot de passe** : `signup_completed {provider:"email"}` après `signUp()` et
+  `login_completed {provider:"email"}` après `signIn()`, dans `AuthForm.tsx`.
+- **Google OAuth** : `signInWithGoogle()` redirige la page entière, le succès n'est visible qu'au
+  retour. Un marqueur `sessionStorage` (`lib/googleLogin.ts`, TTL 10 min, aucune donnée
+  utilisateur) est posé juste avant la redirection puis consommé UNE fois dans `session.ts` — une
+  restauration de session ou un `TOKEN_REFRESHED` (pas de marqueur) n'émet jamais rien, et des
+  notifications auth multiples ne créent pas de doublon.
+- **Signup vs login Google** : compte créé par ce retour (`last_sign_in_at − created_at` ≤ 10 s,
+  horodatages serveur Supabase de `session.user`) → `signup_completed {provider:"google"}` ; sinon
+  → `login_completed {provider:"google"}`. Donnée absente/invalide → `login_completed`.
+  **Heuristique analytics validée** (Supabase Auth n'expose aucun signal déterministe signup/login) :
+  jamais à utiliser comme logique métier ou de sécurité.
+- **Limite connue** : si le compte Google est créé côté serveur mais que l'app ne reçoit jamais la
+  session (onglet fermé), la connexion suivante est comptée comme login, pas comme signup.
+- **Sécurité URL** : `before_send` (`lib/analytics/sanitizeUrl.ts`) réduit `$current_url`,
+  `$referrer`, `$initial_*` à `origin + pathname` — le hash OAuth Supabase n'atteint jamais PostHog.
 
 ### `route_requested` — instrumenté après la reconstruction du flux Itinéraire
 

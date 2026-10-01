@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Trans, useTranslation } from "react-i18next";
-import { signInWithGoogle } from "@toboggo/shared";
+import { startGoogleLogin } from "../../lib/googleLogin";
 import { Logo } from "@toboggo/design-system";
 import { Illustration } from "../../illustrations";
 import { useSession } from "../../lib/session";
@@ -28,7 +28,7 @@ export default function Splash() {
 
   const continueWithGoogle = async () => {
     try {
-      await signInWithGoogle();
+      await startGoogleLogin();
       // On success the browser redirects to Google, so nothing else runs here.
     } catch {
       showToast(tErr("auth.googleUnavailable"));

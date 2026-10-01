@@ -62,13 +62,13 @@ ci-dessous (traçables au code) :
 - **Description** : création de compte réussie.
 - **Trigger exact** : retour succès de `signUp()` (`AuthForm.tsx:49`, `packages/shared/src/api/auth.ts:3-18`).
 - **Écran/source** : `AuthForm.tsx`.
-- **Propriétés** : `provider` (`email` — Google suit un chemin distinct, voir ci-dessous),
+- **Propriétés** : `provider` (`email` | `google` — `google` uniquement quand le retour OAuth a créé le compte),
   `entry_point` (idem `signup_started`).
 - **KPI/funnel** : funnel signup, DAU nouveaux utilisateurs.
 - **Priorité** : P0.
 
 ### `login_completed`
-- **Description** : connexion réussie (compte existant).
+- **Description** : connexion réussie (compte existant ; une première création via Google est un `signup_completed`).
 - **Trigger exact** : retour succès de `signIn()` (`AuthForm.tsx:66`) OU retour réussi du flow
   Google OAuth (`signInWithGoogle`, `auth.ts:34-45`, déclenché depuis `Splash.tsx`,
   `LoginMethod.tsx`, `AuthForm.tsx`).

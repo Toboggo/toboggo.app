@@ -99,9 +99,9 @@ export interface AnalyticsEventProperties {
     entry_point: "splash" | "contribution_resume";
   };
   signup_completed: {
-    /** Toujours "email" ici — un succès Google OAuth est un `login_completed`
-     * (cf. EVENT-TAXONOMY.md), y compris pour une toute première connexion. */
-    provider: "email";
+    /** `google` : première authentification Google qui a CRÉÉ le compte
+     * (distinguée d'un login via `isNewAccount`, `lib/googleLogin.ts`). */
+    provider: "email" | "google";
     entry_point: "splash" | "contribution_resume";
   };
   login_completed: {

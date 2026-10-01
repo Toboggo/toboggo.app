@@ -12,9 +12,16 @@ import PageHero from "../components/PageHero.astro";
 import InfoCard from "../components/InfoCard.astro";
 import PhoneMockup from "../components/PhoneMockup.astro";
 import Button from "../components/Button.astro";
+import { appScreen } from "../lib/screens";
 
 // Les 8 critères famille — décision fondateur n°4 (docs/DESIGN-SYSTEM.md §2),
 // tous disponibles comme filtres dans l'app (âge + 7 équipements).
+// Captures déclarées dans lib/screens.ts (null tant qu'un fichier n'existe pas).
+const explorer = appScreen("explorer");
+const filters = appScreen("filters");
+const parkDetail = appScreen("park-detail");
+const favorites = appScreen("favorites");
+
 const CRITERIA = [
   { icon: "ic-age", label: "Tranche d'âge" },
   { icon: "ic-shade", label: "Ombre" },
@@ -54,8 +61,8 @@ const CRITERIA = [
         </ul>
       </div>
       <div class="split-phones">
-        <PhoneMockup src="/screenshots/explorer.png" alt="Carte Explorer de l'application Toboggo" />
-        <PhoneMockup src="/screenshots/filters.png" alt="Filtres de recherche dans l'application Toboggo" />
+        {explorer && <PhoneMockup src={explorer.src} alt={explorer.alt} />}
+        {filters && <PhoneMockup src={filters.src} alt={filters.alt} />}
       </div>
     </div>
   </section>
@@ -90,8 +97,8 @@ const CRITERIA = [
         </ul>
       </div>
       <div class="split-phones">
-        <PhoneMockup src="/screenshots/park-detail.png" alt="Fiche d'un parc dans l'application Toboggo" />
-        <PhoneMockup src="/screenshots/favorites.png" alt="Écran Favoris de l'application Toboggo" />
+        {parkDetail && <PhoneMockup src={parkDetail.src} alt={parkDetail.alt} />}
+        {favorites && <PhoneMockup src={favorites.src} alt={favorites.alt} />}
       </div>
     </div>
   </section>

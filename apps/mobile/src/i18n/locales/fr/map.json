@@ -7,7 +7,9 @@
     "suggestedCities": "Villes suggérées",
     "parks": "Parcs",
     "places": "Lieux",
-    "noResults": "Aucun résultat pour « {{query}} »."
+    "noPlace": "Aucun lieu trouvé pour « {{query}} »",
+    "error": "La recherche de lieux est indisponible pour le moment. Réessayez.",
+    "searching": "Recherche en cours…"
   },
   "filters": {
     "title": "Filtres",
@@ -33,13 +35,45 @@
     }
   },
   "sheet": {
-    "aroundYou": "Autour de vous",
-    "count_one": "{{count}} parc",
-    "count_other": "{{count}} parcs",
-    "dragHint_one": "{{count}} parc · Faites glisser pour explorer",
-    "dragHint_other": "{{count}} parcs · Faites glisser pour explorer",
     "loading": "Recherche des parcs autour de vous…",
-    "likedParks": "Les parcs que vous avez aimés"
+    "allNearby": "Tous les parcs autour de vous"
+  },
+  "nearby": {
+    "title": "Autour de vous",
+    "titlePlace": "Autour de {{place}}",
+    "subtitle_one": "{{count}} parc à moins de {{distance}}",
+    "subtitle_other": "{{count}} parcs à moins de {{distance}}",
+    "subtitleNone": "Aucun parc à moins de {{distance}}",
+    "zone": "Zone : {{distance}}",
+    "zoneAria": "Zone de recherche : {{distance}}. Modifier",
+    "expand": "Afficher les parcs autour de vous",
+    "filtersAria": "Filtrer les parcs autour de vous",
+    "filter": {
+      "nearby": "À proximité",
+      "favorites": "Favoris",
+      "forChildren": "Pour mes enfants"
+    },
+    "favoritesEmpty": "Aucun de vos favoris dans cette zone.",
+    "childrenEmpty": "Aucun parc adapté à l’âge de vos enfants dans cette zone.",
+    "moreTitle": "Envie de plus d’options ?",
+    "moreDesc": "Découvrez des parcs un peu plus loin",
+    "furtherTitle": "Des parcs un peu plus loin",
+    "seeWithin": "Voir des parcs à moins de {{distance}}",
+    "emptyTitle": "Aucun parc à proximité",
+    "emptyDesc": "Élargissez la zone pour découvrir des parcs un peu plus loin.",
+    "emptyAction": "Élargir la zone",
+    "radius": {
+      "title": "Zone de recherche",
+      "subtitle": "Afficher les parcs autour de votre position",
+      "apply": "Appliquer",
+      "hint": {
+        "1": "Tout près",
+        "2": "Quartier et alentours",
+        "5": "Ville et proches environs",
+        "10": "Découverte plus large",
+        "20": "Explorer plus loin"
+      }
+    }
   },
   "state": {
     "errorTitle": "Impossible de charger les parcs",
@@ -77,6 +111,8 @@
     "notifications": "Notifications",
     "recenter": "Recentrer",
     "contribute": "Contribuer",
-    "userLocation": "Votre position"
+    "userLocation": "Votre position",
+    "clusterCount_one": "{{count}} parc dans cette zone, appuyez pour zoomer",
+    "clusterCount_other": "{{count}} parcs dans cette zone, appuyez pour zoomer"
   }
 }

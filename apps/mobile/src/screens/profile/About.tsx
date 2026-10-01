@@ -29,6 +29,9 @@ export default function About() {
           <p style={{ fontSize: 12, color: "var(--color-text-faint)", margin: 0 }}>
             {t("about.version", { version: __APP_VERSION__ })}
           </p>
+          <p style={{ fontSize: 11, color: "var(--color-text-faint)", margin: "2px 0 0" }}>
+            {t("about.build", { build: __BUILD_ID__ })}
+          </p>
         </div>
 
         <div className={styles.group}>

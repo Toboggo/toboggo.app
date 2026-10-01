@@ -1,0 +1,49 @@
+.chip {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--color-border-strong);
+  background: var(--color-surface);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--color-text);
+  white-space: nowrap;
+}
+.chip[data-active="1"] {
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
+}
+
+.chevron {
+  color: var(--color-text-faint);
+  pointer-events: none;
+}
+.chip[data-active="1"] .chevron {
+  color: var(--color-primary-hover);
+}
+
+/* The real, accessible control — invisible but tap/click-able over the whole
+ * chip, so the OS's own (never-clipped) picker opens on tap. Native <select>
+ * popups are immune to the filter row's horizontal `overflow-x: auto`, unlike
+ * a custom absolutely-positioned panel would be. */
+.select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: none;
+  font-size: 16px; /* prevents iOS Safari auto-zoom on focus */
+  cursor: pointer;
+}
+.chip:focus-within {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}

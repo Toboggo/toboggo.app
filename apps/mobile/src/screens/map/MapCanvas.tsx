@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { mapStyleUrl, formatRating, getParkDisplayName } from "@toboggo/shared";
@@ -7,7 +7,8 @@ import { useTranslation } from "react-i18next";
 import { useLocale } from "../../i18n/useLocale";
 import { hasRating } from "../../lib/parkDisplay";
 import { FakeMap } from "./FakeMap";
-import { ratingTierColor, buildParkMarker, buildUserMarker } from "./markers";
+import { ratingTierColor, buildParkMarker, buildUserMarker, buildClusterMarker } from "./markers";
+import { buildClusterIndex, queryDisplayFeatures, clusterExpansionZoom, RATING_VISIBLE_MIN_ZOOM } from "./clustering";
 
 // Fond de carte : URL de style MapLibre configurée via VITE_MAP_STYLE_URL
 // (OpenFreeMap au démarrage, cf. packages/shared/src/map.ts). Absente ⇒ FakeMap.
@@ -17,8 +18,32 @@ const STYLE_URL = mapStyleUrl();
 // close enough to read the surrounding streets, wide enough to see nearby parks.
 const RECENTER_ZOOM = 13.5;
 const DEFAULT_ZOOM = 13;
+// Highest zoom a place's bbox may be fitted at — a tiny bbox (one street) must
+// not zoom the map in past readable context.
+const FIT_MAX_ZOOM = 16;
+// Zoom for a place without a bbox, by provider place type: precise targets get
+// a closer view than the generic city-level recentre.
+const PRECISE_PLACE_TYPES = ["address", "poi", "street", "neighbourhood"];
+
+/** A geographic destination the camera should frame (see `viewport` prop). */
+export interface MapViewport {
+  /** Bumped by the parent for every new destination — the effect's only trigger. */
+  id: number;
+  lat: number;
+  lng: number;
+  bbox?: [number, number, number, number];
+  placeType?: string[];
+}
+
+function isValidBbox(b: MapViewport["bbox"]): b is [number, number, number, number] {
+  return !!b && b.every(Number.isFinite) && b[0] < b[2] && b[1] < b[3];
+}
 
 type ParkPoint = Park & { distance_m?: number };
+
+type MarkerEntry =
+  | { kind: "park"; marker: maplibregl.Marker }
+  | { kind: "cluster"; marker: maplibregl.Marker };
 
 function parkLngLat(p: ParkPoint): [number, number] | null {
   const lng = Number(p.longitude ?? p.lng);
@@ -34,8 +59,10 @@ export function MapCanvas({
   selectedId,
   onSelect,
   recenterSignal,
+  viewport = null,
   showUser = false,
   insets,
+  onBackgroundTap,
 }: {
   lat: number;
   lng: number;
@@ -43,18 +70,24 @@ export function MapCanvas({
   selectedId: string | null;
   onSelect: (id: string) => void;
   recenterSignal: number;
+  /** Explicit place destination: fitted to its bbox when reliable, else eased to its point. */
+  viewport?: MapViewport | null;
   showUser?: boolean;
   /** Pixels hidden by the floating header (top) and the bottom sheet (bottom). */
   insets?: { top: number; bottom: number };
+  /** Fires on a tap that lands on the map background, not on a marker. */
+  onBackgroundTap?: () => void;
 }) {
   const { t } = useTranslation("map");
   const { intlLocale } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<Record<string, maplibregl.Marker>>({});
+  const markersRef = useRef<Record<string, MarkerEntry>>({});
   const userMarkerRef = useRef<maplibregl.Marker | null>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
+  const onBackgroundTapRef = useRef(onBackgroundTap);
+  onBackgroundTapRef.current = onBackgroundTap;
   // Bumped every time a fresh Map is constructed (incl. React StrictMode's
   // mount/unmount/remount in dev). Downstream effects key off it so they
   // rebuild their markers on the new instance instead of touching orphans.
@@ -101,44 +134,136 @@ export function MapCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Park markers — one per result, kept in sync with `parks`. Rebuilt wholesale
-  // when the map instance changes (markers belong to a single Map).
+  // Cluster index over every park EXCEPT the selected one — excluding it up
+  // front is what guarantees it always renders as its own pin and is never
+  // folded into (or double-counted inside) a cluster badge, without having to
+  // inspect cluster contents. Rebuilding costs ~2ms even at 2000+ points
+  // (measured with the real supercluster lib against a synthetic dense-city
+  // dataset) — negligible next to a data refetch or a select tap, and it
+  // never runs on pan/zoom since `parks`/`selectedId` don't change then.
+  const clusterIndex = useMemo(() => {
+    const points: { park: ParkPoint; lngLat: [number, number] }[] = [];
+    for (const park of parks) {
+      if (park.id === selectedId) continue;
+      const lngLat = parkLngLat(park);
+      if (lngLat) points.push({ park, lngLat });
+    }
+    return buildClusterIndex(points);
+  }, [parks, selectedId]);
+
+  // Park + cluster markers, kept in sync with the current viewport/zoom via
+  // `moveend` (clustering only ever needs to be recomputed once a gesture
+  // settles, not every pan/zoom frame). Individual park markers are diffed
+  // and reused by park id like before; cluster markers are cheap (one button,
+  // no rich state) and always rebuilt from the live query so a cluster id —
+  // only meaningful within the index that produced it — can never be reused
+  // across an index change by accident.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
-    const currentIds = new Set(parks.map((p) => p.id));
-    for (const id of Object.keys(markersRef.current)) {
-      if (!currentIds.has(id)) {
-        try {
-          markersRef.current[id].remove();
-        } catch {
-          /* already gone */
-        }
-        delete markersRef.current[id];
-      }
-    }
-    for (const park of parks) {
-      const lngLat = parkLngLat(park);
-      if (!lngLat) continue;
-      let marker = markersRef.current[park.id];
-      if (!marker) {
+
+    const selectedPark = selectedId ? parks.find((p) => p.id === selectedId) : undefined;
+    const selectedLngLat = selectedPark ? parkLngLat(selectedPark) : null;
+
+    const applyPark = (park: ParkPoint, lngLat: [number, number], key: string, isSelected: boolean, showRating: boolean) => {
+      let entry = markersRef.current[key];
+      if (!entry || entry.kind !== "park") {
+        entry?.marker.remove();
         const el = buildParkMarker(getParkDisplayName(park, t));
         el.addEventListener("click", () => onSelectRef.current(park.id));
-        marker = new maplibregl.Marker({ element: el, anchor: "bottom" });
-        markersRef.current[park.id] = marker;
+        entry = { kind: "park", marker: new maplibregl.Marker({ element: el, anchor: "bottom" }) };
+        markersRef.current[key] = entry;
       }
-      marker.setLngLat(lngLat).addTo(map); // addTo is idempotent — safe every pass
-      const el = marker.getElement();
-      el.dataset.selected = park.id === selectedId ? "1" : "";
+      entry.marker.setLngLat(lngLat).addTo(map); // addTo is idempotent — safe every pass
+      const el = entry.marker.getElement();
+      el.dataset.selected = isSelected ? "1" : "";
       const rated = hasRating(park);
       el.style.setProperty(
         "--marker-color",
         rated ? ratingTierColor(park.rating) : "var(--color-primary)",
       );
       const noteEl = el.querySelector("[data-note]");
-      if (noteEl) noteEl.textContent = rated ? formatRating(park.rating, intlLocale) : "";
+      if (noteEl) noteEl.textContent = rated && showRating ? formatRating(park.rating, intlLocale) : "";
+    };
+
+    function sync() {
+      const zoom = map!.getZoom();
+      const b = map!.getBounds();
+      const bbox: [number, number, number, number] = [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()];
+      const features = queryDisplayFeatures(clusterIndex, bbox, zoom);
+      const showRating = zoom >= RATING_VISIBLE_MIN_ZOOM;
+      const keep = new Set<string>();
+
+      for (const [key, entry] of Object.entries(markersRef.current)) {
+        if (entry.kind === "cluster") {
+          entry.marker.remove();
+          delete markersRef.current[key];
+        }
+      }
+
+      for (const f of features) {
+        if (f.kind === "cluster") {
+          const key = `cluster-${f.clusterId}`;
+          keep.add(key);
+          const el = buildClusterMarker(f.count, t("a11y.clusterCount", { count: f.count }));
+          el.addEventListener("click", () => {
+            const targetZoom = clusterExpansionZoom(clusterIndex, f.clusterId);
+            map!.easeTo({ center: [f.lng, f.lat], zoom: targetZoom, duration: 400 });
+          });
+          const marker = new maplibregl.Marker({ element: el, anchor: "center" }).setLngLat([f.lng, f.lat]).addTo(map!);
+          markersRef.current[key] = { kind: "cluster", marker };
+        } else {
+          const key = `park-${f.park.id}`;
+          keep.add(key);
+          applyPark(f.park, [f.lng, f.lat], key, f.park.id === selectedId, showRating);
+        }
+      }
+
+      if (selectedPark && selectedLngLat) {
+        const key = `park-${selectedPark.id}`;
+        keep.add(key);
+        applyPark(selectedPark, selectedLngLat, key, true, showRating);
+      }
+
+      for (const key of Object.keys(markersRef.current)) {
+        if (!keep.has(key)) {
+          markersRef.current[key].marker.remove();
+          delete markersRef.current[key];
+        }
+      }
     }
-  }, [parks, selectedId, mapEpoch, intlLocale]);
+
+    sync();
+    map.on("moveend", sync);
+    return () => {
+      map.off("moveend", sync);
+    };
+  }, [clusterIndex, parks, selectedId, mapEpoch, intlLocale, t]);
+
+  // A tap on the map background (not a marker) — MapLibre's own `click`
+  // already excludes pan/zoom gestures (only a real, undragged tap fires it),
+  // so this needs no gesture bookkeeping of its own. Marker elements sit
+  // inside the same canvas container and also receive this event by
+  // bubbling, so a tap that lands on one (park, cluster, or user marker) is
+  // excluded by checking it against the markers we track — independent of
+  // MapLibre's own internal marker DOM/class details.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const handleClick = (e: maplibregl.MapMouseEvent) => {
+      const target = e.originalEvent.target as HTMLElement | null;
+      if (!target) return;
+      const hitMarker =
+        !!userMarkerRef.current?.getElement().contains(target) ||
+        Object.values(markersRef.current).some((entry) => entry.marker.getElement().contains(target));
+      if (hitMarker) return;
+      onBackgroundTapRef.current?.();
+    };
+    map.on("click", handleClick);
+    return () => {
+      map.off("click", handleClick);
+    };
+  }, [mapEpoch]);
 
   // User position marker.
   useEffect(() => {
@@ -183,8 +308,50 @@ export function MapCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterSignal, mapEpoch]);
 
+  // Camera for a searched place — one single move per destination (`viewport.id`),
+  // framed on its bbox (a city and a street don't get the same view). The store
+  // centre was already set by the caller, so the parks query fires once; the
+  // camera itself never triggers a fetch.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !viewport) return;
+    const padTop = (insetsRef.current?.top ?? 0) + 16;
+    const padBottom = (insetsRef.current?.bottom ?? 0) + 16;
+    try {
+      if (isValidBbox(viewport.bbox)) {
+        const [w, s, e, n] = viewport.bbox;
+        map.fitBounds(
+          [
+            [w, s],
+            [e, n],
+          ],
+          { padding: { top: padTop, bottom: padBottom, left: 24, right: 24 }, maxZoom: FIT_MAX_ZOOM, duration: 600 },
+        );
+      } else {
+        const precise = viewport.placeType?.some((t) => PRECISE_PLACE_TYPES.includes(t));
+        map.easeTo({
+          center: [viewport.lng, viewport.lat],
+          zoom: precise ? FIT_MAX_ZOOM : RECENTER_ZOOM,
+          offset: [0, centreOffsetY(map)],
+          duration: 600,
+        });
+      }
+    } catch {
+      /* map disposing */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewport?.id, mapEpoch]);
+
   if (!STYLE_URL) {
-    return <FakeMap parks={parks} selectedId={selectedId} onSelect={onSelect} showUser={showUser} />;
+    return (
+      <FakeMap
+        parks={parks}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        showUser={showUser}
+        onBackgroundTap={onBackgroundTap}
+      />
+    );
   }
 
   return <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />;

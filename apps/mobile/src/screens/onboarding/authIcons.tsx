@@ -2,9 +2,9 @@
  * Shared inline icons for the onboarding / auth screens (ported from the proto).
  *
  * These are onboarding-specific glyphs (mail, phone, map-pin, eye) plus the
- * third-party Apple / Google brand marks. They inherit `currentColor` — set the
+ * third-party Google brand mark. They inherit `currentColor` — set the
  * colour with a token on the parent (`color: var(--color-primary)`, …), never a
- * hardcoded hex. The Apple / Google marks keep their official brand fills.
+ * hardcoded hex. The Google mark keeps its official brand fills.
  */
 
 export function ChevronLeft({ size = 20 }: { size?: number }) {
@@ -37,14 +37,6 @@ export function PhoneIcon({ size = 17 }: { size?: number }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <path d="M11 18h2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export function AppleIcon({ size = 17 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="#000" aria-hidden>
-      <path d="M16.365 1.43c0 1.14-.417 2.06-1.25 2.87-.937.92-2.06 1.44-3.11 1.35-.104-1.06.4-2.16 1.24-2.97.84-.83 2.15-1.42 3.12-1.25zm3.03 17.05c-.55 1.24-1.22 2.45-2.11 3.55-.9 1.1-2 2.28-3.36 2.29-1.2.01-1.56-.78-3.15-.78-1.6 0-2.02.76-3.16.79-1.35.04-2.4-1.09-3.32-2.19-2.02-2.43-3.55-6.88-1.5-9.87 1.03-1.5 2.65-2.46 4.4-2.49 1.24-.02 2.02.79 3.15.79 1.13 0 1.7-.79 3.16-.79 1.5 0 3.07.9 4.13 2.44-3.64 2.02-3.06 6.6.76 6.25z" />
     </svg>
   );
 }

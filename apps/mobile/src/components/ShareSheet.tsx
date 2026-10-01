@@ -3,6 +3,7 @@ import { BottomSheet } from "@toboggo/design-system";
 import { getParkDisplayName, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { useToastStore } from "../lib/toast";
+import { trackEvent, type AnalyticsEventProperties } from "../lib/analytics";
 
 export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: () => void; park: Park }) {
   const { t } = useTranslation("contribute");
@@ -10,11 +11,12 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   const shareUrl = `${window.location.origin}/park/${park.id}`;
   const displayName = getParkDisplayName(park, t);
 
-  const links = [
-    { label: "WhatsApp", icon: "💬", href: `https://wa.me/?text=${encodeURIComponent(`${displayName} — ${shareUrl}`)}` },
-    { label: "SMS", icon: "✉️", href: `sms:?body=${encodeURIComponent(`${displayName} — ${shareUrl}`)}` },
-    { label: "Instagram", icon: "📷", href: `https://instagram.com` },
-    { label: t("share.email"), icon: "📧", href: `mailto:?subject=${encodeURIComponent(displayName)}&body=${encodeURIComponent(shareUrl)}` },
+  type ShareChannel = AnalyticsEventProperties["park_shared"]["channel"];
+  const links: { label: string; icon: string; href: string; channel: ShareChannel }[] = [
+    { label: "WhatsApp", icon: "💬", href: `https://wa.me/?text=${encodeURIComponent(`${displayName} — ${shareUrl}`)}`, channel: "whatsapp" },
+    { label: "SMS", icon: "✉️", href: `sms:?body=${encodeURIComponent(`${displayName} — ${shareUrl}`)}`, channel: "sms" },
+    { label: "Instagram", icon: "📷", href: `https://instagram.com`, channel: "instagram" },
+    { label: t("share.email"), icon: "📧", href: `mailto:?subject=${encodeURIComponent(displayName)}&body=${encodeURIComponent(shareUrl)}`, channel: "email" },
   ];
 
   return (
@@ -44,6 +46,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
               href={l.href}
               target="_blank"
               rel="noreferrer"
+              onClick={() => trackEvent("park_shared", { park_id: park.id, channel: l.channel })}
               style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontSize: 11 }}
             >
               <span
@@ -66,7 +69,13 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
         </div>
         <button
           onClick={() => {
-            navigator.clipboard?.writeText(shareUrl);
+            // `park_shared` (canal `copy_link`) uniquement si l'écriture
+            // presse-papiers a réellement réussi — seul canal de partage où
+            // une confirmation technique existe (voir PRIVACY-RULES.md /
+            // TRACKING-PLAN.md §2 sur la limite des autres canaux).
+            void navigator.clipboard?.writeText(shareUrl).then(() => {
+              trackEvent("park_shared", { park_id: park.id, channel: "copy_link" });
+            });
             showToast(t("share.copied"));
             onClose();
           }}

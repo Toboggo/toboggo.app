@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "./lib/session";
 import { useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
 import { takeResumeRoute } from "./lib/resumeRoute";
+import { trackEvent } from "./lib/analytics";
 
 import Splash from "./screens/onboarding/Splash";
 import LoginMethod from "./screens/onboarding/LoginMethod";
@@ -16,7 +17,6 @@ import ScoreDetail from "./screens/detail/ScoreDetail";
 import DetailPhotos from "./screens/detail/DetailPhotos";
 import DetailAmenities from "./screens/detail/DetailAmenities";
 import DetailReviews from "./screens/detail/DetailReviews";
-import Directions from "./screens/detail/Directions";
 
 import ActionIntro from "./screens/actions/ActionIntro";
 import AddPark from "./screens/actions/AddPark";
@@ -24,6 +24,7 @@ import RatePark from "./screens/actions/RatePark";
 import ReportProblem from "./screens/actions/ReportProblem";
 import AddPhotos from "./screens/actions/AddPhotos";
 import EditInfo from "./screens/actions/EditInfo";
+import EditInfoPickPark from "./screens/actions/EditInfoPickPark";
 import MoreActions from "./screens/actions/MoreActions";
 
 import Favorites from "./screens/favorites/Favorites";
@@ -31,9 +32,11 @@ import Compare from "./screens/favorites/Compare";
 import GroupOuting from "./screens/social/GroupOuting";
 
 import Contributions from "./screens/contributions/Contributions";
+import ContributionsHistory from "./screens/contributions/ContributionsHistory";
 import Activity from "./screens/contributions/Activity";
 
 import Profile from "./screens/profile/Profile";
+import Settings from "./screens/profile/Settings";
 import EditProfile from "./screens/profile/EditProfile";
 import Children from "./screens/profile/Children";
 import ChildForm from "./screens/profile/ChildForm";
@@ -86,6 +89,23 @@ export default function App() {
     init();
   }, [init]);
 
+  // `app_opened` — un événement par chargement de la PWA (montage de la racine
+  // `App`), jamais par navigation interne (les routes rendent à l'intérieur de
+  // ce même montage, sans jamais remonter `App`) ni par re-render. Le `useRef`
+  // survit au double-invoke des effets de `React.StrictMode` en dev (React
+  // réutilise la même instance/fiber sur les deux passes, sans réinitialiser
+  // les refs) tout en se réinitialisant correctement si `App` était un jour
+  // réellement démonté puis remonté — ce qui, dans ce cas précis,
+  // représenterait légitimement un nouveau chargement d'app. Vérifié
+  // explicitement (pas seulement supposé) par `App.test.tsx`, qui rend
+  // `<App/>` sous `<React.StrictMode>` et confirme un seul `app_opened`.
+  const appOpenedTracked = useRef(false);
+  useEffect(() => {
+    if (appOpenedTracked.current) return;
+    appOpenedTracked.current = true;
+    trackEvent("app_opened", {});
+  }, []);
+
   // A contribution started while signed out stashes a resume route before the
   // just-in-time auth flow (which, for Google OAuth, is a full-page redirect).
   // Once authenticated, return to that flow to finish the send.
@@ -112,7 +132,6 @@ export default function App() {
       <Route path="/park/:id/photos" element={<DetailPhotos />} />
       <Route path="/park/:id/amenities" element={<DetailAmenities />} />
       <Route path="/park/:id/reviews" element={<DetailReviews />} />
-      <Route path="/park/:id/directions" element={<Directions />} />
 
       {/* AddPark / RatePark / ReportProblem n'ont plus d'écran d'intro : le
           wizard canonique est auto-porteur. `/action-intro/{add,rate,report}`
@@ -128,6 +147,7 @@ export default function App() {
       <Route path="/report" element={<ReportProblem />} />
       <Route path="/photo-add" element={<AddPhotos />} />
       <Route path="/contribute/edit" element={<EditInfo />} />
+      <Route path="/contribute/edit/pick-park" element={<EditInfoPickPark />} />
       <Route path="/more-actions" element={<MoreActions />} />
 
       <Route path="/favorites" element={<Favorites />} />
@@ -135,9 +155,11 @@ export default function App() {
       <Route path="/group" element={<GroupOuting />} />
 
       <Route path="/contributions" element={<Contributions />} />
+      <Route path="/contributions/history" element={<ContributionsHistory />} />
       <Route path="/activity" element={<Activity />} />
 
       <Route path="/profile" element={<Profile />} />
+      <Route path="/settings" element={<Settings />} />
       <Route path="/profile/edit" element={<EditProfile />} />
       <Route path="/profile/children" element={<Children />} />
       <Route path="/profile/children/new" element={<ChildForm />} />

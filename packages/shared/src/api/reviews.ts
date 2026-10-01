@@ -77,22 +77,39 @@ export async function listReviews(opts: { communeId?: string } = {}): Promise<Re
   }) as unknown as Review[];
 }
 
-export async function listMyReviews(userId: string): Promise<(Review & { parks: { name: string } })[]> {
+export async function listMyReviews(
+  userId: string,
+): Promise<(Review & { parks: { name: string; city: string | null } })[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
     .from("reviews")
-    .select("*, parks(name)")
+    .select("*, parks(name, city)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row) => {
-    const h = hydrate(row) as Review & { parks: { name: string } };
-    h.parks = (row as { parks: { name: string } }).parks;
+    const h = hydrate(row) as Review & { parks: { name: string; city: string | null } };
+    h.parks = (row as { parks: { name: string; city: string | null } }).parks;
     return h;
   });
 }
 
-type CreateReviewInput = Partial<Review> & { park_id: string; user_id: string; author_name: string };
+/**
+ * Whether `userId` has published a review of `parkId`. Existence check only:
+ * `count` + `head` (no row payload), served by the park/user indexes.
+ */
+export async function hasUserReviewedPark(userId: string, parkId: string): Promise<boolean> {
+  const supabase = getSupabase();
+  const { count, error } = await supabase
+    .from("reviews")
+    .select("id", { count: "exact", head: true })
+    .eq("park_id", parkId)
+    .eq("user_id", userId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
+type CreateReviewInput =Partial<Review> & { park_id: string; user_id: string; author_name: string };
 
 export async function createReview(input: CreateReviewInput): Promise<Review> {
   const supabase = getSupabase();

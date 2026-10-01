@@ -1,0 +1,120 @@
+---
+import Button from "../Button.astro";
+import PhoneMockup from "../PhoneMockup.astro";
+
+const SCREENS = [
+  { src: "/screenshots/explorer.png", alt: "Carte Explorer de l'application Toboggo", label: "Explorez autour de vous" },
+  { src: "/screenshots/park-detail.png", alt: "Fiche d'un parc dans l'application Toboggo", label: "Découvrez chaque parc" },
+  { src: "/screenshots/filters.png", alt: "Filtres de recherche dans l'application Toboggo", label: "Trouvez selon vos critères" },
+  { src: "/screenshots/favorites.png", alt: "Écran Favoris de l'application Toboggo", label: "Gardez vos favoris" },
+];
+---
+
+<section id="app-toboggo" class="app-showcase">
+  <div class="wrap app-head">
+    <span class="eyebrow">L'app Toboggo</span>
+    <h2>Tout pour des sorties réussies en famille.</h2>
+  </div>
+
+  <div class="phones-scroll" role="region" aria-label="Aperçu des écrans de l'application" tabindex="0">
+    <div class="phones-track">
+      {
+        SCREENS.map((screen, i) => (
+          <figure class={`phone-item phone-item--${i}`}>
+            <PhoneMockup src={screen.src} alt={screen.alt} />
+            <figcaption>{screen.label}</figcaption>
+          </figure>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="wrap app-cta">
+    <Button href="/fonctionnalites" variant="secondary">Découvrir toutes les fonctionnalités</Button>
+  </div>
+</section>
+
+<style>
+  .app-showcase {
+    padding: var(--space-8) 0 88px;
+    /* blanc pur plutôt que le crème précédent : rupture nette avec la
+       section vert d'eau juste au-dessus (Comment ça marche), et les 4
+       téléphones ressortent mieux sur blanc. */
+    background: var(--color-surface);
+  }
+
+  .app-head {
+    text-align: center;
+  }
+
+  .app-head h2 {
+    font-size: 30px;
+    margin: var(--space-3) 0 var(--space-8);
+  }
+
+  .phones-scroll {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .phones-track {
+    display: flex;
+    gap: var(--space-5);
+    padding: 0 var(--space-6) var(--space-4);
+  }
+
+  .phone-item {
+    flex: 0 0 auto;
+    width: 190px;
+    margin: 0;
+    scroll-snap-align: start;
+  }
+
+  .phone-item figcaption {
+    margin-top: var(--space-3);
+    text-align: center;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .app-cta {
+    text-align: center;
+    margin-top: 56px;
+  }
+
+  @media (min-width: 1024px) {
+    .phones-scroll {
+      overflow: visible;
+    }
+
+    .phones-track {
+      justify-content: center;
+      align-items: flex-end;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-6) var(--space-6);
+    }
+
+    .phone-item {
+      width: 210px;
+    }
+
+    .phone-item--0 {
+      transform: translateY(20px) rotate(-2.5deg);
+    }
+
+    .phone-item--1 {
+      transform: translateY(-8px);
+    }
+
+    .phone-item--2 {
+      transform: translateY(-8px);
+    }
+
+    .phone-item--3 {
+      transform: translateY(20px) rotate(2.5deg);
+    }
+  }
+</style>

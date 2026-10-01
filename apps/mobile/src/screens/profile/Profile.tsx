@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { computeChildAge, listMyParks, listMyReviews, signOut, purgeDraftsForPrincipal } from "@toboggo/shared";
-import { useTheme, Icon, type ThemePreference, type IconName } from "@toboggo/design-system";
+import { computeChildAge, listMyParks, listMyReviews } from "@toboggo/shared";
+import { useTheme, LogoMark, Icon, type ThemePreference, type IconName } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
 import { useChildren } from "../../lib/children";
@@ -48,6 +48,22 @@ const BADGES: {
   },
 ];
 
+// Preview strip on the hub shows at most this many badges — a full "Tous les
+// badges" screen doesn't exist yet, so no "Voir tout" link either (would
+// point nowhere).
+const BADGES_PREVIEW_COUNT = 3;
+
+// Illustrated hex art exists only for these two badges in their *earned*
+// state and for "explorer" in its *locked* state (toboggo-profile-svg-pack).
+// Any other key/earned combination (explorer earned, or first_review /
+// contributor still locked) falls back to the plain icon treatment below —
+// there's no drawn art for those states.
+const BADGE_ART: Partial<Record<string, { src: string; earned: boolean }>> = {
+  first_review: { src: "/profile/badge-first-review.svg", earned: true },
+  contributor: { src: "/profile/badge-contributor.svg", earned: true },
+  explorer: { src: "/profile/badge-explorer-locked.svg", earned: false },
+};
+
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 }
@@ -66,15 +82,6 @@ export default function Profile() {
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
   const { data: myChildren = [] } = useChildren();
 
-  async function handleSignOut() {
-    // Captured before the session is cleared: only this account's local
-    // drafts are purged on a shared device.
-    const uid = useSession.getState().userId;
-    await signOut();
-    if (uid) purgeDraftsForPrincipal({ userId: uid });
-    navigate("/");
-  }
-
   // Guest: no account yet. Still expose the account-independent settings
   // (language above all) and a sign-in entry, instead of a blank screen.
   if (!profile) {
@@ -92,7 +99,7 @@ export default function Profile() {
             {t("action.signIn", { ns: "common" })}
           </button>
 
-          <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
+          <h6 className={styles.kicker}>{t("applicationTitle")}</h6>
           <div className={styles.group}>
             <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
             <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
@@ -112,87 +119,77 @@ export default function Profile() {
   }
 
   const stats: Stats = { parks: myParks.length, reviews: myReviews.length, favorites: profile.favorites.length };
+  const memberSinceYear = profile.created_at ? new Date(profile.created_at).getFullYear() : NaN;
+  const previewBadges = BADGES.slice(0, BADGES_PREVIEW_COUNT);
 
   return (
     <div className={styles.screen}>
-      <div className={styles.titleBar}>
-        <h2>{t("title")}</h2>
+      {/* Header hub — logo + titre + accès Réglages, avec l'illustration
+          décorative du parc en fond. L'édition du profil et les préférences
+          vivent désormais dans /settings (sous-écran) : ce header n'est
+          plus qu'une identité, pas un centre d'actions. */}
+      <div className={styles.hero}>
+        <img className={styles.heroImg} src="/profile/hero-playground.svg" alt="" aria-hidden="true" />
+        <div className={styles.hubHeader}>
+          <LogoMark size={28} />
+          <h2 className={styles.hubTitle}>{t("title")}</h2>
+          <button
+            type="button"
+            className={styles.settingsBtn}
+            onClick={() => navigate("/settings")}
+            aria-label={t("settingsScreen.open")}
+          >
+            <Icon name="ic-settings" size={18} />
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.idRow}>
+        <div className={styles.avatar}>{initials(profile.name)}</div>
+        <div className={styles.idText}>
+          <div className={styles.idName}>{profile.name}</div>
+          {!Number.isNaN(memberSinceYear) && (
+            <div className={styles.idMeta}>{t("memberSince", { year: memberSinceYear })}</div>
+          )}
+        </div>
       </div>
 
       <div className={styles.body}>
-        {/* Identité — avatar, nom, informations et stats essentielles. Zone volontairement sobre. */}
-        <div className={styles.idRow}>
-          <div className={styles.avatar}>{initials(profile.name)}</div>
-          <div className={styles.idText}>
-            <div className={styles.idName}>{profile.name}</div>
-            <div className={styles.idEmail}>{profile.email}</div>
+        <div className={styles.statsCard}>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions")}>
+            <img className={styles.statIcon} src="/profile/icon-park-added.svg" alt="" aria-hidden="true" />
+            <span className={styles.statText}>
+              <span className={styles.statValue}>{stats.parks}</span>
+              <span className={styles.statLabel}>{t("stats.parks")}</span>
+            </span>
+          </button>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions")}>
+            <img className={styles.statIcon} src="/profile/icon-review.svg" alt="" aria-hidden="true" />
+            <span className={styles.statText}>
+              <span className={styles.statValue}>{stats.reviews}</span>
+              <span className={styles.statLabel}>{t("stats.reviews")}</span>
+            </span>
+          </button>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/favorites")}>
+            <img className={styles.statIcon} src="/profile/icon-favorite.svg" alt="" aria-hidden="true" />
+            <span className={styles.statText}>
+              <span className={styles.statValue}>{stats.favorites}</span>
+              <span className={styles.statLabel}>{t("stats.favorites")}</span>
+            </span>
+          </button>
+        </div>
+
+        {/* Famille — card blanche légère : chips par âge uniquement, jamais
+            de prénom ni de photo réelle (le modèle Child n'en stocke pas). */}
+        <div className={styles.familyCard}>
+          <div className={styles.familyHeader}>
+            <h6 className={styles.familyKicker}>{t("myChildren")}</h6>
+            <button type="button" className={styles.manageLink} onClick={() => navigate("/profile/children")}>
+              {t("children.manage")}
+              <Chevron />
+            </button>
           </div>
-          <button type="button" className={styles.editBtn} onClick={() => navigate("/profile/edit")}>
-            {t("edit")}
-          </button>
-        </div>
-
-        <div className={styles.stats}>
-          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "var(--color-primary)" }}>{stats.parks}</span>
-            {t("stats.parks")}
-          </button>
-          <button type="button" className={styles.stat} onClick={() => navigate("/contributions")}>
-            <span style={{ color: "var(--color-accent)" }}>{stats.reviews}</span>
-            {t("stats.reviews")}
-          </button>
-          <button type="button" className={styles.stat} onClick={() => navigate("/favorites")}>
-            <span style={{ color: "var(--color-error)" }}>{stats.favorites}</span>
-            {t("stats.favorites")}
-          </button>
-        </div>
-
-        <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
-        <div className={styles.badges}>
-          {BADGES.map((b) => {
-            const earned = b.earned(stats);
-            const prog = !earned ? b.progress?.(stats) : undefined;
-            const iconWrapClass = earned
-              ? b.key === "grand"
-                ? `${styles.badgeIconWrap} ${styles.badgeIconWrapAccent}`
-                : `${styles.badgeIconWrap} ${styles.badgeIconWrapEarned}`
-              : styles.badgeIconWrap;
-            return (
-              <div key={b.key} className={styles.badgeCard}>
-                <div className={iconWrapClass}>
-                  <Icon name={b.icon} size={20} />
-                  {earned && (
-                    <span className={styles.badgeCheck} role="img" aria-label={t("badge.earnedLabel")}>
-                      <Icon name="ic-check" size={10} />
-                    </span>
-                  )}
-                </div>
-                <div className={styles.badgeBody}>
-                  <span className={styles.badgeLabel}>{t(b.labelKey)}</span>
-                  {prog && prog.target > 1 && (
-                    <div className={styles.badgeProgress}>
-                      <div className={styles.badgeProgressTrack}>
-                        <div style={{ width: `${(prog.current / prog.target) * 100}%` }} />
-                      </div>
-                      <span className={styles.badgeFraction}>
-                        {prog.current}/{prog.target}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className={styles.childrenHeader}>
-          <h6 className={styles.kicker}>{t("myChildren")}</h6>
-          <button type="button" className={styles.manageLink} onClick={() => navigate("/profile/children")}>
-            {t("children.manage")}
-            <Chevron />
-          </button>
-        </div>
-        {myChildren.length > 0 && (
+          <p className={styles.familyIntro}>{t("children.formIntro")}</p>
           <div className={styles.children}>
             {myChildren.map((c) => {
               const age = computeChildAge(c);
@@ -203,48 +200,62 @@ export default function Profile() {
                   className={styles.child}
                   onClick={() => navigate(`/profile/children/${c.id}`)}
                 >
+                  <img className={styles.childAvatar} src="/profile/child-neutral.svg" alt="" aria-hidden="true" />
                   {age != null ? f.ageRange(age, age) : t("children.ageUnknown")}
                 </button>
               );
             })}
+            <button type="button" className={styles.addChild} onClick={() => navigate("/profile/children/new")}>
+              <span aria-hidden>+</span> {t("children.add")}
+            </button>
           </div>
-        )}
-        <button type="button" className={styles.addChild} onClick={() => navigate("/profile/children/new")}>
-          <span aria-hidden>+</span> {t("children.add")}
-        </button>
-
-        <h6 className={styles.kicker}>{t("myToboggoTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("notificationsCenter")} onClick={() => navigate("/notifications/center")} />
-          <Row label={t("favorites.title")} onClick={() => navigate("/favorites")} />
-          <Row label={t("myContributions")} onClick={() => navigate("/contributions")} />
-          <Row label={t("activity.title")} onClick={() => navigate("/activity")} />
-          <Row label={t("groupOuting")} onClick={() => navigate("/group")} />
         </div>
 
-        <h6 className={styles.kicker}>{t("preferencesTitle")}</h6>
+        {/* Mon activité — uniquement des éléments personnels réels ; jamais
+            le fil communautaire (/activity), qui n'est pas "mon" historique. */}
+        <h6 className={styles.kicker}>{t("myActivityTitle")}</h6>
         <div className={styles.group}>
-          <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
-          <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
-          <Row label={t("notifications")} onClick={() => navigate("/notifications")} />
+          <Row iconSrc="/profile/icon-favorite.svg" label={t("favorites.title")} value={String(stats.favorites)} onClick={() => navigate("/favorites")} />
+          <Row iconSrc="/profile/icon-contributions.svg" label={t("myContributions")} onClick={() => navigate("/contributions")} />
+          <Row iconSrc="/profile/icon-group.svg" label={t("groupOuting")} onClick={() => navigate("/group")} />
         </div>
 
-        <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("help")} onClick={() => navigate("/help")} />
-          <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
-          <Row label={t("about.title")} onClick={() => navigate("/about")} />
+        {/* Mes badges — aperçu compact, jamais la grille de grosses cartes.
+            Pas d'affordance "Voir tout" : aucun écran "Tous les badges"
+            n'existe, on n'en crée pas un juste pour la maquette — ni un
+            texte qui ferait croire à une destination qui n'existe pas. */}
+        <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
+        <div className={styles.badgesGrid}>
+          {previewBadges.map((b) => {
+            const earned = b.earned(stats);
+            const prog = !earned ? b.progress?.(stats) : undefined;
+            const art = BADGE_ART[b.key];
+            const a11yLabel = `${t(b.labelKey)}${
+              earned ? ` — ${t("badge.earnedLabel")}` : prog ? ` — ${prog.current}/${prog.target}` : ""
+            }`;
+            return (
+              <div key={b.key} className={styles.badgeCard} role="img" aria-label={a11yLabel}>
+                {art && art.earned === earned ? (
+                  <img className={styles.badgeArt} src={art.src} alt="" aria-hidden="true" />
+                ) : (
+                  <div className={earned ? `${styles.badgeIconWrap} ${styles.badgeIconWrapEarned}` : styles.badgeIconWrap}>
+                    <Icon name={b.icon} size={17} />
+                    {earned ? (
+                      <span className={styles.badgeCheck} aria-hidden>
+                        <Icon name="ic-check" size={9} />
+                      </span>
+                    ) : (
+                      <span className={styles.badgeLock} aria-hidden>
+                        <Lock />
+                      </span>
+                    )}
+                  </div>
+                )}
+                <span className={styles.badgeCardLabel}>{t(b.labelKey)}</span>
+              </div>
+            );
+          })}
         </div>
-
-        <h6 className={styles.kicker}>{t("accountTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("accountScreen.managementKicker")} onClick={() => navigate("/profile/account")} />
-        </div>
-
-        <button type="button" className={styles.signOutBtn} onClick={handleSignOut}>
-          {t("signOut")}
-        </button>
-        <p className={styles.versionText}>{t("about.version", { version: __APP_VERSION__ })}</p>
       </div>
 
       <BottomTabs />
@@ -252,15 +263,37 @@ export default function Profile() {
   );
 }
 
-function Row({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
+function Row({
+  iconSrc,
+  label,
+  value,
+  onClick,
+}: {
+  iconSrc?: string;
+  label: string;
+  value?: string;
+  onClick: () => void;
+}) {
   return (
     <button type="button" className={styles.groupRow} onClick={onClick}>
-      <span>{label}</span>
+      <span className={styles.groupRowMain}>
+        {iconSrc && <img className={styles.groupRowIcon} src={iconSrc} alt="" aria-hidden="true" />}
+        <span>{label}</span>
+      </span>
       <span className={styles.groupRowTrailing}>
         {value && <span className={styles.groupRowValue}>{value}</span>}
         <Chevron />
       </span>
     </button>
+  );
+}
+
+function Lock() {
+  return (
+    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="4" y="10" width="16" height="12" rx="2.5" fill="currentColor" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="3" fill="none" />
+    </svg>
   );
 }
 

@@ -38,6 +38,15 @@ export interface BottomSheetProps {
    * When set, the sheet rubber-bands slightly past the top instead of a hard stop.
    */
   onOverswipeUp?: () => void;
+  /**
+   * Detached "glass" card: inset from the screen's sides, fully rounded,
+   * translucent + blurred, and — when `bottomInset` is set — stopping cleanly
+   * at that inset instead of painting through it. Opt-in, default `false`
+   * (the docked, bord-à-bord look — see `[data-docked]` below); currently
+   * unused (Explorer's map sheet is docked, painted straight through behind
+   * the — always floating, unaffected — bottom nav, see MapExplore).
+   */
+  floating?: boolean;
 }
 
 const GRAB_H = 26; // handle strip — added on top of a `"fit"` content height
@@ -50,6 +59,32 @@ const MIN_H = 76;
 const MAX_VH = 0.94;
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+
+/**
+ * Whether the sheet's content is allowed to scroll vertically — gated to the
+ * tallest snap (`index === lastIdx`). Below it the panel is often
+ * deliberately cropped shorter than its content (a peek/medium preview), so
+ * comparing content to the *current* panel alone would read that crop as
+ * "overflowing" and turn on `overflow-y: auto` there too — a real scrollable
+ * surface iOS Safari can grab natively before `touch-action: pan-x` gets a
+ * chance to stop it. With scrolling switched off at the DOM level below the
+ * tallest snap, there is nothing left for the browser to grab, so every
+ * vertical drag there falls through to the sheet gesture. Exported standalone
+ * so this rule has direct test coverage, independent of real touch input.
+ */
+export function computeCanScroll(params: {
+  lockScroll: boolean;
+  index: number;
+  lastIdx: number;
+  contentH: number;
+  fitReserve: number;
+  height: number;
+}): boolean {
+  const { lockScroll, index, lastIdx, contentH, fitReserve, height } = params;
+  // 1px epsilon absorbs rounding — see `resolve`, whose "fit" height is built
+  // from these same two terms so they line up exactly by construction.
+  return !lockScroll && index === lastIdx && contentH + fitReserve > height - GRAB_H + 1;
+}
 
 function scrollableAncestor(from: HTMLElement, stop: HTMLElement): HTMLElement | null {
   let el: HTMLElement | null = from;
@@ -90,6 +125,7 @@ export function BottomSheet({
   showBackdrop = false,
   dismissible = true,
   onOverswipeUp,
+  floating = false,
 }: BottomSheetProps) {
   const controlled = snapIndex != null;
   const lastIdx = snapPoints.length - 1;
@@ -126,19 +162,22 @@ export function BottomSheet({
   // and it sits *below* the nav in the stack, so the nav stays usable on top.
   // A modal sheet (backdrop) still floats above everything — never docked.
   const docked = bottomInset > 0 && !showBackdrop;
+  // `floating` still reserves the inset the same way (`docked` above still
+  // governs `fitReserve`/`scrollReserve`) but never paints through it: the
+  // card stops exactly at the inset, clear of the nav, instead of continuing
+  // behind it.
+  const paintThrough = docked && !floating;
 
   const safeBottom = useSafeAreaBottom();
 
-  // Reserve kept below the visible content, above the obstruction it stops at:
-  //  - docked: a small margin only — the nav sits in its own reserved strip
-  //    below the scrollable area (see `sheetBody`/`navStrip` below), so the
-  //    content itself only needs a clean gap above it, never the nav's own
-  //    height again.
-  //  - otherwise: the home-indicator inset, so the last row clears it.
+  // Reserve used for fit measurement:
+  //  - docked: only the visual edge margin affects the fitted panel height;
+  //  - otherwise: the home-indicator inset keeps the last row clear.
   const fitReserve = docked ? EDGE_MARGIN : safeBottom;
-  // Padding at the end of the *scrollable* content — a clean gap above the
-  // obstruction, not the obstruction's own height (that's `navStrip`).
-  const scrollReserve = docked ? EDGE_MARGIN : safeBottom;
+  // Docked content is allowed to scroll behind the translucent bottom nav.
+  // Reserve the nav obstruction + a small margin at the end so the final
+  // content can still be scrolled fully above the dock.
+  const scrollReserve = docked ? bottomInset + EDGE_MARGIN : safeBottom;
 
   // ── content measurement (drives `"fit"` and `canScroll`) ──
   // `contentH` is the *natural* content height; the reserve below is a sibling
@@ -354,16 +393,13 @@ export function BottomSheet({
   // scrolls its own content — every drag on it is a sheet gesture, so the
   // swipe-up can't be stolen by an internal scroll.
   const lockScroll = !!onOverswipeUp && snapPoints.length === 1;
-  // The panel body is `height - GRAB_H`; the content needs `contentH + fitReserve`
-  // to sit fully clear of its bottom edge. Above a `"fit"` snap these are equal by
-  // construction (see `resolve`), so it only scrolls once the content truly
-  // overflows the current panel. 1px epsilon absorbs rounding.
-  const canScroll = !lockScroll && contentH + fitReserve > height - GRAB_H + 1;
+  const canScroll = computeCanScroll({ lockScroll, index, lastIdx, contentH, fitReserve, height });
 
   // The sheet's opaque body is painted down to the screen edge when docked, so it
   // reads as one surface continuing behind the nav; `height` (the panel above the
-  // inset) still drives every drag / snap calculation.
-  const paintedHeight = docked ? height + bottomInset : height;
+  // inset) still drives every drag / snap calculation. A `floating` card never
+  // paints through — it stops at `bottomInset`, clear of whatever sits below it.
+  const paintedHeight = paintThrough ? height + bottomInset : height;
 
   return createPortal(
     <>
@@ -373,7 +409,8 @@ export function BottomSheet({
         className={styles.sheet}
         data-dragging={dragging ? "1" : undefined}
         data-docked={docked ? "1" : undefined}
-        style={{ height: paintedHeight }}
+        data-floating={floating ? "1" : undefined}
+        style={{ height: paintedHeight, bottom: floating ? bottomInset : undefined }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}
@@ -385,26 +422,26 @@ export function BottomSheet({
         <div
           className={styles.sheetBody}
           style={{
-            // Docked: capped to the panel height so the *scrollable viewport*
-            // stops right above the nav strip — content can no longer scroll
-            // into (and show, ghosted, through the translucent dock) the
-            // reserved space behind it. Undocked: unchanged, flex:1 fills the
-            // sheet (there's no separate strip to exclude).
+            // Docked: include the painted-through area in the scroll viewport
+            // so content can remain visible (blurred) behind the floating nav.
             flex: docked ? "0 0 auto" : 1,
-            height: docked ? height - GRAB_H : undefined,
+            height: docked ? paintedHeight - GRAB_H : undefined,
             overflowY: canScroll ? "auto" : "hidden",
-            touchAction: lockScroll ? "none" : undefined,
+            // Below the tallest snap, `pan-y` lets the browser commit to a native
+            // vertical scroll before the pointermove handler's `preventDefault()`
+            // can claim the gesture (touch-action is decided at touchstart, ahead
+            // of any JS). `pan-x` blocks that vertical fast-path so the drag logic
+            // above always owns upward/downward gestures here, while still letting
+            // a horizontal child (e.g. the park carousel) pan natively — `none`
+            // would also block that, since a descendant can't re-widen an
+            // ancestor's touch-action.
+            touchAction: lockScroll ? "none" : index < lastIdx ? "pan-x" : undefined,
           }}
         >
           <div ref={contentRef}>{children}</div>
           {scrollReserve > 0 && <div aria-hidden style={{ height: scrollReserve }} />}
         </div>
-        {docked && bottomInset > 0 && (
-          // Purely decorative continuation of the sheet's surface behind the
-          // nav — never part of the scrollable viewport, so it can't leak
-          // content behind the dock; the nav floats on top of it (z-index).
-          <div aria-hidden className={styles.navStrip} style={{ height: bottomInset }} />
-        )}
+
       </div>
     </>,
     document.body,

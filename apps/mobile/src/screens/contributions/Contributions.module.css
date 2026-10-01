@@ -6,123 +6,170 @@
   /* Dégagement pour la bottom nav fixe — même source que la nav (tokens.css). */
   padding-bottom: calc(var(--bottom-nav-h) + 16px);
 }
-.tabs {
-  display: flex;
-  gap: 8px;
-  padding: 6px 20px 14px;
+
+.header {
+  padding: calc(20px + var(--safe-top)) 20px 4px;
 }
-.tab {
-  flex: 1;
-  border: none;
-  border-radius: 999px;
-  background: var(--color-border-strong);
-  color: var(--color-text-muted);
-  padding: 9px 0;
-  font-size: 12.5px;
-  font-weight: 700;
+.header h1 {
   font-family: var(--font-heading);
-  cursor: pointer;
+  font-weight: 700;
+  margin: 0;
+  font-size: 24px;
+  color: var(--color-text);
 }
-.tab[data-on="1"] {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+.header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .body {
   flex: 1;
   overflow: auto;
-  padding: 6px 20px 30px;
-}
-.empty {
-  text-align: center;
-  padding: 40px 10px;
-  font-size: 13px;
-  color: var(--color-text-muted);
+  padding: 12px 20px 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
 }
 
-.parkRow {
+.addPark {
   display: flex;
-  gap: 12px;
   align-items: center;
-  background: var(--color-surface);
-  border-radius: 16px;
-  padding: 12px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+  gap: 14px;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  padding: 16px 18px;
   cursor: pointer;
+  text-align: left;
 }
-.thumb {
-  width: 48px;
-  height: 48px;
+.addParkIcon {
   flex: none;
-  border-radius: 14px;
-  background: var(--color-border) center / cover no-repeat;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.rowBody {
+.addParkBody {
   flex: 1;
   min-width: 0;
 }
-.rowName {
+.addParkTitle {
+  display: block;
   font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 14.5px;
-  color: var(--color-text);
+  font-weight: 700;
+  font-size: 15px;
 }
-.rowSub {
+.addParkSubtitle {
   font-size: 12px;
-  color: var(--color-text-muted);
+  opacity: 0.9;
   margin-top: 2px;
 }
-.pending {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 5px 10px;
-  border-radius: 999px;
-  flex: none;
-}
 
-.card {
-  background: var(--color-surface);
-  border-radius: 16px;
-  padding: 14px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+.quickGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
-.cardTop {
+.quickCard {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-.cardName {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 16px 14px;
+  cursor: pointer;
+  text-align: left;
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13.5px;
   color: var(--color-text);
 }
-.cardDate {
-  font-size: 11px;
-  color: var(--color-text-faint);
-}
-.cardStars {
+.quickIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   display: flex;
-  gap: 2px;
-  margin: 6px 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--color-surface);
 }
-.card p {
-  margin: 0;
-  font-size: 13px;
+.quickCard[data-tone="green"] {
+  background: var(--color-primary-tint);
+}
+.quickCard[data-tone="amber"] {
+  background: var(--color-warning-bg);
+}
+.quickCard[data-tone="red"] {
+  background: var(--color-error-tint);
+}
+.quickCard[data-tone="blue"] {
+  background: var(--color-info-tint);
+}
+
+.impactCard {
+  background: var(--color-primary-tint);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+}
+.impactTitle {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text);
+  margin-bottom: 12px;
+}
+.impactStats {
+  display: flex;
+  gap: 24px;
+}
+.impactStat strong {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  color: var(--color-primary-hover);
+}
+.impactStat span {
+  font-size: 11.5px;
   color: var(--color-text-muted);
 }
 
-.reportRow {
+.sectionHeader {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  align-items: center;
+  margin-bottom: 8px;
+}
+.sectionHeader h2 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  margin: 0;
+  color: var(--color-text);
+}
+.seeAll {
+  border: none;
+  background: none;
+  color: var(--color-primary-hover);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.recentList {
   background: var(--color-surface);
-  border-radius: 16px;
-  padding: 14px 16px;
-  margin-bottom: 10px;
+  border-radius: var(--radius-lg);
+  padding: 0 14px;
   box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
+}
+.recentList > *:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
 }

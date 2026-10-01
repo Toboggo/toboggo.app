@@ -1,34 +1,68 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, Icon, useBottomNavHeight, type Snap } from "@toboggo/design-system";
-import { MapCanvas } from "./MapCanvas";
+import { BottomSheet, Icon, useBottomNavHeight, useViewportHeight, type Snap } from "@toboggo/design-system";
+import { mapStyleUrl } from "@toboggo/shared";
+import { trackEvent, type AnalyticsEventProperties } from "../../lib/analytics";
+import { MapCanvas, type MapViewport } from "./MapCanvas";
 import { SearchOverlay } from "./SearchOverlay";
 import { FiltersSheet } from "./FiltersSheet";
 import { ParkPreview } from "./ParkPreview";
 import { ParkList } from "./ParkList";
-import { ParkCarousel } from "./ParkCarousel";
-import { LikedParksSection } from "./LikedParksSection";
+import { NearbyBody, NearbyHeader } from "./NearbySection";
+import { RadiusSheet } from "./RadiusSheet";
+import { availableContexts, selectNearby, type NearbyContext } from "./nearbySelection";
 import { SheetState, SheetLoading } from "./SheetState";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
 import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo";
 import { useFilters } from "../../lib/filters";
+import { useChildAges } from "../../lib/children";
 import { useNearbyParks } from "../../lib/parksQuery";
+import { useNearbyRadius } from "../../lib/nearbyRadius";
 import { useWeather } from "../../lib/weather";
 import { useSession } from "../../lib/session";
 import styles from "./MapExplore.module.css";
 
-// Peek height (px): header + hint, then ~30-40% of the first card row height
-// showing through — a real "there's more below" affordance (Maps/Plans-style
-// peek principle, not their visuals) rather than a title-only bar. Fixed, not
-// "fit": we deliberately crop the carousel short instead of hugging it.
-const PEEK_H = 137;
+// Peek height (px, panel above the nav): the handle strip + the compact
+// "Autour de vous" header (icon, title, count within the active radius, Zone
+// pill) and nothing else — no card, so the map keeps the room. Fixed, not
+// "fit", so the peek never jumps with the content below the header.
+const PEEK_H = 84;
 
-// Snap ladders per sheet mode. "fit" = hug the measured content (no empty panel);
-// 0.9 = near-fullscreen expanded (further clamped so it never covers the header).
-const SNAPS_LIST: Snap[] = [PEEK_H, "fit", 0.9];
+// Medium is a real "map + discovery" balance, not a near-full sheet: a fixed
+// share of the zone actually available between the header and the bottom nav
+// (not of the raw viewport — a fraction snap resolves against the full screen
+// height, see `BottomSheet.resolve`), so it stays proportionate across phones
+// instead of hardcoding one device's numbers (~45-48% of the screen on a
+// typical phone). It leads with the "Autour de vous" header, contextual
+// filters and carousel; whatever doesn't fit below them (on a short phone the
+// "plus loin" CTA, and always "Tous les parcs autour de vous") is cropped, not
+// scrollable, at this snap — reachable at expanded.
+const MEDIUM_RATIO = 0.47;
+
 const SNAPS_SINGLE: Snap[] = ["fit"];
+
+/**
+ * Décision pure (testable sans monter l'écran) : laquelle des 4 raisons de
+ * "0 résultat" de `renderSheet()` s'applique, ou `null` s'il y a des
+ * résultats. Reflète EXACTEMENT l'ordre de priorité du rendu ci-dessous —
+ * toute modification de l'un doit se répercuter sur l'autre. Une destination
+ * explicitement recherchée (`placeLabel`) l'emporte sur l'état de permission
+ * GPS : "localisation désactivée" ne vaut que sans destination active.
+ */
+export function deriveMapZeroResultReason(
+  hasResults: boolean,
+  locationPermissionDenied: boolean,
+  filterCount: number,
+  placeLabel: string | null,
+): AnalyticsEventProperties["zero_results"]["reason"] | null {
+  if (hasResults) return null;
+  if (locationPermissionDenied && !placeLabel) return "location_denied";
+  if (filterCount > 0) return "filters_active";
+  if (placeLabel) return "place_not_found";
+  return "default_area";
+}
 
 function weatherEmoji(condition?: string) {
   return condition === "rain" ? "🌧️" : condition === "heat" ? "☀️" : condition === "wind" ? "💨" : "⛅";
@@ -50,7 +84,12 @@ export default function MapExplore() {
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recenterSignal, setRecenterSignal] = useState(0);
-  const [forChildren, setForChildren] = useState(false);
+  // Destination géographique explicitement recherchée (cadrée sur sa bbox).
+  const [viewport, setViewport] = useState<MapViewport | null>(null);
+  const [nearbyContext, setNearbyContext] = useState<NearbyContext>("nearby");
+  const [radiusOpen, setRadiusOpen] = useState(false);
+  const radiusKm = useNearbyRadius((s) => s.radiusKm);
+  const setRadiusKm = useNearbyRadius((s) => s.setRadiusKm);
   const [weatherDismissed, setWeatherDismissed] = useState(false);
   // Compact by default — the map is the point of this screen, so it opens
   // with just the "Autour de vous" bar, not the carousel already expanded.
@@ -58,8 +97,11 @@ export default function MapExplore() {
   const [sheetHeight, setSheetHeight] = useState(280);
   // Real rendered height of the bottom nav (content + iOS home-indicator safe
   // area), from the shared CSS token. Replaces the old `TAB_INSET = 78` guess so
-  // the sheet, the map camera insets and the nav can't disagree.
+  // the sheet, the map camera insets and the nav can't disagree. The nav itself
+  // is the same floating dock on every screen (see BottomTabs) — only the sheet
+  // is docked here, painted behind it (see the `<BottomSheet>` below).
   const navH = useBottomNavHeight();
+  const vpH = useViewportHeight();
   const [headerBottom, setHeaderBottom] = useState(72);
   const headerRef = useRef<HTMLDivElement>(null);
   const alertRef = useRef<HTMLDivElement>(null);
@@ -67,6 +109,7 @@ export default function MapExplore() {
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
+  const childAges = useChildAges();
 
   const {
     data: parks = [],
@@ -80,6 +123,32 @@ export default function MapExplore() {
   const filterCount = activeCount();
   const hasResults = parks.length > 0;
 
+  // Everything "Autour de vous" shows, derived from the parks already loaded
+  // (up to 20 km — the map markers keep using all of them): count, carousel
+  // and expanded list are strictly the active radius. See `nearbySelection`.
+  const nearbyContexts = useMemo(() => availableContexts(!!userId, childAges), [userId, childAges]);
+  const nearby = useMemo(
+    () =>
+      selectNearby({
+        parks,
+        radiusKm,
+        context: nearbyContext,
+        favoriteIds: favorites,
+        childAges,
+        isLoggedIn: !!userId,
+      }),
+    [parks, radiusKm, nearbyContext, favorites, childAges, userId],
+  );
+
+  function handleContextChange(next: NearbyContext) {
+    setNearbyContext(next);
+    // Only the children filter has a matching existing event (`for_children`);
+    // "À proximité" / "Favoris" have none yet and are deliberately not tracked.
+    if (next === "forChildren" || nearby.context === "forChildren") {
+      trackEvent("filter_applied", { filter_type: "for_children", filter_value: String(next === "forChildren") });
+    }
+  }
+
   const mode: "preview" | "loading" | "state" | "list" = selectedPark
     ? "preview"
     : isLoading
@@ -91,7 +160,16 @@ export default function MapExplore() {
   // Each mode has its own snap ladder so the sheet is always sized to its
   // content — a one-line status or a short carousel never leaves an empty
   // panel, and the list mode can still be pulled up to (near-)fullscreen.
-  const snapPoints = useMemo<Snap[]>(() => (mode === "list" ? SNAPS_LIST : SNAPS_SINGLE), [mode]);
+  // Medium is a fixed px share of the zone actually available to the sheet
+  // (viewport minus the header/search-bar strip minus the bottom nav) — the
+  // same ingredients `BottomSheet`'s own `maxH` clamps against (`topInset` /
+  // `bottomInset` below), so it tracks every device instead of one phone.
+  const snapPoints = useMemo<Snap[]>(() => {
+    if (mode !== "list") return SNAPS_SINGLE;
+    const usefulZoneH = vpH - (headerBottom + 12) - navH;
+    const mediumH = Math.round(usefulZoneH * MEDIUM_RATIO);
+    return [PEEK_H, mediumH, 0.9];
+  }, [mode, vpH, headerBottom, navH]);
 
   // Reset the snap position when the mode *changes* so the new ladder starts
   // sane — but don't fight the user's drag while they stay in the same mode.
@@ -104,6 +182,19 @@ export default function MapExplore() {
     prevMode.current = mode;
     setSnap(0);
   }, [mode]);
+
+  // A deliberate tap on the map background (never a pan/zoom/marker tap — see
+  // MapCanvas/FakeMap's own `onBackgroundTap`). A selected park is deselected,
+  // which already collapses the sheet to peek via the mode-change effect
+  // above; otherwise, with no park selected, the sheet's own medium/expanded
+  // snap is brought back to peek directly.
+  function handleMapBackgroundTap() {
+    if (selectedId) {
+      setSelectedId(null);
+    } else if (snap !== 0) {
+      setSnap(0);
+    }
+  }
 
   function toggleFavorite(parkId: string) {
     if (!userId) {
@@ -119,6 +210,7 @@ export default function MapExplore() {
       const { setLocation, setPermission } = useGeo.getState();
       setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       setPermission("granted");
+      setViewport(null); // retour à la position réelle : plus de destination cadrée à rejouer
       setRecenterSignal((n) => n + 1);
     } catch {
       useGeo.getState().setPermission("denied");
@@ -165,6 +257,47 @@ export default function MapExplore() {
   }, [alertShown]);
 
   const placeLabel = label && label !== DEFAULT_GEO_LABEL ? label : null;
+
+  // `map_viewed` — une fois par montage réel de l'écran carte (navigation
+  // vers `/map`), jamais par re-render (le `useRef` ne dépend d'aucune valeur
+  // qui changerait pendant la vie du composant). `map_kind` distingue
+  // MapLibre réel de FakeMap (ANALYTICS-AUDIT.md §4) — indispensable pour ne
+  // pas fausser toute mesure d'engagement carte.
+  const mapViewedTracked = useRef(false);
+  useEffect(() => {
+    if (mapViewedTracked.current) return;
+    mapViewedTracked.current = true;
+    trackEvent("map_viewed", {
+      map_kind: mapStyleUrl() ? "real" : "fake",
+      has_location_permission: permission === "granted",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // `zero_results` — les 4 branches de `renderSheet()` (géoloc refusée /
+  // filtres actifs / lieu recherché sans résultat / cas par défaut) sont
+  // évaluées ici pour ne déclencher l'événement qu'à la TRANSITION vers une
+  // raison donnée, jamais à chaque re-render tant qu'on y reste (le chip
+  // météo, le snap de la sheet, etc. re-rendent ce composant sans que l'état
+  // "0 résultat" change de nature). `isSettled` (même condition que le mode
+  // "state" du rendu, cf. `mode` ci-dessus) évite de compter le chargement
+  // initial de `useNearbyParks` (`parks` vaut `[]` par défaut tant qu'aucune
+  // réponse n'est arrivée) ou une erreur réseau comme un vrai "0 résultat" —
+  // sans cette garde, `hasResults` est `false` pendant tout le chargement et
+  // l'événement partait avant la résolution de la requête, y compris quand
+  // des parcs s'affichent une fraction de seconde plus tard.
+  const isSettled = !isLoading && !isError;
+  const zeroResultReason = isSettled
+    ? deriveMapZeroResultReason(hasResults, permission === "denied", filterCount, placeLabel)
+    : null;
+  const lastZeroReasonRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (zeroResultReason && zeroResultReason !== lastZeroReasonRef.current) {
+      trackEvent("zero_results", { reason: zeroResultReason });
+    }
+    if (isSettled) lastZeroReasonRef.current = zeroResultReason;
+  }, [zeroResultReason, isSettled]);
+
   const sheetTopInset = headerBottom + 12;
   // Deterministic: the floating controls belong to the map browsing states, not
   // to a full-height list or a park preview. No height guessing.
@@ -205,7 +338,7 @@ export default function MapExplore() {
       );
     }
     if (!hasResults) {
-      if (permission === "denied") {
+      if (permission === "denied" && !placeLabel) {
         return (
           <SheetState
             iconName="ic-explore"
@@ -264,80 +397,56 @@ export default function MapExplore() {
       );
     }
 
+    // One header across every snap — only the peek adds its "raise" chevron.
+    // Peek is this header alone (no card); medium adds the contextual filters
+    // + carousel (or the empty-zone suggestions); expanded additionally
+    // reveals the full list. Medium and expanded share the same tree: at
+    // medium the sheet's fixed, non-scrollable height (see BottomSheet's
+    // canScroll) crops what follows, expanded makes it scrollable.
     const header = (
-      <div className={styles.sheetHead}>
-        <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
-        {snap < 2 ? (
-          <button type="button" className={styles.seeAll} onClick={() => setSnap(2)}>
-            {t("action.seeAll", { ns: "common" })}
-          </button>
-        ) : (
-          <span className={styles.count}>{t("sheet.count", { count: parks.length })}</span>
-        )}
-      </div>
+      <NearbyHeader
+        count={nearby.activeParks.length}
+        radiusKm={radiusKm}
+        onOpenZone={() => setRadiusOpen(true)}
+        onExpand={snap === 0 ? () => setSnap(1) : undefined}
+        placeLabel={placeLabel}
+      />
     );
+    if (snap === 0) return header;
 
-    // Peek: title + hint, then the same carousel as the intermediate state —
-    // the sheet is just shorter here (see PEEK_H), cropping it to a partial
-    // first row instead of measuring/hugging it ("fit"). No favorites section
-    // at this tier; it only shows once fully expanded (snap 1).
-    if (snap === 0) {
-      return (
+    // Parks already shown in the carousel are pushed after the rest in the
+    // list (never removed), so a park isn't immediately repeated.
+    const contextualIds = nearby.carousel.map((p) => p.id);
+    return (
+      <>
         <div className={styles.intermediate}>
-          <div className={styles.peekHead}>
-            <div className={styles.sheetTitle}>{t("sheet.aroundYou")}</div>
-            <div className={styles.count}>{t("sheet.dragHint", { count: parks.length })}</div>
-          </div>
-          <ParkCarousel
-            parks={parks}
+          {header}
+          <NearbyBody
+            selection={nearby}
+            contexts={nearbyContexts}
+            onContextChange={handleContextChange}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
-            onSelect={setSelectedId}
+            onSelectPark={setSelectedId}
+            onOpenZone={() => setRadiusOpen(true)}
+            onSetRadius={setRadiusKm}
           />
         </div>
-      );
-    }
-
-    // Rendered from both the intermediate carousel and the full list — a park
-    // favorited while already at the full list (a common path, since "Voir
-    // tout" jumps straight past the intermediate step) must still surface it,
-    // not only the narrower snap where the section first lived.
-    const likedSection = userId ? (
-      <LikedParksSection
-        favoriteIds={favorites}
-        lat={lat}
-        lng={lng}
-        onToggleFavorite={toggleFavorite}
-        onSelect={setSelectedId}
-      />
-    ) : null;
-
-    if (snap === 1) {
-      return (
-        <>
-          <div className={styles.intermediate}>
-            {header}
-            <ParkCarousel
-              parks={parks}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
-              onSelect={setSelectedId}
-            />
-          </div>
-          {likedSection}
-        </>
-      );
-    }
-
-    return (
-      <ParkList
-        parks={parks}
-        onToggleFavorite={toggleFavorite}
-        forChildren={forChildren}
-        setForChildren={setForChildren}
-        header={header}
-        extra={likedSection}
-      />
+        {nearby.activeParks.length > 0 && (
+          <ParkList
+            parks={nearby.activeParks}
+            onToggleFavorite={toggleFavorite}
+            forChildren={nearby.context === "forChildren"}
+            setForChildren={(v) => setNearbyContext(v ? "forChildren" : "nearby")}
+            header={
+              <div className={styles.sheetHead}>
+                <div className={styles.sheetTitle}>{t("sheet.allNearby")}</div>
+              </div>
+            }
+            contextualIds={contextualIds}
+          />
+        )}
+      </>
     );
   }
 
@@ -349,7 +458,9 @@ export default function MapExplore() {
         parks={parks}
         selectedId={selectedId}
         onSelect={setSelectedId}
+        onBackgroundTap={handleMapBackgroundTap}
         recenterSignal={recenterSignal}
+        viewport={viewport}
         showUser={permission === "granted"}
         insets={mapInsets}
       />
@@ -450,19 +561,45 @@ export default function MapExplore() {
       {searchOpen && (
         <SearchOverlay
           onClose={() => setSearchOpen(false)}
-          onSelectPark={(id) => {
+          // Parc choisi explicitement : on recentre sur lui ET on déplace la zone
+          // chargée (centre du store), sinon un parc hors des 20 km actuels ne
+          // serait jamais dans `parks` et la fiche ne s'ouvrirait pas.
+          onSelectPark={(park) => {
             setSearchOpen(false);
-            setSelectedId(id);
+            if (park.lat != null && park.lng != null) {
+              useGeo.getState().setLocation(park.lat, park.lng, park.city ?? park.name);
+              setRecenterSignal((n) => n + 1);
+            }
+            setSelectedId(park.id);
           }}
+          // Lieu géographique : « explorer cette zone » — aucun parc sélectionné.
+          // Le centre du store change une seule fois (une seule requête de
+          // parcs) ; la caméra se cale sur la bbox via `viewport`.
           onSelectPlace={(place) => {
             setSearchOpen(false);
+            setSelectedId(null);
             useGeo.getState().setLocation(place.lat, place.lng, place.name);
-            setRecenterSignal((n) => n + 1);
+            setViewport((v) => ({
+              id: (v?.id ?? 0) + 1,
+              lat: place.lat,
+              lng: place.lng,
+              bbox: place.bbox,
+              placeType: place.placeType,
+            }));
           }}
         />
       )}
 
       <FiltersSheet open={filtersOpen} onClose={() => setFiltersOpen(false)} />
+      <RadiusSheet
+        open={radiusOpen}
+        value={radiusKm}
+        onApply={(r) => {
+          setRadiusKm(r);
+          setRadiusOpen(false);
+        }}
+        onClose={() => setRadiusOpen(false)}
+      />
       <QuickMenu open={quickMenuOpen} onClose={() => setQuickMenuOpen(false)} />
     </div>
   );

@@ -7,7 +7,9 @@
     "suggestedCities": "Ciudades sugeridas",
     "parks": "Parques",
     "places": "Lugares",
-    "noResults": "Sin resultados para «{{query}}»."
+    "noPlace": "No se encontró ningún lugar para «{{query}}»",
+    "error": "La búsqueda de lugares no está disponible ahora. Inténtalo de nuevo.",
+    "searching": "Buscando…"
   },
   "filters": {
     "title": "Filtros",
@@ -33,13 +35,45 @@
     }
   },
   "sheet": {
-    "aroundYou": "Cerca de ti",
-    "count_one": "{{count}} parque",
-    "count_other": "{{count}} parques",
-    "dragHint_one": "{{count}} parque · Desliza para explorar",
-    "dragHint_other": "{{count}} parques · Desliza para explorar",
     "loading": "Buscando parques cerca de ti…",
-    "likedParks": "Parques que te han gustado"
+    "allNearby": "Todos los parques cerca de ti"
+  },
+  "nearby": {
+    "title": "Cerca de ti",
+    "titlePlace": "Cerca de {{place}}",
+    "subtitle_one": "{{count}} parque a menos de {{distance}}",
+    "subtitle_other": "{{count}} parques a menos de {{distance}}",
+    "subtitleNone": "Ningún parque a menos de {{distance}}",
+    "zone": "Zona: {{distance}}",
+    "zoneAria": "Zona de búsqueda: {{distance}}. Cambiar",
+    "expand": "Mostrar los parques cerca de ti",
+    "filtersAria": "Filtrar los parques cerca de ti",
+    "filter": {
+      "nearby": "Cerca",
+      "favorites": "Favoritos",
+      "forChildren": "Para mis hijos"
+    },
+    "favoritesEmpty": "Ninguno de tus favoritos en esta zona.",
+    "childrenEmpty": "Ningún parque adecuado para la edad de tus hijos en esta zona.",
+    "moreTitle": "¿Quieres más opciones?",
+    "moreDesc": "Descubre parques un poco más lejos",
+    "furtherTitle": "Parques un poco más lejos",
+    "seeWithin": "Ver parques a menos de {{distance}}",
+    "emptyTitle": "Ningún parque cerca",
+    "emptyDesc": "Amplía la zona para descubrir parques un poco más lejos.",
+    "emptyAction": "Ampliar la zona",
+    "radius": {
+      "title": "Zona de búsqueda",
+      "subtitle": "Mostrar los parques alrededor de tu ubicación",
+      "apply": "Aplicar",
+      "hint": {
+        "1": "Muy cerca",
+        "2": "Barrio y alrededores",
+        "5": "Ciudad y alrededores",
+        "10": "Descubrimiento más amplio",
+        "20": "Explorar más lejos"
+      }
+    }
   },
   "state": {
     "errorTitle": "No se pueden cargar los parques",
@@ -77,6 +111,8 @@
     "notifications": "Notificaciones",
     "recenter": "Centrar",
     "contribute": "Contribuir",
-    "userLocation": "Tu ubicación"
+    "userLocation": "Tu ubicación",
+    "clusterCount_one": "{{count}} parque en esta zona, toca para acercar",
+    "clusterCount_other": "{{count}} parques en esta zona, toca para acercar"
   }
 }

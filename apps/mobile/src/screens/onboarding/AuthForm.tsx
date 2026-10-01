@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { signIn, signUp, sendPasswordReset, signInWithGoogle } from "@toboggo/shared";
+import { signIn, signUp, sendPasswordReset } from "@toboggo/shared";
 import { Logo } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
 import { takeResumeRoute } from "../../lib/resumeRoute";
-import { AppleIcon, ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
+import { trackEvent } from "../../lib/analytics";
+import { clearGoogleLoginMarker, startGoogleLogin } from "../../lib/googleLogin";
+import { ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,6 +46,9 @@ export default function AuthForm() {
       return;
     }
     setLoading(true);
+    // Un login email volontaire annule tout marqueur Google resté d'un essai
+    // abandonné — sinon sa session serait comptée comme un login Google.
+    clearGoogleLoginMarker();
     try {
       if (isSignup) {
         const res = await signUp(email, password, email.split("@")[0]);
@@ -51,6 +56,12 @@ export default function AuthForm() {
         // Only jump straight to a pending contribution when a session was issued
         // right away (email confirmation disabled); otherwise the draft waits.
         const resumeRoute = res.session ? takeResumeRoute() : null;
+        // `takeResumeRoute()` est déjà consommé ci-dessus (lecture one-shot) —
+        // on réutilise sa valeur, on ne le rappelle jamais une 2e fois.
+        trackEvent("signup_completed", {
+          provider: "email",
+          entry_point: resumeRoute ? "contribution_resume" : "splash",
+        });
         if (resumeRoute) {
           // Reprise d'une contribution après login juste-à-temps : on REMPLACE
           // l'entrée /login. Une fois la contribution finie (confirmation
@@ -64,6 +75,7 @@ export default function AuthForm() {
         }
       } else {
         await signIn(email, password);
+        trackEvent("login_completed", { provider: "email" });
         // Resume an in-progress contribution if one was started before login.
         const resumeRoute = takeResumeRoute();
         if (resumeRoute) {
@@ -96,7 +108,7 @@ export default function AuthForm() {
 
   const continueWithGoogle = async () => {
     try {
-      await signInWithGoogle();
+      await startGoogleLogin();
     } catch {
       showToast(tErr("auth.googleUnavailable"));
     }
@@ -174,10 +186,6 @@ export default function AuthForm() {
         <button type="button" className={styles.social} onClick={continueWithGoogle}>
           <GoogleIcon size={17} />
           <span>{t("auth.continueGoogle")}</span>
-        </button>
-        <button type="button" className={styles.social} onClick={() => showToast(tCommon("comingSoon"))}>
-          <AppleIcon size={16} />
-          <span>{t("auth.continueApple")}</span>
         </button>
 
         <p className={styles.switch}>

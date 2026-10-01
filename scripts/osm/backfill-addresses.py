@@ -119,24 +119,17 @@ def confirm_prod_commit(project_ref: str, candidate_count: int, flag_ack: bool) 
     print("  Confirmé.")
     print()
 
-# Départements de l'ancienne région Midi-Pyrénées — seule zone couverte par
-# le jeu de données OSM importé (docs/operations/OSM.md). Un code postal hors
-# de cette liste sur un résultat de reverse geocoding est un signal
-# d'incohérence à vérifier manuellement (bord de région plausible, ou erreur
-# Geoapify), pas une preuve d'erreur en soi.
-MIDI_PYRENEES_DEPARTEMENTS = {"09", "12", "31", "32", "46", "65", "81", "82"}
-
-
 def flag_result(value: dict) -> list[str]:
-    """Signaux d'attention à faire vérifier manuellement — jamais une
-    validation automatique, juste de quoi cibler la relecture humaine."""
+    """Signaux d'attention génériques, indépendants du pays.
+
+    Les contrôles géographiques propres à une région ne doivent pas être
+    appliqués ici : ce backfill peut traiter plusieurs pays et régions.
+    """
     flags = []
     if not value.get("city"):
         flags.append("sans_ville")
     if not value.get("postal_code"):
         flags.append("sans_code_postal")
-    elif value["postal_code"][:2] not in MIDI_PYRENEES_DEPARTEMENTS:
-        flags.append(f"departement_hors_zone:{value['postal_code'][:2]}")
     if not value.get("address_line"):
         flags.append("sans_numero_rue")
     return flags
@@ -149,6 +142,7 @@ where latitude is not null
   and longitude is not null
   and (address_line is null or postal_code is null or city is null)
   and can_source_replace_attribute(id, 'address', 'reverse_geocode')
+  {country_filter}
 order by id
 limit {limit}
 """
@@ -167,6 +161,10 @@ def n(v):
 def parse_args():
     ap = argparse.ArgumentParser(
         description="Backfill adresses via reverse geocoding Geoapify (LOCAL / STAGING / PROD)."
+    )
+    ap.add_argument(
+        "--country-code",
+        help="Filtre optionnel sur parks.country_code (ex: FR, ES, US).",
     )
     ap.add_argument(
         "--env",
@@ -417,7 +415,19 @@ def main():
     except GeoapifyError as e:
         raise SystemExit(str(e))
 
-    candidates = conn.select(SELECT_CANDIDATES_SQL.format(limit=args.limit))
+    country_filter = ""
+    if args.country_code:
+        country_code = args.country_code.strip().upper()
+        if len(country_code) != 2 or not country_code.isalpha():
+            raise SystemExit("--country-code doit être un code ISO alpha-2 (ex: FR, ES, US).")
+        country_filter = f"and country_code = {q(country_code)}"
+
+    candidates = conn.select(
+        SELECT_CANDIDATES_SQL.format(
+            limit=args.limit,
+            country_filter=country_filter,
+        )
+    )
     print(f"Candidats éligibles : {len(candidates)}")
     print(
         "  (adresse absente ET aucune source de priorité >= reverse_geocode "

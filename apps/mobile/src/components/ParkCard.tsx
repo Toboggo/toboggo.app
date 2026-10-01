@@ -1,12 +1,20 @@
 import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Icon, StarRating } from "@toboggo/design-system";
+import { Icon, StarRating, type IconName } from "@toboggo/design-system";
 import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
-import { hasRating, keyAttributes } from "../lib/parkDisplay";
+import { equipmentChips, hasRating, keyAttributes } from "../lib/parkDisplay";
+import { useFeatureLabel } from "../lib/featureLabel";
 import { useFormat } from "../i18n/useFormat";
 import styles from "./ParkCard.module.css";
+
+const ATTR_ICON: Record<ReturnType<typeof keyAttributes>[number], IconName> = {
+  fenced: "ic-fence",
+  shaded: "ic-shade",
+  toilets: "ic-toilets",
+  accessible: "ic-pmr",
+};
 
 function CompactRating({ park }: { park: Park }) {
   const f = useFormat();
@@ -20,7 +28,16 @@ function CompactRating({ park }: { park: Park }) {
   );
 }
 
-function FavButton({ favorite, onToggle }: { favorite?: boolean; onToggle: () => void }) {
+function FavButton({
+  favorite,
+  onToggle,
+  activeColor = "var(--color-error)",
+}: {
+  favorite?: boolean;
+  onToggle: () => void;
+  /** Fill colour of the active heart — the Explore carousel uses the brand green. */
+  activeColor?: string;
+}) {
   const { t } = useTranslation("detail");
   return (
     <button
@@ -43,7 +60,7 @@ function FavButton({ favorite, onToggle }: { favorite?: boolean; onToggle: () =>
         fill={favorite ? "currentColor" : "none"}
         stroke="currentColor"
         strokeWidth="2"
-        style={{ color: favorite ? "var(--color-error)" : "var(--color-text-faint)" }}
+        style={{ color: favorite ? activeColor : "var(--color-text-faint)" }}
         aria-hidden
       >
         <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
@@ -55,6 +72,7 @@ function FavButton({ favorite, onToggle }: { favorite?: boolean; onToggle: () =>
 export function ParkCard({
   park,
   distanceM,
+  location,
   favorite,
   onToggleFavorite,
   onOpen,
@@ -62,19 +80,26 @@ export function ParkCard({
 }: {
   park: Park;
   distanceM?: number;
+  /** Free-text location line (e.g. city). The `row` variant shows it only when no
+   * distance is known; `favorite` shows it alongside the distance. Never
+   * fabricated when the park has none. */
+  location?: string | null;
   favorite?: boolean;
   onToggleFavorite?: () => void;
   /** Overrides the default "navigate to the park page" tap behaviour. */
   onOpen?: () => void;
   /**
-   * `row` — compact horizontal item (favourites, notifications).
+   * `row` — compact horizontal item (favourites' compare-select mode, notifications).
    * `list` — richer horizontal item for the Explore results list.
-   * `carousel` — vertical, photo-first.
+   * `carousel` — vertical, photo-first (Explore's "Autour de vous" strip).
+   * `favorite` — richer horizontal item for the Favorites list (bigger photo,
+   * location + distance, age, up to 3 known equipment/amenities + "+X").
    */
-  variant?: "row" | "list" | "carousel";
+  variant?: "row" | "list" | "carousel" | "favorite";
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("features");
+  const featureLabel = useFeatureLabel();
   const f = useFormat();
   const displayName = getParkDisplayName(park, t);
   const open = () => (onOpen ? onOpen() : navigate(`/park/${park.id}`));
@@ -95,21 +120,40 @@ export function ParkCard({
   };
 
   if (variant === "carousel") {
+    // Photo-first, only real data, in this order: age (on the photo) and
+    // favourite, then name, rating + review count (only when reviews back it),
+    // distance · walking time, then at most two known attributes.
+    const attrs = keyAttributes(park);
     return (
       <div className={styles.card} {...activate}>
         <div className={styles.media}>
-          <ParkPhoto park={park} className={styles.cardPhoto} markSize={30} />
+          <ParkPhoto park={park} className={styles.cardPhoto} markSize={40} />
           {ageBand && <span className={styles.ageTag}>{ageBand}</span>}
           {onToggleFavorite && (
             <span className={styles.favFloat}>
-              <FavButton favorite={favorite} onToggle={onToggleFavorite} />
+              <FavButton favorite={favorite} onToggle={onToggleFavorite} activeColor="var(--color-primary)" />
             </span>
           )}
         </div>
         <div className={styles.cardBody}>
-          <div className={styles.name}>{displayName}</div>
-          <div className={styles.cardMeta}>{walkDistance && <span>{walkDistance}</span>}</div>
+          <div className={styles.cardName}>{displayName}</div>
           <CompactRating park={park} />
+          {(walkDistance || attrs.length > 0) && (
+            <div className={styles.cardMeta}>
+              {walkDistance && <span className={styles.cardDist}>{walkDistance}</span>}
+              {/* Known attributes as discreet pictograms on the same line —
+                  keeps the card short enough for the medium snap; the label
+                  stays available to screen readers and on hover. */}
+              {attrs.map((a) => {
+                const label = t(`attr.${a}`);
+                return (
+                  <span key={a} className={styles.fact} role="img" aria-label={label} title={label}>
+                    <Icon name={ATTR_ICON[a]} size={14} />
+                  </span>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -142,16 +186,53 @@ export function ParkCard({
     );
   }
 
+  if (variant === "favorite") {
+    // Location and distance can both be shown at once here (unlike `row`,
+    // which picks one) — that's the richer Favorites layout.
+    const metaBits = [location || null, distanceM != null ? f.distance(distanceM) : null].filter(Boolean);
+    const chips = equipmentChips(park);
+    const shownChips = chips.slice(0, 3);
+    const extraCount = chips.length - shownChips.length;
+    return (
+      <div className={styles.favCard} {...activate}>
+        <ParkPhoto park={park} className={styles.favPhoto} markSize={32} />
+        <div className={styles.favBody}>
+          <div className={styles.favTop}>
+            <div className={styles.favName}>{displayName}</div>
+            {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} />}
+          </div>
+          {metaBits.length > 0 && <div className={styles.favMeta}>{metaBits.join(" · ")}</div>}
+          {(ageBand || shownChips.length > 0) && (
+            <div className={styles.favChips}>
+              {ageBand && <span className={styles.chip}>{ageBand}</span>}
+              {shownChips.map((c) => {
+                const label = featureLabel(c.code);
+                return (
+                  <span key={c.code} className={styles.favFact} role="img" aria-label={label} title={label}>
+                    <Icon name={c.icon} size={13} />
+                  </span>
+                );
+              })}
+              {extraCount > 0 && <span className={styles.chip}>{`+${extraCount}`}</span>}
+            </div>
+          )}
+          <CompactRating park={park} />
+        </div>
+      </div>
+    );
+  }
+
+  // Distance takes priority when known; `location` (e.g. city) only fills in
+  // when there's no distance to show — never both at once.
+  const metaLead = distanceM != null ? f.distance(distanceM) : location || null;
+  const metaLine = [metaLead, ageBand].filter(Boolean).join(" · ");
+
   return (
     <div className={styles.row} {...activate}>
       <ParkPhoto park={park} className={styles.thumb} markSize={22} />
       <div className={styles.body}>
         <div className={styles.name}>{displayName}</div>
-        <div className={styles.meta}>
-          {distanceM != null ? f.distance(distanceM) : ""}
-          {distanceM != null && ageBand ? " · " : ""}
-          {ageBand ?? ""}
-        </div>
+        <div className={styles.meta}>{metaLine}</div>
         {hasRating(park) && (
           <StarRating value={park.rating} valueText={f.rating(park.rating)} count={park.review_count} size="sm" />
         )}

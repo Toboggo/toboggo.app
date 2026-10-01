@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import clsx from "clsx";
 import { Icon } from "@toboggo/design-system";
 import styles from "./TopBar.module.css";
 
@@ -13,15 +14,18 @@ export function TopBar({
   title,
   onBack,
   right,
+  className,
 }: {
   title?: string;
   onBack?: () => void;
   right?: ReactNode;
+  /** Escape hatch for a single screen's background (e.g. Réglages) — never changes the shared default. */
+  className?: string;
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("common");
   return (
-    <header className={styles.wrap}>
+    <header className={clsx(styles.wrap, className)}>
       <button
         type="button"
         className={styles.back}

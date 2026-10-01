@@ -37,7 +37,7 @@ Les sources de vérité détaillées sont listées en §12.
 |---|---|
 | `apps/mobile` | App parents — React 18 + Vite + TS, PWA. Dev sur `:5173`. Mode invité par défaut, login juste-à-temps. |
 | `apps/backoffice` | **Une seule** app back-office, role-routée (admin Toboggo *ou* collectivité) via `src/lib/orgSession.ts`. Dev sur `:5174`. |
-| `apps/landing` | Site vitrine HTML/CSS/JS **statique, sans build** (pas de `package.json`, donc pas un vrai workspace npm). Formulaire contact = `apps/landing/config.js`. |
+| `apps/landing` | Site vitrine — **Astro** (`output: "static"`, génération statique), vrai workspace npm (`@toboggo/landing`). Dev sur `:4321`. Formulaire contact = `apps/landing/public/config.js`. |
 | `packages/design-system` | Tokens CSS (`src/tokens.css`) + primitives React + `Logo` + sprite d'icônes. Implémentation exécutable du design. |
 | `packages/shared` | Types, client Supabase (`src/supabaseClient.ts`), **couche d'accès données `src/api/*`**, types générés (`src/types/database.types.ts`), utils. |
 | `supabase/` | Migrations SQL, RLS, `seed.sql`. Voir §4. |
@@ -49,12 +49,12 @@ Les sources de vérité détaillées sont listées en §12.
 
 ## 3. Commandes
 
-- `npm run dev:mobile` / `npm run dev:backoffice` — dev (lit `.env.local` en priorité sur `.env`).
-- `npm run build` — build mobile + backoffice (landing exclue, statique).
-- `npm run typecheck` — **obligatoire après toute modification de code TypeScript** ; c'est le gate `tsc -b` des builds.
-- `npm run build:mobile` / `npm run build:backoffice` — **à relancer après une modification applicative pertinente**.
+- `npm run dev:mobile` / `npm run dev:backoffice` / `npm run dev:landing` — dev (lit `.env.local` en priorité sur `.env`).
+- `npm run build` — build mobile + backoffice + landing.
+- `npm run typecheck` — **obligatoire après toute modification de code TypeScript** ; gate `tsc -b` (design-system/shared/mobile/backoffice) + `astro check` (landing).
+- `npm run build:mobile` / `npm run build:backoffice` / `npm run build:landing` — **à relancer après une modification applicative pertinente**.
 - `npm run lint` — **cassé** : ESLint n'est ni installé ni configuré. Ne pas le présenter comme fonctionnel ni s'appuyer dessus tant qu'il n'est pas réparé.
-- Preview : `.claude/launch.json` définit `mobile` (:5173) et `backoffice` (:5174).
+- Preview : `.claude/launch.json` définit `mobile` (:5173), `backoffice` (:5174) et `landing` (:4321).
 
 Stack : React 18, Vite 5, TS 5.6, `@tanstack/react-query`, `zustand`,
 `react-router-dom` 6, `maplibre-gl` 5 (fond via `VITE_MAP_STYLE_URL`, OpenFreeMap ;

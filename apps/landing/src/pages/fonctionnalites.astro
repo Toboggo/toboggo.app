@@ -1,0 +1,20 @@
+---
+/**
+ * Placeholder "shell only" — le Header/Footer communs ont besoin d'une cible
+ * réelle pour ce lien (Website-1), mais le contenu appartient à Website-3.
+ * noindex + exclu du sitemap (voir astro.config.mjs) : pas de contenu
+ * marketing ici, juste de quoi ne pas casser la navigation.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Container from "../components/Container.astro";
+---
+
+<BaseLayout title="Fonctionnalités" description="Cette page arrive bientôt." noindex>
+  <Container>
+    <div class="doc-section">
+      <h1>Fonctionnalités</h1>
+      <p>Cette page est en cours de construction.</p>
+      <p><a href="/">← Retour à l'accueil</a></p>
+    </div>
+  </Container>
+</BaseLayout>

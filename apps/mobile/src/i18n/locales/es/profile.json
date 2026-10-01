@@ -47,22 +47,28 @@
     "reviews": "Opiniones",
     "favorites": "Favoritos"
   },
-  "badgesTitle": "Insignias",
+  "badgesTitle": "Mis insignias",
   "badge": {
     "firstReview": "Primera opinión",
     "contributor": "Colaborador",
     "explorer": "Explorador",
     "grand": "Gran colaborador",
-    "earnedLabel": "Obtenida"
+    "earnedLabel": "Obtenida",
+    "more": "+{{count}}"
   },
   "notificationsCenter": "Centro de notificaciones",
-  "myToboggoTitle": "Mi Toboggo",
+  "myActivityTitle": "Mi actividad",
   "myContributions": "Mis aportaciones",
   "groupOuting": "Salida en grupo",
-  "preferencesTitle": "Preferencias",
+  "memberSince": "Miembro de Toboggo desde {{year}}",
+  "applicationTitle": "Preferencias",
   "language": "Idioma",
   "appearance": "Apariencia",
   "helpInfoTitle": "Ayuda e información",
+  "settingsScreen": {
+    "title": "Ajustes",
+    "open": "Abrir ajustes"
+  },
   "contactUs": "Contáctanos",
   "accountTitle": "Cuenta",
   "help": "Ayuda",
@@ -112,10 +118,31 @@
   "signOut": "Cerrar sesión",
   "favorites": {
     "title": "Favoritos",
+    "headerTitle": "Mis favoritos",
+    "headerSubtitle": "Tus lugares favoritos, siempre a mano.",
+    "count_one": "{{count}} parque guardado",
+    "count_other": "{{count}} parques guardados",
     "compare": "Comparar",
     "compareCount": "Comparar ({{count}})",
     "emptyTitle": "Aún no tienes parques favoritos.",
-    "emptyDesc": "Toca el corazón de un parque para añadirlo aquí."
+    "emptyDesc": "Toca el corazón de un parque para añadirlo aquí.",
+    "filters": {
+      "groupLabel": "Filtrar mis favoritos",
+      "all": "Todos ({{count}})",
+      "nearby": "Cerca de ti",
+      "emptyTitle": "Ningún favorito coincide con este filtro.",
+      "emptyReset": "Ver todos mis favoritos",
+      "nearbyLocationTitle": "Activa tu ubicación",
+      "nearbyLocationDesc": "Permite la ubicación para ver tus favoritos a menos de {{radius}} km."
+    },
+    "discover": {
+      "title": "¿Buscas nuevos parques?",
+      "desc": "Explora el mapa y añade tus lugares favoritos."
+    },
+    "tips": {
+      "title": "Nuestros consejos",
+      "location": "Activar la ubicación"
+    }
   },
   "compare": {
     "title": "Comparar",
@@ -159,19 +186,22 @@
     "legalNotice": "Aviso legal",
     "deleteAccount": "Eliminar mi cuenta",
     "deleteConfirmTitle": "¿Eliminar tu cuenta?",
-    "deleteConfirmBody": "Esta acción es definitiva. Se eliminarán tu perfil y tus opiniones. Los parques que hayas añadido seguirán visibles, pero ya no estarán asociados a tu cuenta.",
-    "delete": "Eliminar"
+    "deleteConfirmBody": "Esta acción es definitiva. Se eliminarán tu cuenta, tus datos personales y tus opiniones. Algunas contribuciones útiles para la comunidad (parques añadidos, fotos, problemas notificados, modificaciones propuestas) pueden conservarse de forma anónima.",
+    "delete": "Eliminar",
+    "deleteError": "No se ha podido eliminar tu cuenta. Vuelve a intentarlo en unos instantes."
   },
   "accountScreen": {
     "sessionKicker": "Sesión",
     "managementKicker": "Gestión de la cuenta",
     "infoKicker": "Tu información",
-    "dangerKicker": "Zona sensible"
+    "dangerKicker": "Zona sensible",
+    "personalInfo": "Información personal"
   },
   "about": {
     "title": "Acerca de Toboggo",
     "tagline": "Miles de parques valorados\npor padres y madres como tú.",
-    "version": "Versión {{version}}"
+    "version": "Versión {{version}}",
+    "build": "Compilación {{build}}"
   },
   "group": {
     "title": "Salida en grupo",

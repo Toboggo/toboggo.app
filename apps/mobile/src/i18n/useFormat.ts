@@ -67,6 +67,23 @@ export function useFormat() {
       date: (value: Date | string | number) => formatDate(value, intlLocale),
       dateTime: (value: Date | string | number) => formatDateTime(value, intlLocale),
 
+      /** "Aujourd'hui" / "Hier" / "Il y a N jours" for the last 6 calendar
+       * days, the absolute date beyond that — built on `Intl.RelativeTimeFormat`
+       * (no added dependency). `numeric: "auto"` gives the idiomatic "today"/
+       * "yesterday" for the first 2 days, but for 2+ it can produce locale
+       * idioms ("avant-hier" in French) instead of the requested "il y a N
+       * jours" — so day 2 onward is forced with `numeric: "always"`. */
+      relativeDate: (value: Date | string | number): string => {
+        const target = new Date(value);
+        const today = new Date();
+        const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        const diffDays = Math.round((startOfDay(today) - startOfDay(target)) / 86_400_000);
+        if (diffDays < 0 || diffDays > 6) return formatDate(value, intlLocale);
+        const numeric = diffDays <= 1 ? "auto" : "always";
+        const phrase = new Intl.RelativeTimeFormat(intlLocale, { numeric }).format(-diffDays, "day");
+        return phrase.charAt(0).toUpperCase() + phrase.slice(1);
+      },
+
       ageRange: (min: number | null | undefined, max: number | null | undefined): string =>
         ageRangeInner(min, max) ?? t("age.notSpecified"),
 

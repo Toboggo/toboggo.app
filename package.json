@@ -9,11 +9,13 @@
   "scripts": {
     "dev:mobile": "npm run dev -w @toboggo/mobile",
     "dev:backoffice": "npm run dev -w @toboggo/backoffice",
-    "build": "npm run build -w @toboggo/mobile -w @toboggo/backoffice",
+    "dev:landing": "npm run dev -w @toboggo/landing",
+    "build": "npm run build -w @toboggo/mobile -w @toboggo/backoffice -w @toboggo/landing",
     "build:mobile": "npm run build -w @toboggo/mobile",
     "build:backoffice": "npm run build -w @toboggo/backoffice",
+    "build:landing": "npm run build -w @toboggo/landing",
     "lint": "npm run lint -w @toboggo/mobile -w @toboggo/backoffice",
-    "typecheck": "npm run typecheck -w @toboggo/design-system -w @toboggo/shared -w @toboggo/mobile -w @toboggo/backoffice",
+    "typecheck": "npm run typecheck -w @toboggo/design-system -w @toboggo/shared -w @toboggo/mobile -w @toboggo/backoffice -w @toboggo/landing",
     "test": "vitest run",
     "test:watch": "vitest",
     "osm:list": "python3 scripts/osm/osm.py list",
@@ -24,13 +26,15 @@
     "osm:backfill:local": "python3 scripts/osm/backfill-addresses.py --env local",
     "osm:backfill:staging": "python3 scripts/osm/backfill-addresses.py --env staging",
     "osm:backfill:prod": "python3 scripts/osm/backfill-addresses.py --env prod",
-    "osm:test": "python3 -m unittest discover -s scripts/osm/tests -p \"test_*.py\""
+    "osm:test": "python3 -m unittest discover -s scripts/osm/tests -p \"test_*.py\"",
+    "captures:marketing": "node scripts/marketing-captures/capture-website2.mjs"
   },
   "devDependencies": {
     "@testing-library/react": "^16.0.1",
     "@types/node": "^22.7.5",
     "@vitejs/plugin-react": "^4.3.2",
     "jsdom": "^25.0.1",
+    "playwright": "^1.63.0",
     "typescript": "^5.6.3",
     "vitest": "^2.1.2"
   }

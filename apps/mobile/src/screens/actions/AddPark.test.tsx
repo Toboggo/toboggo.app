@@ -232,7 +232,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
   it("only photo URL strings ever reach localStorage — never a File/Blob", async () => {
     renderAdd();
     await toStep3();
-    const fileInput = screen.getByLabelText(/Ajouter une photo/) as HTMLInputElement;
+    const fileInput = document.querySelector('input[type="file"]:not([capture])') as HTMLInputElement;
     const file = new File(["fake-bytes"], "park.jpg", { type: "image/jpeg" });
     fireEvent.change(fileInput, { target: { files: [file] } });
 
@@ -243,6 +243,33 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(raw).not.toMatch(/\[object File\]|\[object Blob\]/);
     const parsed = JSON.parse(raw);
     expect(parsed.data.photos.every((p: unknown) => typeof p === "string")).toBe(true);
+  });
+
+  it("step 3 offers camera + library as distinct inputs; zero photos → « Passer cette étape » still advances", async () => {
+    renderAdd();
+    await toStep3();
+    expect(screen.getByRole("button", { name: /Prendre une photo/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Choisir dans la photothèque/ })).toBeTruthy();
+    const cam = document.querySelector('input[type="file"][capture]') as HTMLInputElement;
+    const lib = document.querySelector('input[type="file"]:not([capture])') as HTMLInputElement;
+    expect(cam.getAttribute("capture")).toBe("environment");
+    expect(cam.multiple).toBe(false);
+    expect(lib.multiple).toBe(true);
+    expect(screen.getByText("0 / 4 photos")).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Passer/ })).toBeTruthy();
+  });
+
+  it("library multi-pick: uploads up to the 4-photo cap, toasts the overflow; photos can be removed", async () => {
+    renderAdd();
+    await toStep3();
+    const lib = document.querySelector('input[type="file"]:not([capture])') as HTMLInputElement;
+    const files = Array.from({ length: 6 }, (_, i) => new File(["x"], `p${i}.jpg`, { type: "image/jpeg" }));
+    fireEvent.change(lib, { target: { files } });
+    await waitFor(() => expect(screen.getByText("4 / 4 photos")).toBeTruthy());
+    expect(vi.mocked(uploadPhoto)).toHaveBeenCalledTimes(4);
+    expect(screen.queryByRole("button", { name: /Prendre une photo/ })).toBeNull();
+    fireEvent.click(screen.getAllByRole("button", { name: /Retirer/ })[0]!);
+    expect(screen.getByText("3 / 4 photos")).toBeTruthy();
   });
 
   it("createPark success → the draft is cleared before navigating, no resurrection on late pagehide", async () => {

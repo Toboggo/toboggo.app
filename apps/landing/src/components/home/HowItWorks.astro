@@ -1,0 +1,125 @@
+---
+const STEPS = [
+  { icon: "ic-explore", title: "Trouvez un parc", text: "La carte affiche les aires de jeux les plus proches de vous." },
+  { icon: "ic-check", title: "Choisissez", text: "Comparez âge, équipements et services en un coup d'œil." },
+  { icon: "ic-walk", title: "Profitez", text: "Direction le parc, à pied, à vélo ou en voiture." },
+];
+---
+
+<section id="comment-ca-marche" class="how">
+  <div class="wrap">
+    <h2>Comment ça marche ?</h2>
+    <ol class="how-steps">
+      {
+        STEPS.map((step, i) => (
+          <li class="how-step">
+            <span class="how-icon-wrap">
+              <svg class="how-icon" width="34" height="34" aria-hidden="true">
+                <use href={`/icons-sprite.svg#${step.icon}`} />
+              </svg>
+              <span class="how-num">{i + 1}</span>
+            </span>
+            <h3>{step.title}</h3>
+            <p>{step.text}</p>
+            {i < STEPS.length - 1 && (
+              <svg class="how-connector" width="56" height="16" viewBox="0 0 56 16" aria-hidden="true">
+                <path d="M2 8H46" stroke="var(--color-primary)" stroke-width="2" stroke-dasharray="1 6" stroke-linecap="round" />
+                <path d="M40 3L47 8L40 13" fill="none" stroke="var(--color-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            )}
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+</section>
+
+<style>
+  .how {
+    padding: 96px 0;
+    /* rupture vert d'eau très clair — voir Website-2 passe direction art. */
+    background: var(--color-primary-tint);
+  }
+
+  .how h2 {
+    text-align: center;
+    font-size: 30px;
+    margin-bottom: 64px;
+  }
+
+  .how-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+  }
+
+  .how-step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: var(--space-3);
+  }
+
+  .how-connector {
+    display: none;
+  }
+
+  .how-icon-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .how-icon {
+    color: var(--color-primary);
+  }
+
+  .how-num {
+    position: absolute;
+    top: -10px;
+    left: calc(100% - 4px);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 12px;
+    color: var(--color-text);
+  }
+
+  .how-step h3 {
+    margin: var(--space-1) 0 0;
+    font-size: var(--text-lg);
+  }
+
+  .how-step p {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 14px;
+    max-width: 240px;
+  }
+
+  @media (min-width: 768px) {
+    .how-steps {
+      flex-direction: row;
+      justify-content: center;
+      gap: 80px;
+    }
+
+    .how-connector {
+      display: block;
+      position: absolute;
+      top: 17px;
+      left: calc(100% + 12px);
+      opacity: 0.45;
+    }
+  }
+</style>

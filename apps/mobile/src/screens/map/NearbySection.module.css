@@ -1,0 +1,217 @@
+/* ── "Autour de vous" header (peek = this block only) ── */
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-3);
+}
+.headIcon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.headText {
+  flex: 1;
+  min-width: 0;
+}
+.title {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+.subtitle {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.headSide {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.zonePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 12.5px;
+  white-space: nowrap;
+  padding: 6px 10px 6px 12px;
+  cursor: pointer;
+}
+.expandBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ── medium / expanded body ── */
+.body {
+  display: flex;
+  flex-direction: column;
+}
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text);
+  padding: 0 var(--space-4) var(--space-2);
+}
+.chips {
+  display: flex;
+  gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-2);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chips::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+.chip[data-on="1"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.contextEmpty {
+  margin: 0 var(--space-4) var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-alt);
+  font-size: 13px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* "Envie de plus d'options ?" — a light row, not a card. */
+.more {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 var(--space-4) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+  text-align: left;
+  cursor: pointer;
+}
+.moreIcon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.moreText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.moreTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  color: var(--color-text);
+}
+.moreDesc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.moreChevron {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.actionRow {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--space-4) var(--space-3);
+}
+.primaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13.5px;
+  padding: 10px 18px;
+  cursor: pointer;
+}
+
+/* ── empty zone, nothing up to 10 km ── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-6) var(--space-5);
+}
+.emptyArt {
+  width: 150px;
+  max-width: 50%;
+  height: auto;
+  aspect-ratio: 475 / 305;
+  object-fit: contain;
+  margin-bottom: var(--space-2);
+}
+.emptyTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-text);
+}
+.emptyDesc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  max-width: 280px;
+  margin-bottom: var(--space-2);
+}

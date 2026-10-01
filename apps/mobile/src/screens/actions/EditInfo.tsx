@@ -32,6 +32,7 @@ import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { setResumeRoute } from "../../lib/resumeRoute";
+import { trackEvent } from "../../lib/analytics";
 
 // Brouillon persistant (LOT 3D.D) — socle partagé `usePersistentDraft`.
 const EDIT_INFO_DRAFT_VERSION = 1;
@@ -163,6 +164,21 @@ export default function EditInfo() {
   const [done, setDone] = useState(false);
   const autoSubmitted = useRef(false);
 
+  // `contribution_started` — une fois par montage. `parkId` est toujours
+  // requis pour ce wizard (route `/contribute/edit?park=`), donc pas de cas
+  // "direct_link" possible ici.
+  const contributionStartedTracked = useRef(false);
+  useEffect(() => {
+    if (contributionStartedTracked.current) return;
+    contributionStartedTracked.current = true;
+    trackEvent("contribution_started", {
+      contribution_type: "edit_info",
+      park_id: parkId ?? undefined,
+      entry_point: wantsResume ? "contribution_resume" : "park_detail_contribute_sheet",
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const relevantFeatures = useMemo(() => {
     if (!d.target) return [];
     const cats = TARGET_CATEGORIES[d.target];
@@ -281,6 +297,11 @@ export default function EditInfo() {
       // Sent — drop the draft before the confirmation screen. clear() also
       // blocks any later flush, so it cannot come back on unmount / pagehide.
       clearEditDraft();
+      trackEvent("contribution_completed", {
+        contribution_type: "edit_info",
+        park_id: parkId,
+        had_just_in_time_auth: wantsResume,
+      });
       setDone(true);
     } catch {
       // Failed — keep the form and the (autosaved) draft, surface the error.

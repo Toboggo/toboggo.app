@@ -38,6 +38,21 @@ export async function listParkEdits(opts: { parkId?: string; status?: ParkEdit["
   return (data ?? []) as ParkEdit[];
 }
 
+/** A parent's own correction proposals, newest first — mirrors `listMyReports`/
+ * `listMyReviews` (RLS `park_edits_read` already grants `user_id = auth.uid()`). */
+export async function listMyParkEdits(
+  userId: string,
+): Promise<(ParkEdit & { parks: { name: string; city: string | null } | null })[]> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("park_edits")
+    .select("*, parks(name, city)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as (ParkEdit & { parks: { name: string; city: string | null } | null })[];
+}
+
 /**
  * Pending change-request proposals ("infos à vérifier") for a collectivité's
  * own parks. `park_edits` has no `organization_id`-scoped read policy of its

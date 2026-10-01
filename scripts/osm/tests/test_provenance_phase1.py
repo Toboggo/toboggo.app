@@ -163,7 +163,12 @@ class ProvenancePhase1Base(unittest.TestCase):
             "features": [],
             "attribute_features": [],
         }
-        sql = self.remote.park_sql(p, publish=False)
+        sql = self.remote.park_sql(
+            p,
+            publish=False,
+            country_code="FR",
+            timezone="Europe/Paris",
+        )
         with self.conn.cursor() as cur:
             cur.execute(sql)
         self.conn.commit()

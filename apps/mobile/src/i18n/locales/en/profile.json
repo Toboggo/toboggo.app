@@ -47,22 +47,28 @@
     "reviews": "Reviews",
     "favorites": "Favorites"
   },
-  "badgesTitle": "Badges",
+  "badgesTitle": "My badges",
   "badge": {
     "firstReview": "First review",
     "contributor": "Contributor",
     "explorer": "Explorer",
     "grand": "Top contributor",
-    "earnedLabel": "Earned"
+    "earnedLabel": "Earned",
+    "more": "+{{count}}"
   },
   "notificationsCenter": "Notification center",
-  "myToboggoTitle": "My Toboggo",
+  "myActivityTitle": "My activity",
   "myContributions": "My contributions",
   "groupOuting": "Group outing",
-  "preferencesTitle": "Preferences",
+  "memberSince": "Toboggo member since {{year}}",
+  "applicationTitle": "Preferences",
   "language": "Language",
   "appearance": "Appearance",
   "helpInfoTitle": "Help & information",
+  "settingsScreen": {
+    "title": "Settings",
+    "open": "Open settings"
+  },
   "contactUs": "Contact us",
   "accountTitle": "Account",
   "help": "Help",
@@ -112,10 +118,31 @@
   "signOut": "Sign out",
   "favorites": {
     "title": "Favorites",
+    "headerTitle": "My favorites",
+    "headerSubtitle": "Your favorite spots, always at hand.",
+    "count_one": "{{count}} park saved",
+    "count_other": "{{count}} parks saved",
     "compare": "Compare",
     "compareCount": "Compare ({{count}})",
     "emptyTitle": "No favorite parks yet.",
-    "emptyDesc": "Tap the heart on a park to add it here."
+    "emptyDesc": "Tap the heart on a park to add it here.",
+    "filters": {
+      "groupLabel": "Filter my favorites",
+      "all": "All ({{count}})",
+      "nearby": "Nearby",
+      "emptyTitle": "No favorites match this filter.",
+      "emptyReset": "See all my favorites",
+      "nearbyLocationTitle": "Turn on your location",
+      "nearbyLocationDesc": "Allow location access to see your favorites within {{radius}} km."
+    },
+    "discover": {
+      "title": "Looking for new parks?",
+      "desc": "Explore the map and add your favorite spots."
+    },
+    "tips": {
+      "title": "Our tips",
+      "location": "Turn on location"
+    }
   },
   "compare": {
     "title": "Compare",
@@ -159,19 +186,22 @@
     "legalNotice": "Legal notice",
     "deleteAccount": "Delete my account",
     "deleteConfirmTitle": "Delete your account?",
-    "deleteConfirmBody": "This action is permanent. Your profile and reviews will be deleted. Parks you added will stay online but will no longer be linked to your account.",
-    "delete": "Delete"
+    "deleteConfirmBody": "This action is permanent. Your account, your personal data and your reviews will be deleted. Some contributions that help the community (parks added, photos, reports, suggested edits) may be kept anonymously.",
+    "delete": "Delete",
+    "deleteError": "We couldn’t delete your account. Please try again in a moment."
   },
   "accountScreen": {
     "sessionKicker": "Session",
     "managementKicker": "Account management",
     "infoKicker": "Your information",
-    "dangerKicker": "Sensitive zone"
+    "dangerKicker": "Sensitive zone",
+    "personalInfo": "Personal information"
   },
   "about": {
     "title": "About Toboggo",
     "tagline": "Thousands of parks rated\nby parents like you.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "build": "Build {{build}}"
   },
   "group": {
     "title": "Group outing",

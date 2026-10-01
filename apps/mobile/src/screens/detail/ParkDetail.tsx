@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getParkDisplayName, incrementParkViews } from "@toboggo/shared";
+import { getParkDisplayName, haversineMeters, incrementParkViews } from "@toboggo/shared";
 import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
@@ -9,8 +9,12 @@ import { hasRating } from "../../lib/parkDisplay";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { useFormat } from "../../i18n/useFormat";
 import { useSession } from "../../lib/session";
+import { useDirections } from "../../lib/directions";
+import { useGeo } from "../../lib/geo";
 import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
+import { DirectionsSheet } from "../../components/DirectionsSheet";
+import { trackEvent, distanceBucket } from "../../lib/analytics";
 import styles from "./Detail.module.css";
 
 function Stars({ value, size = 15 }: { value: number; size?: number }) {
@@ -42,17 +46,43 @@ export default function ParkDetail() {
   const featureLabel = useFeatureLabel();
   const [params] = useSearchParams();
   const { data: park, isLoading } = usePark(id);
-  const { data: reviews = [] } = useParkReviews(id);
+  const { data: reviews = [], isLoading: reviewsLoading } = useParkReviews(id);
+  const { lat, lng } = useGeo();
   const [photoIndex, setPhotoIndex] = useState(0);
   const [shareOpen, setShareOpen] = useState(params.get("share") === "1");
   const [contribOpen, setContribOpen] = useState(false);
   const userId = useSession((s) => s.userId);
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
+  const { openDirections, directionsSheetProps } = useDirections();
 
   useEffect(() => {
     if (id) void incrementParkViews(id);
   }, [id]);
+
+  // `park_viewed` — une fois par ouverture logique de la fiche (par `id`),
+  // pas à chaque render. On attend que `park` ET `reviews` aient fini de
+  // charger avant d'émettre, sinon `has_reviews` figerait à `false` si les
+  // avis chargent après le parc. `discovery_source: "unknown"` (pas
+  // `"other"` — voir events.ts) : la déterminer fiablement demanderait de
+  // faire transiter une info de source à travers de nombreux points de
+  // navigation (marker, liste, carrousel, recherche, favoris, partage,
+  // notification) — hors périmètre de cette passe. `"unknown"` dit
+  // honnêtement qu'on ne sait pas, plutôt que de prétendre une source
+  // précise qu'on ne peut pas garantir.
+  const parkViewedTrackedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!id || !park || reviewsLoading) return;
+    if (parkViewedTrackedFor.current === id) return;
+    parkViewedTrackedFor.current = id;
+    trackEvent("park_viewed", {
+      park_id: id,
+      discovery_source: "unknown",
+      has_photos: park.photos.length > 0,
+      has_reviews: reviews.length > 0,
+      distance_bucket: distanceBucket(haversineMeters(lat, lng, park.lat, park.lng)),
+    });
+  }, [id, park, reviews, reviewsLoading, lat, lng]);
 
   if (isLoading || !park) {
     return <div className="screen" style={{ padding: 40, textAlign: "center" }}>{t("loading")}</div>;
@@ -310,7 +340,7 @@ export default function ParkDetail() {
             <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
           </svg>
         </button>
-        <button type="button" className={styles.footGo} onClick={() => navigate(`/park/${park.id}/directions`)}>
+        <button type="button" className={styles.footGo} onClick={() => openDirections(park, getParkDisplayName(park, t))}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ color: "var(--color-on-primary)" }} aria-hidden>
             <path d="M5 12h14M13 6l6 6-6 6" />
           </svg>
@@ -320,6 +350,7 @@ export default function ParkDetail() {
 
       <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} park={park} />
       <ContributeSheet open={contribOpen} onClose={() => setContribOpen(false)} parkId={park.id} />
+      <DirectionsSheet {...directionsSheetProps} />
     </div>
   );
 }

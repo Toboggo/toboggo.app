@@ -1,0 +1,189 @@
+/*
+  Toboggo — landing (Astro).
+
+  Réutilise directement les tokens du design system (au lieu de les
+  redéclarer à la main comme le faisait l'ancien styles.css statique) — voir
+  docs/DESIGN-SYSTEM.md §10 "Landing" pour les 3 divergences que cet import
+  réconcilie : --color-text-muted, padding des boutons, radius des champs.
+  html/body, h1-h4, focus-visible etc. viennent aussi de ce fichier, pas
+  redéclarés ici.
+*/
+@import "../../../../packages/design-system/src/tokens.css";
+
+* {
+  box-sizing: border-box;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+/* ============================================================
+   Boutons — mêmes variantes/valeurs que Button.module.css
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 14px 22px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1.5px solid var(--color-border-strong);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-alt);
+}
+
+/* ============================================================
+   Layout de contenu générique (pages doc : FAQ, CGU, mentions légales…)
+   ============================================================ */
+section {
+  padding: var(--space-8) 0;
+}
+
+.doc-section {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-8) 0 80px;
+}
+
+.doc-section h1 {
+  font-size: 30px;
+}
+
+.doc-section h2 {
+  margin-top: 36px;
+  font-size: var(--text-lg);
+}
+
+.doc-section p {
+  color: var(--color-text-muted);
+  font-size: 14.5px;
+}
+
+.doc-updated {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-6);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--space-4) 0;
+}
+
+.faq-item summary {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  cursor: pointer;
+  font-size: var(--text-base);
+}
+
+.faq-item p {
+  color: var(--color-text-muted);
+  margin: var(--space-2) 0 0;
+  font-size: 14px;
+}
+
+/* ============================================================
+   Formulaire de contact
+   ============================================================ */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+}
+
+.contact-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-3);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.form-field label {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14.5px;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.form-msg {
+  padding: 12px 14px;
+  border-radius: var(--radius-xs);
+  font-size: 13.5px;
+  margin-bottom: var(--space-4);
+}
+
+.form-msg.success {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+}
+
+.form-msg.error {
+  background: var(--color-error-tint);
+  color: var(--color-error);
+}
+
+@media (max-width: 800px) {
+  .contact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   Home (Website-2) — motif partagé entre les sections
+   ============================================================ */
+.eyebrow {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-primary-hover);
+  margin-bottom: var(--space-3);
+}

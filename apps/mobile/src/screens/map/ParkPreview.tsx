@@ -7,6 +7,8 @@ import { ParkPhoto } from "../../components/ParkPhoto";
 import { useSession } from "../../lib/session";
 import { hasRating } from "../../lib/parkDisplay";
 import { useFormat } from "../../i18n/useFormat";
+import { useDirections } from "../../lib/directions";
+import { DirectionsSheet } from "../../components/DirectionsSheet";
 import styles from "./ParkPreview.module.css";
 
 const stop = (e: MouseEvent) => e.stopPropagation();
@@ -31,6 +33,7 @@ export function ParkPreview({
   const dist = distanceM ?? park.distance_m ?? 0;
   const openDetail = () => navigate(`/park/${park.id}`);
   const displayName = getParkDisplayName(park, t);
+  const { openDirections, directionsSheetProps } = useDirections();
 
   const ageRangeLabel = f.ageRangeOrNull(park.age_min, park.age_max);
   const criteria: string[] = [];
@@ -120,7 +123,7 @@ export function ParkPreview({
       </div>
 
       <div className={styles.actions}>
-        <button type="button" className={styles.primary} onClick={() => navigate(`/park/${park.id}/directions`)}>
+        <button type="button" className={styles.primary} onClick={() => openDirections(park, displayName)}>
           <Icon name="ic-route" size={16} style={{ color: "var(--color-on-primary)" }} />
           {t("directions")}
         </button>
@@ -156,6 +159,8 @@ export function ParkPreview({
         <Icon name="ic-flag" size={14} />
         {t("reportProblem")}
       </button>
+
+      <DirectionsSheet {...directionsSheetProps} />
     </div>
   );
 }

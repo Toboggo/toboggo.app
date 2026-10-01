@@ -8,6 +8,26 @@ import {
   updateProfile as apiUpdateProfile,
   type Profile,
 } from "@toboggo/shared";
+import { identifyAnalyticsUser, registerIsAuthenticated, resetAnalyticsIdentity, trackEvent } from "./analytics";
+import { clearGoogleLoginMarker, consumeGoogleLoginMarker, isNewAccount } from "./googleLogin";
+import { hasPendingResumeRoute } from "./resumeRoute";
+
+// Retour OAuth Google : émis une seule fois, uniquement si le marqueur posé par
+// `startGoogleLogin()` existe (jamais sur restauration de session ni
+// TOKEN_REFRESHED ; la consommation atomique rend les notifications auth
+// multiples inoffensives). Compte tout juste créé → `signup_completed`,
+// compte existant → `login_completed` (voir `isNewAccount`).
+function trackGoogleAuthIfPending(user: { created_at?: string | null; last_sign_in_at?: string | null }) {
+  if (!consumeGoogleLoginMarker()) return;
+  if (isNewAccount(user)) {
+    trackEvent("signup_completed", {
+      provider: "google",
+      entry_point: hasPendingResumeRoute() ? "contribution_resume" : "splash",
+    });
+  } else {
+    trackEvent("login_completed", { provider: "google" });
+  }
+}
 
 interface SessionState {
   userId: string | null;
@@ -38,8 +58,14 @@ export const useSession = create<SessionState>((set, get) => ({
     getSession()
       .then((session) => {
         if (session?.user) {
+          // Restauration / retour OAuth : identité analytics AVANT tout
+          // événement auth, pour que signup/login_completed lui soient rattachés.
+          identifyAnalyticsUser(session.user.id);
+          trackGoogleAuthIfPending(session.user);
           void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
         } else {
+          // OAuth échoué/abandonné : le marqueur ne doit pas survivre.
+          clearGoogleLoginMarker();
           set({ loading: false });
         }
       })
@@ -47,6 +73,12 @@ export const useSession = create<SessionState>((set, get) => ({
 
     onAuthStateChange((userId) => {
       const current = get().userId;
+
+      // Identité analytics, synchrone et en premier : cet appel s'exécute
+      // pendant `signIn()`/`signUp()`, donc avant le `trackEvent` de l'écran.
+      // Idempotent (TOKEN_REFRESHED/SIGNED_IN répétés) ; SIGNED_OUT → reset.
+      if (userId) identifyAnalyticsUser(userId);
+      else resetAnalyticsIdentity();
 
       // supabase-js re-emits SIGNED_IN / TOKEN_REFRESHED every time the tab or
       // installed PWA regains visibility (GoTrueClient._recoverAndRefresh), not
@@ -58,6 +90,7 @@ export const useSession = create<SessionState>((set, get) => ({
       if (userId && userId === current) return;
 
       if (!userId) {
+        clearGoogleLoginMarker();
         set({ userId: null, profile: null, loading: false });
         return;
       }
@@ -66,6 +99,7 @@ export const useSession = create<SessionState>((set, get) => ({
       // contribution) or a genuine account switch.
       getSession().then((session) => {
         if (session?.user) {
+          trackGoogleAuthIfPending(session.user);
           void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
         }
       });
@@ -108,18 +142,37 @@ export const useSession = create<SessionState>((set, get) => ({
     const { userId, profile } = get();
     if (!userId || !profile) return;
     const current = profile.favorites ?? [];
-    const next = current.includes(parkId) ? current.filter((f) => f !== parkId) : [...current, parkId];
+    const wasFavorite = current.includes(parkId);
+    const next = wasFavorite ? current.filter((f) => f !== parkId) : [...current, parkId];
     set({ profile: { ...profile, favorites: next } });
-    void apiToggleFavorite(userId, parkId, current).catch(() => {
-      set((s) => {
-        if (!s.profile) return s;
-        const cur = s.profile.favorites ?? [];
-        const reverted = next.includes(parkId) ? cur.filter((f) => f !== parkId) : [...cur, parkId];
-        return { profile: { ...s.profile, favorites: reverted } };
+    void apiToggleFavorite(userId, parkId, current)
+      .then(() => {
+        // `park_favorited` (P0) uniquement après confirmation serveur —
+        // jamais sur le seul état optimiste ci-dessus, qui peut encore être
+        // annulé par le `.catch` ci-dessous en cas d'échec réseau.
+        // `park_unfavorited` est P1 : volontairement non câblé dans cette
+        // passe d'instrumentation P0 (consigne explicite).
+        if (!wasFavorite) trackEvent("park_favorited", { park_id: parkId });
+      })
+      .catch(() => {
+        set((s) => {
+          if (!s.profile) return s;
+          const cur = s.profile.favorites ?? [];
+          const reverted = next.includes(parkId) ? cur.filter((f) => f !== parkId) : [...cur, parkId];
+          return { profile: { ...s.profile, favorites: reverted } };
+        });
       });
-    });
   },
 }));
+
+// Câble `is_authenticated` (propriété commune analytics) sur ce store, sans
+// que `lib/analytics` n'ait jamais à importer ce fichier — voir le
+// commentaire de tête de `lib/analytics/commonProperties.ts` pour la raison
+// (éviter un cycle `session.ts` → `analytics` → `session.ts`, puisque ce
+// fichier importe déjà `trackEvent` ci-dessus). Un seul appel, au chargement
+// du module ; la fonction injectée relit `useSession.getState()` à chaque
+// événement tracké, jamais une valeur figée.
+registerIsAuthenticated(() => useSession.getState().userId !== null);
 
 /** Central gate: contribution actions (add/rate/report/favorite/group) require
  * an account. Guests get routed to auth and resumed after login — mirrors the

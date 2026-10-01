@@ -10,9 +10,17 @@ import {
   listMaintenance,
   listPendingParkEditsForOrg,
   type Maintenance,
+  type Park,
 } from "@toboggo/shared";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
+import { ReportsInsightPanel } from "./dashboard/ReportsInsightPanel";
+import { MiniParkMap } from "./dashboard/MiniParkMap";
+import { RecentReportsPanel } from "./dashboard/RecentReportsPanel";
+import { PendingEditsPanel } from "./dashboard/PendingEditsPanel";
+import { UpcomingMaintenancePanel } from "./dashboard/UpcomingMaintenancePanel";
+import { RecentReviewsPanel } from "./dashboard/RecentReviewsPanel";
+import { relativeTime } from "./dashboard/shared";
 import styles from "./Dashboard.module.css";
 
 const UPCOMING_MAINTENANCE_WINDOW_DAYS = 7;
@@ -35,20 +43,6 @@ function firstNameOrNull(userName: string): string | null {
   return trimmed.split(/\s+/)[0];
 }
 
-/** "il y a 3 h" style, with the exact timestamp always available via `title`
- * (hover / screen reader) — never lose the precise date, just lead with the
- * human-readable one. */
-function relativeTime(iso: string): string {
-  const diffMin = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
-  if (diffMin < 1) return "à l'instant";
-  if (diffMin < 60) return `il y a ${diffMin} min`;
-  const diffH = Math.round(diffMin / 60);
-  if (diffH < 24) return `il y a ${diffH} h`;
-  const diffD = Math.round(diffH / 24);
-  if (diffD < 7) return `il y a ${diffD} j`;
-  return new Date(iso).toLocaleDateString("fr-FR");
-}
-
 interface ActionItem {
   key: string;
   label: string;
@@ -62,8 +56,11 @@ interface KpiItem {
   value: number;
   label: string;
   icon?: IconName;
-  tone?: "neutral" | "warning";
+  tone?: "neutral" | "warning" | "primary" | "accent";
   onClick?: () => void;
+  /** Real derived figure only (e.g. an average rating) — omitted when there
+   * is nothing real to show (COLL-02C §2). */
+  secondary?: string;
 }
 
 export default function Dashboard() {
@@ -102,7 +99,7 @@ export default function Dashboard() {
     maintenanceQ.isLoading ||
     pendingEditsQ.isLoading;
 
-  if (loading) return <DashboardSkeleton />;
+  if (loading) return <DashboardSkeleton isAdmin={isAdmin} />;
 
   const parks = parksQ.data ?? [];
   const reports = reportsQ.data ?? [];
@@ -117,25 +114,30 @@ export default function Dashboard() {
   const blocked = parks.filter((p) => p.status === "blocked").length;
   const openReports = reports.filter((r) => r.status === "open").length;
   const lowReviews = reviews.filter((r) => r.stars <= 2).length;
-  const upcomingMaintenance = maintenance.filter(isUpcoming).length;
+  const upcomingMaintenanceItems = maintenance.filter(isUpcoming);
+  const upcomingMaintenance = upcomingMaintenanceItems.length;
+
+  // "Actifs" (KPI headline) ≠ "ouverts" (À traiter, above) on purpose: the
+  // KPI counts everything not yet closed (open + in_progress) as the
+  // complement of "résolus", while "À traiter" only surfaces reports nobody
+  // has picked up yet (COLL-02C §2).
+  const activeReports = reports.filter((r) => r.status === "open" || r.status === "in_progress").length;
+  const resolvedReports = reports.filter((r) => r.status === "resolved").length;
+  const avgReviewRating = reviews.length ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : null;
+
+  const parkById = new Map<string, Park>(parks.map((p) => [p.id, p]));
 
   const firstName = firstNameOrNull(userName);
 
-  const rawActionItems: ActionItem[] = isAdmin
-    ? [
-        { key: "parks", label: "Parcs en attente de validation", count: pending, icon: "ic-list", onClick: () => navigate("/parks?status=pending") },
-        { key: "reports", label: "Signalements ouverts", count: openReports, icon: "ic-flag", onClick: () => navigate("/reports") },
-      ]
-    : [
-        { key: "reports", label: "Signalements ouverts", count: openReports, icon: "ic-flag", onClick: () => navigate("/reports") },
-        { key: "media", label: "Photos à valider", count: pendingMedia.length, onClick: () => navigate("/photos") },
-        // No dedicated screen exists yet (Lot 6) — shown as a plain, honest
-        // count with no click target, rather than a dead link or a technical
-        // caveat a collectivité shouldn't have to read.
-        { key: "edits", label: "Informations à vérifier", count: pendingEdits.length, icon: "ic-question" },
-        { key: "maintenance", label: "Entretien à venir", count: upcomingMaintenance, onClick: () => navigate("/maintenance") },
-      ];
-  const actionItems = rawActionItems.filter((item) => item.count > 0);
+  // Admin only: the collectivité's "À traiter" was removed in COLL-02D — its
+  // every real count now lives in an operational panel's own header instead
+  // (Infos à vérifier / Entretien à venir badges, Avis récents' ≤2★ tag),
+  // which admin doesn't have yet (no COLL-02C panels for that context).
+  const rawAdminActionItems: ActionItem[] = [
+    { key: "parks", label: "Parcs en attente de validation", count: pending, icon: "ic-list", onClick: () => navigate("/parks?status=pending") },
+    { key: "reports", label: "Signalements ouverts", count: openReports, icon: "ic-flag", onClick: () => navigate("/reports") },
+  ];
+  const adminActionItems = rawAdminActionItems.filter((item) => item.count > 0);
 
   const kpis: KpiItem[] = isAdmin
     ? [
@@ -145,10 +147,36 @@ export default function Dashboard() {
         { key: "reviews", value: reviews.length, label: "Avis publiés", icon: "ic-review", onClick: () => navigate("/reviews") },
       ]
     : [
-        { key: "parks", value: parks.length, label: "Parcs gérés", icon: "ic-list", onClick: () => navigate("/parks") },
-        { key: "reports", value: openReports, label: "Signalements ouverts", icon: "ic-flag", tone: openReports > 0 ? "warning" : "neutral", onClick: () => navigate("/reports") },
-        { key: "media", value: pendingMedia.length, label: "Photos à valider", tone: pendingMedia.length > 0 ? "warning" : "neutral", onClick: () => navigate("/photos") },
-        { key: "edits", value: pendingEdits.length, label: "Infos à vérifier", icon: "ic-question", tone: pendingEdits.length > 0 ? "warning" : "neutral" },
+        // Static category tints (COLL-02D §1): "gérés"/"résolus" read as
+        // healthy baseline metrics (brand green); "actifs" stays a real
+        // alert (amber) only once it's > 0; "reçus" gets a quiet amber
+        // nod to the star rating it summarises.
+        { key: "parks", value: parks.length, label: "Parcs gérés", icon: "ic-list", tone: "primary", onClick: () => navigate("/parks") },
+        {
+          key: "reportsActive",
+          value: activeReports,
+          label: "Signalements actifs",
+          icon: "ic-flag",
+          tone: activeReports > 0 ? "warning" : "neutral",
+          onClick: () => navigate("/reports"),
+        },
+        {
+          key: "reportsResolved",
+          value: resolvedReports,
+          label: "Signalements résolus",
+          icon: "ic-check",
+          tone: "primary",
+          onClick: () => navigate("/reports"),
+        },
+        {
+          key: "reviews",
+          value: reviews.length,
+          label: "Avis reçus",
+          icon: "ic-review",
+          tone: "accent",
+          secondary: avgReviewRating != null ? `★ ${avgReviewRating.toFixed(1)} moyenne` : undefined,
+          onClick: () => navigate("/reviews"),
+        },
       ];
 
   const patrimonyTotal = parks.length || 1;
@@ -164,105 +192,188 @@ export default function Dashboard() {
 
       <div className={styles.kpiStrip}>
         {kpis.map((kpi) => (
-          <StatCard key={kpi.key} value={kpi.value} label={kpi.label} icon={kpi.icon} tone={kpi.tone} emphasized onClick={kpi.onClick} />
+          <StatCard
+            key={kpi.key}
+            value={kpi.value}
+            label={kpi.label}
+            icon={kpi.icon}
+            tone={kpi.tone}
+            emphasized
+            onClick={kpi.onClick}
+            secondary={kpi.secondary}
+          />
         ))}
       </div>
 
-      <div className={styles.grid}>
-        <div className={`${styles.neutralCard} ${styles.toTreat}`}>
-          <h2 className={styles.sectionTitle}>À traiter</h2>
-          {actionItems.length === 0 ? (
-            <div className={styles.empty}>
-              <span className={styles.emptyIcon}>
-                <Icon name="ic-check" size={18} />
-              </span>
-              Rien ne nécessite votre attention pour le moment — tout est à jour.
+      {isAdmin ? (
+        <>
+          <div className={styles.grid}>
+            <div className={`${styles.neutralCard} ${styles.toTreat}`}>
+              <h2 className={styles.sectionTitle}>À traiter</h2>
+              {adminActionItems.length === 0 ? (
+                <div className={styles.empty}>
+                  <span className={styles.emptyIcon}>
+                    <Icon name="ic-check" size={18} />
+                  </span>
+                  Rien ne nécessite votre attention pour le moment — tout est à jour.
+                </div>
+              ) : (
+                <div className={styles.actionList}>
+                  {adminActionItems.map((item) => (
+                    <button key={item.key} type="button" className={styles.actionRow} onClick={item.onClick}>
+                      <span className={styles.actionLabel}>
+                        {item.icon ? (
+                          <span className={styles.actionIcon}>
+                            <Icon name={item.icon} size={14} />
+                          </span>
+                        ) : (
+                          <span className={styles.actionIconSlot} aria-hidden="true" />
+                        )}
+                        <span className={styles.actionText}>{item.label}</span>
+                      </span>
+                      <span className={styles.countBadge}>{item.count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          ) : (
-            <div className={styles.actionList}>
-              {actionItems.map((item) => {
-                const content = (
-                  <>
-                    <span className={styles.actionLabel}>
-                      {item.icon ? (
-                        <span className={styles.actionIcon}>
-                          <Icon name={item.icon} size={14} />
-                        </span>
-                      ) : (
-                        <span className={styles.actionIconSlot} aria-hidden="true" />
-                      )}
-                      <span className={styles.actionText}>{item.label}</span>
-                    </span>
-                    <span className={styles.countBadge}>{item.count}</span>
-                  </>
-                );
-                return item.onClick ? (
-                  <button key={item.key} type="button" className={styles.actionRow} onClick={item.onClick}>
-                    {content}
-                  </button>
-                ) : (
-                  <div key={item.key} className={`${styles.actionRow} ${styles.static}`}>
-                    {content}
-                  </div>
-                );
-              })}
+
+            <PatrimonyCard
+              parks={parks}
+              published={published}
+              pending={pending}
+              blocked={blocked}
+              total={patrimonyTotal}
+              navigate={navigate}
+            />
+          </div>
+
+          <div className={styles.neutralCard}>
+            <h2 className={styles.sectionTitle}>Activité récente</h2>
+            <ActivityList activity={activity} />
+          </div>
+        </>
+      ) : (
+        <>
+          <PatrimonyCard
+            compact
+            parks={parks}
+            published={published}
+            pending={pending}
+            blocked={blocked}
+            total={patrimonyTotal}
+            navigate={navigate}
+          />
+
+          <div className={styles.rowTwo}>
+            <ReportsInsightPanel reports={reports} />
+            <MiniParkMap parks={parks} />
+          </div>
+
+          <div className={styles.rowThree}>
+            <RecentReportsPanel reports={reports} />
+            <PendingEditsPanel edits={pendingEdits} parkById={parkById} />
+            <UpcomingMaintenancePanel items={upcomingMaintenanceItems} parkById={parkById} />
+          </div>
+
+          <div className={styles.rowTwo}>
+            <RecentReviewsPanel reviews={reviews} lowCount={lowReviews} />
+            <div className={`${styles.neutralCard} ${styles.secondaryCard}`}>
+              <div className={styles.panelHeader}>
+                <div className={styles.panelHeaderTitle}>
+                  <span className={styles.panelIcon}>
+                    <Icon name="ic-list" size={14} />
+                  </span>
+                  <h2 className={styles.sectionTitleCompact}>Activité récente</h2>
+                </div>
+              </div>
+              <ActivityList activity={activity} compact />
             </div>
-          )}
-          {!isAdmin && lowReviews > 0 && (
-            <button type="button" className={styles.actionRow} onClick={() => navigate("/reviews")}>
-              <span className={styles.actionLabel}>
-                <span className={styles.actionIcon}>
-                  <Icon name="ic-review" size={14} />
-                </span>
-                <span className={styles.actionText}>Avis ≤2★ à examiner</span>
-              </span>
-              <span className={styles.countBadge}>{lowReviews}</span>
-            </button>
-          )}
-        </div>
-
-        <div className={`${styles.neutralCard} ${styles.patrimony}`}>
-          <h2 className={styles.sectionTitle}>Patrimoine</h2>
-          {parks.length === 0 ? (
-            <p className={styles.activityEmpty}>Aucun parc enregistré pour le moment.</p>
-          ) : (
-            <>
-              <div className={styles.patrimonyBar} role="img" aria-label={`${published} parcs publiés, ${pending} en attente, ${blocked} bloqués sur ${parks.length} au total`}>
-                <span className={styles.barPublished} style={{ width: `${(published / patrimonyTotal) * 100}%` }} />
-                <span className={styles.barPending} style={{ width: `${(pending / patrimonyTotal) * 100}%` }} />
-                <span className={styles.barBlocked} style={{ width: `${(blocked / patrimonyTotal) * 100}%` }} />
-              </div>
-              <div className={styles.patrimonyLegend}>
-                <button type="button" className={styles.legendItem} onClick={() => navigate("/parks?status=published")}>
-                  <span className={`${styles.legendDot} ${styles.dotPublished}`} />
-                  Publiés <strong>{published}</strong>
-                </button>
-                <button type="button" className={styles.legendItem} onClick={() => navigate("/parks?status=pending")}>
-                  <span className={`${styles.legendDot} ${styles.dotPending}`} />
-                  En attente <strong>{pending}</strong>
-                </button>
-                <button type="button" className={styles.legendItem} onClick={() => navigate("/parks?status=blocked")}>
-                  <span className={`${styles.legendDot} ${styles.dotBlocked}`} />
-                  Bloqués <strong>{blocked}</strong>
-                </button>
-                <span className={styles.legendTotal}>
-                  Total <strong>{parks.length}</strong>
-                </span>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.neutralCard}>
-        <h2 className={styles.sectionTitle}>Activité récente</h2>
-        <ActivityList activity={activity} />
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-function ActivityList({ activity }: { activity: { id: string; text: string; actor: string; created_at: string }[] }) {
+/** Patrimoine (COLL-02B, polished in COLL-02D §3) — a résumé, not a report:
+ * total / publiés / attente / bloqués + the real distribution bar. `compact`
+ * (collectivité) renders it full-width with a header icon+total, now that
+ * it no longer shares a row with "À traiter" (removed — see §2). Admin keeps
+ * the original half-width card next to "À traiter", untouched. */
+function PatrimonyCard({
+  compact,
+  parks,
+  published,
+  pending,
+  blocked,
+  total,
+  navigate,
+}: {
+  compact?: boolean;
+  parks: Park[];
+  published: number;
+  pending: number;
+  blocked: number;
+  total: number;
+  navigate: (to: string) => void;
+}) {
+  return (
+    <div className={`${styles.neutralCard} ${styles.patrimony} ${compact ? styles.patrimonyCompact : ""}`}>
+      <div className={styles.panelHeader}>
+        <div className={styles.panelHeaderTitle}>
+          <span className={styles.panelIcon}>
+            <Icon name="ic-list" size={compact ? 15 : 14} />
+          </span>
+          <h2 className={styles.sectionTitle}>Patrimoine</h2>
+        </div>
+        {compact && (
+          <span className={styles.patrimonyTotal}>
+            Total <strong>{parks.length}</strong>
+          </span>
+        )}
+      </div>
+      {parks.length === 0 ? (
+        <p className={styles.activityEmpty}>Aucun parc enregistré pour le moment.</p>
+      ) : (
+        <>
+          <div className={styles.patrimonyBar} role="img" aria-label={`${published} parcs publiés, ${pending} en attente, ${blocked} bloqués sur ${parks.length} au total`}>
+            <span className={styles.barPublished} style={{ width: `${(published / total) * 100}%` }} />
+            <span className={styles.barPending} style={{ width: `${(pending / total) * 100}%` }} />
+            <span className={styles.barBlocked} style={{ width: `${(blocked / total) * 100}%` }} />
+          </div>
+          <div className={styles.patrimonyLegend}>
+            <button type="button" className={styles.legendItem} onClick={() => navigate("/parks?status=published")}>
+              <span className={`${styles.legendDot} ${styles.dotPublished}`} />
+              Publiés <strong>{published}</strong>
+            </button>
+            <button type="button" className={styles.legendItem} onClick={() => navigate("/parks?status=pending")}>
+              <span className={`${styles.legendDot} ${styles.dotPending}`} />
+              En attente <strong>{pending}</strong>
+            </button>
+            <button type="button" className={styles.legendItem} onClick={() => navigate("/parks?status=blocked")}>
+              <span className={`${styles.legendDot} ${styles.dotBlocked}`} />
+              Bloqués <strong>{blocked}</strong>
+            </button>
+            {!compact && (
+              <span className={styles.legendTotal}>
+                Total <strong>{parks.length}</strong>
+              </span>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function ActivityList({
+  activity,
+  compact,
+}: {
+  activity: { id: string; text: string; actor: string; created_at: string }[];
+  compact?: boolean;
+}) {
   if (activity.length === 0) {
     return (
       <div className={styles.empty}>
@@ -275,7 +386,7 @@ function ActivityList({ activity }: { activity: { id: string; text: string; acto
   }
   return (
     <>
-      {activity.slice(0, 8).map((a) => (
+      {activity.slice(0, compact ? 5 : 8).map((a) => (
         <div key={a.id} className={styles.activityRow}>
           <span className={styles.activityDot} />
           <div className={styles.activityBody}>
@@ -290,10 +401,25 @@ function ActivityList({ activity }: { activity: { id: string; text: string; acto
   );
 }
 
-/** Mirrors the loaded page's shape (header / KPI strip / two-column grid /
- * activity card) so the layout doesn't jump once data arrives — no spinner,
- * no blank frame. */
-function DashboardSkeleton() {
+function SkeletonCard({ lines = 1 }: { lines?: number }) {
+  return (
+    <div className={styles.neutralCard}>
+      <Skeleton width={80} height={14} />
+      {Array.from({ length: lines }).map((_, i) => (
+        <div key={i} className={styles.skeletonGap}>
+          <Skeleton width="100%" height={34} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Mirrors the loaded page's shape so the layout doesn't jump once data
+ * arrives — no spinner, no blank frame. Collectivité gets the full shape
+ * (KPI strip / Patrimoine résumé / pilotage+carte / 3 aperçus / avis+activité,
+ * COLL-02D §2); admin keeps its simpler À traiter+Patrimoine+activité shape,
+ * unchanged since COLL-02B. */
+function DashboardSkeleton({ isAdmin }: { isAdmin: boolean }) {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -319,27 +445,52 @@ function DashboardSkeleton() {
         ))}
       </div>
 
-      <div className={styles.grid}>
-        <div className={styles.neutralCard}>
-          <Skeleton width={80} height={14} />
-          <div className={styles.skeletonGap}>
-            <Skeleton width="100%" height={34} />
+      {isAdmin ? (
+        <>
+          <div className={styles.grid}>
+            <div className={styles.neutralCard}>
+              <Skeleton width={80} height={14} />
+              <div className={styles.skeletonGap}>
+                <Skeleton width="100%" height={34} />
+              </div>
+            </div>
+            <div className={styles.neutralCard}>
+              <Skeleton width={80} height={14} />
+              <div className={styles.skeletonGap}>
+                <Skeleton width="100%" height={8} radius="var(--radius-pill)" />
+              </div>
+            </div>
           </div>
-        </div>
-        <div className={styles.neutralCard}>
-          <Skeleton width={80} height={14} />
-          <div className={styles.skeletonGap}>
-            <Skeleton width="100%" height={8} radius="var(--radius-pill)" />
+          <div className={styles.neutralCard}>
+            <Skeleton width={110} height={14} />
+            <div className={styles.skeletonGap}>
+              <Skeleton width="100%" height={36} />
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div className={styles.neutralCard}>
-        <Skeleton width={110} height={14} />
-        <div className={styles.skeletonGap}>
-          <Skeleton width="100%" height={36} />
-        </div>
-      </div>
+        </>
+      ) : (
+        <>
+          <div className={`${styles.neutralCard} ${styles.patrimonyCompact}`}>
+            <Skeleton width={90} height={14} />
+            <div className={styles.skeletonGap}>
+              <Skeleton width="100%" height={8} radius="var(--radius-pill)" />
+            </div>
+          </div>
+          <div className={styles.rowTwo}>
+            <SkeletonCard lines={2} />
+            <SkeletonCard />
+          </div>
+          <div className={styles.rowThree}>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+          <div className={styles.rowTwo}>
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
+        </>
+      )}
     </div>
   );
 }

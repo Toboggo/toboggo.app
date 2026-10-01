@@ -93,9 +93,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 6.5px 10px 6.5px 9px;
-  border-radius: var(--radius-xs);
-  color: rgba(255, 255, 255, 0.75);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 13.5px;
   text-decoration: none;
   cursor: pointer;
@@ -113,9 +113,10 @@
 /* Actif = vert Toboggo (--color-primary, plus clair que le fond
  * --color-primary-pressed de la sidebar) en liseré + fond clair sobre —
  * repérable en un coup d'œil sans bloc massif ni couleur d'accent (réservée
- * aux badges d'attention). */
+ * aux badges d'attention). Opacité et liseré légèrement renforcés (COLL-02D
+ * §7) pour un état actif plus "premium", toujours sans dégradé. */
 .navItem.active {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
   font-weight: 600;
   border-left-color: var(--color-primary);
@@ -126,7 +127,7 @@
 .navLabel {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 11px;
   min-width: 0;
 }
 .navLabelText {
@@ -140,8 +141,8 @@
  * puce (qui se lirait comme un pictogramme manquant). */
 .navIconSlot {
   display: inline-block;
-  width: 18px;
-  height: 18px;
+  width: 19px;
+  height: 19px;
   flex-shrink: 0;
 }
 .badge {

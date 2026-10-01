@@ -101,6 +101,17 @@
   background: var(--color-warning-bg);
   color: var(--color-warning-text);
 }
+/* Static category tints (COLL-02D §1) — icon badge only, never the value:
+ * a metric painted in "healthy green" or "brand amber" shouldn't read as an
+ * alert the way `tone-warning` does. */
+.tone-primary .statIcon {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.tone-accent .statIcon {
+  background: var(--color-accent-tint);
+  color: var(--color-warning-text);
+}
 .statBody {
   display: flex;
   flex-direction: column;
@@ -122,8 +133,9 @@
   padding: 14px 16px;
 }
 .emphasized .statIcon {
-  width: 28px;
-  height: 28px;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
 }
 .emphasized .statValue {
   font-size: 28px;
@@ -131,6 +143,14 @@
 .statLabel {
   color: var(--color-text-muted);
   font-size: 13px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.statSecondary {
+  color: var(--color-text-faint);
+  font-size: 11.5px;
   margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;

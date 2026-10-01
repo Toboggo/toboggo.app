@@ -84,20 +84,28 @@ export function StatCard({
   tone = "neutral",
   emphasized,
   onClick,
+  secondary,
 }: {
   value: ReactNode;
   label: string;
   /** Sprite icon shown in a small tinted badge — omit rather than inventing
    * one (see `NAV_ICON_GAPS` in the back office `Shell`). */
   icon?: IconName;
-  /** Tints the icon badge and the value — reserve `warning` for a real count
-   * that needs attention (> 0), never a static accent. */
-  tone?: "neutral" | "warning";
+  /** Tints the icon badge and the value. `warning` is reserved for a real
+   * count that needs attention (> 0) — it also colours the value. `primary`
+   * / `accent` are static category tints (brand green / amber) for a
+   * healthy, non-alert metric — icon only, the value stays plain text so it
+   * remains the dominant element (COLL-02D §1). */
+  tone?: "neutral" | "warning" | "primary" | "accent";
   /** Opt-in "headline KPI" treatment (larger value, a discreet neutral-bordered
    * frame) — off by default so existing callers (e.g. `Maintenance`'s 3 plain
    * counters) render exactly as before. */
   emphasized?: boolean;
   onClick?: () => void;
+  /** Extra line under the label — a real derived figure only (e.g. an average
+   * rating), never a placeholder. Omitted entirely when there is nothing real
+   * to show (COLL-02C). */
+  secondary?: ReactNode;
 }) {
   return (
     <button
@@ -108,12 +116,13 @@ export function StatCard({
     >
       {icon && (
         <span className={styles.statIcon}>
-          <Icon name={icon} size={18} />
+          <Icon name={icon} size={emphasized ? 20 : 18} />
         </span>
       )}
       <span className={styles.statBody}>
         <span className={styles.statValue}>{value}</span>
         <span className={styles.statLabel}>{label}</span>
+        {secondary && <span className={styles.statSecondary}>{secondary}</span>}
       </span>
     </button>
   );

@@ -142,22 +142,46 @@
   border-radius: var(--radius-pill);
 }
 
-/* Empty state compact — pas une grande carte vide, une seule ligne */
+/* Empty state compact (COLL-02D §4/§6) — un petit badge icône centré + un
+ * texte, pas une ligne perdue dans une carte à moitié vide, mais pas non
+ * plus une grande zone : une seule composition courte et volontaire. */
 .empty {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 1px 0;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 8px;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 12.5px;
+  text-align: center;
 }
 .emptyIcon {
-  color: var(--color-text-faint);
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-bg-alt);
+  color: var(--color-text-faint);
   flex-shrink: 0;
 }
 
-/* ── Patrimoine ─────────────────────────────────────────────────────────── */
+/* ── Patrimoine (COLL-02D §3) ───────────────────────────────────────────── */
+/* Collectivité : pleine largeur, résumé compact (n'a plus "À traiter" comme
+ * partenaire de ligne — §2) ; admin : carte demi-largeur inchangée, à côté
+ * d'"À traiter". */
+.patrimonyCompact {
+  padding: 12px 18px;
+}
+.patrimonyTotal {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
 .patrimonyBar {
   display: flex;
   height: 7px;
@@ -256,6 +280,237 @@
 .activityEmpty {
   font-size: 13px;
   color: var(--color-text-muted);
+}
+
+/* ── Rangées d'aperçus opérationnels (COLL-02C §7) ─────────────────────── */
+.rowTwo {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+.rowThree {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .rowTwo,
+  .rowThree {
+    grid-template-columns: 1fr;
+  }
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 10px;
+}
+.panelHeader .sectionTitle {
+  margin-bottom: 0;
+}
+/* Icon + title, shared by every panel header (COLL-02D §6) and by the two
+ * blocks that don't go through `DashboardPanel` (Patrimoine, the compact
+ * Activité récente card) so all headers read the same way. */
+.panelHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.panelHeaderTitle .sectionTitle,
+.panelHeaderTitle .sectionTitleCompact {
+  margin-bottom: 0;
+}
+.panelIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+/* Combines a real count badge with a "Voir tout" button in one header slot
+ * (Entretien à venir, Avis récents) without them colliding. */
+.panelHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* "Activité récente" redevient un bloc secondaire (COLL-02C §5) : même
+ * surface de carte, densité réduite et titre plus discret. */
+.secondaryCard {
+  padding: 12px 16px;
+}
+.sectionTitleCompact {
+  font-family: var(--font-heading);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── Listes compactes partagées par les panneaux "aperçus" ─────────────── */
+.panelList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.panelRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border-neutral);
+}
+.panelRow:last-child {
+  border-bottom: none;
+  padding-bottom: 1px;
+}
+.panelRow:first-child {
+  padding-top: 1px;
+}
+.panelRowBody {
+  min-width: 0;
+  flex: 1;
+}
+.panelRowTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panelRowMuted {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.panelRowMeta {
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panelRowComment {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panelThumb {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* ── Pilotage signalements : évolution + répartition (COLL-02C §3) ─────── */
+.trendChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 56px;
+}
+.trendBarWrap {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.trendBar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: var(--color-primary);
+}
+.trendLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 4px;
+}
+
+.statusBar {
+  display: flex;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--color-bg-alt);
+  margin: 16px 0 10px;
+}
+.statusOpen {
+  background: var(--color-accent);
+}
+.statusProgress {
+  background: var(--color-info);
+}
+.statusResolved {
+  background: var(--color-primary);
+}
+.statusDismissed {
+  background: var(--color-text-faint);
+}
+.statusLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.statusLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.statusLegendItem strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* ── Mini-carte (COLL-02C §4) ────────────────────────────────────────────── */
+.miniMap {
+  position: relative;
+  height: 196px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border-neutral);
+}
+.mapFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 16px;
+}
+.mapCaption {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--color-text-faint);
 }
 
 /* ── Skeleton (chargement, COLL-02B §10) ───────────────────────────────── */

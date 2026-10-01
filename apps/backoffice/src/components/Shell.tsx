@@ -185,7 +185,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   >
                     <span className={styles.navLabel}>
                       {item.icon ? (
-                        <Icon name={item.icon} size={18} />
+                        <Icon name={item.icon} size={19} />
                       ) : (
                         <span className={styles.navIconSlot} aria-hidden="true" />
                       )}

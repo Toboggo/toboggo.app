@@ -148,6 +148,13 @@
     }
   },
   "addPhotos": {
+    "subtitle": "Ajoutez des photos pour partager ce lieu avec la communauté.",
+    "takePhoto": "Prendre une photo",
+    "chooseFromLibrary": "Choisir dans la photothèque",
+    "counter": "{{count}} / {{max}} photos",
+    "readyCount_one": "{{count}} photo prête à être envoyée",
+    "readyCount_other": "{{count}} photos prêtes à être envoyées",
+    "editPhotos": "Modifier les photos",
     "doneTitle": "Photo envoyée !",
     "doneBody_one": "Merci ! Votre photo sera visible sur la fiche du parc après vérification par notre équipe.",
     "doneBody_other": "Merci ! Vos photos seront visibles sur la fiche du parc après vérification par notre équipe.",

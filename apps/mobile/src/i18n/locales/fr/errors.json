@@ -5,7 +5,9 @@
     "not_an_image": "Ce fichier n’est pas une image.",
     "too_large": "Cette image est trop lourde (25 Mo maximum).",
     "invalid": "Image invalide",
-    "uploadFailed": "Échec de l’envoi de la photo"
+    "uploadFailed": "Échec de l’envoi de la photo",
+    "tooMany": "Vous pouvez ajouter {{max}} photos maximum.",
+    "heicUnsupported": "Cette photo HEIC ne peut pas être traitée sur cet appareil. Essayez une photo JPG, PNG ou WebP."
   },
   "auth": {
     "invalidCredentials": "Adresse e-mail ou mot de passe incorrect.",

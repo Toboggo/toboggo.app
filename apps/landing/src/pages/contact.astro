@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Container from "../components/Container.astro";
 import { CONTACT_EMAIL } from "../config/site";
+import { LIMITS, SUBJECTS } from "../lib/contact";
 
 /*
   Formulaire → insertion anonyme dans `contact_messages` (RLS : INSERT public,
@@ -13,7 +14,6 @@ const supabaseUrl = (import.meta.env.PUBLIC_SUPABASE_URL ?? "").trim().replace(/
 const anonKey = (import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
 const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
 
-const SUBJECTS = ["Question générale", "Problème technique", "Partenariat", "Presse"];
 ---
 
 <BaseLayout
@@ -43,11 +43,11 @@ const SUBJECTS = ["Question générale", "Problème technique", "Partenariat", "
                 <form id="contact-form" data-endpoint={`${supabaseUrl}/rest/v1/contact_messages`} data-key={anonKey} novalidate>
                   <div class="form-field">
                     <label for="name">Nom</label>
-                    <input id="name" name="name" required maxlength="100" autocomplete="name" />
+                    <input id="name" name="name" required maxlength={LIMITS.name} autocomplete="name" />
                   </div>
                   <div class="form-field">
                     <label for="email">E-mail</label>
-                    <input id="email" name="email" type="email" required maxlength="254" autocomplete="email" />
+                    <input id="email" name="email" type="email" required maxlength={LIMITS.email} autocomplete="email" />
                   </div>
                   <div class="form-field">
                     <label for="subject">Sujet</label>
@@ -57,11 +57,11 @@ const SUBJECTS = ["Question générale", "Problème technique", "Partenariat", "
                   </div>
                   <div class="form-field" id="organization-field" hidden>
                     <label for="organization">Votre collectivité <span class="optional">(facultatif)</span></label>
-                    <input id="organization" name="organization" maxlength="150" autocomplete="organization" />
+                    <input id="organization" name="organization" maxlength={LIMITS.organization} autocomplete="organization" />
                   </div>
                   <div class="form-field">
                     <label for="message">Message</label>
-                    <textarea id="message" name="message" rows="5" required maxlength="5000" />
+                    <textarea id="message" name="message" rows="5" required minlength={LIMITS.messageMin} maxlength={LIMITS.message} />
                   </div>
                   <div class="hp" aria-hidden="true">
                     <label for="website">Ne pas remplir ce champ</label>
@@ -92,6 +92,16 @@ const SUBJECTS = ["Question générale", "Problème technique", "Partenariat", "
 </BaseLayout>
 
 <script>
+  import {
+    buildPayload,
+    looksLikeBot,
+    sendContact,
+    subjectFromParam,
+    validateContact,
+    PARTNERSHIP,
+    type ContactInput,
+  } from "../lib/contact";
+
   const form = document.getElementById("contact-form") as HTMLFormElement | null;
 
   if (form) {
@@ -102,84 +112,63 @@ const SUBJECTS = ["Question générale", "Problème technique", "Partenariat", "
     const orgEl = document.getElementById("organization") as HTMLInputElement;
     const endpoint = form.dataset.endpoint ?? "";
     const anonKey = form.dataset.key ?? "";
-    const FALLBACK = "contact@toboggo.app";
+    const shownAt = Date.now();
 
-    // ?sujet=partenariat → présélection (jamais de valeur libre : on ne retient
-    // que les sujets connus).
-    const SUBJECT_BY_PARAM: Record<string, string> = {
-      general: "Question générale",
-      technique: "Problème technique",
-      partenariat: "Partenariat",
-      presse: "Presse",
-    };
-    const wanted = SUBJECT_BY_PARAM[(new URLSearchParams(location.search).get("sujet") ?? "").toLowerCase()];
+    // ?sujet=partenariat → présélection (sujets connus uniquement).
+    const wanted = subjectFromParam(new URLSearchParams(location.search).get("sujet"));
     if (wanted) subjectEl.value = wanted;
 
     // Le champ collectivité n'a de sens que pour un partenariat.
     function syncOrganization() {
-      const isPartnership = subjectEl.value === "Partenariat";
+      const isPartnership = subjectEl.value === PARTNERSHIP;
       orgField.hidden = !isPartnership;
       if (!isPartnership) orgEl.value = "";
     }
     subjectEl.addEventListener("change", syncOrganization);
     syncOrganization();
 
-    function show(kind: "success" | "error", text: string) {
+    function show(kind: "success" | "error", text: string, field?: string) {
       msgEl.innerHTML = "";
       const box = document.createElement("div");
       box.className = `form-msg ${kind}`;
+      box.setAttribute("role", kind === "error" ? "alert" : "status");
       box.textContent = text;
       msgEl.appendChild(box);
+      if (field) document.getElementById(field)?.focus();
+    }
+
+    function read(): ContactInput {
+      const data = new FormData(form as HTMLFormElement);
+      const get = (key: string) => String(data.get(key) ?? "");
+      return { name: get("name"), email: get("email"), subject: get("subject"), organization: get("organization"), message: get("message"), website: get("website") };
     }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       msgEl.innerHTML = "";
+      const input = read();
 
-      const data = new FormData(form);
-      // Honeypot : un bot remplit tout. On simule un succès sans rien envoyer.
-      if (String(data.get("website") ?? "").trim() !== "") {
+      // Robot probable : on simule un succès sans rien envoyer.
+      if (looksLikeBot(input, Date.now() - shownAt)) {
         show("success", "Message envoyé — notre équipe vous répondra sous peu.");
-        form.reset();
-        syncOrganization();
         return;
       }
 
-      if (!form.checkValidity()) {
-        form.reportValidity();
+      const invalid = validateContact(input);
+      if (invalid) {
+        show("error", invalid.message, invalid.field);
         return;
       }
-
-      const organization = String(data.get("organization") ?? "").trim();
-      const message = String(data.get("message") ?? "").trim();
-      const payload = {
-        name: String(data.get("name") ?? "").trim(),
-        email: String(data.get("email") ?? "").trim(),
-        subject: String(data.get("subject") ?? ""),
-        // Pas de colonne dédiée (aucun changement de schéma) : la collectivité
-        // est ajoutée en tête du message.
-        message: organization ? `Collectivité : ${organization}\n\n${message}` : message,
-      };
 
       btn.disabled = true;
       btn.textContent = "Envoi…";
       try {
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: anonKey,
-            Authorization: `Bearer ${anonKey}`,
-            Prefer: "return=minimal",
-          },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        await sendContact(endpoint, anonKey, buildPayload(input));
         show("success", "Message envoyé — notre équipe vous répondra sous peu.");
         form.reset();
         syncOrganization();
       } catch {
-        show("error", `Une erreur est survenue. Écrivez-nous directement à ${FALLBACK}.`);
+        show("error", "Une erreur est survenue. Écrivez-nous directement à contact@toboggo.app.");
       } finally {
         btn.disabled = false;
         btn.textContent = "Envoyer";

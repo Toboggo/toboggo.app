@@ -153,3 +153,32 @@ export function streetOf(address: string | null): string | null {
   const street = address.replace(/^\d+\s*(bis|ter)?\s+/i, "").trim();
   return /^(rue|avenue|boulevard|chemin|route|impasse|allée|place|quai|cité|square|passage)\b/i.test(street) ? street : null;
 }
+
+/**
+ * Pictogrammes (sprite public/icons-sprite.svg) des équipements réellement
+ * déclarés, dans l'ordre de ce tableau. Sert d'habillage de carte quand il n'y
+ * a pas de photo autorisée : il décrit le parc, il ne prétend pas le montrer.
+ */
+const ICONS: [code: string, icon: string][] = [
+  ["slide", "ic-slide"],
+  ["swing", "ic-swing"],
+  ["climbing", "ic-climb"],
+  ["sandbox", "ic-sandbox"],
+  ["springer", "ic-spring"],
+  ["multisport", "ic-multisport"],
+  ["toilets", "ic-toilets"],
+  ["drinking_water", "ic-water"],
+  ["benches", "ic-bench"],
+  ["parking", "ic-parking"],
+  ["wheelchair_access", "ic-pmr"],
+  ["lighting", "ic-light"],
+];
+
+export function iconsFor(park: SeoPark, max = 6): string[] {
+  const codes = availableCodes(park);
+  const icons = ICONS.filter(([code]) => codes.includes(code)).map(([, icon]) => icon);
+  // clôture / ombre : seulement si la VALEUR l'établit (voir describePark)
+  if (FENCE[park.features?.fence_status?.value ?? ""]) icons.push("ic-fence");
+  if (SHADE[park.features?.shade_level?.value ?? ""]) icons.push("ic-shade");
+  return icons.slice(0, max);
+}

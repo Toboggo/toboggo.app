@@ -218,3 +218,30 @@ describe("json-ld", () => {
     expect(json).not.toMatch(/aggregateRating|image|telephone|openingHours|LocalBusiness/);
   });
 });
+
+import { HOME_MAX_CARDS, pickHomeCards, toCard } from "./homeParks";
+import { iconsFor } from "./parks";
+
+describe("home cards", () => {
+  it("never carries an image and shows only declared info", () => {
+    const card = toCard(rich(1));
+    expect(card).not.toHaveProperty("image");
+    expect(card.ageLabel).toBe("De 2 à 12 ans");
+    expect(card.features).toEqual(["Toboggan", "Toilettes", "Bancs"]);
+    expect(card.icons).toEqual(["ic-slide", "ic-toilets", "ic-bench"]);
+  });
+
+  it("shows fence/shade icons only when the value establishes them", () => {
+    expect(iconsFor(park({ features: { fence_status: { status: "available", value: "not_fenced" } } }))).toEqual([]);
+    expect(iconsFor(park({ features: { fence_status: { status: "available", value: "fully_fenced" }, shade_level: { status: "available", value: "partial" } } }))).toEqual(["ic-fence", "ic-shade"]);
+  });
+
+  it("picks the best documented parks first and caps the list", () => {
+    const poor = park({ name: "Zeta", minAge: 2, maxAge: 12 });
+    const many = Array.from({ length: 8 }, (_, i) => rich(i));
+    const data = buildCityPageData(millau, [poor, ...many]);
+    const cards = pickHomeCards(data);
+    expect(cards).toHaveLength(HOME_MAX_CARDS);
+    expect(cards.map((c) => c.name)).not.toContain("Zeta");
+  });
+});

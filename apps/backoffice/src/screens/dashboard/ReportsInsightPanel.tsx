@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Report, ReportStatus } from "@toboggo/shared";
-import { DashboardPanel, PanelEmpty } from "./shared";
+import { Panel, PanelEmpty } from "../../components/Panel";
 import styles from "../Dashboard.module.css";
 
 const STATUS_LABEL: Record<ReportStatus, string> = {
@@ -56,14 +56,14 @@ export function ReportsInsightPanel({ reports }: { reports: Report[] }) {
 
   if (total === 0) {
     return (
-      <DashboardPanel title="Signalements — vue d'ensemble" icon="ic-flag">
+      <Panel title="Signalements — vue d'ensemble" icon="ic-flag">
         <PanelEmpty icon="ic-flag" text="Aucun signalement pour le moment." />
-      </DashboardPanel>
+      </Panel>
     );
   }
 
   return (
-    <DashboardPanel title="Signalements — vue d'ensemble" icon="ic-flag">
+    <Panel title="Signalements — vue d'ensemble" icon="ic-flag">
       <div className={styles.trendChart} role="img" aria-label={`Évolution des signalements sur les ${WEEKS} dernières semaines`}>
         {weeks.map((w, i) => (
           <div
@@ -97,6 +97,6 @@ export function ReportsInsightPanel({ reports }: { reports: Report[] }) {
           </span>
         ))}
       </div>
-    </DashboardPanel>
+    </Panel>
   );
 }

@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@toboggo/design-system";
 import type { Maintenance, Park } from "@toboggo/shared";
-import { DashboardPanel, PanelEmpty } from "./shared";
+import { Panel, PanelEmpty, CountBadge } from "../../components/Panel";
 import styles from "../Dashboard.module.css";
 
 const MAX_ROWS = 5;
@@ -13,13 +13,13 @@ export function UpcomingMaintenancePanel({ items, parkById }: { items: Maintenan
   const recent = items.slice(0, MAX_ROWS);
 
   return (
-    <DashboardPanel
+    <Panel
       title="Entretien à venir"
       icon="ic-check"
       action={
         items.length > 0 && (
           <span className={styles.panelHeaderActions}>
-            <span className={styles.countBadge}>{items.length}</span>
+            <CountBadge>{items.length}</CountBadge>
             <Button variant="ghost" size="sm" onClick={() => navigate("/maintenance")}>
               Voir tout
             </Button>
@@ -44,6 +44,6 @@ export function UpcomingMaintenancePanel({ items, parkById }: { items: Maintenan
           ))}
         </ul>
       )}
-    </DashboardPanel>
+    </Panel>
   );
 }

@@ -1,0 +1,101 @@
+/* Primitives partagées « surface + en-tête de panneau + état vide » (COLL-02,
+ * extraites du Dashboard au COLL-03A pour être réutilisées par Mes parcs et la
+ * fiche parc). Valeurs inchangées. */
+
+/* ── Surface commune à tous les blocs du Dashboard (COLL-02B §3) ──────────
+ * Volontairement indépendante du composant `Card` partagé (qui n'a que deux
+ * variantes : ombre seule, ou bordure teintée --color-border, la beige de la
+ * palette d'origine) pour ne rien changer aux autres écrans qui le
+ * consomment (Maintenance, Statistiques, Settings, ParkDetail…). Bordure
+ * neutre + ombre très légère, radius un cran moins arrondi (--radius-md
+ * plutôt que --radius-lg) pour un rendu SaaS plus sobre. */
+.neutralCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-neutral);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+}
+
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.countBadge {
+  flex-shrink: 0;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 12px;
+  border-radius: var(--radius-pill);
+}
+
+/* Empty state compact (COLL-02D §4/§6) — un petit badge icône centré + un
+ * texte, pas une ligne perdue dans une carte à moitié vide, mais pas non
+ * plus une grande zone : une seule composition courte et volontaire. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 18px 8px;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+.emptyIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--color-bg-alt);
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 10px;
+}
+.panelHeader .sectionTitle {
+  margin-bottom: 0;
+}
+/* Icon + title, shared by every panel header (COLL-02D §6) and by the two
+ * blocks that don't go through `DashboardPanel` (Patrimoine, the compact
+ * Activité récente card) so all headers read the same way. */
+.panelHeaderTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.panelHeaderTitle .sectionTitle {
+  margin-bottom: 0;
+}
+.panelIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}

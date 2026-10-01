@@ -20,7 +20,8 @@ import { RecentReportsPanel } from "./dashboard/RecentReportsPanel";
 import { PendingEditsPanel } from "./dashboard/PendingEditsPanel";
 import { UpcomingMaintenancePanel } from "./dashboard/UpcomingMaintenancePanel";
 import { RecentReviewsPanel } from "./dashboard/RecentReviewsPanel";
-import { relativeTime } from "./dashboard/shared";
+import { relativeTime } from "../lib/relativeTime";
+import { CountBadge, panelStyles } from "../components/Panel";
 import styles from "./Dashboard.module.css";
 
 const UPCOMING_MAINTENANCE_WINDOW_DAYS = 7;
@@ -208,11 +209,11 @@ export default function Dashboard() {
       {isAdmin ? (
         <>
           <div className={styles.grid}>
-            <div className={`${styles.neutralCard} ${styles.toTreat}`}>
-              <h2 className={styles.sectionTitle}>À traiter</h2>
+            <div className={`${panelStyles.neutralCard} ${styles.toTreat}`}>
+              <h2 className={panelStyles.sectionTitle}>À traiter</h2>
               {adminActionItems.length === 0 ? (
-                <div className={styles.empty}>
-                  <span className={styles.emptyIcon}>
+                <div className={panelStyles.empty}>
+                  <span className={panelStyles.emptyIcon}>
                     <Icon name="ic-check" size={18} />
                   </span>
                   Rien ne nécessite votre attention pour le moment — tout est à jour.
@@ -231,7 +232,7 @@ export default function Dashboard() {
                         )}
                         <span className={styles.actionText}>{item.label}</span>
                       </span>
-                      <span className={styles.countBadge}>{item.count}</span>
+                      <CountBadge>{item.count}</CountBadge>
                     </button>
                   ))}
                 </div>
@@ -248,8 +249,8 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className={styles.neutralCard}>
-            <h2 className={styles.sectionTitle}>Activité récente</h2>
+          <div className={panelStyles.neutralCard}>
+            <h2 className={panelStyles.sectionTitle}>Activité récente</h2>
             <ActivityList activity={activity} />
           </div>
         </>
@@ -278,10 +279,10 @@ export default function Dashboard() {
 
           <div className={styles.rowTwo}>
             <RecentReviewsPanel reviews={reviews} lowCount={lowReviews} />
-            <div className={`${styles.neutralCard} ${styles.secondaryCard}`}>
-              <div className={styles.panelHeader}>
-                <div className={styles.panelHeaderTitle}>
-                  <span className={styles.panelIcon}>
+            <div className={`${panelStyles.neutralCard} ${styles.secondaryCard}`}>
+              <div className={panelStyles.panelHeader}>
+                <div className={panelStyles.panelHeaderTitle}>
+                  <span className={panelStyles.panelIcon}>
                     <Icon name="ic-list" size={14} />
                   </span>
                   <h2 className={styles.sectionTitleCompact}>Activité récente</h2>
@@ -319,13 +320,13 @@ function PatrimonyCard({
   navigate: (to: string) => void;
 }) {
   return (
-    <div className={`${styles.neutralCard} ${styles.patrimony} ${compact ? styles.patrimonyCompact : ""}`}>
-      <div className={styles.panelHeader}>
-        <div className={styles.panelHeaderTitle}>
-          <span className={styles.panelIcon}>
+    <div className={`${panelStyles.neutralCard} ${styles.patrimony} ${compact ? styles.patrimonyCompact : ""}`}>
+      <div className={panelStyles.panelHeader}>
+        <div className={panelStyles.panelHeaderTitle}>
+          <span className={panelStyles.panelIcon}>
             <Icon name="ic-list" size={compact ? 15 : 14} />
           </span>
-          <h2 className={styles.sectionTitle}>Patrimoine</h2>
+          <h2 className={panelStyles.sectionTitle}>Patrimoine</h2>
         </div>
         {compact && (
           <span className={styles.patrimonyTotal}>
@@ -376,8 +377,8 @@ function ActivityList({
 }) {
   if (activity.length === 0) {
     return (
-      <div className={styles.empty}>
-        <span className={styles.emptyIcon}>
+      <div className={panelStyles.empty}>
+        <span className={panelStyles.emptyIcon}>
           <Icon name="ic-list" size={18} />
         </span>
         Aucune activité récente à afficher.
@@ -403,7 +404,7 @@ function ActivityList({
 
 function SkeletonCard({ lines = 1 }: { lines?: number }) {
   return (
-    <div className={styles.neutralCard}>
+    <div className={panelStyles.neutralCard}>
       <Skeleton width={80} height={14} />
       {Array.from({ length: lines }).map((_, i) => (
         <div key={i} className={styles.skeletonGap}>
@@ -433,7 +434,7 @@ function DashboardSkeleton({ isAdmin }: { isAdmin: boolean }) {
 
       <div className={styles.kpiStrip}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={`${styles.neutralCard} ${styles.kpiSkeleton}`}>
+          <div key={i} className={`${panelStyles.neutralCard} ${styles.kpiSkeleton}`}>
             <Skeleton width={28} height={28} radius="var(--radius-sm)" />
             <div className={styles.kpiSkeletonBody}>
               <Skeleton width={36} height={20} />
@@ -448,20 +449,20 @@ function DashboardSkeleton({ isAdmin }: { isAdmin: boolean }) {
       {isAdmin ? (
         <>
           <div className={styles.grid}>
-            <div className={styles.neutralCard}>
+            <div className={panelStyles.neutralCard}>
               <Skeleton width={80} height={14} />
               <div className={styles.skeletonGap}>
                 <Skeleton width="100%" height={34} />
               </div>
             </div>
-            <div className={styles.neutralCard}>
+            <div className={panelStyles.neutralCard}>
               <Skeleton width={80} height={14} />
               <div className={styles.skeletonGap}>
                 <Skeleton width="100%" height={8} radius="var(--radius-pill)" />
               </div>
             </div>
           </div>
-          <div className={styles.neutralCard}>
+          <div className={panelStyles.neutralCard}>
             <Skeleton width={110} height={14} />
             <div className={styles.skeletonGap}>
               <Skeleton width="100%" height={36} />
@@ -470,7 +471,7 @@ function DashboardSkeleton({ isAdmin }: { isAdmin: boolean }) {
         </>
       ) : (
         <>
-          <div className={`${styles.neutralCard} ${styles.patrimonyCompact}`}>
+          <div className={`${panelStyles.neutralCard} ${styles.patrimonyCompact}`}>
             <Skeleton width={90} height={14} />
             <div className={styles.skeletonGap}>
               <Skeleton width="100%" height={8} radius="var(--radius-pill)" />

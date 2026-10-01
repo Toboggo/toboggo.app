@@ -1,4 +1,4 @@
-import type { ParkStatus } from "@toboggo/shared";
+import { OPERATIONAL_STATUS_LABEL, type ParkOperationalStatus, type ParkStatus } from "@toboggo/shared";
 
 export interface ParkStatusTransition {
   label: string;
@@ -27,4 +27,11 @@ export function parkStatusTransitions(status: ParkStatus): ParkStatusTransition[
     default:
       return [];
   }
+}
+
+/** `active` and `unknown` are not worth a badge on a list row: only a real
+ * deviation from "open" is surfaced. */
+export function operationalAttention(status: ParkOperationalStatus): { label: string; tone: "warning" | "error" } | null {
+  if (status === "active" || status === "unknown") return null;
+  return { label: OPERATIONAL_STATUS_LABEL[status], tone: status === "permanently_closed" ? "error" : "warning" };
 }

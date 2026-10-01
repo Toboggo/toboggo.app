@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://toboggo-website.vercel.app/sitemap-index.xml

@@ -1,0 +1,137 @@
+---
+/**
+ * "Nos derniers guides & idées" (Website-2 §8) — 3 cartes de PREVIEW
+ * éditorial temporaire, pas de vraies pages articles. Données (dont les
+ * photos réelles et leurs alt) : voir ../../data/demoGuides.ts et
+ * apps/landing/public/images/IMAGE-SOURCES.md pour la source/licence.
+ */
+import Button from "../Button.astro";
+import PhotoPlaceholder from "../PhotoPlaceholder.astro";
+import { DEMO_GUIDES } from "../../data/demoGuides";
+---
+
+<section class="guides">
+  <div class="wrap">
+    <h2>Nos derniers guides & idées</h2>
+  </div>
+
+  <div class="guides-scroll" role="region" aria-label="Aperçu des guides" tabindex="0">
+    <div class="guides-track">
+      {
+        DEMO_GUIDES.map((guide) => (
+          <article class="guide-card">
+            <PhotoPlaceholder alt={guide.imageAlt ?? guide.title} ratio="3 / 2" src={guide.image} />
+            <div class="guide-meta">
+              {guide.category && <span class="guide-category">{guide.category}</span>}
+              {guide.date && <span class="guide-date">{guide.date}</span>}
+            </div>
+            <h3>{guide.title}</h3>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+
+  <div class="wrap guides-cta">
+    <Button href="/guides" variant="secondary">Voir tous les articles</Button>
+  </div>
+</section>
+
+<style>
+  .guides {
+    /* davantage d'air avant le footer */
+    padding: var(--space-8) 0 120px;
+  }
+
+  .guides h2 {
+    text-align: center;
+    font-size: 30px;
+    margin-bottom: var(--space-7);
+  }
+
+  .guides-scroll {
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .guides-track {
+    display: flex;
+    gap: var(--space-5);
+    padding: 0 var(--space-6) var(--space-2);
+  }
+
+  .guide-card {
+    flex: 0 0 auto;
+    width: 260px;
+    scroll-snap-align: start;
+  }
+
+  .guide-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+  }
+
+  .guide-category {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-primary-hover);
+  }
+
+  .guide-date {
+    font-size: 12px;
+    color: var(--color-text-faint);
+  }
+
+  .guide-card h3 {
+    margin: var(--space-2) 0 0;
+    font-size: var(--text-base);
+    font-weight: 600;
+    line-height: 1.35;
+    /* réserve ~3 lignes : les 3 titres n'ont pas la même longueur, on veut
+       que les 3 cartes se terminent à la même hauteur, pour que le CTA
+       dessous soit clairement indépendant des cartes plutôt que "coincé"
+       contre l'une d'elles. */
+    min-height: 4.1em;
+  }
+
+  .guides-cta {
+    text-align: center;
+    /* net, sans ambiguïté avec les cartes au-dessus */
+    margin-top: 56px;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .guide-card {
+      transition: transform var(--duration-base) var(--ease-standard);
+    }
+
+    .guide-card:hover {
+      transform: translateY(-4px);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .guides-scroll {
+      overflow: visible;
+    }
+
+    .guides-track {
+      display: grid;
+      /* minmax(0, 1fr) : voir AudienceSplit.astro (blowout Grid). */
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 var(--space-6);
+    }
+
+    .guide-card {
+      width: auto;
+    }
+  }
+</style>

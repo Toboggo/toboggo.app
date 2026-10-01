@@ -1,0 +1,132 @@
+---
+const ITEMS = [
+  { icon: "ic-plus", text: "Ajouter un parc ou ses équipements" },
+  { icon: "ic-review", text: "Partager un avis" },
+  { icon: "ic-users", text: "Corriger ou compléter une information" },
+];
+---
+
+<section class="community">
+  <div class="wrap">
+    <h2>Une communauté de parents engagés</h2>
+    <p class="community-sub">Chaque famille peut contribuer à améliorer les informations disponibles sur Toboggo : photos, avis, corrections, nouvelles informations.</p>
+
+    <div class="community-grid">
+      {
+        ITEMS.map((item) => (
+          <div class="community-item">
+            <span class="community-badge">
+              <svg width="24" height="24" aria-hidden="true">
+                <use href={`/icons-sprite.svg#${item.icon}`} />
+              </svg>
+            </span>
+            <p>{item.text}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    {
+      /*
+        Illustration temporaire (voir Logo/hero-playground.svg, asset réel
+        existant réutilisé). Remplacement futur prévu :
+        /images/home/community.webp (vraie photo, ou composition de
+        vraies contributions/avis, ou avatars réels si autorisés — jamais
+        de témoignage/avatar fictif) — il suffira de passer `src` à
+        PhotoPlaceholder à la place de ce bloc, layout inchangé.
+      */
+    }
+    <div class="community-banner" aria-hidden="true">
+      <img src="/hero-playground.svg" alt="" loading="lazy" decoding="async" />
+    </div>
+
+    <p class="community-tagline">Des familles qui partagent<br />pour toutes les familles !</p>
+  </div>
+</section>
+
+<style>
+  .community {
+    padding: 72px 0;
+    /* rupture vert d'eau très clair, plus de gros bloc beige */
+    background: var(--color-primary-tint);
+    text-align: center;
+  }
+
+  .community h2 {
+    font-size: 28px;
+    margin-bottom: var(--space-2);
+  }
+
+  .community-sub {
+    color: var(--color-text-muted);
+    max-width: 480px;
+    margin: 0 auto var(--space-8);
+  }
+
+  .community-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-7);
+    max-width: 640px;
+    margin: 0 auto;
+  }
+
+  .community-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+  }
+
+  .community-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--color-surface);
+    color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .community-item p {
+    margin: 0;
+    color: var(--color-text);
+    font-size: 14.5px;
+  }
+
+  .community-banner {
+    /* réduite (560→460) pour ne pas laisser un grand vide avant Guides */
+    max-width: 460px;
+    margin: 40px auto 0;
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+
+  .community-banner img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .community-tagline {
+    /* impact typographique volontairement discret (pas un titre) */
+    margin: var(--space-4) 0 0;
+    font-family: var(--font-heading);
+    font-style: italic;
+    font-weight: 500;
+    color: var(--color-primary-hover);
+    font-size: 18px;
+  }
+
+  @media (min-width: 768px) {
+    .community-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .community-tagline {
+      font-size: 20px;
+    }
+  }
+</style>

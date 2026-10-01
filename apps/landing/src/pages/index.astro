@@ -1,0 +1,28 @@
+---
+/**
+ * Homepage (Website-2). Ordre des sections validé, ne pas réordonner ni en
+ * ajouter — voir le brief Website-2. Chaque section vit dans son propre
+ * composant sous components/home/, cette page ne fait qu'assembler.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Hero from "../components/home/Hero.astro";
+import NearbyParks from "../components/home/NearbyParks.astro";
+import HowItWorks from "../components/home/HowItWorks.astro";
+import AppShowcase from "../components/home/AppShowcase.astro";
+import AudienceSplit from "../components/home/AudienceSplit.astro";
+import Community from "../components/home/Community.astro";
+import Guides from "../components/home/Guides.astro";
+---
+
+<BaseLayout
+  title="Trouvez le terrain de jeu qui leur correspond"
+  description="Toboggo aide les familles à trouver les aires de jeux adaptées à leurs enfants, simplement et autour d'elles."
+>
+  <Hero />
+  <NearbyParks />
+  <HowItWorks />
+  <AppShowcase />
+  <AudienceSplit />
+  <Community />
+  <Guides />
+</BaseLayout>

@@ -39,6 +39,7 @@ export default defineConfig({
       "packages/design-system/src/**/*.test.{ts,tsx}",
       "apps/backoffice/src/**/*.test.{ts,tsx}",
       "apps/mobile/src/**/*.test.{ts,tsx}",
+      "apps/landing/src/**/*.test.ts",
     ],
     // `packages/shared/src/utils/*.test.ts` is Node's built-in test runner
     // (`node --experimental-strip-types --test`, see that package's own `test`

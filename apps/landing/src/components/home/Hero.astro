@@ -1,0 +1,169 @@
+---
+/**
+ * Photo hero réelle — voir apps/landing/public/images/IMAGE-SOURCES.md pour
+ * la source/licence. Remplacement futur : déposer un nouveau fichier portant
+ * exactement le même nom (même ratio 5/6), sans toucher à ce composant.
+ */
+import Button from "../Button.astro";
+import PhoneMockup from "../PhoneMockup.astro";
+import PhotoPlaceholder from "../PhotoPlaceholder.astro";
+---
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">Des sorties qui font grandir</span>
+      <svg class="hero-copy-doodle" width="54" height="14" viewBox="0 0 54 14" aria-hidden="true">
+        <path d="M2 10C14 2 24 2 27 8C30 14 40 4 52 6" fill="none" stroke="var(--color-accent)" stroke-width="2.5" stroke-linecap="round" />
+      </svg>
+      <h1>Trouvez le terrain de jeu<br />qui leur correspond.</h1>
+      <p>Toboggo aide les familles à trouver les aires de jeux adaptées à leurs enfants, simplement et autour d'elles.</p>
+      <div class="hero-actions">
+        <Button href="#app-toboggo">Découvrir Toboggo</Button>
+        <Button href="#comment-ca-marche" variant="secondary">Voir comment ça marche</Button>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-frame">
+        <PhotoPlaceholder
+          src="/images/home/hero/hero-aire-jeux-famille.webp"
+          alt="Enfant jouant sur une aire de jeux en plein air"
+          ratio="5 / 6"
+          loading="eager"
+          class="hero-photo"
+        />
+        <div class="hero-phone">
+          <PhoneMockup src="/screenshots/explorer.png" alt="Écran Explorer de l'application Toboggo, avec la carte et les parcs à proximité" />
+        </div>
+        <svg class="hero-doodle" width="42" height="42" viewBox="0 0 46 46" aria-hidden="true">
+          <path d="M6 30 Q16 6 40 14" fill="none" stroke="var(--color-accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 9" />
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    padding: var(--space-8) 0 88px;
+    overflow: hidden;
+    /* blanc lumineux plutôt que le gris très clair de --color-bg : le Hero
+       doit se détacher du reste de la page, pas s'y fondre. */
+    background: var(--color-surface);
+  }
+
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+    align-items: center;
+  }
+
+  .hero-copy {
+    text-align: center;
+  }
+
+  .hero-copy-doodle {
+    display: block;
+    margin: var(--space-2) auto 0;
+    opacity: 0.6;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(32px, 7vw, 56px);
+    line-height: 1.12;
+    margin: var(--space-3) 0 var(--space-4);
+  }
+
+  .hero-copy p {
+    max-width: 460px;
+    margin: 0 auto var(--space-6);
+    color: var(--color-text-muted);
+    font-size: 17px;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: var(--space-3);
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .hero-visual {
+    display: flex;
+    justify-content: center;
+    padding-top: var(--space-6);
+  }
+
+  /* Zone éditoriale asymétrique : grande photo (placeholder pour l'instant),
+     le téléphone se superpose dessus plutôt que d'être centré dans un cadre
+     séparé. Remplacement futur : passer src à PhotoPlaceholder, layout
+     inchangé. */
+  .hero-frame {
+    position: relative;
+    width: 78%;
+    max-width: 380px;
+  }
+
+  .hero-frame :global(.hero-photo) {
+    width: 100%;
+    height: 100%;
+    border-radius: 52px 18px 52px 18px;
+    box-shadow: var(--shadow-md);
+  }
+
+  .hero-phone {
+    position: absolute;
+    left: -14%;
+    bottom: -10%;
+    width: 56%;
+    z-index: 1;
+  }
+
+  .hero-doodle {
+    position: absolute;
+    top: -20px;
+    right: 10%;
+    opacity: 0.55;
+  }
+
+  @media (min-width: 900px) {
+    .hero-grid {
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 64px;
+    }
+
+    .hero-copy {
+      text-align: left;
+    }
+
+    .hero-copy p {
+      margin-left: 0;
+    }
+
+    .hero-copy-doodle {
+      margin-left: 0;
+    }
+
+    .hero-actions {
+      justify-content: flex-start;
+    }
+
+    .hero-visual {
+      justify-content: flex-end;
+      padding-top: 0;
+    }
+
+    .hero-frame {
+      width: 90%;
+      max-width: 440px;
+    }
+
+    .hero-phone {
+      left: -16%;
+      bottom: -12%;
+      width: 52%;
+    }
+  }
+</style>

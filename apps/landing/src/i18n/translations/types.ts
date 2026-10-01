@@ -2,6 +2,7 @@ export interface Dictionary {
   nav: {
     accueil: string;
     fonctionnalites: string;
+    airesDeJeux: string;
     guides: string;
     collectivites: string;
     aPropos: string;
@@ -16,6 +17,7 @@ export interface Dictionary {
       fonctionnalites: string;
       guides: string;
       collectivites: string;
+      airesDeJeux: string;
     };
     aPropos: {
       heading: string;
@@ -32,5 +34,7 @@ export interface Dictionary {
       cookies: string;
     };
     copyright: string;
+    /** Introduction de la mention d'attribution OpenStreetMap (le lien ODbL/OSM, lui, est fixe). */
+    dataCredit: string;
   };
 }

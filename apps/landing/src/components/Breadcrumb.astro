@@ -1,0 +1,51 @@
+---
+/** Fil d'Ariane visible. Le dernier élément est la page courante (non cliquable). */
+interface Crumb {
+  label: string;
+  href?: string;
+}
+interface Props {
+  items: Crumb[];
+}
+
+const { items } = Astro.props;
+---
+
+<nav class="breadcrumb" aria-label="Fil d'Ariane">
+  <ol>
+    {
+      items.map((item, i) => (
+        <li>
+          {item.href && i < items.length - 1 ? <a href={item.href}>{item.label}</a> : <span aria-current="page">{item.label}</span>}
+        </li>
+      ))
+    }
+  </ol>
+</nav>
+
+<style>
+  .breadcrumb ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+  }
+
+  .breadcrumb li + li::before {
+    content: "›";
+    margin-right: var(--space-2);
+    color: var(--color-text-faint);
+  }
+
+  .breadcrumb a {
+    color: var(--color-text-muted);
+  }
+
+  .breadcrumb a:hover {
+    color: var(--color-primary-hover);
+  }
+</style>

@@ -1,22 +1,84 @@
 ---
 /**
- * Placeholder "shell only" — contenu réel = Website-6. Les ancres #mission et
- * #histoire existent déjà (le footer commun y pointe) même si leur contenu
- * n'est pas encore rédigé.
+ * À propos (Website-3A). Sources UNIQUES : docs/Toboggo-Brand-Guidelines.pdf
+ * (p. 2 mission + problème d'origine, p. 9 ton & voix) et
+ * docs/DESIGN-SYSTEM.md §2 décision n°4 (8 critères). Rien d'autre :
+ * aucun nom, aucune date, aucune équipe, aucune adresse, aucun chiffre.
+ * Les ancres #mission et #histoire sont ciblées par le footer.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
-import Container from "../components/Container.astro";
+import PageHero from "../components/PageHero.astro";
+import InfoCard from "../components/InfoCard.astro";
+import Button from "../components/Button.astro";
+
+const CRITERIA = ["Tranche d'âge", "Ombre", "WC", "Clôture", "Accès PMR", "Bancs", "Eau potable", "Parking"];
 ---
 
-<BaseLayout title="À propos" description="Cette page arrive bientôt." noindex>
-  <Container>
-    <div class="doc-section">
-      <h1>À propos</h1>
-      <h2 id="mission">Notre mission</h2>
-      <p>Cette section est en cours de construction.</p>
-      <h2 id="histoire">Notre histoire</h2>
-      <p>Cette section est en cours de construction.</p>
-      <p><a href="/">← Retour à l'accueil</a></p>
+<BaseLayout
+  title="À propos : connecter familles et mairies"
+  description="Toboggo connecte les familles et les mairies autour des aires de jeux : trouver un parc adapté à son enfant, et signaler un problème à la bonne personne."
+>
+  <PageHero
+    eyebrow="À propos"
+    title="Connecter les familles et les mairies autour des aires de jeux."
+    lead="Toboggo aide les familles à trouver les bonnes aires de jeux près de chez elles, et donne aux collectivités un outil pour les gérer."
+  />
+
+  <section id="mission" class="page-section page-section--tint">
+    <div class="wrap split">
+      <div class="split-copy">
+        <span class="eyebrow">Notre mission</span>
+        <h2>Des informations fiables, pour les familles comme pour les mairies</h2>
+        <p>Pour les familles : trouver un parc ouvert et adapté à l'âge de son enfant, avec des informations sur lesquelles se fier.</p>
+        <p>Pour les collectivités : disposer d'un outil pour gérer leur patrimoine ludique et traiter les signalements.</p>
+      </div>
+      <div class="split-copy">
+        <h3>8 critères famille par fiche de parc</h3>
+        <ul class="check-list">
+          {CRITERIA.map((c) => <li>{c}</li>)}
+        </ul>
+      </div>
     </div>
-  </Container>
+  </section>
+
+  <section id="histoire" class="page-section page-section--white">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Notre histoire</span>
+        <h2>Né d'un problème concret</h2>
+        <p>Trouver un parc ouvert, adapté à l'âge de son enfant, sans source fiable. Et repérer un jeu cassé sans avoir aucun canal pour le signaler à la mairie.</p>
+      </div>
+      <p class="note">L'application répond au premier problème ; l'espace collectivité répond au second. Une seule marque, deux publics.</p>
+    </div>
+  </section>
+
+  <section class="page-section">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Nos valeurs</span>
+        <h2>Rassurant, concret, jamais infantilisant</h2>
+        <p>On s'adresse à des parents pressés qui veulent une réponse fiable. Le ton reste chaleureux sans être puéril, précis sans être technique.</p>
+      </div>
+      <ul class="card-grid card-grid--4">
+        <InfoCard icon="ic-check" title="Concret" text="On dit ce qui est vérifié, quand, et par qui. Jamais de formulation vague." />
+        <InfoCard icon="ic-question" title="Honnête sur l'incertitude" text="Un équipement non confirmé le dit clairement, sans être présenté comme absent." />
+        <InfoCard icon="ic-heart" title="À hauteur de parent" text="On s'adresse aux parents, pas aux enfants : la chaleur vient de la forme, pas du ton." />
+        <InfoCard icon="ic-users" title="Utile à tous" text="Aussi utile à la mairie qu'à la famille : des signalements à traiter, pas des quêtes." />
+      </ul>
+    </div>
+  </section>
+
+  <section class="page-section page-section--tint">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Contribuer</span>
+        <h2>Toboggo se construit avec vous</h2>
+        <p>Ajouter un parc manquant, corriger une information, signaler un équipement abîmé, laisser un avis ou une photo : chaque contribution aide les autres familles. Les fiches sont vérifiées avant publication.</p>
+      </div>
+      <div class="page-actions">
+        <Button href="/fonctionnalites/">Voir comment contribuer</Button>
+        <Button href="/contact/" variant="secondary">Nous écrire</Button>
+      </div>
+    </div>
+  </section>
 </BaseLayout>

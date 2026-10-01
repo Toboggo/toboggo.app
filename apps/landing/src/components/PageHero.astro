@@ -1,0 +1,19 @@
+---
+/** En-tête commun des pages secondaires : eyebrow + h1 + chapeau + actions (slot). */
+interface Props {
+  eyebrow: string;
+  title: string;
+  lead: string;
+}
+
+const { eyebrow, title, lead } = Astro.props;
+---
+
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">{eyebrow}</span>
+    <h1>{title}</h1>
+    <p class="lead">{lead}</p>
+    <div class="page-actions"><slot /></div>
+  </div>
+</section>

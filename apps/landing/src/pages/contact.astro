@@ -1,11 +1,24 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Container from "../components/Container.astro";
+import { CONTACT_EMAIL } from "../config/site";
+import { LIMITS, SUBJECTS } from "../lib/contact";
+
+/*
+  Formulaire → insertion anonyme dans `contact_messages` (RLS : INSERT public,
+  lecture réservée au staff). Variables PUBLIC_ lues au BUILD (clé anon
+  publique par conception, jamais de secret). Sans elles, aucun formulaire
+  cassé : on affiche le contact de secours par e-mail.
+*/
+const supabaseUrl = (import.meta.env.PUBLIC_SUPABASE_URL ?? "").trim().replace(/\/+$/, "");
+const anonKey = (import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
+
 ---
 
 <BaseLayout
-  title="Contact"
-  description="Une question, un problème ? Contactez l'équipe Toboggo ou utilisez le bouton Signaler depuis l'app."
+  title="Contact : une question, un problème ?"
+  description="Une question, un problème, un partenariat ? Écrivez à l'équipe Toboggo, ou utilisez le bouton Signaler depuis la fiche d'un parc dans l'app."
 >
   <Container class="contact-container">
     <div class="doc-section" style="max-width:960px;">
@@ -17,88 +30,179 @@ import Container from "../components/Container.astro";
 
       <div class="contact-grid" style="margin-top:32px;">
         <div>
-          <div class="contact-card"><strong>Support général</strong><br /><a href="mailto:contact@toboggo.app">contact@toboggo.app</a></div>
+          <div class="contact-card"><strong>Support général</strong><br /><a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></div>
           <div class="contact-card"><strong>Presse</strong><br /><a href="mailto:presse@toboggo.app">presse@toboggo.app</a></div>
           <div class="contact-card"><strong>Confidentialité RGPD</strong><br /><a href="mailto:privacy@toboggo.app">privacy@toboggo.app</a></div>
         </div>
 
         <div>
-          <div id="form-msg"></div>
-          <form id="contact-form">
-            <div class="form-field">
-              <label for="name">Nom</label>
-              <input id="name" name="name" required />
-            </div>
-            <div class="form-field">
-              <label for="email">E-mail</label>
-              <input id="email" name="email" type="email" required />
-            </div>
-            <div class="form-field">
-              <label for="subject">Sujet</label>
-              <select id="subject" name="subject">
-                <option>Question générale</option>
-                <option>Problème technique</option>
-                <option>Partenariat</option>
-                <option>Presse</option>
-              </select>
-            </div>
-            <div class="form-field">
-              <label for="message">Message</label>
-              <textarea id="message" name="message" rows="5" required></textarea>
-            </div>
-            <button class="btn btn-primary" type="submit" id="submit-btn">Envoyer</button>
-          </form>
+          {
+            formEnabled ? (
+              <>
+                <div id="form-msg" role="status" aria-live="polite" />
+                <form id="contact-form" data-endpoint={`${supabaseUrl}/rest/v1/contact_messages`} data-key={anonKey} novalidate>
+                  <div class="form-field">
+                    <label for="name">Nom</label>
+                    <input id="name" name="name" required maxlength={LIMITS.name} autocomplete="name" />
+                  </div>
+                  <div class="form-field">
+                    <label for="email">E-mail</label>
+                    <input id="email" name="email" type="email" required maxlength={LIMITS.email} autocomplete="email" />
+                  </div>
+                  <div class="form-field">
+                    <label for="subject">Sujet</label>
+                    <select id="subject" name="subject">
+                      {SUBJECTS.map((s) => <option value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div class="form-field" id="organization-field" hidden>
+                    <label for="organization">Votre collectivité <span class="optional">(facultatif)</span></label>
+                    <input id="organization" name="organization" maxlength={LIMITS.organization} autocomplete="organization" />
+                  </div>
+                  <div class="form-field">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" rows="5" required minlength={LIMITS.messageMin} maxlength={LIMITS.message} />
+                  </div>
+                  <div class="hp" aria-hidden="true">
+                    <label for="website">Ne pas remplir ce champ</label>
+                    <input id="website" name="website" tabindex="-1" autocomplete="off" />
+                  </div>
+                  <p class="form-privacy">
+                    Vos données servent uniquement à vous répondre. Voir notre{" "}
+                    <a href="/cgu/#confidentialite">politique de confidentialité</a>.
+                  </p>
+                  <button class="btn btn-primary" type="submit" id="submit-btn">Envoyer</button>
+                </form>
+              </>
+            ) : (
+              <div class="contact-card contact-fallback">
+                <strong>Écrivez-nous directement</strong>
+                <p>
+                  Le formulaire est momentanément indisponible. Envoyez-nous votre message à{" "}
+                  <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, en précisant votre sujet
+                  (question, problème technique, partenariat ou presse).
+                </p>
+              </div>
+            )
+          }
         </div>
       </div>
     </div>
   </Container>
 </BaseLayout>
 
-<!-- window.TOBOGGO_CONFIG (Supabase URL + clé anon publique) — voir public/config.js.
-     Clé anon uniquement, jamais de secret : c'est exactement ce que les policies
-     RLS Supabase sont conçues pour exposer côté client. -->
-<script is:inline src="/config.js"></script>
-<script is:inline>
-  const form = document.getElementById("contact-form");
-  const msgEl = document.getElementById("form-msg");
-  const btn = document.getElementById("submit-btn");
+<script>
+  import {
+    buildPayload,
+    looksLikeBot,
+    sendContact,
+    subjectFromParam,
+    validateContact,
+    PARTNERSHIP,
+    type ContactInput,
+  } from "../lib/contact";
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    msgEl.innerHTML = "";
-    const cfg = window.TOBOGGO_CONFIG;
-    if (!cfg || cfg.SUPABASE_URL.includes("YOUR-PROJECT")) {
-      msgEl.innerHTML =
-        '<div class="form-msg error">Le formulaire n\'est pas encore connecté (config.js à renseigner). Écrivez-nous directement à contact@toboggo.app.</div>';
-      return;
+  const form = document.getElementById("contact-form") as HTMLFormElement | null;
+
+  if (form) {
+    const msgEl = document.getElementById("form-msg") as HTMLElement;
+    const btn = document.getElementById("submit-btn") as HTMLButtonElement;
+    const subjectEl = document.getElementById("subject") as HTMLSelectElement;
+    const orgField = document.getElementById("organization-field") as HTMLElement;
+    const orgEl = document.getElementById("organization") as HTMLInputElement;
+    const endpoint = form.dataset.endpoint ?? "";
+    const anonKey = form.dataset.key ?? "";
+    const shownAt = Date.now();
+
+    // ?sujet=partenariat → présélection (sujets connus uniquement).
+    const wanted = subjectFromParam(new URLSearchParams(location.search).get("sujet"));
+    if (wanted) subjectEl.value = wanted;
+
+    // Le champ collectivité n'a de sens que pour un partenariat.
+    function syncOrganization() {
+      const isPartnership = subjectEl.value === PARTNERSHIP;
+      orgField.hidden = !isPartnership;
+      if (!isPartnership) orgEl.value = "";
     }
-    btn.disabled = true;
-    btn.textContent = "Envoi…";
-    const payload = {
-      name: document.getElementById("name").value,
-      email: document.getElementById("email").value,
-      subject: document.getElementById("subject").value,
-      message: document.getElementById("message").value,
-    };
-    try {
-      const res = await fetch(`${cfg.SUPABASE_URL}/rest/v1/contact_messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: cfg.SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${cfg.SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      msgEl.innerHTML = '<div class="form-msg success">🎉 Message envoyé — notre équipe vous répondra sous peu.</div>';
-      form.reset();
-    } catch (err) {
-      msgEl.innerHTML =
-        '<div class="form-msg error">Une erreur est survenue. Écrivez-nous directement à contact@toboggo.app.</div>';
-    } finally {
-      btn.disabled = false;
-      btn.textContent = "Envoyer";
+    subjectEl.addEventListener("change", syncOrganization);
+    syncOrganization();
+
+    function show(kind: "success" | "error", text: string, field?: string) {
+      msgEl.innerHTML = "";
+      const box = document.createElement("div");
+      box.className = `form-msg ${kind}`;
+      box.setAttribute("role", kind === "error" ? "alert" : "status");
+      box.textContent = text;
+      msgEl.appendChild(box);
+      if (field) document.getElementById(field)?.focus();
     }
-  });
+
+    function read(): ContactInput {
+      const data = new FormData(form as HTMLFormElement);
+      const get = (key: string) => String(data.get(key) ?? "");
+      return { name: get("name"), email: get("email"), subject: get("subject"), organization: get("organization"), message: get("message"), website: get("website") };
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      msgEl.innerHTML = "";
+      const input = read();
+
+      // Robot probable : on simule un succès sans rien envoyer.
+      if (looksLikeBot(input, Date.now() - shownAt)) {
+        show("success", "Message envoyé — notre équipe vous répondra sous peu.");
+        return;
+      }
+
+      const invalid = validateContact(input);
+      if (invalid) {
+        show("error", invalid.message, invalid.field);
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Envoi…";
+      try {
+        await sendContact(endpoint, anonKey, buildPayload(input));
+        show("success", "Message envoyé — notre équipe vous répondra sous peu.");
+        form.reset();
+        syncOrganization();
+      } catch {
+        show("error", "Une erreur est survenue. Écrivez-nous directement à contact@toboggo.app.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Envoyer";
+      }
+    });
+  }
 </script>
+
+<style>
+  /* Honeypot : hors écran (et non display:none, que certains bots ignorent). */
+  .hp {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .form-field[hidden] {
+    display: none;
+  }
+
+  .optional {
+    font-weight: 400;
+    color: var(--color-text-muted);
+  }
+
+  .form-privacy {
+    font-size: var(--text-sm);
+    color: var(--color-text-muted);
+    margin: 0 0 var(--space-4);
+  }
+
+  .contact-fallback p {
+    margin: var(--space-2) 0 0;
+  }
+</style>

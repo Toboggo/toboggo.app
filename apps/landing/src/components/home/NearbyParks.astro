@@ -1,29 +1,43 @@
 ---
 /**
  * "Des parcs près de chez vous" (Website-2 §3) — démonstration visuelle,
- * PAS un Explorer web fonctionnel. Données : voir ../../data/demoParks.ts.
- * Photos réelles à ajouter sous /images/home/parks/ quand elles existent et
- * sont vérifiées (voir commentaire dans demoParks.ts) — aucune créée ici.
+ * PAS un Explorer web fonctionnel. Données : parcs réels de Millau lus depuis
+ * Supabase au build (lib/seo/homeParks.ts), avec l'instantané data/demoParks.ts
+ * en repli. Photos à ajouter uniquement quand leurs droits sont établis — aucune ici.
  */
 import PhotoPlaceholder from "../PhotoPlaceholder.astro";
-import { DEMO_PARKS } from "../../data/demoParks";
+import Button from "../Button.astro";
+import { getHomeParks } from "../../lib/seo/homeParks";
+
+// Parcs réels de la ville pilote (Supabase, lus au build) ; instantané statique
+// en repli si les variables manquent. Aucune photo : droits non établis.
+const { cards, cityLink, cityName } = await getHomeParks(import.meta.env);
 ---
 
 <section class="nearby">
   <div class="wrap">
     <h2>Des parcs près de chez vous</h2>
-    <p class="nearby-sub">Un aperçu du type d'aires de jeux disponibles dans Toboggo, avec leurs informations essentielles.</p>
+    <p class="nearby-sub">Un aperçu des aires de jeux référencées à {cityName}, avec leurs informations essentielles.</p>
   </div>
 
   <div class="nearby-wrap">
     <div class="nearby-scroll" id="nearby-scroll" role="region" aria-label="Aperçu de parcs" tabindex="0">
       <div class="nearby-track">
         {
-          DEMO_PARKS.map((park) => (
+          cards.map((park) => (
             <article class="park-card">
-              <PhotoPlaceholder alt={park.name} ratio="1 / 1" src={park.image} />
+              {park.image || park.icons.length === 0 ? (
+                <PhotoPlaceholder alt={park.imageAlt ?? park.name} ratio="1 / 1" src={park.image} />
+              ) : (
+                <div class="park-tile" aria-hidden="true">
+                  {park.icons.slice(0, 6).map((icon) => (
+                    <svg width="28" height="28"><use href={`/icons-sprite.svg#${icon}`} /></svg>
+                  ))}
+                </div>
+              )}
               <h3>{park.name}</h3>
-              {park.attribute && <p class="park-attr">{park.attribute}</p>}
+              {park.ageLabel && <p class="park-attr">{park.ageLabel}</p>}
+              <p class="park-feats">{park.features.slice(0, 3).join(" · ")}</p>
             </article>
           ))
         }
@@ -41,6 +55,14 @@ import { DEMO_PARKS } from "../../data/demoParks";
       </svg>
     </button>
   </div>
+
+  {
+    cityLink && (
+      <div class="wrap nearby-cta">
+        <Button href={cityLink.href} variant="secondary">{cityLink.label}</Button>
+      </div>
+    )
+  }
 </section>
 
 <script>
@@ -122,11 +144,29 @@ import { DEMO_PARKS } from "../../data/demoParks";
     scroll-snap-align: start;
   }
 
-  /* placeholder volontairement discret (pas encore de vraie photo vérifiée) :
-     carte carrée plutôt que portrait, et mark atténué pour laisser le nom du
-     parc porter l'essentiel — jamais une image générique à sa place. */
-  .park-card :global(.photo-slot--empty) {
-    opacity: 0.4;
+  /* Habillage sans photo : pictogrammes des équipements réellement déclarés
+     (jamais une image générique à la place du parc). */
+  .park-tile {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    place-items: center;
+    align-content: center;
+    gap: var(--space-5) var(--space-3);
+    aspect-ratio: 1 / 1;
+    padding: var(--space-6);
+    border-radius: var(--radius-md);
+    background: var(--color-primary-tint);
+    color: var(--color-primary);
+  }
+
+  .park-tile svg {
+    width: 32px;
+    height: 32px;
+  }
+
+  .nearby-cta {
+    text-align: center;
+    margin-top: var(--space-6);
   }
 
   .park-card h3 {
@@ -139,6 +179,13 @@ import { DEMO_PARKS } from "../../data/demoParks";
     margin: 0;
     color: var(--color-text-muted);
     font-size: 13px;
+  }
+
+  .park-feats {
+    margin: 2px 0 0;
+    color: var(--color-text-faint);
+    font-size: 12.5px;
+    line-height: 1.35;
   }
 
   @media (prefers-reduced-motion: no-preference) {

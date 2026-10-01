@@ -4,6 +4,7 @@ export const es: Dictionary = {
   nav: {
     accueil: "Inicio",
     fonctionnalites: "Funcionalidades",
+    airesDeJeux: "Parques infantiles",
     guides: "Guías e ideas",
     collectivites: "Para ayuntamientos",
     aPropos: "Acerca de",
@@ -18,6 +19,7 @@ export const es: Dictionary = {
       fonctionnalites: "Funcionalidades",
       guides: "Guías e ideas",
       collectivites: "Para ayuntamientos",
+      airesDeJeux: "Parques infantiles",
     },
     aPropos: {
       heading: "Acerca de",
@@ -34,5 +36,6 @@ export const es: Dictionary = {
       cookies: "Cookies",
     },
     copyright: "© 2026 Toboggo. Hecho con ♥ para las familias.",
+    dataCredit: "Algunos datos de parques:",
   },
 };

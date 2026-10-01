@@ -4,6 +4,7 @@ export const en: Dictionary = {
   nav: {
     accueil: "Home",
     fonctionnalites: "Features",
+    airesDeJeux: "Playgrounds",
     guides: "Guides & ideas",
     collectivites: "For local authorities",
     aPropos: "About",
@@ -18,6 +19,7 @@ export const en: Dictionary = {
       fonctionnalites: "Features",
       guides: "Guides & ideas",
       collectivites: "For local authorities",
+      airesDeJeux: "Playgrounds",
     },
     aPropos: {
       heading: "About",
@@ -34,5 +36,6 @@ export const en: Dictionary = {
       cookies: "Cookies",
     },
     copyright: "© 2026 Toboggo. Made with ♥ for families.",
+    dataCredit: "Some park data:",
   },
 };

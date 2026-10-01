@@ -1,10 +1,31 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
-    { "source": "/index.html", "destination": "/", "permanent": true },
-    { "source": "/faq.html", "destination": "/faq", "permanent": true },
-    { "source": "/contact.html", "destination": "/contact", "permanent": true },
-    { "source": "/cgu.html", "destination": "/cgu", "permanent": true },
-    { "source": "/mentions-legales.html", "destination": "/mentions-legales", "permanent": true }
-  ]
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/faq.html",
+      "destination": "/faq/",
+      "permanent": true
+    },
+    {
+      "source": "/contact.html",
+      "destination": "/contact/",
+      "permanent": true
+    },
+    {
+      "source": "/cgu.html",
+      "destination": "/cgu/",
+      "permanent": true
+    },
+    {
+      "source": "/mentions-legales.html",
+      "destination": "/mentions-legales/",
+      "permanent": true
+    }
+  ],
+  "trailingSlash": true
 }

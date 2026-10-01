@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
-import { Button, Icon, Select, useToast, usePersistentDraft } from "@toboggo/design-system";
+import { Button, Card, Icon, Select, useToast, usePersistentDraft } from "@toboggo/design-system";
 import {
   buildDraftKey,
   listFeatures,
@@ -327,7 +327,7 @@ export function FeaturesPanel({
     if (answeredCount === 0) {
       return (
         <div className={styles.panel}>
-          <div className={styles.featEmpty}>
+          <Card className={styles.featEmpty} variant="admin">
             <p className={styles.featEmptyTitle}>Aucune caractéristique renseignée</p>
             <p>
               Indiquez les jeux, services, accès et l'aménagement réellement présents dans ce parc pour aider les
@@ -338,7 +338,7 @@ export function FeaturesPanel({
                 Compléter
               </Button>
             )}
-          </div>
+          </Card>
         </div>
       );
     }
@@ -356,44 +356,46 @@ export function FeaturesPanel({
           )}
         </div>
 
-        {groups.map((g) => {
-          const rows = g.features
-            .map((f) => ({ f, state: readState(pfByFeatureId[f.id], isValueFeature(f)) }))
-            .filter((r) => r.state !== null);
-          return (
-            <section key={g.category} className={styles.featSection}>
-              <h3 className={styles.sectionTitle}>{g.label}</h3>
-              {rows.length === 0 ? (
-                <p className={styles.empty}>Non renseigné pour cette catégorie</p>
-              ) : (
-                <ul className={styles.featReadList}>
-                  {rows.map(({ f, state }) => (
-                    <li key={f.id} className={styles.featReadRow}>
-                      {state === "yes" && (
-                        <span className={styles.featYesIcon}>
-                          <Icon name="ic-check" size={15} />
-                        </span>
-                      )}
-                      {state === "yes" && <span>{featureLabelBO(f.code)}</span>}
-                      {state === "no" && <span className={styles.featNegative}>{featureLabelBO(f.code)} — absent</span>}
-                      {state === "temp" && (
-                        <span className={styles.featNegative}>
-                          {featureLabelBO(f.code)} — Temporairement indisponible
-                        </span>
-                      )}
-                      {state === "value" && (
-                        <span>
-                          {featureLabelBO(f.code)} :{" "}
-                          <strong>{featureValueLabelBO(f.code, pfByFeatureId[f.id]!.value!)}</strong>
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          );
-        })}
+        <div className={styles.featGrid}>
+          {groups.map((g) => {
+            const rows = g.features
+              .map((f) => ({ f, state: readState(pfByFeatureId[f.id], isValueFeature(f)) }))
+              .filter((r) => r.state !== null);
+            return (
+              <Card key={g.category} className={styles.featSection} variant="admin">
+                <h3 className={styles.sectionTitle}>{g.label}</h3>
+                {rows.length === 0 ? (
+                  <p className={styles.empty}>Non renseigné pour cette catégorie</p>
+                ) : (
+                  <ul className={styles.featReadList}>
+                    {rows.map(({ f, state }) => (
+                      <li key={f.id} className={styles.featReadRow}>
+                        {state === "yes" && (
+                          <span className={styles.featYesIcon}>
+                            <Icon name="ic-check" size={15} />
+                          </span>
+                        )}
+                        {state === "yes" && <span>{featureLabelBO(f.code)}</span>}
+                        {state === "no" && <span className={styles.featNegative}>{featureLabelBO(f.code)} — absent</span>}
+                        {state === "temp" && (
+                          <span className={styles.featNegative}>
+                            {featureLabelBO(f.code)} — Temporairement indisponible
+                          </span>
+                        )}
+                        {state === "value" && (
+                          <span>
+                            {featureLabelBO(f.code)} :{" "}
+                            <strong>{featureValueLabelBO(f.code, pfByFeatureId[f.id]!.value!)}</strong>
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            );
+          })}
+        </div>
       </div>
     );
   }

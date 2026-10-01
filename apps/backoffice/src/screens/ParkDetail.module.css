@@ -117,9 +117,9 @@
 /* Admin-UI-9D — mode lecture : `.sectionGrid`/`.section` sont exclusifs à
  * InfoPanel (jamais utilisés par FeaturesPanel/OverviewPanel — vérifié),
  * donc librement réalignés sur la densité admin (même grille que
- * `.overviewGrid`, 9C). `.sectionTitle` en revanche EST partagée avec
- * FeaturesPanel : n'y touche jamais ici — `.infoSectionTitle` ci-dessous est
- * la variante propre à Info. */
+ * `.overviewGrid`, 9C). `.sectionTitle` n'est plus utilisée que par
+ * FeaturesPanel depuis 9D (Info est passé à `.infoSectionTitle`) — retunée
+ * par 9E-B, voir plus bas. */
 .sectionGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -138,16 +138,13 @@
   font-weight: 700;
   margin: 0;
 }
+/* Admin-UI-9E-B — même traitement que `.infoSectionTitle`/`.overviewCardTitle`
+ * (titre de catégorie identifiable, pas d'étiquette majuscule à filet beige). */
 .sectionTitle {
   font-family: var(--font-heading);
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-  margin: 0 0 8px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--color-border);
+  font-size: 12.5px;
+  font-weight: 700;
+  margin: 0;
 }
 .dl {
   margin: 0;
@@ -572,23 +569,34 @@
   flex: 1;
 }
 
-/* ── Onglet Caractéristiques ───────────────────────────────────────────── */
+/* ── Onglet Caractéristiques (Admin-UI-9E-B) ─────────────────────────────
+ * `.sectionTitle` n'est plus utilisée que par ce panel depuis 9D (InfoPanel
+ * est passé à `.infoSectionTitle`) — retunée ici sans risque pour un autre
+ * onglet. `.featGrid`/`.featSection` (exclusifs) reprennent le même langage
+ * que `.overviewGrid`/`.overviewCard` (9C) et `.sectionGrid`/`.section`
+ * (9D) : bordure/radius admin, densité proche, pas de grosse card marketing. */
 .featToolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .featCounter {
   font-size: 12.5px;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted-admin);
+}
+.featGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  align-items: start;
 }
 .featSection {
-  margin-bottom: 18px;
-}
-.featSection:last-child {
-  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 .featReadList {
   list-style: none;
@@ -614,14 +622,13 @@
 }
 
 .featEmpty {
-  padding: var(--space-6) var(--space-4);
-  text-align: center;
-  font-size: 13px;
-  color: var(--color-text-muted);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-muted-admin);
 }
 .featEmptyTitle {
   font-family: var(--font-heading);
@@ -662,10 +669,11 @@
   }
 }
 .featEditGroup {
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-admin);
   border-radius: var(--radius-xs);
   margin-bottom: 10px;
   background: var(--color-surface);
+  overflow: hidden;
 }
 .featEditSummary {
   display: flex;
@@ -678,6 +686,7 @@
   font-weight: 600;
   font-size: 13.5px;
   list-style: none;
+  background: var(--color-bg-admin);
 }
 .featEditSummary::-webkit-details-marker {
   display: none;
@@ -697,10 +706,10 @@ details[open] > .featEditSummary::before {
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 11.5px;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted-admin);
 }
 .featEditRows {
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border-admin);
   padding: 6px 12px 10px;
   display: flex;
   flex-direction: column;
@@ -711,7 +720,7 @@ details[open] > .featEditSummary::before {
   justify-content: space-between;
   gap: 12px;
   padding: 7px 0;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-admin);
   font-size: 13px;
 }
 .featEditRow:last-child {
@@ -726,11 +735,14 @@ details[open] > .featEditSummary::before {
   min-width: 0;
 }
 
-/* Tri-state radiogroup */
+/* Tri-state radiogroup (Admin-UI-9E-B — bordures neutres, fonds admin pour
+ * les états Non/Non renseigné ; Oui reste --color-primary et Temp. reste les
+ * tokens warning sémantiques, aucun des deux n'est une question de palette
+ * "beige vs admin"). */
 .triState {
   display: inline-flex;
   flex-shrink: 0;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-admin);
   border-radius: var(--radius-pill);
   overflow: hidden;
 }
@@ -738,12 +750,12 @@ details[open] > .featEditSummary::before {
   appearance: none;
   background: var(--color-surface);
   border: none;
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--color-border-admin);
   padding: 3px 10px;
   min-height: 26px;
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--color-text-muted);
+  color: var(--color-text-muted-admin);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -763,7 +775,7 @@ details[open] > .featEditSummary::before {
   color: #fff;
 }
 .triNo {
-  background: var(--color-bg-alt);
+  background: var(--color-bg-admin);
   color: var(--color-text);
 }
 /* Contextual 4th state — only rendered for a row already at
@@ -774,8 +786,8 @@ details[open] > .featEditSummary::before {
 }
 /* "Non renseigné" selected: neutral, never reads as a chosen answer */
 .triUnset {
-  background: var(--color-surface-alt);
-  color: var(--color-text-muted);
+  background: var(--color-bg-admin);
+  color: var(--color-text-muted-admin);
 }
 
 @media (max-width: 560px) {

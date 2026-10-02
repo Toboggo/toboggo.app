@@ -22,14 +22,20 @@
   height: var(--bottom-nav-content-h);
   display: flex;
   align-items: stretch;
-  /* Slightly more transparent than other glass surfaces so scrolling
-     content remains perceptible behind the floating navigation dock. */
-  background: rgba(255, 255, 255, 0.68);
-  backdrop-filter: blur(36px) saturate(170%);
-  -webkit-backdrop-filter: blur(36px) saturate(170%);
+  /* Translucent glass: content scrolls visibly behind the dock. Solid white
+     fallback first, for browsers without backdrop-filter support. */
+  background: var(--color-surface, #fff);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), var(--shadow-lg);
   z-index: var(--z-nav, 50);
+}
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .wrap {
+    background: rgba(255, 255, 255, 0.88);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+  }
 }
 .tab {
   position: relative;
@@ -41,7 +47,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  color: var(--color-text-faint);
+  color: var(--color-text);
   font-family: var(--font-heading);
   font-weight: 700;
   cursor: pointer;

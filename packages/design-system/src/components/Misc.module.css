@@ -59,14 +59,7 @@
   flex-shrink: 0;
 }
 
-/* Base preserved exactly as before (Maintenance's 3 icon-less StatCards must
- * not shift) — `display: flex` with a single child (`.statBody`) lays out
- * identically to the old two stacked `<div>`s. Icon/tone/hover below are
- * additive and only activate when a caller opts in. */
 .statCard {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
   background: var(--color-surface);
   border-radius: var(--radius-md);
   padding: var(--space-4);
@@ -75,86 +68,81 @@
   border: none;
   text-align: left;
   font-family: inherit;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
-}
-.statCard:not(:disabled):hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-.statCard:disabled {
-  cursor: default;
-}
-/* Neutral by default — a KPI that needs no action gets no decorative brand
- * colour, only `tone-warning` (a real count > 0) earns the amber accent. */
-.statIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  background: var(--color-bg-alt);
-  color: var(--color-text-muted);
-  flex-shrink: 0;
-}
-.tone-warning .statIcon {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-/* Static category tints (COLL-02D §1) — icon badge only, never the value:
- * a metric painted in "healthy green" or "brand amber" shouldn't read as an
- * alert the way `tone-warning` does. */
-.tone-primary .statIcon {
-  background: var(--color-primary-tint);
-  color: var(--color-primary);
-}
-.tone-accent .statIcon {
-  background: var(--color-accent-tint);
-  color: var(--color-warning-text);
-}
-.statBody {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
 }
 .statValue {
   font-family: var(--font-heading);
   font-size: 26px;
   font-weight: 700;
 }
-.tone-warning .statValue {
-  color: var(--color-warning-text);
-}
-
-/* Opt-in "headline KPI" frame (Dashboard only — Maintenance never passes
- * `emphasized`, so its 3 counters are untouched by every rule below). */
-.emphasized {
-  border: 1px solid var(--color-border-neutral);
-  padding: 14px 16px;
-}
-.emphasized .statIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-sm);
-}
-.emphasized .statValue {
-  font-size: 28px;
-}
 .statLabel {
   color: var(--color-text-muted);
   font-size: 13px;
   margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.statSecondary {
+
+/* Admin-UI-7B — additions optionnelles (icône/tendance/tonalité), n'affectent
+ * jamais les usages qui ne passent pas ces props (ex. Maintenance.tsx). */
+.statIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-2);
+}
+.tone-primary .statIcon {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.tone-warning .statIcon {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.tone-error .statIcon {
+  background: var(--color-error-tint);
+  color: var(--color-error);
+}
+.tone-info .statIcon {
+  background: var(--color-info-tint);
+  color: var(--color-info);
+}
+.statMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+.statHint {
   color: var(--color-text-faint);
-  font-size: 11.5px;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+}
+.statTrend {
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+.trend-up {
+  color: var(--color-primary);
+}
+.trend-down {
+  color: var(--color-error);
+}
+.trend-neutral {
+  color: var(--color-text-muted);
+}
+
+/* Pattern d'erreur compact partagé (Admin-UI-7B) — même mise en page que
+ * l'ErrorInline privé de Dashboard.module.css. */
+.errorState {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .table {
@@ -178,4 +166,117 @@
 }
 .table tr:last-child td {
   border-bottom: none;
+}
+
+/* Loading skeleton — discret, pas un gros bloc (même traitement que DataTable) */
+.skeleton {
+  display: inline-block;
+  border-radius: var(--radius-xs);
+  background: var(--color-border);
+  opacity: 0.55;
+  animation: skeletonPulse 1.4s ease-in-out infinite;
+}
+@keyframes skeletonPulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* ── StatCard `layout="inline"` (COLL-02) ───────────────────────────────────
+ * Variante « icône à gauche, valeur à droite » du Dashboard Collectivité.
+ * Classes dédiées (`inline*`) : la variante `stacked` ci-dessus (Admin-UI-7B,
+ * défaut) n'est jamais affectée. */
+.inlineCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.inlineCard:not(:disabled):hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.inlineCard:disabled {
+  cursor: default;
+}
+.inlineIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.inlineCard.tone-warning .inlineIcon {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.inlineCard.tone-primary .inlineIcon {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.inlineCard.tone-accent .inlineIcon {
+  background: var(--color-accent-tint);
+  color: var(--color-warning-text);
+}
+.inlineBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.inlineValue {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+}
+.inlineCard.tone-warning .inlineValue {
+  color: var(--color-warning-text);
+}
+.inlineCard.emphasized {
+  border: 1px solid var(--color-border-neutral);
+  padding: 14px 16px;
+}
+.inlineCard.emphasized .inlineIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+}
+.inlineCard.emphasized .inlineValue {
+  font-size: 28px;
+}
+.inlineLabel {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inlineSecondary {
+  color: var(--color-text-faint);
+  font-size: 11.5px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -41,6 +41,36 @@ export function validateImageFile(file: File): void {
   }
 }
 
+const HEIC_EXT = /\.hei[cf]$/i;
+
+/** Cheap, sync pre-filter — true for anything that *looks* HEIC/HEIF by MIME
+ * type or extension. Lets the caller reserve the async decode probe
+ * (`canDecodeImage`) for the one format that's actually a problem, instead of
+ * paying a decode round-trip for every ordinary JPEG/PNG/WebP pick. */
+export function looksLikeHeic(file: File): boolean {
+  return /hei[cf]/i.test(file.type) || HEIC_EXT.test(file.name);
+}
+
+/**
+ * Whether this browser can actually decode `file` into pixels. Used to catch
+ * an undecodable HEIC/HEIF *before* it reaches Storage — the `park-photos`
+ * bucket's `allowed_mime_types` (migration 0027) is jpeg/png/webp only, so a
+ * HEIC file that `compressImage` can't convert would otherwise fail only at
+ * upload time, behind a generic error. Safari (iOS/macOS) decodes HEIC
+ * natively via `createImageBitmap` and is unaffected; most Chromium engines
+ * don't and are exactly what this catches.
+ */
+export async function canDecodeImage(file: File): Promise<boolean> {
+  if (typeof createImageBitmap === "undefined") return true;
+  try {
+    const bitmap = await createImageBitmap(file);
+    bitmap.close?.();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Downscale + re-encode to WebP. Falls back to the original file when the
  * current environment can't process it (no DOM, or a format the browser can't

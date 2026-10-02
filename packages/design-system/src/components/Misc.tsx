@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { ReactNode, TableHTMLAttributes } from "react";
 import clsx from "clsx";
 import { Icon, type IconName } from "../icons/Icon";
+import { Button } from "./Button";
 import styles from "./Misc.module.css";
 
 export function StepDots({ total, current }: { total: number; current: number }) {
@@ -71,63 +72,136 @@ export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
+export interface StatCardTrend {
+  /** Already-formatted, caller-supplied display text (e.g. "+12 %", "-3").
+   * Never computed here — Admin-UI-7B: no fabricated/fictional trend. */
+  label: string;
+  /** Purely cosmetic direction (color) — not derived from `label`. */
+  direction?: "up" | "down" | "neutral";
+}
+
+export interface StatCardProps {
+  value: ReactNode;
+  label: string;
+  /** Sprite icon shown in a small tinted badge (Admin-UI-7B / COLL-02) — omit
+   * rather than inventing one. Optional: omitted, the card renders as before. */
+  icon?: IconName;
+  /** Secondary/contextual line (e.g. "dont 2 critiques"). */
+  hint?: ReactNode;
+  /** Optional delta/tendency, real data only — see `StatCardTrend`. */
+  trend?: StatCardTrend;
+  /** Tints the icon badge. `warning` is reserved for a real count that needs
+   * attention (> 0) and also colours the value in the `inline` layout.
+   * `primary` / `accent` are static category tints (brand green / amber) for a
+   * healthy, non-alert metric (COLL-02D §1). */
+  tone?: "primary" | "warning" | "error" | "info" | "accent" | "neutral";
+  /** `stacked` (default, Admin-UI-7B): icon above the value. `inline`
+   * (COLL-02): icon on the left, value and label on the right — the
+   * collectivité Dashboard KPI strip. Both are additive; callers without
+   * `icon`/`layout` render exactly as before. */
+  layout?: "stacked" | "inline";
+  /** `inline` only — opt-in "headline KPI" treatment (larger value, a discreet
+   * neutral-bordered frame). */
+  emphasized?: boolean;
+  /** `inline` only — extra line under the label: a real derived figure only
+   * (e.g. an average rating), never a placeholder (COLL-02C). */
+  secondary?: ReactNode;
+  onClick?: () => void;
+}
+
 /**
- * Compact metric tile — used both for simple counters (`Maintenance`) and, with
- * `icon`/`tone`, as the Dashboard KPI strip's building block (COLL-02). `icon`
- * and `tone` are optional and additive: every existing call site (no icon, no
- * tone) renders exactly as before.
+ * Common stat/KPI tile primitive. Existing calls (`<StatCard value label
+ * onClick? />`, e.g. Maintenance.tsx) keep rendering identically: every prop
+ * but `value`/`label` is optional and additive.
  */
 export function StatCard({
   value,
   label,
   icon,
+  hint,
+  trend,
   tone = "neutral",
+  layout = "stacked",
   emphasized,
-  onClick,
   secondary,
-}: {
-  value: ReactNode;
-  label: string;
-  /** Sprite icon shown in a small tinted badge — omit rather than inventing
-   * one (see `NAV_ICON_GAPS` in the back office `Shell`). */
-  icon?: IconName;
-  /** Tints the icon badge and the value. `warning` is reserved for a real
-   * count that needs attention (> 0) — it also colours the value. `primary`
-   * / `accent` are static category tints (brand green / amber) for a
-   * healthy, non-alert metric — icon only, the value stays plain text so it
-   * remains the dominant element (COLL-02D §1). */
-  tone?: "neutral" | "warning" | "primary" | "accent";
-  /** Opt-in "headline KPI" treatment (larger value, a discreet neutral-bordered
-   * frame) — off by default so existing callers (e.g. `Maintenance`'s 3 plain
-   * counters) render exactly as before. */
-  emphasized?: boolean;
-  onClick?: () => void;
-  /** Extra line under the label — a real derived figure only (e.g. an average
-   * rating), never a placeholder. Omitted entirely when there is nothing real
-   * to show (COLL-02C). */
-  secondary?: ReactNode;
-}) {
+  onClick,
+}: StatCardProps) {
+  if (layout === "inline") {
+    return (
+      <button
+        type="button"
+        className={clsx(styles.inlineCard, tone !== "neutral" && styles[`tone-${tone}`], emphasized && styles.emphasized)}
+        onClick={onClick}
+        disabled={!onClick}
+      >
+        {icon && (
+          <span className={styles.inlineIcon}>
+            <Icon name={icon} size={emphasized ? 20 : 18} />
+          </span>
+        )}
+        <span className={styles.inlineBody}>
+          <span className={styles.inlineValue}>{value}</span>
+          <span className={styles.inlineLabel}>{label}</span>
+          {secondary && <span className={styles.inlineSecondary}>{secondary}</span>}
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
-      className={clsx(styles.statCard, tone !== "neutral" && styles[`tone-${tone}`], emphasized && styles.emphasized)}
+      className={clsx(styles.statCard, tone !== "neutral" && styles[`tone-${tone}`])}
       onClick={onClick}
       disabled={!onClick}
     >
       {icon && (
         <span className={styles.statIcon}>
-          <Icon name={icon} size={emphasized ? 20 : 18} />
+          <Icon name={icon} size={14} />
         </span>
       )}
-      <span className={styles.statBody}>
-        <span className={styles.statValue}>{value}</span>
-        <span className={styles.statLabel}>{label}</span>
-        {secondary && <span className={styles.statSecondary}>{secondary}</span>}
-      </span>
+      <div className={styles.statValue}>{value}</div>
+      <div className={styles.statLabel}>{label}</div>
+      {(hint || trend) && (
+        <div className={styles.statMeta}>
+          {trend && (
+            <span className={clsx(styles.statTrend, trend.direction && styles[`trend-${trend.direction}`])}>
+              {trend.label}
+            </span>
+          )}
+          {hint && <span className={styles.statHint}>{hint}</span>}
+        </div>
+      )}
     </button>
+  );
+}
+
+/**
+ * Compact inline error pattern (Admin-UI-7B), extracted from the one that
+ * already lived privately inside Dashboard.tsx (`ErrorInline`) so it can be
+ * reused elsewhere. Dashboard's own copy is deliberately left as-is for now
+ * (7D will consolidate it onto this one) — this lot only prepares the shared
+ * primitive, it does not migrate any screen.
+ */
+export function ErrorState({ message = "Impossible de charger ces données.", onRetry }: { message?: string; onRetry: () => void }) {
+  return (
+    <div className={styles.errorState}>
+      <span>{message}</span>
+      <Button size="sm" variant="secondary" onClick={onRetry}>
+        Réessayer
+      </Button>
+    </div>
   );
 }
 
 export function Table({ className, ...rest }: TableHTMLAttributes<HTMLTableElement>) {
   return <table className={clsx(styles.table, className)} {...rest} />;
+}
+
+/** Generic loading placeholder bar — same discreet pulse as `DataTable`'s
+ * built-in skeleton rows, factored out so any screen can shape its own
+ * loading state (dashboard tiles, stat strips, …) without duplicating the
+ * animation. Not a layout primitive: callers size it via `width`/`height`. */
+export function Skeleton({ width = "100%", height = 12 }: { width?: number | string; height?: number | string }) {
+  return <span className={styles.skeleton} style={{ width, height }} aria-hidden="true" />;
 }

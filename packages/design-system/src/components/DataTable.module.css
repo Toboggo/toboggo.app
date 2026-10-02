@@ -142,3 +142,31 @@
     animation: none;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Admin-UI-8C — variant="admin": dense surface matching Card's
+   variant="admin" (7B) — neutral admin border/radius instead of the
+   warm-tinted default, denser row padding, a header with real contrast
+   (--color-bg-admin) rather than the beige --color-surface-alt, and a
+   neutral hover instead of the greenish --color-primary-tint (already the
+   pattern used by Dashboard's own admin rows — orgRow/countryRow). Opt-in
+   only: default (no variant) renders exactly as before, unaffected. ────── */
+.wrapAdmin {
+  border-color: var(--color-border-admin);
+  border-radius: var(--radius-xs);
+}
+.thAdmin {
+  background: var(--color-bg-admin);
+  border-bottom-color: var(--color-border-admin);
+  color: var(--color-text-muted-admin);
+  padding: 9px 14px;
+}
+.rowAdmin {
+  border-bottom-color: var(--color-border-admin);
+}
+.rowAdmin.clickable:hover {
+  background: var(--color-bg-admin);
+}
+.tdAdmin {
+  padding: 8px 14px;
+}

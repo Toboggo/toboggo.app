@@ -278,3 +278,18 @@ describe("trackEvent — common properties (is_authenticated / app_version / loc
     expect(captureMock.mock.calls[1][1]).toMatchObject({ is_authenticated: true });
   });
 });
+
+describe("PostHog init — URL sanitisation", () => {
+  it("registers before_send so automatic URL properties never carry auth credentials", () => {
+    stubFullyConfigured("production");
+    trackEvent("app_opened", {});
+    const config = initMock.mock.calls[0][1] as { before_send?: (cr: unknown) => { properties: Record<string, string> } };
+    expect(typeof config.before_send).toBe("function");
+    const out = config.before_send!({
+      uuid: "u",
+      event: "app_opened",
+      properties: { $current_url: "https://toboggo-app.vercel.app/#access_token=AAA&refresh_token=BBB" },
+    });
+    expect(out.properties.$current_url).toBe("https://toboggo-app.vercel.app/");
+  });
+});

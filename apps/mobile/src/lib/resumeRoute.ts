@@ -31,6 +31,24 @@ export function setResumeRoute(route: string): void {
   }
 }
 
+/** True if a fresh resume route is pending — read-only, never clears it. */
+export function hasPendingResumeRoute(): boolean {
+  try {
+    const raw = localStorage.getItem(RESUME_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as Wrapped;
+    return (
+      !!parsed &&
+      typeof parsed.savedAt === "number" &&
+      Date.now() - parsed.savedAt <= RESUME_TTL_MS &&
+      typeof parsed.route === "string" &&
+      parsed.route.startsWith("/")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Read **and clear** the pending resume route (single use). */
 export function takeResumeRoute(): string | null {
   let route: string | null = null;

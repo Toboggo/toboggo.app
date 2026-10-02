@@ -45,6 +45,8 @@ export function registerIsAuthenticated(getter: () => boolean): void {
  *   (`apps/mobile/vite.config.ts`) depuis `package.json`, et par
  *   `vitest.config.ts` en test — fiable dans les deux cas (déjà utilisé par
  *   `About.tsx`), donc utilisé tel quel plutôt qu'une valeur inventée.
+ * - `build_id` : `__BUILD_ID__` (hash court du commit, `vite.config.ts`) —
+ *   identifie le build réellement installé, là où `app_version` reste 0.1.0.
  * - `environment` : reçue en paramètre, PAS relue ici depuis `VITE_APP_ENV`.
  *   `client.ts` a déjà validé cette même valeur via `getAppEnvironment()`
  *   avant même d'appeler cette fonction (`isAnalyticsConfigured()` l'exige) —
@@ -56,6 +58,7 @@ export function getCommonProperties(environment: AppEnvironment): CommonProperti
   return {
     is_authenticated: getIsAuthenticated(),
     app_version: __APP_VERSION__,
+    build_id: __BUILD_ID__,
     locale: normalizeLanguage(i18n.resolvedLanguage ?? i18n.language),
     environment,
   };

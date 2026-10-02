@@ -5,7 +5,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { mapStyleUrl, type Park } from "@toboggo/shared";
 import { Button } from "@toboggo/design-system";
 import { Panel, PanelEmpty } from "../../components/Panel";
-import styles from "../Dashboard.module.css";
+import styles from "../CommuneDashboard.module.css";
 
 const STYLE_URL = mapStyleUrl();
 

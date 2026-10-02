@@ -3,7 +3,7 @@ import { Button } from "@toboggo/design-system";
 import type { Maintenance, Park } from "@toboggo/shared";
 import { ParkLink } from "../../components/ParkLink";
 import { Panel, PanelEmpty, CountBadge } from "../../components/Panel";
-import styles from "../Dashboard.module.css";
+import styles from "../CommuneDashboard.module.css";
 
 const MAX_ROWS = 5;
 

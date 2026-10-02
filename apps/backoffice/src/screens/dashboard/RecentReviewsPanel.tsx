@@ -4,7 +4,7 @@ import type { Review } from "@toboggo/shared";
 import { ParkLink } from "../../components/ParkLink";
 import { Panel, PanelEmpty } from "../../components/Panel";
 import { relativeTime } from "../../lib/relativeTime";
-import styles from "../Dashboard.module.css";
+import styles from "../CommuneDashboard.module.css";
 
 const MAX_ROWS = 5;
 const EXCERPT_LENGTH = 90;

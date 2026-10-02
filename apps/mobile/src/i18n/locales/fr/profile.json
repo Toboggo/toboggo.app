@@ -118,10 +118,31 @@
   "signOut": "Se déconnecter",
   "favorites": {
     "title": "Favoris",
+    "headerTitle": "Mes favoris",
+    "headerSubtitle": "Vos lieux préférés, toujours à portée de main.",
+    "count_one": "{{count}} parc enregistré",
+    "count_other": "{{count}} parcs enregistrés",
     "compare": "Comparer",
     "compareCount": "Comparer ({{count}})",
     "emptyTitle": "Aucun parc favori pour le moment.",
-    "emptyDesc": "Appuyez sur le cœur d’un parc pour l’ajouter ici."
+    "emptyDesc": "Appuyez sur le cœur d’un parc pour l’ajouter ici.",
+    "filters": {
+      "groupLabel": "Filtrer mes favoris",
+      "all": "Tous ({{count}})",
+      "nearby": "À proximité",
+      "emptyTitle": "Aucun favori ne correspond à ce filtre.",
+      "emptyReset": "Voir tous mes favoris",
+      "nearbyLocationTitle": "Activez votre localisation",
+      "nearbyLocationDesc": "Autorisez la localisation pour voir vos favoris situés à moins de {{radius}} km."
+    },
+    "discover": {
+      "title": "Envie de nouveaux parcs ?",
+      "desc": "Explorez la carte et ajoutez vos coups de cœur."
+    },
+    "tips": {
+      "title": "Nos conseils",
+      "location": "Activer la localisation"
+    }
   },
   "compare": {
     "title": "Comparer",
@@ -179,7 +200,8 @@
   "about": {
     "title": "À propos de Toboggo",
     "tagline": "Des milliers de parcs notés\npar des parents comme vous.",
-    "version": "Version {{version}}"
+    "version": "Version {{version}}",
+    "build": "Build {{build}}"
   },
   "group": {
     "title": "Sortie de groupe",

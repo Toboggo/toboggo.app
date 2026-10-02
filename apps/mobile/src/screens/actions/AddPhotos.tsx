@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button, Icon } from "@toboggo/design-system";
-import { addParkPhotos, getParkDisplayName, ImageValidationError, uploadPhoto, validateImageFile } from "@toboggo/shared";
+import { Button } from "@toboggo/design-system";
+import {
+  addParkPhotos,
+  canDecodeImage,
+  getParkDisplayName,
+  ImageValidationError,
+  looksLikeHeic,
+  uploadPhoto,
+  validateImageFile,
+} from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { ParkPicker } from "../../components/ParkPicker";
-import { PhotoTip } from "../../components/PhotoTip";
+import { PhotoPicker, TipBlock } from "../../components/PhotoPicker";
 import { usePark } from "../../lib/parksQuery";
 import { requireAccount, useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
@@ -17,6 +25,13 @@ interface PhotoPick {
   file: File;
   preview: string;
 }
+
+// Photothèque (LOT photo-library) — plafond client uniquement, aucune règle
+// serveur ne le contraint (`addParkPhotos` accepte n'importe quel nombre
+// d'URLs). Remplace l'ancienne grille figée à 4 cases : ce chiffre-là ne
+// répondait à aucune règle produit documentée, juste à la mise en page 2x2
+// d'origine.
+const MAX_PHOTOS = 5;
 
 // Brouillon persistant (LOT 3D.F) — délibérément absent ici, et `requireAccount`
 // / `pendingResume` délibérément conservés tels quels. Raisons :
@@ -42,23 +57,7 @@ interface PhotoPick {
 // ne doit jamais se retrouver avec des `File` en main que nous savons ne pas
 // pouvoir restaurer après une redirection OAuth pleine page. Le sélecteur
 // natif (`<input type="file">`) n'est même pas rendu tant que l'utilisateur
-// n'est pas connecté (voir `pickTileStyle` / le rendu conditionnel ci-dessous).
-
-const pickTileStyle: React.CSSProperties = {
-  aspectRatio: "1",
-  borderRadius: 14,
-  border: "2px dashed var(--color-border-strong)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: 24,
-  cursor: "pointer",
-  color: "var(--color-text-faint)",
-  width: "100%",
-  background: "transparent",
-  padding: 0,
-  font: "inherit",
-};
+// n'est pas connecté (voir le rendu conditionnel ci-dessous).
 
 // Named stepper shared with the other contribution wizards (see AddPark). The
 // three stages are stable across entry points: arriving with `?park=` just
@@ -107,17 +106,42 @@ export default function AddPhotos() {
   picksRef.current = picks;
   useEffect(() => () => picksRef.current.forEach((p) => URL.revokeObjectURL(p.preview)), []);
 
-  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file) return;
-    try {
-      validateImageFile(file);
-    } catch (err) {
-      showToast(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.invalid"));
-      return;
+  // Sert les deux sources (caméra et photothèque) : la caméra ne renvoie
+  // jamais qu'un seul fichier, la photothèque peut en renvoyer plusieurs
+  // (jusqu'à MAX_PHOTOS au total). Chaque fichier passe par la même
+  // validation que l'ancien chemin caméra-only ; un fichier invalide ne bloque
+  // pas les autres.
+  //
+  // Cas HEIC/HEIF (LOT photo-library, point 3) : un HEIC que ce navigateur ne
+  // sait pas décoder serait de toute façon rejeté par Storage plus tard (le
+  // bucket `park-photos` n'accepte que jpeg/png/webp) — mais alors caché
+  // derrière le toast générique `image.uploadFailed`, potentiellement bien
+  // après la sélection, mêlé à d'autres photos valides déjà en attente. La
+  // sonde `canDecodeImage` l'intercepte ici, avant même l'aperçu, avec un
+  // message explicite. Safari (HEIC nativement décodable) n'est jamais
+  // concerné par ce détour : `canDecodeImage` y réussit comme `compressImage`
+  // le fera ensuite à l'envoi.
+  async function addFiles(files: File[]) {
+    const remaining = Math.max(0, MAX_PHOTOS - picks.length);
+    const accepted = files.slice(0, remaining);
+    const overflow = files.length > accepted.length;
+
+    const newPicks: PhotoPick[] = [];
+    for (const file of accepted) {
+      try {
+        validateImageFile(file);
+      } catch (err) {
+        showToast(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.invalid"));
+        continue;
+      }
+      if (looksLikeHeic(file) && !(await canDecodeImage(file))) {
+        showToast(tErr("image.heicUnsupported"));
+        continue;
+      }
+      newPicks.push({ file, preview: URL.createObjectURL(file) });
     }
-    setPicks((p) => [...p, { file, preview: URL.createObjectURL(file) }].slice(0, 4));
+    if (newPicks.length) setPicks((p) => [...p, ...newPicks].slice(0, MAX_PHOTOS));
+    if (overflow) showToast(tErr("image.tooMany", { max: MAX_PHOTOS }));
   }
 
   function removePick(i: number) {
@@ -226,45 +250,80 @@ export default function AddPhotos() {
 
       {step === 1 && (
         <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 16 }}>{park && getParkDisplayName(park, t)}</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i}>
-                {picks[i] ? (
-                  <div style={{ position: "relative" }}>
-                    <div style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${picks[i].preview})`, backgroundSize: "cover", backgroundPosition: "center" }} />
-                    <button
-                      type="button"
-                      aria-label={t("common.removePhoto")}
-                      onClick={() => removePick(i)}
-                      style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}
-                    >
-                      <Icon name="ic-close" size={14} />
-                    </button>
-                  </div>
-                ) : userId ? (
-                  <label style={pickTileStyle}>
-                    +<input type="file" accept="image/*" capture="environment" hidden onChange={onPickFile} />
-                  </label>
-                ) : (
-                  // Invité : pas de <input type="file"> du tout — le sélecteur
-                  // natif ne doit jamais s'ouvrir avant l'authentification.
-                  <button type="button" style={pickTileStyle} onClick={requirePhotoAuth}>
-                    +
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-          <PhotoTip />
+          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park && getParkDisplayName(park, t)}</h2>
+          <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", marginBottom: 12 }}>
+            {t("addPhotos.subtitle")}
+          </p>
+
+          <PhotoPicker
+            previews={picks.map((p) => p.preview)}
+            max={MAX_PHOTOS}
+            onFiles={addFiles}
+            onRemove={removePick}
+            canPick={Boolean(userId)}
+            onRequireAuth={requirePhotoAuth}
+          />
           {!userId && (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
               {t("common.accountRequiredPhotos")}
             </p>
           )}
+          <Button block disabled={!picks.length} style={{ marginTop: 16 }} onClick={() => setStep(2)}>
+            {t("common.continue")}
+          </Button>
+        </div>
+      )}
+
+      {step === 2 && (
+        // Étape réellement atteinte désormais — jusqu'ici "Confirmation" n'était
+        // qu'un libellé de stepper jamais rendu (le bouton de l'étape Photos
+        // envoyait directement). L'upload/la création de la contribution ne se
+        // déclenchent qu'ici, sur clic explicite ; "Modifier les photos" revient
+        // à l'étape 1 sans toucher à `picks` (état du composant, inchangé par un
+        // simple changement de `step`).
+        <div style={{ padding: "0 20px" }}>
+          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("steps.confirmation")}</h2>
+          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
+            {park && getParkDisplayName(park, t)}
+          </p>
+          <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
+            {t("addPhotos.readyCount", { count: picks.length })}
+          </p>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+            {picks.map((pick, i) => (
+              <div
+                key={i}
+                style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${pick.preview})`, backgroundSize: "cover", backgroundPosition: "center" }}
+              />
+            ))}
+          </div>
+
+          <TipBlock label={t("photoTip.label")} text={t("photoTip.text")} />
+
           <Button block loading={saving} disabled={!picks.length} style={{ marginTop: 16 }} onClick={submit}>
             {t("addPhotos.submit", { count: picks.length })}
           </Button>
+          <button
+            type="button"
+            onClick={() => setStep(1)}
+            style={{
+              display: "block",
+              width: "100%",
+              textAlign: "center",
+              background: "none",
+              border: "none",
+              color: "var(--color-primary)",
+              fontFamily: "var(--font-heading)",
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: "pointer",
+              padding: 12,
+              marginTop: 4,
+            }}
+          >
+            {t("addPhotos.editPhotos")}
+          </button>
         </div>
       )}
     </div>

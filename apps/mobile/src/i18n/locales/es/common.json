@@ -14,6 +14,10 @@
     "seeAll": "Ver todo",
     "signIn": "Iniciar sesión"
   },
+  "update": {
+    "banner": "Hay una nueva versión de Toboggo disponible",
+    "action": "Actualizar"
+  },
   "guestProfile": {
     "prompt": "Inicia sesión para recuperar tus favoritos y tus aportaciones."
   },

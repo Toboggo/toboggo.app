@@ -1,0 +1,101 @@
+---
+/**
+ * Fiche détaillée d'un parc pour les pages SEO locales. Purement informative :
+ * aucune photo (aucune n'est autorisée pour l'instant), aucun lien (les fiches
+ * publiques n'existent pas). Les informations sont celles DÉCLARÉES en base.
+ */
+import { ageLabel, describePark, formatAddress, type SeoPark } from "../lib/seo/parks";
+
+interface Props {
+  park: SeoPark;
+}
+
+const { park } = Astro.props;
+const address = formatAddress(park);
+const age = ageLabel(park);
+const d = describePark(park);
+const groups = [
+  { label: "Jeux", items: d.equipment },
+  { label: "Services", items: d.services },
+  { label: "Accessibilité", items: d.accessibility },
+  { label: "Environnement", items: [...d.environment, ...(d.surface ? [d.surface] : [])] },
+].filter((g) => g.items.length > 0);
+---
+
+<li class="seo-park">
+  <h3>{park.name}</h3>
+  {address && <p class="seo-park-address">{address}, {park.postalCode} {park.city}</p>}
+  {age && <p class="seo-park-age">{age}</p>}
+  {
+    groups.map((g) => (
+      <div class="seo-park-group">
+        <h4>{g.label}</h4>
+        <ul class="chips">
+          {g.items.map((item) => <li>{item}</li>)}
+        </ul>
+      </div>
+    ))
+  }
+</li>
+
+<style>
+  .seo-park {
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    padding: var(--space-5);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .seo-park h3 {
+    margin: 0 0 var(--space-1);
+    font-size: var(--text-lg);
+  }
+
+  .seo-park-address {
+    margin: 0;
+    color: var(--color-text-muted);
+    font-size: 14.5px;
+  }
+
+  .seo-park-age {
+    display: inline-block;
+    margin: var(--space-3) 0 0;
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-tint);
+    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .seo-park-group {
+    margin-top: var(--space-4);
+  }
+
+  .seo-park-group h4 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .chips li {
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    background: var(--color-primary-tint);
+    color: var(--color-primary-hover);
+    font-size: 13px;
+    font-weight: 600;
+  }
+</style>

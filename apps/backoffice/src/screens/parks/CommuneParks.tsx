@@ -383,6 +383,7 @@ export function CommuneParks() {
 
       <div className={styles.kpiStrip}>
         <StatCard
+          layout="inline"
           value={`${summary.published} / ${summary.total}`}
           label={`Parc${plural(summary.published, "", "s")} publié${plural(summary.published, "", "s")}`}
           icon="ic-check"
@@ -391,6 +392,7 @@ export function CommuneParks() {
           onClick={() => updateParams({ status: "published" }, { resetPage: true })}
         />
         <StatCard
+          layout="inline"
           value={summary.withOpenReport}
           label={plural(summary.withOpenReport, "Signalement ouvert", "Signalements ouverts")}
           secondary={
@@ -404,6 +406,7 @@ export function CommuneParks() {
           onClick={() => toggle("report", true)}
         />
         <StatCard
+          layout="inline"
           value={summary.incomplete}
           label={`${plural(summary.incomplete, "Parc à compléter", "Parcs à compléter")}`}
           icon="ic-list"
@@ -416,6 +419,7 @@ export function CommuneParks() {
           onClick={() => toggle("incomplete", true)}
         />
         <StatCard
+          layout="inline"
           value={editsUnavailable ? "—" : summary.pendingEdits}
           label="Infos à vérifier"
           icon="ic-question"

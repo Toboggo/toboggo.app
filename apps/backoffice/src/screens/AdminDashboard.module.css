@@ -1,0 +1,616 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.sectionTitle {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.card {
+  margin-bottom: 0;
+}
+
+/* ── Ton sémantique partagé (KPI, points « à traiter », légende du donut) ─
+ * Chaque teinte porte ses 3 variables : fond léger (bg), texte/icône (fg),
+ * couleur pleine (solid, pour un point ou un badge). Pas de nouvelle
+ * signification par écran : mêmes tokens que StatusTag/ReportSeverityTag. */
+.tint-primary {
+  --tint-bg: var(--color-primary-tint);
+  --tint-fg: var(--color-primary);
+  --tint-solid: var(--color-primary);
+}
+.tint-warning {
+  --tint-bg: var(--color-warning-bg);
+  --tint-fg: var(--color-warning-text);
+  --tint-solid: var(--color-accent);
+}
+.tint-error {
+  --tint-bg: var(--color-error-tint);
+  --tint-fg: var(--color-error);
+  --tint-solid: var(--color-error);
+}
+.tint-info {
+  --tint-bg: var(--color-info-tint);
+  --tint-fg: var(--color-info);
+  --tint-solid: var(--color-info);
+}
+
+/* ── KPI (bande compacte, remplace l'ancien bandeau à filets) ──────────────
+ * `auto-fit` plutôt qu'un nombre de colonnes figé (Admin-UI-4 §1) : accueille
+ * les 2 KPI Collectivités/Utilisateurs (7 tuiles admin au lieu de 5) sans
+ * grandir en hauteur — tant que la largeur le permet elles restent sur une
+ * seule ligne, sinon ça enchaîne sur une 2e sans media query dédiée. */
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-bottom: var(--space-4);
+}
+.kpiTile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+.kpiTile:hover {
+  border-color: var(--color-primary);
+}
+.kpiIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--tint-bg);
+  color: var(--tint-fg);
+}
+.kpiValue {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.1;
+}
+.kpiLabel {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+.statError {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.1;
+  color: var(--color-text-faint);
+}
+
+/* ── Composition principale : contenu + colonne secondaire (admin) ─────── */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 324px;
+  gap: var(--space-4);
+  align-items: start;
+}
+.mainCol,
+.sideCol {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── « À traiter » ──────────────────────────────────────────────────────── */
+.actionList {
+  display: flex;
+  flex-direction: column;
+}
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 0;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.actionRow:last-child {
+  border-bottom: none;
+}
+.actionRow.static {
+  cursor: default;
+}
+.actionRow:hover:not(.static) {
+  color: var(--color-primary-hover);
+}
+.actionLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.actionDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--tint-solid);
+}
+/* État zéro discret : le point s'éteint et le libellé s'estompe — la ligne
+ * reste (catégorie toujours visible), sans attirer l'œil comme les lignes
+ * qui ont réellement quelque chose à traiter. */
+.actionDotZero {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-border-strong);
+}
+.actionLabelZero {
+  color: var(--color-text-faint);
+}
+.actionHint {
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
+}
+.countBadge {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tint-solid, var(--color-accent));
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 11.5px;
+  border-radius: var(--radius-pill);
+}
+.countBadgeZero {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  color: var(--color-text-faint);
+  font-weight: 600;
+  font-size: 11.5px;
+}
+
+/* ── Répartition des parcs par source (donut SVG, sans librairie) ───────── */
+.donutWrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.donutSvg {
+  width: 104px;
+  height: 104px;
+  flex-shrink: 0;
+}
+.donutSvg circle {
+  transition: stroke-dasharray 0.2s ease;
+}
+.donutTotalValue {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 22px;
+  fill: var(--color-text);
+}
+.donutTotalLabel {
+  font-size: 9px;
+  fill: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.donutLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+/* Admin-UI-7D-B §2 : devenu un vrai bouton (synthèse → détail vers /parks),
+ * même rendu visuel qu'avant + focus/hover clavier réels. */
+.donutLegendRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  width: 100%;
+  font-size: 12.5px;
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: -2px;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+.donutLegendRow:hover,
+.donutLegendRow:focus-visible {
+  background: var(--color-bg-admin);
+}
+.viewAllLink {
+  align-self: flex-start;
+  margin-top: var(--space-2);
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary-hover);
+  cursor: pointer;
+}
+.donutSwatch {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.donutLegendText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.donutLegendLabel {
+  color: var(--color-text);
+  overflow-wrap: break-word;
+}
+.donutLegendCount {
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+}
+
+/* ── Actions rapides ─────────────────────────────────────────────────────── */
+.quickActions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.quickAction {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 7px 6px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.quickAction:hover {
+  background: var(--color-surface-alt);
+  color: var(--color-primary-hover);
+}
+.quickActionIcon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+.quickActionLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quickActionChevron {
+  flex-shrink: 0;
+  color: var(--color-text-faint);
+  font-size: 15px;
+}
+
+/* ── Activité récente ──────────────────────────────────────────────────── */
+.activityRow {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.activityRow:last-child {
+  border-bottom: none;
+}
+.activityDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.activityIconWrap {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-text-faint);
+  display: inline-flex;
+}
+.activityText {
+  font-size: 13px;
+}
+.activityMeta {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+}
+/* `<p>` a une marge navigateur par défaut (~1em) qui, à elle seule, donnait
+ * l'impression d'une grande zone vide pour une seule ligne de texte —
+ * réinitialisée explicitement (Admin-UI-2B). */
+.activityEmpty {
+  margin: 0;
+  padding: 2px 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ── États chargement/erreur partagés ───────────────────────────────────── */
+.errorInline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* `auto-fit`/`minmax` (règle de base ci-dessus) réduit déjà le nombre de
+ * colonnes tout seul en dessous de ces largeurs — plus besoin d'overrides
+ * dédiés ici. */
+
+/* ════════════════════════════════════════════════════════════════════════
+   Admin-UI-7D — Dashboard Admin cible (Admin uniquement : la vue
+   Collectivité au-dessus reste sur .kpiGrid/.kpiTile/.stack, inchangés)
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* KPI Admin = StatCard (7B), pas .kpiTile — grille un peu plus généreuse que
+ * .kpiGrid pour laisser respirer icône/valeur/hint. */
+.kpiGridAdmin {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* ── En-tête de carte avec contrôle à droite (période) ────────────────────── */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+.sectionHeader .sectionTitle {
+  margin-bottom: 0;
+}
+
+/* ── Évolution de l'activité (Admin-UI-7D-B §3/§4) : 3 séries réelles déjà
+ * chargées (activity/reports/reviews), rebucketées côté client selon la
+ * période choisie — aucune requête réseau supplémentaire, aucune valeur
+ * inventée. ───────────────────────────────────────────────────────────── */
+.evo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border-admin);
+}
+.evoSvg {
+  width: 100%;
+  height: 96px;
+  display: block;
+}
+.evoGrid {
+  stroke: var(--color-border-admin);
+  stroke-width: 1;
+}
+.evoAxis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: var(--color-text-faint);
+}
+.evoLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+}
+.evoLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.evoLegendItem strong {
+  color: var(--color-text);
+  font-family: var(--font-heading);
+}
+.evoLegendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Top collectivités (Admin-UI-7D §8) ───────────────────────────────── */
+.orgList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.orgRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 2px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.orgRow:hover {
+  background: var(--color-bg-admin);
+  color: var(--color-primary-hover);
+}
+.orgRank {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 10.5px;
+}
+.orgName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.orgCount {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Couverture géographique (Admin-UI-7D-C §4 / 7D-D §1) — vraie carte
+ * MapLibre (marker agrégé par pays, jamais par parc) + liste de barres en
+ * dessous pour les chiffres exacts et l'accessibilité. ─────────────────── */
+.geoMap {
+  height: 220px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg-alt);
+  margin-bottom: var(--space-3);
+}
+.geoMapUnavailable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 16px;
+  margin-bottom: var(--space-3);
+}
+.countryList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.countryRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 2px;
+  margin: -2px;
+  border-radius: var(--radius-xs);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.countryRow:hover,
+.countryRow:focus-visible {
+  background: var(--color-bg-admin);
+}
+.countryHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.countryName {
+  color: var(--color-text);
+  font-weight: 600;
+}
+.countryCount {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.countryBarTrack {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg-admin);
+  overflow: hidden;
+}
+.countryBarFill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+}

@@ -1,0 +1,85 @@
+---
+/**
+ * Photos réelles — voir apps/landing/public/images/IMAGE-SOURCES.md pour la
+ * source/licence de chacune. Remplacement futur : déposer un nouveau fichier
+ * portant exactement le même nom (même ratio 4/3), sans toucher à ce
+ * composant.
+ */
+import Button from "../Button.astro";
+import PhotoPlaceholder from "../PhotoPlaceholder.astro";
+---
+
+<section class="audience">
+  <div class="wrap audience-grid">
+    <article class="audience-block">
+      <span class="eyebrow">Pour les familles</span>
+      <h2>Des sorties adaptées à chaque enfant</h2>
+      <p>Âge, équipements, services et accessibilité : Toboggo aide chaque famille à choisir le parc qui correspond vraiment à ses besoins.</p>
+      <PhotoPlaceholder src="/images/home/families/famille-sortie-aire-jeux.webp" alt="Famille profitant d'une sortie en plein air" ratio="4 / 3" />
+      <Button href="#app-toboggo" variant="secondary">Découvrir Toboggo</Button>
+    </article>
+
+    <article class="audience-block">
+      <span class="eyebrow">Pour les collectivités</span>
+      <h2>Valorisez vos aires de jeux</h2>
+      <p>Donnez aux familles des informations fiables et à jour sur vos espaces de jeux, et faites-les mieux connaître.</p>
+      <PhotoPlaceholder src="/images/home/collectivites/aire-jeux-espace-public.webp" alt="Aire de jeux aménagée dans un espace public" ratio="4 / 3" />
+      <Button href="/collectivites/" variant="secondary">Découvrir l'espace collectivités</Button>
+    </article>
+  </div>
+</section>
+
+<style>
+  .audience {
+    padding: var(--space-8) 0;
+  }
+
+  .audience-grid {
+    display: grid;
+    /* minmax(0, 1fr), pas juste 1fr : sinon la piste hérite du min-content
+       du bouton "Découvrir l'espace collectivités" (white-space: nowrap) et
+       déborde la page en dessous de ~700px — blowout Grid classique. */
+    grid-template-columns: minmax(0, 1fr);
+    gap: 56px;
+  }
+
+  .audience-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    /* stretch pour occuper toute la hauteur de la piste grid (les 2 blocs
+       ont déjà la même hauteur par défaut) — le CTA est ensuite ancré tout
+       en bas via margin-top:auto, pour que les deux colonnes s'alignent
+       parfaitement même si les textes n'ont pas exactement la même longueur. */
+    height: 100%;
+    gap: var(--space-4);
+  }
+
+  .audience-block h2 {
+    font-size: 24px;
+    margin: 0;
+  }
+
+  .audience-block p {
+    color: var(--color-text-muted);
+    margin: 0;
+    /* hauteur réservée pour ~2 lignes : les deux descriptions s'alignent
+       même si l'une passe sur une ligne de plus que l'autre. */
+    min-height: 2.8em;
+  }
+
+  .audience-block :global(.photo-slot) {
+    width: 100%;
+  }
+
+  .audience-block :global(a.btn) {
+    margin-top: auto;
+  }
+
+  @media (min-width: 900px) {
+    .audience-grid {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--space-8);
+    }
+  }
+</style>

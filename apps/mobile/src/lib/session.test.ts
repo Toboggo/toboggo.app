@@ -29,7 +29,9 @@ const authMock = vi.hoisted(() => {
 });
 
 const supa = vi.hoisted(() => ({
-  session: null as { user: { id: string; email: string; user_metadata: { name: string } } } | null,
+  session: null as {
+    user: { id: string; email: string; user_metadata: { name: string }; created_at?: string; last_sign_in_at?: string };
+  } | null,
   profileCalls: 0,
 }));
 
@@ -40,11 +42,15 @@ const favMock = vi.hoisted(() => ({
 const analyticsMock = vi.hoisted(() => ({
   trackEvent: vi.fn(),
   registerIsAuthenticated: vi.fn(),
+  identifyAnalyticsUser: vi.fn(),
+  resetAnalyticsIdentity: vi.fn(),
 }));
 
 vi.mock("./analytics", () => ({
   trackEvent: analyticsMock.trackEvent,
   registerIsAuthenticated: analyticsMock.registerIsAuthenticated,
+  identifyAnalyticsUser: analyticsMock.identifyAnalyticsUser,
+  resetAnalyticsIdentity: analyticsMock.resetAnalyticsIdentity,
 }));
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -66,6 +72,21 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
 });
 
 import { useSession } from "./session";
+import { markGoogleLoginStarted } from "./googleLogin";
+
+const sessionStore = new Map<string, string>();
+vi.stubGlobal("sessionStorage", {
+  getItem: (k: string) => sessionStore.get(k) ?? null,
+  setItem: (k: string, v: string) => void sessionStore.set(k, v),
+  removeItem: (k: string) => void sessionStore.delete(k),
+});
+
+const localStore = new Map<string, string>();
+vi.stubGlobal("localStorage", {
+  getItem: (k: string) => localStore.get(k) ?? null,
+  setItem: (k: string, v: string) => void localStore.set(k, v),
+  removeItem: (k: string) => void localStore.delete(k),
+});
 
 const SESSION = { user: { id: "user-1", email: "alice@parents.fr", user_metadata: { name: "Alice" } } };
 const flush = () => new Promise((r) => setTimeout(r, 0));
@@ -94,6 +115,10 @@ beforeEach(() => {
   supa.profileCalls = 0;
   favMock.apiToggleFavorite.mockReset().mockResolvedValue([]);
   analyticsMock.trackEvent.mockReset();
+  analyticsMock.identifyAnalyticsUser.mockReset();
+  analyticsMock.resetAnalyticsIdentity.mockReset();
+  sessionStore.clear();
+  localStore.clear();
   useSession.setState({ userId: null, profile: null, loading: true, guestMode: false, pendingResume: null });
 });
 
@@ -285,5 +310,164 @@ describe("useSession.toggleFavorite", () => {
       useSession.getState().toggleFavorite("park-a");
       expect(analyticsMock.trackEvent).not.toHaveBeenCalled();
     });
+  });
+});
+
+// `login_completed` Google : voir `lib/googleLogin.ts`. Le marqueur est posé
+// avant la redirection OAuth ; sans lui, aucun login n'est jamais émis.
+describe("login_completed (Google OAuth)", () => {
+  const loginCalls = () => analyticsMock.trackEvent.mock.calls.filter(([name]) => name === "login_completed");
+
+  it("OAuth return (marker + SIGNED_IN) → exactly one login_completed {google}", async () => {
+    markGoogleLoginStarted();
+    supa.session = SESSION;
+    useSession.getState().init();
+    authMock.emit("user-1");
+    await flush();
+    expect(loginCalls()).toEqual([["login_completed", { provider: "google" }]]);
+  });
+
+  it("several auth notifications for the same OAuth return → no duplicate", async () => {
+    markGoogleLoginStarted();
+    supa.session = SESSION;
+    useSession.getState().init();
+    authMock.emit("user-1"); // INITIAL_SESSION
+    authMock.emit("user-1"); // SIGNED_IN
+    await flush();
+    authMock.emit("user-1"); // TOKEN_REFRESHED, later
+    await flush();
+    expect(loginCalls()).toHaveLength(1);
+  });
+
+  it("restoring an existing session (no marker) → no login_completed", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    authMock.emit("user-1");
+    await flush();
+    expect(loginCalls()).toHaveLength(0);
+  });
+
+  it("TOKEN_REFRESHED for a signed-in user (no marker) → no login_completed", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    await flush();
+    authMock.emit("user-1");
+    await flush();
+    expect(loginCalls()).toHaveLength(0);
+  });
+
+  it("abandoned Google attempt (no session on return) clears the marker → later restore is not a login", async () => {
+    markGoogleLoginStarted();
+    useSession.getState().init();
+    await flush();
+    expect(sessionStore.size).toBe(0);
+    supa.session = SESSION;
+    authMock.emit("user-1");
+    await flush();
+    expect(loginCalls()).toHaveLength(0);
+  });
+
+  it("existing account (created long before this sign-in) → login_completed, never signup_completed", async () => {
+    markGoogleLoginStarted();
+    supa.session = {
+      user: { ...SESSION.user, created_at: "2026-01-01T10:00:00.000Z", last_sign_in_at: "2026-10-01T12:00:00.000Z" },
+    };
+    useSession.getState().init();
+    await flush();
+    expect(loginCalls()).toHaveLength(1);
+    expect(analyticsMock.trackEvent.mock.calls.some(([n]) => n === "signup_completed")).toBe(false);
+  });
+
+  it("account created by this Google sign-in → exactly one signup_completed {google}, no login_completed", async () => {
+    markGoogleLoginStarted();
+    supa.session = {
+      user: { ...SESSION.user, created_at: "2026-10-01T12:00:00.000Z", last_sign_in_at: "2026-10-01T12:00:00.080Z" },
+    };
+    useSession.getState().init();
+    authMock.emit("user-1");
+    authMock.emit("user-1");
+    await flush();
+    const signups = analyticsMock.trackEvent.mock.calls.filter(([n]) => n === "signup_completed");
+    expect(signups).toEqual([["signup_completed", { provider: "google", entry_point: "splash" }]]);
+    expect(loginCalls()).toHaveLength(0);
+  });
+
+  it("new Google account with a pending contribution → entry_point contribution_resume", async () => {
+    localStorage.setItem("toboggo:contrib-resume", JSON.stringify({ savedAt: Date.now(), route: "/add" }));
+    markGoogleLoginStarted();
+    supa.session = {
+      user: { ...SESSION.user, created_at: "2026-10-01T12:00:00.000Z", last_sign_in_at: "2026-10-01T12:00:00.050Z" },
+    };
+    useSession.getState().init();
+    await flush();
+    expect(analyticsMock.trackEvent).toHaveBeenCalledWith("signup_completed", {
+      provider: "google",
+      entry_point: "contribution_resume",
+    });
+  });
+
+  it("restoring a just-created account's session later (no marker) → no signup_completed", async () => {
+    supa.session = {
+      user: { ...SESSION.user, created_at: "2026-10-01T12:00:00.000Z", last_sign_in_at: "2026-10-01T12:00:00.080Z" },
+    };
+    useSession.getState().init();
+    authMock.emit("user-1");
+    await flush();
+    expect(analyticsMock.trackEvent).not.toHaveBeenCalled();
+  });
+});
+
+// Identité analytics (LOT 2) : voir `identifyAnalyticsUser` (analytics/client.ts).
+describe("analytics identity wiring", () => {
+  it("anonymous start (no session) → nothing identified", async () => {
+    useSession.getState().init();
+    authMock.emit(null); // INITIAL_SESSION sans session
+    await flush();
+    expect(analyticsMock.identifyAnalyticsUser).not.toHaveBeenCalled();
+  });
+
+  it("restoring an existing session → identifies that user (same id on every reload)", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    await flush();
+    expect(analyticsMock.identifyAnalyticsUser).toHaveBeenCalledWith("user-1");
+  });
+
+  it("auth event (SIGNED_IN) → identifies synchronously, before any async profile load", () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    authMock.emit("user-1");
+    expect(analyticsMock.identifyAnalyticsUser).toHaveBeenCalledWith("user-1");
+  });
+
+  it("Google return: identify happens BEFORE signup/login_completed", async () => {
+    markGoogleLoginStarted();
+    supa.session = SESSION;
+    useSession.getState().init();
+    authMock.emit("user-1");
+    await flush();
+    const identifyOrder = analyticsMock.identifyAnalyticsUser.mock.invocationCallOrder[0];
+    const trackOrder = analyticsMock.trackEvent.mock.invocationCallOrder[0];
+    expect(identifyOrder).toBeLessThan(trackOrder);
+  });
+
+  it("SIGNED_OUT → resets the analytics identity", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    await flush();
+    authMock.emit(null);
+    expect(analyticsMock.resetAnalyticsIdentity).toHaveBeenCalledTimes(1);
+  });
+
+  it("account A signs out, account B signs in → reset then identify(B), never A→B", async () => {
+    supa.session = SESSION;
+    useSession.getState().init();
+    await flush();
+    authMock.emit(null);
+    authMock.emit("user-2");
+    expect(analyticsMock.identifyAnalyticsUser.mock.calls.map((c) => c[0])).toEqual(["user-1", "user-2"]);
+    expect(analyticsMock.resetAnalyticsIdentity.mock.invocationCallOrder[0]).toBeLessThan(
+      analyticsMock.identifyAnalyticsUser.mock.invocationCallOrder[1],
+    );
   });
 });

@@ -1,0 +1,45 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Container from "../components/Container.astro";
+import Button from "../components/Button.astro";
+import { FAQ_SECTIONS } from "../data/faq";
+
+const faqPage = {
+  "@type": "FAQPage",
+  mainEntity: FAQ_SECTIONS.flatMap((section) => section.items).map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
+  })),
+};
+---
+
+<BaseLayout
+  title="FAQ : trouver un parc, contribuer, compte"
+  description="Toutes les réponses aux questions fréquentes sur Toboggo : trouver un parc, laisser un avis, gérer son compte, signaler un problème."
+  jsonLd={[faqPage]}
+>
+  <Container>
+    <div class="doc-section">
+      <h1>Foire aux questions</h1>
+
+      {
+        FAQ_SECTIONS.map((section) => (
+          <>
+            <h2>{section.title}</h2>
+            {section.items.map((item) => (
+              <details class="faq-item">
+                <summary>{item.question}</summary>
+                <p>{item.answer}</p>
+              </details>
+            ))}
+          </>
+        ))
+      }
+
+      <p style="text-align:center;margin-top:40px;">
+        <Button href="/contact/">Une autre question ? Contactez-nous</Button>
+      </p>
+    </div>
+  </Container>
+</BaseLayout>

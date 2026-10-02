@@ -2471,6 +2471,10 @@ export type Database = {
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
       recalculate_park_score: { Args: { p_park_id: string }; Returns: string }
+      review_park_edit: {
+        Args: { p_decision: string; p_edit_id: string; p_note?: string }
+        Returns: Json
+      }
       set_park_attribute_source: {
         Args: {
           p_attribute_key: string

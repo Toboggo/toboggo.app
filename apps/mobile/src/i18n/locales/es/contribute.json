@@ -148,6 +148,13 @@
     }
   },
   "addPhotos": {
+    "subtitle": "Añade fotos para compartir este lugar con la comunidad.",
+    "takePhoto": "Hacer una foto",
+    "chooseFromLibrary": "Elegir de la galería",
+    "counter": "{{count}} / {{max}} fotos",
+    "readyCount_one": "{{count}} foto lista para enviar",
+    "readyCount_other": "{{count}} fotos listas para enviar",
+    "editPhotos": "Editar fotos",
     "doneTitle": "¡Foto enviada!",
     "doneBody_one": "¡Gracias! Tu foto se verá en la ficha del parque tras la verificación de nuestro equipo.",
     "doneBody_other": "¡Gracias! Tus fotos se verán en la ficha del parque tras la verificación de nuestro equipo.",

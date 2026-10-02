@@ -1,0 +1,35 @@
+.banner {
+  position: fixed;
+  left: var(--space-3, 12px);
+  right: var(--space-3, 12px);
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.action {
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-pill);
+  padding: 8px 14px;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

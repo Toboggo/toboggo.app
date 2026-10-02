@@ -1,6 +1,6 @@
 import { getSupabase } from "../supabaseClient";
 import { listOrgParkIds } from "./parks";
-import type { Json, ParkEdit } from "../types";
+import type { EditStatus, Json, ParkEdit, ParkEditReviewDecision, ParkEditReviewResult, ParkEditWithDetails } from "../types";
 
 /**
  * §13 — Contributions / change-requests. Parents propose; canonical `parks`
@@ -68,23 +68,108 @@ export async function listPendingParkEditsForOrg(organizationId: string): Promis
   return pending.filter((edit) => edit.park_id != null && parkIds.includes(edit.park_id));
 }
 
-export async function reviewParkEdit(
-  id: string,
-  decision: "approved" | "rejected" | "auto_approved",
-  reviewerId: string,
-  note?: string,
-): Promise<void> {
+/**
+ * File de validation (Admin-3B-1) : `park_edits` enrichis du nom du parc et
+ * de l'auteur, en **2 requêtes au total** quel que soit le nombre de lignes —
+ * jamais un `getPark()`/lookup par ligne (N+1) :
+ *   1. `park_edits` + `parks(name, formatted_address)` en un seul `select`
+ *      embarqué (FK réelle `park_edits_park_id_fkey`, même mécanisme déjà
+ *      utilisé par `listReports`) ;
+ *   2. un unique `profiles.select(...).in("id", …)` sur les `user_id`
+ *      distincts de la page, plutôt qu'un appel par proposition.
+ * `parks` est `null` (pas `!inner`) car `park_id` est nullable — une
+ * proposition sans parc reste listée. `proposedByName` est `null` si
+ * `profiles` n'est pas lisible pour l'appelant (RLS `profiles_staff_read` :
+ * vrai pour le staff, pas pour une collectivité) — jamais un nom inventé.
+ *
+ * `parkId` (Admin-UI-5D — onglet "Modifications proposées" de la fiche Parc
+ * 360) restreint à un seul parc, en réutilisant le même enrichissement
+ * auteur/parc plutôt que dupliquer la logique dans un second endpoint.
+ */
+export async function listParkEditsWithDetails(
+  opts: { status?: EditStatus[]; parkId?: string } = {},
+): Promise<ParkEditWithDetails[]> {
   const supabase = getSupabase();
-  const { error } = await supabase
+  let query = supabase
     .from("park_edits")
-    .update({
-      status: decision,
-      reviewed_by: reviewerId,
-      review_note: note ?? null,
-      reviewed_at: new Date().toISOString(),
-    })
-    .eq("id", id);
+    .select("*, parks(name, formatted_address)")
+    .order("created_at", { ascending: false });
+  if (opts.status?.length) query = query.in("status", opts.status);
+  if (opts.parkId) query = query.eq("park_id", opts.parkId);
+  const { data, error } = await query;
   if (error) throw error;
+  const rows = (data ?? []) as (ParkEdit & { parks: { name: string; formatted_address: string | null } | null })[];
+
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))];
+  const namesById = new Map<string, string>();
+  if (userIds.length) {
+    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("id, name").in("id", userIds);
+    if (profilesError) throw profilesError;
+    for (const p of (profiles ?? []) as { id: string; name: string }[]) namesById.set(p.id, p.name);
+  }
+
+  return rows.map((r) => ({ ...r, proposedByName: r.user_id ? (namesById.get(r.user_id) ?? null) : null }));
+}
+
+/** Une proposition unique, même enrichissement que `listParkEditsWithDetails`
+ * (parc + auteur) — pour l'écran de détail (Admin-3B-1, lecture seule). */
+export async function getParkEditWithDetails(id: string): Promise<ParkEditWithDetails | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("park_edits")
+    .select("*, parks(name, formatted_address)")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const row = data as ParkEdit & { parks: { name: string; formatted_address: string | null } | null };
+
+  let proposedByName: string | null = null;
+  if (row.user_id) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", row.user_id)
+      .maybeSingle();
+    if (profileError) throw profileError;
+    proposedByName = profile?.name ?? null;
+  }
+
+  return { ...row, proposedByName };
+}
+
+/**
+ * Accepte ou rejette une proposition `park_edits` — SEULE voie applicative
+ * pour cette action (Admin-3A). Appelle exclusivement la RPC transactionnelle
+ * `review_park_edit` (migration 0037) : aucune écriture directe sur
+ * `park_edits`/`parks`/`park_features` ici, la RPC garantit à elle seule la
+ * comparaison live (A/B/C), l'application réelle, le statut final et
+ * l'atomicité (tout ou rien en cas d'erreur technique).
+ *
+ * Pas de `reviewerId` en paramètre : le reviewer est déterminé côté DB par
+ * `auth.uid()`, jamais fourni par le client (0037, §PERMISSIONS).
+ *
+ * `requires_manual_review` et `already_reviewed` sont des résultats MÉTIER
+ * normaux (retournés, pas levés en exception) — seule une vraie erreur
+ * (permissions, type de proposition non supporté, décision invalide, échec
+ * SQL) rejette la promesse, via le `throw error` habituel des wrappers de ce
+ * fichier.
+ */
+export async function reviewParkEdit(
+  editId: string,
+  decision: ParkEditReviewDecision,
+  note?: string,
+): Promise<ParkEditReviewResult> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.rpc("review_park_edit", {
+    p_edit_id: editId,
+    p_decision: decision,
+    // Omis plutôt que `null` si absent — même convention que `findDuplicateParks`
+    // ci-dessous : le type `Args` généré (`p_note?: string`) rejette `null`.
+    ...(note ? { p_note: note } : {}),
+  });
+  if (error) throw error;
+  return data as ParkEditReviewResult;
 }
 
 // ── §11 Worldwide de-duplication ────────────────────────────────────────

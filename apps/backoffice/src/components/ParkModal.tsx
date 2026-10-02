@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Chip, Dialog, Input, Textarea, useConfirm, useToast } from "@toboggo/design-system";
+import { Button, Chip, Dialog, Icon, Input, Textarea, useConfirm, useToast } from "@toboggo/design-system";
 import {
   addParkPhotos,
   createPark,
@@ -258,7 +258,7 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
         <div>
           <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Photos</div>
           <p style={{ fontSize: 11.5, color: "var(--color-text-muted)", marginTop: -2, marginBottom: 8 }}>
-            Les photos ajoutées ici sont publiées directement. Cliquez ★ pour définir la couverture.
+            Les photos ajoutées ici sont publiées directement. Cliquez <Icon name="ic-star" size={11} style={{ display: "inline", verticalAlign: "-1px" }} /> pour définir la couverture.
           </p>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {photos.map((p, i) => {
@@ -271,19 +271,21 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
                 >
                   {canManage && (
                     <button
+                      aria-label="Retirer la photo"
                       onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
-                      style={{ position: "absolute", top: -6, right: -6, background: "var(--color-error)", color: "white", border: "none", borderRadius: "50%", width: 18, height: 18, fontSize: 11, cursor: "pointer" }}
+                      style={{ position: "absolute", top: -6, right: -6, background: "var(--color-error)", color: "white", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
                     >
-                      ✕
+                      <Icon name="ic-close" size={11} />
                     </button>
                   )}
                   {canManage && row && (
                     <button
                       title={isCover ? "Photo de couverture" : "Définir comme couverture"}
+                      aria-label={isCover ? "Photo de couverture" : "Définir comme couverture"}
                       onClick={() => void makeCover(p)}
-                      style={{ position: "absolute", bottom: -6, left: -6, background: isCover ? "var(--color-primary)" : "var(--color-surface)", color: isCover ? "white" : "var(--color-text-muted)", border: "1px solid var(--color-border)", borderRadius: "50%", width: 18, height: 18, fontSize: 10, cursor: "pointer", lineHeight: "16px" }}
+                      style={{ position: "absolute", bottom: -6, left: -6, background: isCover ? "var(--color-primary)" : "var(--color-surface)", color: isCover ? "white" : "var(--color-text-muted)", border: "1px solid var(--color-border)", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
                     >
-                      ★
+                      <Icon name="ic-star" size={11} />
                     </button>
                   )}
                 </div>

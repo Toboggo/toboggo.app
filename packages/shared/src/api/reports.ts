@@ -30,7 +30,10 @@ export async function listReportsForPark(parkId: string): Promise<Report[]> {
 
 export async function listReports(opts: { communeId?: string; status?: ReportStatus[] } = {}): Promise<Report[]> {
   const supabase = getSupabase();
-  let query = supabase.from("reports").select("*, parks!inner(name)").order("created_at", { ascending: false });
+  let query = supabase
+    .from("reports")
+    .select("*, parks!inner(name, formatted_address)")
+    .order("created_at", { ascending: false });
   if (opts.communeId) {
     const ids = await listOrgParkIds(opts.communeId);
     query = query.in("park_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);

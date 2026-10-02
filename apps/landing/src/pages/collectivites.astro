@@ -1,0 +1,127 @@
+---
+/**
+ * Landing B2B collectivités (Website-3A). Ne décrit que ce qui existe dans
+ * apps/backoffice côté collectivité (audit du 2026-10-01). Volontairement
+ * ABSENT : tout chiffre de l'écran Statistiques (proxys peu fiables), tout
+ * lien vers le back-office (accès sur invitation, voir /contact), tout
+ * témoignage ou nom de collectivité cliente.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import InfoCard from "../components/InfoCard.astro";
+import PhotoPlaceholder from "../components/PhotoPlaceholder.astro";
+import Button from "../components/Button.astro";
+
+const CONTACT_HREF = "/contact/?sujet=partenariat";
+
+const STEPS = [
+  { title: "Vos aires de jeux sont référencées", text: "Toboggo référence déjà des aires de jeux, à vérifier avec les communes. Vos parcs peuvent être ajoutés ou complétés." },
+  { title: "Vous obtenez un accès dédié", text: "L'espace collectivité est activé sur demande, avec un compte pour chaque agent habilité." },
+  { title: "Vous gérez, les familles en profitent", text: "Vos fiches à jour sont visibles dans l'application des familles." },
+];
+---
+
+<BaseLayout
+  title="Collectivités : valorisez vos aires de jeux"
+  description="Toboggo aide les collectivités à valoriser leurs aires de jeux : fiches à jour, signalements citoyens centralisés, avis et photos modérés, équipe et rôles."
+>
+  <PageHero
+    eyebrow="Pour les collectivités"
+    title="Valorisez vos aires de jeux auprès des familles."
+    lead="Un outil pour gérer votre patrimoine ludique et traiter les signalements, et une application qui donne aux familles des informations fiables sur vos parcs."
+  >
+    <Button href={CONTACT_HREF}>Nous contacter</Button>
+    <Button href="#fonctionnement" variant="secondary">Voir comment ça marche</Button>
+  </PageHero>
+
+  <section class="page-section page-section--tint">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>Connecter les familles et les mairies</h2>
+        <p>Un parent ne sait pas toujours si une aire de jeux est adaptée à son enfant, et une mairie n'a pas toujours de canal simple pour recevoir les signalements. Toboggo répond aux deux.</p>
+      </div>
+      <ul class="card-grid card-grid--3">
+        <InfoCard icon="ic-heart" title="Faites connaître vos parcs" text="Vos aires de jeux apparaissent sur la carte de l'application, avec leurs équipements, leur tranche d'âge et leurs services." />
+        <InfoCard icon="ic-check" title="Des informations à jour" text="Mettez à jour vos fiches vous-mêmes : adresse, localisation et caractéristiques." />
+        <InfoCard icon="ic-flag" title="Des signalements centralisés" text="Les signalements des habitants arrivent au même endroit, avec un suivi jusqu'à leur résolution." />
+      </ul>
+    </div>
+  </section>
+
+  <section id="fonctionnement" class="page-section page-section--white">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Fonctionnement</span>
+        <h2>Comment ça marche ?</h2>
+      </div>
+      <ol class="card-grid card-grid--3 steps">
+        {
+          STEPS.map((step, i) => (
+            <li class="info-card">
+              <span class="info-card-icon step-num" aria-hidden="true">{i + 1}</span>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+  </section>
+
+  <!-- Écrans du back-office collectivité : Dashboard, Parks/ParkDetail/ParkNew, MapScreen, Reports, Reviews, Photos, Maintenance, Journal, Settings -->
+  <section class="page-section page-section--tint">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">L'espace collectivité</span>
+        <h2>Ce que vous pouvez faire</h2>
+      </div>
+      <ul class="card-grid card-grid--3">
+        <InfoCard icon="ic-dashboard" title="Tableau de bord d'action" text="Repérez ce qui attend votre attention : parcs à valider, signalements ouverts, photos à modérer, entretien à venir." />
+        <InfoCard icon="ic-list" title="Gestion des parcs" text="Un tableau de vos parcs, une fiche détaillée par parc, la création d'un nouveau parc en quelques étapes et l'historique des modifications." />
+        <InfoCard icon="ic-explore" title="Carte de vos parcs" text="Visualisez l'ensemble de vos aires de jeux sur une carte." />
+        <InfoCard icon="ic-flag" title="Signalements" text="Traitez les signalements reçus et exportez-les au format CSV." />
+        <InfoCard icon="ic-review" title="Avis des familles" text="Consultez les avis laissés sur vos parcs et répondez-y." />
+        <InfoCard icon="ic-plus" title="Photos modérées" text="Validez ou refusez les photos proposées avant leur publication, et choisissez la photo de couverture." />
+        <InfoCard icon="ic-settings" title="Suivi de l'entretien" text="Planifiez et suivez les opérations d'entretien de vos aires de jeux." />
+        <InfoCard icon="ic-users" title="Équipe et rôles" text="Invitez vos agents avec un rôle de gestionnaire ou de contributeur : chacun ne voit et ne fait que ce qui relève de son rôle." />
+        <InfoCard icon="ic-chart" title="Journal et rapport PDF" text="Retrouvez le journal d'activité de votre organisation et générez un rapport mensuel au format PDF." />
+      </ul>
+    </div>
+  </section>
+
+  <section class="page-section">
+    <div class="wrap split">
+      <div class="split-copy">
+        <span class="eyebrow">Pourquoi Toboggo</span>
+        <h2>Un seul outil, pour les agents comme pour les habitants</h2>
+        <ul class="check-list">
+          <li>Parcs, signalements, avis et photos réunis dans un même espace</li>
+          <li>Des droits adaptés au rôle de chaque agent</li>
+          <li>Des fiches visibles dans l'application utilisée par les familles</li>
+          <li>Accès activé sur demande, sans installation</li>
+        </ul>
+      </div>
+      <PhotoPlaceholder src="/images/home/collectivites/aire-jeux-espace-public.webp" alt="Aire de jeux aménagée dans un espace public" ratio="4 / 3" />
+    </div>
+  </section>
+
+  <section class="page-cta page-section--tint">
+    <div class="wrap">
+      <h2>Parlons de vos aires de jeux</h2>
+      <p>Dites-nous quelle collectivité vous représentez : nous reviendrons vers vous pour activer votre espace.</p>
+      <Button href={CONTACT_HREF}>Contacter l'équipe Toboggo</Button>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .steps {
+    counter-reset: none;
+  }
+
+  .step-num {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: var(--text-lg);
+  }
+</style>

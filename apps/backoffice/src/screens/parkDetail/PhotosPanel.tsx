@@ -15,6 +15,8 @@ import { useAsyncAction } from "../../lib/useAsyncAction";
 import { queryClient } from "../../lib/queryClient";
 import styles from "../ParkDetail.module.css";
 
+const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+
 function provenance(m: ParkMedia): string | null {
   const parts: string[] = [];
   if (m.source && SOURCE_LABEL[m.source]) parts.push(SOURCE_LABEL[m.source]!);
@@ -102,6 +104,7 @@ export function PhotosPanel({ parkId, canManage }: { parkId: string; canManage: 
                   {m.status === "pending" && <Tag tone="warning">En attente</Tag>}
                 </div>
                 {prov ? <div className={styles.photoMetaLine}>{prov}</div> : <span className={styles.empty}>Provenance non renseignée</span>}
+                <div className={styles.photoMetaLine}>Ajoutée le {dateFmt.format(new Date(m.created_at))}</div>
               </div>
               {canManage && (
                 <div className={styles.photoActions}>

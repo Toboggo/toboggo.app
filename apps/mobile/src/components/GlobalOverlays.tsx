@@ -3,6 +3,7 @@ import { Toast } from "@toboggo/design-system";
 import { useToastStore } from "../lib/toast";
 import { useVisitPrompt } from "../lib/visitPrompt";
 import { VisitRatingPrompt } from "./VisitRatingPrompt";
+import { UpdateBanner } from "./UpdateBanner";
 
 export function GlobalOverlays() {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export function GlobalOverlays() {
   return (
     <>
       <Toast message={message} onDone={clear} />
+      <UpdateBanner />
       <VisitRatingPrompt
         open={visible}
         onClose={dismiss}

@@ -170,16 +170,14 @@ export function BottomSheet({
 
   const safeBottom = useSafeAreaBottom();
 
-  // Reserve kept below the visible content, above the obstruction it stops at:
-  //  - docked: a small margin only — the nav sits in its own reserved strip
-  //    below the scrollable area (see `sheetBody`/`navStrip` below), so the
-  //    content itself only needs a clean gap above it, never the nav's own
-  //    height again.
-  //  - otherwise: the home-indicator inset, so the last row clears it.
+  // Reserve used for fit measurement:
+  //  - docked: only the visual edge margin affects the fitted panel height;
+  //  - otherwise: the home-indicator inset keeps the last row clear.
   const fitReserve = docked ? EDGE_MARGIN : safeBottom;
-  // Padding at the end of the *scrollable* content — a clean gap above the
-  // obstruction, not the obstruction's own height (that's `navStrip`).
-  const scrollReserve = docked ? EDGE_MARGIN : safeBottom;
+  // Docked content is allowed to scroll behind the translucent bottom nav.
+  // Reserve the nav obstruction + a small margin at the end so the final
+  // content can still be scrolled fully above the dock.
+  const scrollReserve = docked ? bottomInset + EDGE_MARGIN : safeBottom;
 
   // ── content measurement (drives `"fit"` and `canScroll`) ──
   // `contentH` is the *natural* content height; the reserve below is a sibling
@@ -424,13 +422,10 @@ export function BottomSheet({
         <div
           className={styles.sheetBody}
           style={{
-            // Docked: capped to the panel height so the *scrollable viewport*
-            // stops right above the nav strip — content can no longer scroll
-            // into (and show, ghosted, through the translucent dock) the
-            // reserved space behind it. Undocked: unchanged, flex:1 fills the
-            // sheet (there's no separate strip to exclude).
+            // Docked: include the painted-through area in the scroll viewport
+            // so content can remain visible (blurred) behind the floating nav.
             flex: docked ? "0 0 auto" : 1,
-            height: docked ? height - GRAB_H : undefined,
+            height: docked ? paintedHeight - GRAB_H : undefined,
             overflowY: canScroll ? "auto" : "hidden",
             // Below the tallest snap, `pan-y` lets the browser commit to a native
             // vertical scroll before the pointermove handler's `preventDefault()`
@@ -446,12 +441,7 @@ export function BottomSheet({
           <div ref={contentRef}>{children}</div>
           {scrollReserve > 0 && <div aria-hidden style={{ height: scrollReserve }} />}
         </div>
-        {paintThrough && bottomInset > 0 && (
-          // Purely decorative continuation of the sheet's surface behind the
-          // nav — never part of the scrollable viewport, so it can't leak
-          // content behind the dock; the nav floats on top of it (z-index).
-          <div aria-hidden className={styles.navStrip} style={{ height: bottomInset }} />
-        )}
+
       </div>
     </>,
     document.body,

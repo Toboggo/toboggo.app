@@ -1,0 +1,149 @@
+---
+/**
+ * Fonctionnalités (Website-3A). Contenu limité à ce qui est réellement
+ * implémenté dans apps/mobile (audit du 2026-10-01) : voir le commentaire de
+ * chaque bloc. Volontairement ABSENTS : filtre « Ouvert maintenant » (sans
+ * effet réel), connexion Google/Apple (« bientôt »), mode sombre (différé),
+ * notifications push (non branchées), et tout chiffre marketing.
+ * Captures : provisoires (public/screenshots/).
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import PageHero from "../components/PageHero.astro";
+import InfoCard from "../components/InfoCard.astro";
+import PhoneMockup from "../components/PhoneMockup.astro";
+import Button from "../components/Button.astro";
+import { appScreen } from "../lib/screens";
+
+// Les 8 critères famille — décision fondateur n°4 (docs/DESIGN-SYSTEM.md §2),
+// tous disponibles comme filtres dans l'app (âge + 7 équipements).
+// Captures déclarées dans lib/screens.ts (null tant qu'un fichier n'existe pas).
+const explorer = appScreen("explorer");
+const filters = appScreen("filters");
+const parkDetail = appScreen("park-detail");
+const favorites = appScreen("favorites");
+
+const CRITERIA = [
+  { icon: "ic-age", label: "Tranche d'âge" },
+  { icon: "ic-shade", label: "Ombre" },
+  { icon: "ic-toilets", label: "WC" },
+  { icon: "ic-fence", label: "Clôture" },
+  { icon: "ic-pmr", label: "Accès PMR" },
+  { icon: "ic-bench", label: "Bancs" },
+  { icon: "ic-water", label: "Eau potable" },
+  { icon: "ic-parking", label: "Parking" },
+];
+---
+
+<BaseLayout
+  title="Fonctionnalités : trouvez l'aire de jeux idéale"
+  description="Carte des aires de jeux, filtres par âge et équipements, fiches détaillées, favoris, itinéraire, sortie de groupe : découvrez ce que Toboggo propose aux familles."
+>
+  <PageHero
+    eyebrow="Fonctionnalités"
+    title="Tout pour choisir le bon parc, sans y passer des heures."
+    lead="Toboggo réunit sur une seule application les informations utiles pour décider où emmener vos enfants."
+  >
+    <Button href="/#app-toboggo">Découvrir Toboggo</Button>
+    <Button href="/faq/" variant="secondary">Questions fréquentes</Button>
+  </PageHero>
+
+  <!-- Carte, recherche, filtres : MapExplore, SearchOverlay, FiltersSheet -->
+  <section class="page-section page-section--tint">
+    <div class="wrap split">
+      <div class="split-copy">
+        <span class="eyebrow">Trouver</span>
+        <h2>Les aires de jeux autour de vous</h2>
+        <p>La carte affiche les parcs à proximité, avec un rayon de recherche réglable. Vous pouvez aussi chercher une ville ou un parc par son nom, sans autoriser la géolocalisation.</p>
+        <ul class="check-list">
+          <li>Carte interactive et liste des parcs proches</li>
+          <li>Recherche par ville ou par nom</li>
+          <li>Rayon de recherche ajustable</li>
+        </ul>
+      </div>
+      <div class="split-phones">
+        {explorer && <PhoneMockup src={explorer.src} alt={explorer.alt} />}
+        {filters && <PhoneMockup src={filters.src} alt={filters.alt} />}
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section page-section--white">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Filtrer</span>
+        <h2>8 critères pensés pour les familles</h2>
+        <p>Filtrez selon l'âge de vos enfants et les équipements qui comptent pour vous.</p>
+      </div>
+      <ul class="card-grid card-grid--4">
+        {CRITERIA.map((c) => <InfoCard icon={c.icon} title={c.label} text="" />)}
+      </ul>
+      <p class="note">Ces informations sont fournies par la communauté ou les collectivités partenaires, et vérifiées avant publication.</p>
+    </div>
+  </section>
+
+  <!-- Fiche parc : ParkDetail, DetailPhotos/Amenities/Reviews, ScoreDetail, DirectionsSheet, ShareSheet, Favorites, Compare -->
+  <section class="page-section page-section--tint">
+    <div class="wrap split split--reverse">
+      <div class="split-copy">
+        <span class="eyebrow">Choisir</span>
+        <h2>Une fiche claire pour chaque parc</h2>
+        <p>Photos, équipements, avis et score détaillé : tout est réuni sur la fiche pour décider en quelques instants.</p>
+        <ul class="check-list">
+          <li>Équipements et services du parc</li>
+          <li>Photos et avis des familles</li>
+          <li>Favoris et comparaison de parcs</li>
+          <li>Itinéraire avec Plans, Google Maps ou Waze</li>
+          <li>Partage par WhatsApp ou lien copié</li>
+        </ul>
+      </div>
+      <div class="split-phones">
+        {parkDetail && <PhoneMockup src={parkDetail.src} alt={parkDetail.alt} />}
+        {favorites && <PhoneMockup src={favorites.src} alt={favorites.alt} />}
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Ensemble</span>
+        <h2>Pensé pour les sorties en famille</h2>
+      </div>
+      <ul class="card-grid card-grid--3">
+        <!-- GroupOuting : sortie créée, code à 5 caractères, statuts, données Supabase -->
+        <InfoCard icon="ic-users" title="Sortie de groupe" text="Créez une sortie pour partager votre position avec d'autres parents sur un parc, ou rejoignez-en une avec un code à 5 caractères." />
+        <!-- Children / ChildForm -->
+        <InfoCard icon="ic-user" title="Profils d'enfants" text="Enregistrez le prénom et l'âge de vos enfants dans votre profil. Ces informations ne sont jamais rendues publiques ni partagées." />
+        <!-- i18n/locales : fr, en, es -->
+        <InfoCard icon="ic-explore" title="Français, English, Español" text="L'application est disponible en trois langues, au choix depuis le profil." />
+      </ul>
+    </div>
+  </section>
+
+  <!-- AddPark, RatePark, ReportProblem (7 catégories), AddPhotos, EditInfo, Contributions -->
+  <section class="page-section page-section--white">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow">Contribuer</span>
+        <h2>Les parcs s'améliorent grâce à vous</h2>
+        <p>Un compte gratuit suffit. La consultation de la carte reste libre, sans compte.</p>
+      </div>
+      <ul class="card-grid card-grid--3">
+        <InfoCard icon="ic-plus" title="Ajouter un parc" text="Un parc manque ? Indiquez son nom, son adresse et ses équipements. La fiche est vérifiée avant publication." />
+        <InfoCard icon="ic-review" title="Donner son avis" text="Notez un parc et partagez votre expérience depuis sa fiche." />
+        <InfoCard icon="ic-flag" title="Signaler un problème" text="Équipement cassé, sécurité, propreté, végétation, accessibilité ou information erronée : le signalement est transmis à l'équipe Toboggo ou à la collectivité concernée." />
+        <InfoCard icon="ic-plus" title="Proposer des photos" text="Ajoutez des photos d'un parc pour aider les autres familles à le reconnaître." />
+        <InfoCard icon="ic-check" title="Corriger une information" text="Une donnée est obsolète ? Proposez une correction directement depuis l'application." />
+        <InfoCard icon="ic-list" title="Suivre ses contributions" text="Retrouvez l'historique de vos ajouts, avis et signalements." />
+      </ul>
+    </div>
+  </section>
+
+  <section class="page-cta">
+    <div class="wrap">
+      <h2>Prêt à trouver votre prochain parc ?</h2>
+      <p>Découvrez Toboggo et trouvez les aires de jeux adaptées à vos enfants, autour de vous.</p>
+      <Button href="/#app-toboggo">Découvrir Toboggo</Button>
+    </div>
+  </section>
+</BaseLayout>

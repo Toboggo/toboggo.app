@@ -3,7 +3,7 @@ import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Icon, Logo, type IconName } from "@toboggo/design-system";
-import { listParks, listPendingMedia, listReports } from "@toboggo/shared";
+import { listParkEdits, listParks, listPendingMedia, listReports } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
 import { useScopedPark } from "../lib/useScopedPark";
@@ -27,16 +27,17 @@ export interface NavGroup {
 
 /**
  * Entrées de navigation sans icône de sprite adaptée (Lot 2 — audit §6 bis /
- * §20). Recherchées dans les 47 symboles existants avant d'écarter l'idée :
- * aucun ne représente raisonnablement une carte, l'entretien ou un journal
- * d'activité sans dénaturer un symbole déjà utilisé ailleurs dans le sprite
- * pour un autre sens. Pas de nouveau SVG dessiné, pas de bibliothèque externe
- * (CLAUDE.md §9) — à fournir par le fondateur (artifact « Brand kit ») pour
- * une passe ultérieure. Documenté ici plutôt que masqué.
+ * §20 ; Photos et Collectivités résolus en Admin-UI-7E-B via `ic-camera` /
+ * `ic-building`, Lucide adapté au format Toboggo). Recherchées dans les
+ * symboles existants avant d'écarter l'idée : aucun ne représente
+ * raisonnablement une carte ou un journal d'activité sans dénaturer un
+ * symbole déjà utilisé ailleurs dans le sprite pour un autre sens (l'entretien
+ * a un équivalent Lucide plausible mais hors périmètre de ce lot — pas de
+ * nouvelle icône ajoutée sans besoin identifié). Documenté ici plutôt que
+ * masqué.
  */
 export const NAV_ICON_GAPS: Record<string, string> = {
   "/maintenance": "entretien (outil / clé) — aucun symbole du sprite ne convient",
-  "/photos": "photo / appareil — aucun symbole du sprite ne convient",
   "/journal": "journal d'activité — aucun symbole du sprite ne convient sans réutiliser ic-list (déjà « Parcs »)",
 };
 
@@ -45,23 +46,31 @@ export function buildNavGroups(opts: {
   pendingParks: number;
   openReports: number;
   pendingMedia: number;
+  pendingEdits: number;
 }): NavGroup[] {
-  const { isAdmin, pendingParks, openReports, pendingMedia } = opts;
+  const { isAdmin, pendingParks, openReports, pendingMedia, pendingEdits } = opts;
 
   if (isAdmin) {
     return [
       { title: "Pilotage", items: [{ to: "/", label: "Tableau de bord", icon: "ic-dashboard" }] },
       { title: "Parcs", items: [{ to: "/parks", label: "Parcs", icon: "ic-list", badge: pendingParks }] },
-      { title: "Exploitation", items: [{ to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports }] },
       {
-        title: "Échanges / Qualité",
+        title: "Modération",
         items: [
+          { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
           { to: "/reviews", label: "Avis", icon: "ic-review" },
-          { to: "/photos", label: "Photos", badge: pendingMedia },
+          { to: "/photos", label: "Photos", icon: "ic-camera", badge: pendingMedia },
+          { to: "/validation", label: "File de validation", icon: "ic-check", badge: pendingEdits },
         ],
       },
       { title: "Organisation", items: [{ to: "/settings", label: "Équipe & Réglages", icon: "ic-settings" }] },
-      { title: "Admin", items: [{ to: "/users", label: "Utilisateurs", icon: "ic-users" }] },
+      {
+        title: "Admin",
+        items: [
+          { to: "/organizations", label: "Collectivités", icon: "ic-building" },
+          { to: "/users", label: "Utilisateurs", icon: "ic-users" },
+        ],
+      },
     ];
   }
 
@@ -75,19 +84,14 @@ export function buildNavGroups(opts: {
       ],
     },
     {
-      title: "Exploitation",
+      title: "Modération",
       items: [
         { to: "/reports", label: "Signalements", icon: "ic-flag", badge: openReports },
-        { to: "/maintenance", label: "Entretien" },
-      ],
-    },
-    {
-      title: "Échanges / Qualité",
-      items: [
         { to: "/reviews", label: "Avis", icon: "ic-review" },
-        { to: "/photos", label: "Photos", badge: pendingMedia },
+        { to: "/photos", label: "Photos", icon: "ic-camera", badge: pendingMedia },
       ],
     },
+    { title: "Exploitation", items: [{ to: "/maintenance", label: "Entretien" }] },
     {
       title: "Organisation",
       items: [
@@ -135,8 +139,17 @@ export function Shell({ children }: { children: ReactNode }) {
     queryKey: ["shell-pending-media", communeId, isAdmin],
     queryFn: async () => (await listPendingMedia({ communeId })).length,
   });
+  // File de validation : Admin uniquement pour ce lot (Admin-3B-1 §11) — même
+  // mécanisme que les 3 badges ci-dessus, pas de nouvelle architecture de
+  // fetching. `enabled: isAdmin` seul (contrairement aux autres) car aucune
+  // UI collectivité n'existe encore pour cette file.
+  const { data: pendingEdits = 0 } = useQuery({
+    queryKey: ["shell-pending-edits", isAdmin],
+    queryFn: async () => (await listParkEdits({ status: ["pending"] })).length,
+    enabled: isAdmin,
+  });
 
-  const groups = buildNavGroups({ isAdmin, pendingParks, openReports, pendingMedia });
+  const groups = buildNavGroups({ isAdmin, pendingParks, openReports, pendingMedia, pendingEdits });
   const allItems = groups.flatMap((g) => g.items);
   const currentLabel = resolveScreenLabel(allItems, location.pathname);
 
@@ -164,34 +177,43 @@ export function Shell({ children }: { children: ReactNode }) {
     mainRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
+  // "bo-shell-admin" (Admin-UI-7C) is a plain global marker, not a CSS-module
+  // class: it must be readable both from this module (via `:global()`) and
+  // from the shared, non-module `index.css` (`.bo-content` background) — same
+  // convention already used for "bo-shell"/"bo-content" themselves. Applied
+  // only when `isAdmin`, so the Collectivité shell keeps its current (green
+  // sidebar, warm background) look entirely unchanged.
   return (
-    <div className="bo-shell">
+    <div className={clsx("bo-shell", isAdmin && "bo-shell-admin")}>
       <a href="#main-content" className={styles.skipLink}>
         Aller au contenu principal
       </a>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <Logo size={26} tone="light" />
+          <Logo size={24} tone="light" />
+          {isAdmin && <span className={styles.adminBadge}>Admin</span>}
         </div>
-        <div className={styles.orgLabel}>{orgLabel}</div>
 
-        {(hasAdmin ? 1 : 0) + communeMemberships.length > 1 && (
-          <select
-            className={styles.orgSwitch}
-            aria-label="Changer d'organisation"
-            value={isAdmin ? "admin" : communeId}
-            onChange={(e) =>
-              setActiveOrg(e.target.value === "admin" ? { type: "admin" } : { type: "commune", communeId: e.target.value })
-            }
-          >
-            {hasAdmin && <option value="admin">Toboggo Admin</option>}
-            {communeMemberships.map((m) => (
-              <option key={m.commune_id} value={m.commune_id!}>
-                {communes.find((c) => c.id === m.commune_id)?.name ?? m.commune_id}
-              </option>
-            ))}
-          </select>
-        )}
+        <div className={styles.orgBlock}>
+          <div className={styles.orgLabel}>{orgLabel}</div>
+          {(hasAdmin ? 1 : 0) + communeMemberships.length > 1 && (
+            <select
+              className={styles.orgSwitch}
+              aria-label="Changer d'organisation"
+              value={isAdmin ? "admin" : communeId}
+              onChange={(e) =>
+                setActiveOrg(e.target.value === "admin" ? { type: "admin" } : { type: "commune", communeId: e.target.value })
+              }
+            >
+              {hasAdmin && <option value="admin">Toboggo Admin</option>}
+              {communeMemberships.map((m) => (
+                <option key={m.commune_id} value={m.commune_id!}>
+                  {communes.find((c) => c.id === m.commune_id)?.name ?? m.commune_id}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
 
         <nav className={styles.nav} aria-label="Navigation principale">
           {groups.map((group) => (
@@ -208,7 +230,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   >
                     <span className={styles.navLabel}>
                       {item.icon ? (
-                        <Icon name={item.icon} size={19} />
+                        <Icon name={item.icon} size={16} />
                       ) : (
                         <span className={styles.navIconSlot} aria-hidden="true" />
                       )}

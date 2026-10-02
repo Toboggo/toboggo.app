@@ -14,120 +14,189 @@
   left: 0;
 }
 
-/* Sidebar = surface structurelle de la marque : vert Toboggo très sombre et
- * désaturé (token --color-sidebar-bg, COLL-02B §2) — jamais un aplat du vert
- * de marque plein (--color-primary-pressed, trop "vert plein" pour un SaaS
- * B2B) ni du noir pur. cf. docs/DESIGN-SYSTEM.md §6. Contraste texte blanc /
- * fond ≈ 14:1 (AAA), largement au-dessus du AA visé. */
+/* Sidebar Collectivité (défaut) = vert Toboggo profond (--color-primary-pressed).
+ * L'Admin sombre (Admin-UI-7C, ci-dessous) est une SURCHARGE scoped sous
+ * `:global(.bo-shell-admin)` — ce bloc reste la vérité pour la Collectivité,
+ * intégralement inchangé. cf. docs/DESIGN-SYSTEM.md §6. */
 .sidebar {
-  width: 216px;
+  width: var(--sidebar-width, 212px);
   flex-shrink: 0;
-  background: var(--color-sidebar-bg);
+  background: var(--color-primary-pressed);
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: 16px 10px;
+  padding: 16px 12px;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
 }
+
+/* ════════════════════════════════════════════════════════════════════════
+   Admin-UI-7C — Shell Admin sombre (scoped, Admin uniquement)
+   ────────────────────────────────────────────────────────────────────────
+   `:global(.bo-shell-admin)` n'est posé sur la racine que si `isAdmin`
+   (Shell.tsx) : la Collectivité ne charge jamais ces règles. Presque noir /
+   bleu nuit plutôt qu'une grande surface verte — le vert Toboggo devient un
+   ACCENT (item actif) et non plus le fond structurel.
+   ════════════════════════════════════════════════════════════════════════ */
+:global(.bo-shell-admin) .sidebar {
+  background: var(--color-sidebar-bg);
+}
+:global(.bo-shell-admin) .navItem {
+  color: var(--color-sidebar-text);
+}
+:global(.bo-shell-admin) .navItem:hover {
+  background: var(--color-sidebar-surface-hover);
+  color: var(--color-sidebar-text-active);
+}
+/* Item actif = halo vert Toboggo (surface + liseré), pas violet, pas un
+ * simple blanc translucide comme sur la Collectivité. */
+:global(.bo-shell-admin) .navItem.active {
+  background: rgba(47, 163, 124, 0.18);
+  color: var(--color-sidebar-text-active);
+}
+:global(.bo-shell-admin) .navItem.active::before {
+  background: var(--color-primary);
+}
+:global(.bo-shell-admin) .groupTitle {
+  color: rgba(255, 255, 255, 0.42);
+}
+:global(.bo-shell-admin) .orgLabel {
+  color: var(--color-sidebar-text-active);
+}
+:global(.bo-shell-admin) .orgBlock {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+:global(.bo-shell-admin) .orgSwitch {
+  background: var(--color-sidebar-surface-hover);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+:global(.bo-shell-admin) .adminBadge {
+  background: var(--color-primary);
+  color: #fff;
+}
 .brand {
-  padding: 4px 8px 14px;
-  margin-bottom: 2px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+/* Pastille « Admin » (Admin-UI-1, maquette produit) — structure/typo repris
+ * de la maquette, teinte volontairement neutre (blanc translucide) : le vert
+ * de marque reste l'accent, cette pastille est un simple repère de contexte. */
+.adminBadge {
+  font-family: var(--font-heading);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+}
+
+/* Bloc identité (org courante + sélecteur) séparé visuellement de la nav —
+ * hiérarchie plus lisible qu'un simple empilement (Admin-UI-1). */
+.orgBlock {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
   flex-shrink: 0;
 }
 .orgLabel {
-  padding: 0 8px;
-  font-size: 12.5px;
+  padding: 0 6px;
+  font-size: 12px;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.92);
-  margin-top: 14px;
-  margin-bottom: 10px;
-  flex-shrink: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .orgSwitch {
   width: 100%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: inherit;
   border-radius: var(--radius-xs);
-  padding: 6px 10px;
-  font-size: 12.5px;
-  margin-bottom: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  margin-top: 6px;
   cursor: pointer;
   flex-shrink: 0;
 }
 
-/* Séparation nette entre l'identité (logo / collectivité active / switch) et
- * la navigation — évite que la nav ait l'air de flotter juste sous le switch. */
 .nav {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   flex: 1;
-  padding-top: 14px;
-  margin-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 .group {
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
+/* Un peu plus de contraste sur le libellé : la hiérarchie des sections se
+ * lit à l'œil sans dépendre d'un grand espace vide entre elles (qui donnait
+ * la sensation de sidebar creuse) — l'espacement inter-groupes vient du
+ * `gap` de `.nav`, resserré ci-dessus, pas d'un padding supplémentaire ici. */
 .groupTitle {
   font-family: var(--font-heading);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-  padding: 0 10px 4px;
+  color: rgba(255, 255, 255, 0.56);
+  padding: 0 8px 4px;
 }
 .navItem {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 13.5px;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
   text-decoration: none;
   cursor: pointer;
   background: none;
   border: none;
-  border-left: 3px solid transparent;
   width: 100%;
   text-align: left;
-  transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
 }
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
 }
-/* Actif = vert Toboggo (--color-primary, plus clair que le fond
- * --color-primary-pressed de la sidebar) en liseré + fond clair sobre —
- * repérable en un coup d'œil sans bloc massif ni couleur d'accent (réservée
- * aux badges d'attention). Opacité et liseré légèrement renforcés (COLL-02D
- * §7) pour un état actif plus "premium", toujours sans dégradé. */
+/* Actif = repérable immédiatement par la conjonction poids + blanc pur +
+ * fond léger + liseré d'accent à gauche (Admin-UI-1 — reprend la lisibilité
+ * de la maquette sans en reprendre sa teinte violette, cf. vert de marque). */
 .navItem.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.14);
   color: #fff;
   font-weight: 600;
-  border-left-color: var(--color-primary);
 }
-.navItem.active :global(svg) {
-  color: var(--color-primary);
+.navItem.active::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  background: #fff;
 }
 .navLabel {
   display: inline-flex;
   align-items: center;
-  gap: 11px;
+  gap: 8px;
   min-width: 0;
 }
 .navLabelText {
@@ -141,8 +210,8 @@
  * puce (qui se lirait comme un pictogramme manquant). */
 .navIconSlot {
   display: inline-block;
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
 }
 .badge {
@@ -151,8 +220,8 @@
   font-size: 10px;
   font-weight: 700;
   border-radius: var(--radius-pill);
-  min-width: 18px;
-  height: 18px;
+  min-width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -183,7 +252,17 @@
   .brand {
     display: none;
   }
+  .orgBlock {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0;
+  }
   .orgLabel {
+    display: none;
+  }
+  /* La barre d'accent à gauche n'a pas de sens dans la barre du bas (items
+   * empilés icône+label, pas une liste verticale) — supprimée ici seulement. */
+  .navItem.active::before {
     display: none;
   }
   .orgSwitch {

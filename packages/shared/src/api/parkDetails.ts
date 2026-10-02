@@ -10,6 +10,7 @@ import type {
   ParkScore,
   ParkSource,
   ParkZone,
+  SourceType,
 } from "../types";
 
 /** A contributor upload (`source = "user"`) always lands in the moderation
@@ -66,6 +67,49 @@ export async function listSources(parkId: string): Promise<ParkSource[]> {
   const { data, error } = await supabase.from("park_sources").select("*").eq("park_id", parkId);
   if (error) throw error;
   return (data ?? []) as ParkSource[];
+}
+
+export interface ParkSourceCount {
+  source_type: SourceType;
+  count: number;
+}
+
+// Toutes les valeurs réelles de l'enum `source_type` (fermé — contrairement à
+// `country_code`, voir `getParkCountryDistribution` dans parks.ts) : un
+// `count` exact par valeur, tiré en parallèle, jamais un tableau complet.
+const SOURCE_TYPES: SourceType[] = ["osm", "open_data", "municipality", "partner", "user", "toboggo", "other"];
+
+/**
+ * Répartition du catalogue par `park_sources.source_type` (Admin-UI-2 —
+ * Dashboard §3), toutes organisations confondues. `park_sources` a
+ * aujourd'hui exactement une ligne par parc (vérifié en lecture seule :
+ * `park_id` n'est pas unique en base mais chaque import n'en crée qu'une —
+ * un parc avec 0 ou 2+ lignes reste géré ici sans planter, juste compté
+ * différemment). RLS `park_sources_read` = `park_is_visible(park_id)` :
+ * un admin/staff voit tous les parcs (staff manages_park), donc cet agrégat
+ * porte sur le catalogue réel, pas seulement les parcs publiés.
+ *
+ * Admin-UI-7D-C : réécrit pour ne plus dépendre d'un `select` non paginé.
+ * `park_sources` n'a pas de `.limit()` — au-delà de `max_rows` (PostgREST,
+ * 1000 localement) l'ancien `select("source_type")` était silencieusement
+ * tronqué, exactement le même bug que `listParks()` (voir
+ * `getParkStatusCounts`). `{ count: "exact", head: true }` par valeur donne
+ * un vrai `SELECT count(*) WHERE source_type = …` — fiable à toute échelle,
+ * sans transférer une seule ligne.
+ */
+export async function getParkSourceDistribution(): Promise<ParkSourceCount[]> {
+  const supabase = getSupabase();
+  const entries = await Promise.all(
+    SOURCE_TYPES.map(async (source_type) => {
+      const { count, error } = await supabase
+        .from("park_sources")
+        .select("park_id", { count: "exact", head: true })
+        .eq("source_type", source_type);
+      if (error) throw error;
+      return { source_type, count: count ?? 0 };
+    }),
+  );
+  return entries.filter((e) => e.count > 0).sort((a, b) => b.count - a.count);
 }
 
 export async function listExternalIds(parkId: string): Promise<ExternalId[]> {
@@ -204,6 +248,27 @@ export async function addParkPhotos(
 
 export interface PendingMedia extends ParkMedia {
   park: { id: string; name: string } | null;
+  /** Nom du profil de l'auteur (`user_id` → `profiles.name`), pour une photo
+   * de contributeur sans `author` déclaré. `null` si le contributeur n'a pas
+   * de profil, ou si `profiles` n'est pas lisible par l'appelant (RLS
+   * `profiles_staff_read` : vrai pour le staff, pas pour une collectivité) —
+   * jamais un nom inventé (même convention que `proposedByName` dans
+   * `listParkEditsWithDetails`, contributions.ts). */
+  uploadedByName: string | null;
+}
+
+/** Résout `user_id` → `profiles.name` pour un lot de `park_media`, en UNE
+ * requête batched (jamais un lookup par ligne) — même pattern que
+ * `listParkEditsWithDetails` (contributions.ts). */
+async function withUploaderNames<T extends ParkMedia>(rows: T[]): Promise<(T & { uploadedByName: string | null })[]> {
+  const userIds = [...new Set(rows.map((r) => r.user_id).filter((id): id is string => !!id))];
+  if (!userIds.length) return rows.map((r) => ({ ...r, uploadedByName: null }));
+  const supabase = getSupabase();
+  const { data: profiles, error } = await supabase.from("profiles").select("id, name").in("id", userIds);
+  if (error) throw error;
+  const namesById = new Map<string, string>();
+  for (const p of (profiles ?? []) as { id: string; name: string }[]) namesById.set(p.id, p.name);
+  return rows.map((r) => ({ ...r, uploadedByName: r.user_id ? (namesById.get(r.user_id) ?? null) : null }));
 }
 
 /** Photos awaiting moderation. Scoped to a commune when `communeId` is given
@@ -225,7 +290,36 @@ export async function listPendingMedia(opts: { communeId?: string } = {}): Promi
   }
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []) as unknown as PendingMedia[];
+  return withUploaderNames((data ?? []) as unknown as (ParkMedia & { park: { id: string; name: string } | null })[]);
+}
+
+/**
+ * Photos déjà modérées (approuvées ou refusées) — alimente l'onglet
+ * "Traitées" de `/photos` (Admin-UI-6D). Même scoping que `listPendingMedia`.
+ *
+ * Limite backend constatée : `park_media` n'a pas de colonne
+ * `moderated_at`/`moderated_by` — le tri se fait donc sur `created_at`
+ * (date d'ENVOI de la photo), pas sur la date de décision de modération, qui
+ * n'est pas enregistrée aujourd'hui. Contrairement à `listPendingMedia`
+ * (toujours petite par construction), cette file n'est bornée par aucune
+ * fenêtre de temps ni pagination — à revisiter si son volume grandit au point
+ * de le justifier ; non fait ici pour ne pas inventer une limite arbitraire
+ * non demandée.
+ */
+export async function listProcessedMedia(opts: { communeId?: string } = {}): Promise<PendingMedia[]> {
+  const supabase = getSupabase();
+  let query = supabase
+    .from("park_media")
+    .select("*, park:parks!park_media_park_id_fkey(id, name)")
+    .in("status", ["approved", "rejected"])
+    .order("created_at", { ascending: false });
+  if (opts.communeId) {
+    const ids = await listOrgParkIds(opts.communeId);
+    query = query.in("park_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  return withUploaderNames((data ?? []) as unknown as (ParkMedia & { park: { id: string; name: string } | null })[]);
 }
 
 /** Approve or reject a photo. A rejected photo's file is purged from the public

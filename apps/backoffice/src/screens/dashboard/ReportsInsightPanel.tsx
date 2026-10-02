@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Report, ReportStatus } from "@toboggo/shared";
 import { Panel, PanelEmpty } from "../../components/Panel";
-import styles from "../Dashboard.module.css";
+import styles from "../CommuneDashboard.module.css";
 
 const STATUS_LABEL: Record<ReportStatus, string> = {
   open: "Ouverts",

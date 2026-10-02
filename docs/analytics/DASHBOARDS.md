@@ -144,3 +144,15 @@ teste si "arriver pour contribuer" prédit une meilleure rétention que "arriver
 **Décisions produit permises** : arbitrer l'investissement sur Apple/téléphone (aujourd'hui mock)
 selon le volume de demande captée ; identifier si un provider d'auth particulier corrèle avec une
 meilleure rétention ; quantifier l'impact réel de `account_deleted` sur la base active.
+
+## 7. Insights PostHog Production — configuration attendue (après LOT 2)
+
+Tous : `environment = production`, période 30 jours.
+
+| Insight | Événement(s) | Agrégation | Filtre / breakdown | Fiabilité |
+|---|---|---|---|---|
+| Nouveaux comptes | `signup_completed` | Unique users | — ; breakdown `provider` (email/google) optionnel | Fiable : email + Google (création détectée par heuristique `created_at`/`last_sign_in_at` ≤ 10 s, jamais métier) |
+| Utilisateurs connectés | `login_completed` | Unique users | — ; breakdown `provider` | Fiable pour les connexions explicites ; une restauration de session n'est volontairement PAS un login |
+| Inscription → 1re consultation d'un parc | funnel `signup_completed` → `park_viewed` | Unique users | fenêtre de conversion à fixer (ex. 7 j) | Fiable seulement si le `park_viewed` suit l'identification : vrai pour tout événement après `identify` (reload inclus) ; limite : inscription email avec confirmation par lien (nouvelle page, nouvel anonyme) |
+| Inscription → parc → itinéraire | funnel `signup_completed` → `park_viewed` → `route_requested` | Unique users | idem | Idem |
+| Itinéraires par application | `route_requested` | Total count | breakdown `provider` (google_maps / apple_maps / waze) | Déjà fiable, inchangé (n'a pas besoin de l'identité) |

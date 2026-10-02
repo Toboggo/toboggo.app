@@ -7,7 +7,9 @@
     "suggestedCities": "Suggested cities",
     "parks": "Parks",
     "places": "Places",
-    "noResults": "No results for “{{query}}”."
+    "noPlace": "No place found for “{{query}}”",
+    "error": "Place search is unavailable right now. Please try again.",
+    "searching": "Searching…"
   },
   "filters": {
     "title": "Filters",
@@ -38,6 +40,7 @@
   },
   "nearby": {
     "title": "Around you",
+    "titlePlace": "Around {{place}}",
     "subtitle_one": "{{count}} park within {{distance}}",
     "subtitle_other": "{{count}} parks within {{distance}}",
     "subtitleNone": "No parks within {{distance}}",

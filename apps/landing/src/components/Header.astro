@@ -1,0 +1,147 @@
+---
+import Logo from "./Logo.astro";
+import { getDictionary, getLangFromUrl } from "../i18n/utils";
+
+const dict = getDictionary(getLangFromUrl(Astro.url));
+
+const LINKS = [
+  { href: "/", label: dict.nav.accueil },
+  { href: "/fonctionnalites/", label: dict.nav.fonctionnalites },
+  { href: "/aires-de-jeux/", label: dict.nav.airesDeJeux },
+  { href: "/guides/", label: dict.nav.guides },
+  { href: "/collectivites/", label: dict.nav.collectivites },
+  { href: "/a-propos/", label: dict.nav.aPropos },
+];
+// Page courante : "/" seulement sur l'accueil ; les autres par préfixe de chemin.
+const path = Astro.url.pathname;
+const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWith(href.replace(/\/$/, "")));
+---
+
+<header class="site-header">
+  <div class="wrap header-inner">
+    <Logo />
+
+    <nav class="nav-links" id="primary-nav" aria-label="Navigation principale">
+      {LINKS.map((link) => <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined}>{link.label}</a>)}
+      <a class="btn btn-primary" href="/#comment-ca-marche">{dict.cta.decouvrir}</a>
+    </nav>
+
+    <button
+      type="button"
+      class="nav-toggle"
+      id="nav-toggle"
+      aria-expanded="false"
+      aria-controls="primary-nav"
+      aria-label="Ouvrir le menu"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+  </div>
+</header>
+
+<script>
+  const toggle = document.getElementById("nav-toggle");
+  const nav = document.getElementById("primary-nav");
+
+  toggle?.addEventListener("click", () => {
+    const isOpen = nav?.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    toggle.setAttribute("aria-label", isOpen ? "Fermer le menu" : "Ouvrir le menu");
+  });
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--z-nav);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-4) var(--space-6);
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-7);
+  }
+
+  .nav-links a:not(.btn) {
+    color: var(--color-text);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 600;
+  }
+
+  .nav-links a:not(.btn):hover,
+  .nav-links a[aria-current="page"]:not(.btn) {
+    color: var(--color-primary-hover);
+  }
+
+  .nav-links a[aria-current="page"]:not(.btn) {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 6px;
+  }
+
+  /* 6 liens + CTA : on resserre avant le menu mobile (800px) pour éviter tout débordement */
+  @media (max-width: 1040px) {
+    .nav-links {
+      gap: var(--space-5);
+    }
+  }
+
+  .nav-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  .nav-toggle span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--color-text);
+    margin: 0 auto;
+  }
+
+  @media (max-width: 800px) {
+    .nav-toggle {
+      display: flex;
+    }
+
+    .nav-links {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--space-4);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-4) var(--space-6) var(--space-6);
+      display: none;
+    }
+
+    .nav-links.open {
+      display: flex;
+    }
+  }
+</style>

@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { signInWithGoogle } from "@toboggo/shared";
+import { startGoogleLogin } from "../../lib/googleLogin";
 import { Illustration } from "../../illustrations";
 import { useToastStore } from "../../lib/toast";
-import { AppleIcon, ChevronLeft, ChevronRight, GoogleIcon, MailIcon, PhoneIcon } from "./authIcons";
+import { ChevronLeft, ChevronRight, GoogleIcon, MailIcon, PhoneIcon } from "./authIcons";
 import styles from "./LoginMethod.module.css";
 
 export default function LoginMethod() {
@@ -15,7 +15,7 @@ export default function LoginMethod() {
 
   const continueWithGoogle = async () => {
     try {
-      await signInWithGoogle();
+      await startGoogleLogin();
       // On success the browser redirects to Google, so nothing else runs here.
     } catch {
       showToast(tErr("auth.googleUnavailable"));
@@ -39,15 +39,6 @@ export default function LoginMethod() {
       icon: <PhoneIcon />,
       title: t("loginMethod.phone.title"),
       subtitle: t("loginMethod.phone.subtitle"),
-      onClick: () => showToast(tCommon("comingSoon")),
-    },
-    {
-      key: "apple",
-      tile: "var(--color-surface-alt)",
-      tint: "var(--color-text)",
-      icon: <AppleIcon />,
-      title: t("loginMethod.apple.title"),
-      subtitle: t("loginMethod.apple.subtitle"),
       onClick: () => showToast(tCommon("comingSoon")),
     },
     {

@@ -1,0 +1,143 @@
+---
+/**
+ * Pas de liens réseaux sociaux (aucune URL réelle confirmée) ni de bloc
+ * newsletter (aucun backend newsletter n'existe) — choix explicite plutôt
+ * que d'afficher un composant désactivé ou un faux lien, voir consigne
+ * Website-1 §Footer.
+ */
+import Logo from "./Logo.astro";
+import { getDictionary, getLangFromUrl } from "../i18n/utils";
+
+const dict = getDictionary(getLangFromUrl(Astro.url));
+---
+
+<footer class="site-footer">
+  <svg class="footer-wave" viewBox="0 0 1200 40" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 22C150 6 300 34 450 22C600 10 750 34 900 22C1000 14 1100 18 1200 22V0H0Z" fill="var(--color-primary-tint)" />
+  </svg>
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <Logo />
+      <p class="tagline">{dict.footer.tagline}</p>
+    </div>
+
+    <nav class="footer-col" aria-label={dict.footer.explorer.heading}>
+      <p class="footer-title">{dict.footer.explorer.heading}</p>
+      <a href="/fonctionnalites/">{dict.footer.explorer.fonctionnalites}</a>
+      <a href="/guides/">{dict.footer.explorer.guides}</a>
+      <a href="/aires-de-jeux/">{dict.footer.explorer.airesDeJeux}</a>
+      <a href="/collectivites/">{dict.footer.explorer.collectivites}</a>
+    </nav>
+
+    <nav class="footer-col" aria-label={dict.footer.aPropos.heading}>
+      <p class="footer-title">{dict.footer.aPropos.heading}</p>
+      <a href="/a-propos/#mission">{dict.footer.aPropos.mission}</a>
+      <a href="/a-propos/#histoire">{dict.footer.aPropos.histoire}</a>
+      <a href="/contact/">{dict.footer.aPropos.contact}</a>
+      <a href="/faq/">{dict.footer.aPropos.aide}</a>
+    </nav>
+
+    <nav class="footer-col" aria-label={dict.footer.legal.heading}>
+      <p class="footer-title">{dict.footer.legal.heading}</p>
+      <a href="/cgu/#confidentialite">{dict.footer.legal.confidentialite}</a>
+      <a href="/cgu/#cgu">{dict.footer.legal.cgu}</a>
+      <a href="/mentions-legales/">{dict.footer.legal.mentionsLegales}</a>
+      <a href="/cgu/#cookies">{dict.footer.legal.cookies}</a>
+    </nav>
+  </div>
+
+  <div class="wrap footer-bottom">
+    <p>{dict.footer.copyright}</p>
+    <!-- Attribution OpenStreetMap : les données de parcs importées d'OSM sont sous
+         licence ODbL, qui impose la mention « © OpenStreetMap contributors »
+         avec un lien vers la page de licence. -->
+    <p>
+      {dict.footer.dataCredit}
+      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
+      (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">ODbL</a>)
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    position: relative;
+    padding: 56px 0 var(--space-6);
+    background: var(--color-bg);
+  }
+
+  /* Onde légère plutôt qu'un simple filet : séparation douce avec la page,
+     vert d'eau très clair (--color-primary-tint), pas d'aplat plein. */
+  .footer-wave {
+    display: block;
+    width: 100%;
+    height: 32px;
+  }
+
+  .footer-inner {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    gap: var(--space-8);
+  }
+
+  .footer-brand .tagline {
+    margin: var(--space-3) 0 0;
+    color: var(--color-text-muted);
+    font-size: var(--text-sm);
+  }
+
+  .footer-col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .footer-col .footer-title {
+    font-family: var(--font-heading);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  .footer-col a {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: 14px;
+  }
+
+  .footer-col a:hover {
+    color: var(--color-primary-hover);
+  }
+
+  .footer-bottom {
+    margin-top: var(--space-8);
+    color: var(--color-text-muted);
+    font-size: var(--text-xs);
+  }
+
+  .footer-bottom p {
+    margin: 0 0 var(--space-1);
+  }
+
+  .footer-bottom a {
+    color: inherit;
+    text-decoration: underline;
+  }
+
+  .footer-bottom a:hover {
+    color: var(--color-primary-hover);
+  }
+
+  @media (max-width: 800px) {
+    .footer-inner {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .footer-inner {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -19,7 +19,10 @@
     "action": "Mettre à jour"
   },
   "guestProfile": {
-    "prompt": "Connectez-vous pour retrouver vos favoris et vos contributions."
+    "title": "Rejoignez Toboggo",
+    "benefits": "Créez un compte pour sauvegarder vos parcs favoris et contribuer : ajouter des parcs, donner votre avis, signaler un problème.",
+    "createAccount": "Créer un compte",
+    "alreadyMember": "Déjà membre ?"
   },
   "settings": {
     "languageLabel": "Langue",

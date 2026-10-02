@@ -12,22 +12,6 @@
     "explore": "Explorar parques",
     "createAccount": "Crear una cuenta"
   },
-  "loginMethod": {
-    "title": "Iniciar sesión",
-    "subtitle": "Elige tu método\npara iniciar sesión en Toboggo.",
-    "email": {
-      "title": "Con tu correo electrónico",
-      "subtitle": "Rápido y seguro"
-    },
-    "phone": {
-      "title": "Con tu número de teléfono",
-      "subtitle": "Recibe un código por SMS"
-    },
-    "google": {
-      "title": "Con Google",
-      "subtitle": "Inicio de sesión con un solo gesto"
-    }
-  },
   "auth": {
     "signupTitle": "Crear una cuenta",
     "loginTitle": "¡Bienvenido de nuevo!",

@@ -92,12 +92,19 @@ export default function Profile() {
           <h2>{t("title")}</h2>
         </div>
         <div className={styles.body}>
-          <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", lineHeight: 1.5, margin: "4px 0 16px" }}>
-            {t("guestProfile.prompt", { ns: "common" })}
-          </p>
-          <button type="button" className={styles.signInCta} onClick={() => navigate("/login-method")}>
-            {t("action.signIn", { ns: "common" })}
-          </button>
+          <section className={styles.guestCard} aria-labelledby="guest-title">
+            <h3 id="guest-title">{t("guestProfile.title", { ns: "common" })}</h3>
+            <p>{t("guestProfile.benefits", { ns: "common" })}</p>
+            <button type="button" className={styles.guestPrimary} onClick={() => navigate("/login?mode=signup")}>
+              {t("guestProfile.createAccount", { ns: "common" })}
+            </button>
+            <p className={styles.guestMember}>
+              {t("guestProfile.alreadyMember", { ns: "common" })}{" "}
+              <button type="button" onClick={() => navigate("/login?mode=login")}>
+                {t("action.signIn", { ns: "common" })}
+              </button>
+            </p>
+          </section>
 
           <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("applicationTitle")}</h6>
           <div className={`${styles.group} ${styles.hubCard}`}>

@@ -19,7 +19,10 @@
     "action": "Update"
   },
   "guestProfile": {
-    "prompt": "Sign in to find your favorites and your contributions."
+    "title": "Join Toboggo",
+    "benefits": "Create an account to save your favorite parks and contribute: add parks, leave reviews, report a problem.",
+    "createAccount": "Create an account",
+    "alreadyMember": "Already a member?"
   },
   "settings": {
     "languageLabel": "Language",

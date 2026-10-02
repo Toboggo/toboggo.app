@@ -51,8 +51,8 @@ export default function Account() {
     <div className="screen">
       <TopBar title={t("accountScreen.managementKicker")} />
       <div style={{ padding: "0 20px" }}>
-        <h6 className={styles.kicker}>{t("accountScreen.infoKicker")}</h6>
-        <div className={styles.group}>
+        <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("accountScreen.infoKicker")}</h6>
+        <div className={`${styles.group} ${styles.hubCard}`}>
           <button type="button" className={styles.groupRow} onClick={() => navigate("/profile/edit")}>
             <span>{t("editProfile.title")}</span>
           </button>
@@ -61,8 +61,8 @@ export default function Account() {
           </button>
         </div>
 
-        <h6 className={styles.kicker}>{t("accountScreen.sessionKicker")}</h6>
-        <div className={styles.group}>
+        <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("accountScreen.sessionKicker")}</h6>
+        <div className={`${styles.group} ${styles.hubCard}`}>
           <button type="button" className={styles.groupRow} onClick={handleSignOut}>
             <span className={styles.actionText}>
               <span>{t("signOut")}</span>
@@ -72,8 +72,8 @@ export default function Account() {
         </div>
 
         <div className={styles.dangerZone}>
-          <h6 className={styles.dangerKicker}>{t("accountScreen.dangerKicker")}</h6>
-          <div className={styles.group}>
+          <h6 className={`${styles.dangerKicker} ${styles.hubKicker}`}>{t("accountScreen.dangerKicker")}</h6>
+          <div className={`${styles.group} ${styles.hubCard}`}>
             <button type="button" className={`${styles.groupRow} ${styles.dangerRow}`} onClick={openDeleteConfirm}>
               <span className={styles.groupRowMain}>
                 <Icon name="ic-trash" size={18} />

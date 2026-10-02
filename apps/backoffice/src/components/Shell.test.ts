@@ -10,6 +10,7 @@ const REGISTERED_ROUTES = new Set([
   "/validation",
   "/reports",
   "/reviews",
+  "/app-feedback",
   "/photos",
   "/organizations",
   "/users",
@@ -72,7 +73,7 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
       ["Parcs", ["Parcs"]],
       ["Modération", ["Signalements", "Avis", "Photos", "File de validation"]],
       ["Organisation", ["Équipe & Réglages"]],
-      ["Admin", ["Collectivités", "Utilisateurs"]],
+      ["Admin", ["Collectivités", "Utilisateurs", "Évaluations de l'app"]],
     ]);
     expect(communeLabels).not.toContain("Utilisateurs");
     expect(communeLabels).not.toContain("Collectivités");

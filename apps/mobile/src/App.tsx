@@ -50,6 +50,7 @@ import LegalIndex from "./screens/profile/LegalIndex";
 import Legal from "./screens/profile/Legal";
 import Help from "./screens/profile/Help";
 import Contact from "./screens/profile/Contact";
+import AppFeedback from "./screens/profile/AppFeedback";
 import About from "./screens/profile/About";
 
 // Legacy intro path for "Donner un avis": the wizard canonique (Parc → Avis →
@@ -165,6 +166,7 @@ export default function App() {
       <Route path="/profile/children/new" element={<ChildForm />} />
       <Route path="/profile/children/:childId" element={<ChildForm />} />
       <Route path="/profile/account" element={<Account />} />
+      <Route path="/profile/feedback" element={<AppFeedback />} />
       <Route path="/notifications" element={<NotificationPrefs />} />
       <Route path="/notifications/center" element={<NotifCenter />} />
       <Route path="/notifications/resolved/:notifId" element={<NotifResolved />} />

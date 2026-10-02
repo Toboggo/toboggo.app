@@ -99,14 +99,14 @@ export default function Profile() {
             {t("action.signIn", { ns: "common" })}
           </button>
 
-          <h6 className={styles.kicker}>{t("applicationTitle")}</h6>
-          <div className={styles.group}>
+          <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("applicationTitle")}</h6>
+          <div className={`${styles.group} ${styles.hubCard}`}>
             <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
             <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
           </div>
 
-          <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
-          <div className={styles.group}>
+          <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("helpInfoTitle")}</h6>
+          <div className={`${styles.group} ${styles.hubCard}`}>
             <Row label={t("help")} onClick={() => navigate("/help")} />
             <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
             <Row label={t("about.title")} onClick={() => navigate("/about")} />
@@ -133,13 +133,9 @@ export default function Profile() {
         <div className={styles.hubHeader}>
           <LogoMark size={28} />
           <h2 className={styles.hubTitle}>{t("title")}</h2>
-          <button
-            type="button"
-            className={styles.settingsBtn}
-            onClick={() => navigate("/settings")}
-            aria-label={t("settingsScreen.open")}
-          >
-            <Icon name="ic-settings" size={18} />
+          <button type="button" className={styles.settingsPill} onClick={() => navigate("/settings")}>
+            <Icon name="ic-settings" size={16} />
+            <span>{t("settingsScreen.title")}</span>
           </button>
         </div>
       </div>
@@ -155,7 +151,7 @@ export default function Profile() {
       </div>
 
       <div className={styles.body}>
-        <div className={styles.statsCard}>
+        <div className={`${styles.statsCard} ${styles.hubCard}`}>
           <button type="button" className={styles.statItem} onClick={() => navigate("/contributions")}>
             <img className={styles.statIcon} src="/profile/icon-park-added.svg" alt="" aria-hidden="true" />
             <span className={styles.statText}>
@@ -181,9 +177,9 @@ export default function Profile() {
 
         {/* Famille — card blanche légère : chips par âge uniquement, jamais
             de prénom ni de photo réelle (le modèle Child n'en stocke pas). */}
-        <div className={styles.familyCard}>
+        <div className={`${styles.familyCard} ${styles.hubCard}`}>
           <div className={styles.familyHeader}>
-            <h6 className={styles.familyKicker}>{t("myChildren")}</h6>
+            <h6 className={`${styles.familyKicker} ${styles.hubKicker}`}>{t("myChildren")}</h6>
             <button type="button" className={styles.manageLink} onClick={() => navigate("/profile/children")}>
               {t("children.manage")}
               <Chevron />
@@ -213,8 +209,8 @@ export default function Profile() {
 
         {/* Mon activité — uniquement des éléments personnels réels ; jamais
             le fil communautaire (/activity), qui n'est pas "mon" historique. */}
-        <h6 className={styles.kicker}>{t("myActivityTitle")}</h6>
-        <div className={styles.group}>
+        <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("myActivityTitle")}</h6>
+        <div className={`${styles.group} ${styles.hubCard}`}>
           <Row iconSrc="/profile/icon-favorite.svg" label={t("favorites.title")} value={String(stats.favorites)} onClick={() => navigate("/favorites")} />
           <Row iconSrc="/profile/icon-contributions.svg" label={t("myContributions")} onClick={() => navigate("/contributions")} />
           <Row iconSrc="/profile/icon-group.svg" label={t("groupOuting")} onClick={() => navigate("/group")} />
@@ -224,7 +220,7 @@ export default function Profile() {
             Pas d'affordance "Voir tout" : aucun écran "Tous les badges"
             n'existe, on n'en crée pas un juste pour la maquette — ni un
             texte qui ferait croire à une destination qui n'existe pas. */}
-        <h6 className={styles.kicker}>{t("badgesTitle")}</h6>
+        <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("badgesTitle")}</h6>
         <div className={styles.badgesGrid}>
           {previewBadges.map((b) => {
             const earned = b.earned(stats);
@@ -234,7 +230,7 @@ export default function Profile() {
               earned ? ` — ${t("badge.earnedLabel")}` : prog ? ` — ${prog.current}/${prog.target}` : ""
             }`;
             return (
-              <div key={b.key} className={styles.badgeCard} role="img" aria-label={a11yLabel}>
+              <div key={b.key} className={`${styles.badgeCard} ${styles.hubCard}`} role="img" aria-label={a11yLabel}>
                 {art && art.earned === earned ? (
                   <img className={styles.badgeArt} src={art.src} alt="" aria-hidden="true" />
                 ) : (
@@ -257,12 +253,12 @@ export default function Profile() {
           })}
         </div>
 
-        <div className={styles.group} style={{ marginTop: 20 }}>
+        <div className={`${styles.group} ${styles.hubCard}`} style={{ marginTop: 20 }}>
           <Row
             icon="ic-star"
             label={t("feedback.title")}
             sublabel={t("feedback.hint")}
-            onClick={() => navigate("/contact?subject=feedback")}
+            onClick={() => navigate("/profile/feedback")}
           />
         </div>
       </div>
@@ -291,7 +287,11 @@ function Row({
     <button type="button" className={styles.groupRow} onClick={onClick}>
       <span className={styles.groupRowMain}>
         {iconSrc && <img className={styles.groupRowIcon} src={iconSrc} alt="" aria-hidden="true" />}
-        {icon && <Icon name={icon} size={20} />}
+        {icon && (
+          <span className={styles.rowIcon}>
+            <Icon name={icon} size={20} />
+          </span>
+        )}
         {sublabel ? (
           <span className={styles.actionText}>
             <span>{label}</span>

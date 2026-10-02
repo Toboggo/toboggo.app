@@ -54,6 +54,36 @@ export type Database = {
           },
         ]
       }
+      app_feedback: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          rating: number
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          rating: number
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string

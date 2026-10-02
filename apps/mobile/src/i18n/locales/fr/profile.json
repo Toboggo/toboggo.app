@@ -5,7 +5,11 @@
   "notifs": {
     "title": "Notifications",
     "markAllRead": "Tout marquer comme lu",
-    "filter": { "all": "Toutes", "unread": "Non lues", "read": "Lues" },
+    "filter": {
+      "all": "Toutes",
+      "unread": "Non lues",
+      "read": "Lues"
+    },
     "empty": "Aucune notification ici.",
     "seePark": "Voir le parc",
     "pref": {
@@ -112,8 +116,7 @@
       "general": "Question générale",
       "technical": "Problème technique",
       "partnership": "Partenariat",
-      "press": "Presse",
-      "feedback": "Avis sur Toboggo"
+      "press": "Presse"
     }
   },
   "feedback": {
@@ -227,5 +230,25 @@
       "organizer": "Organisateur",
       "enRoute": "En route"
     }
+  },
+  "appFeedback": {
+    "title": "Évaluer Toboggo",
+    "intro": "Votre avis nous aide à améliorer Toboggo. Il reste privé : seule l’équipe Toboggo peut le lire.",
+    "introEdit": "Vous avez déjà donné votre avis. Vous pouvez le modifier ci-dessous.",
+    "ratingLabel": "Votre note",
+    "starLabel_one": "{{count}} étoile",
+    "starLabel_other": "{{count}} étoiles",
+    "titleLabel": "Titre",
+    "titlePlaceholder": "En quelques mots",
+    "bodyLabel": "Votre avis",
+    "bodyPlaceholder": "Qu’est-ce qui vous plaît ? Que pourrions-nous améliorer ?",
+    "send": "Envoyer mon avis",
+    "update": "Mettre à jour mon avis",
+    "error": "Votre avis n’a pas pu être enregistré. Réessayez dans quelques instants.",
+    "loadError": "Votre avis précédent n’a pas pu être chargé.",
+    "sentTitle": "Merci pour votre avis !",
+    "sentBody": "Il a bien été enregistré. Vous pouvez le modifier à tout moment depuis votre profil.",
+    "backToProfile": "Retour au profil",
+    "signInPrompt": "Connectez-vous pour donner votre avis sur Toboggo."
   }
 }

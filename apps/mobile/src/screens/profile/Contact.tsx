@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Chip, Input, Textarea } from "@toboggo/design-system";
 import { sendContactMessage } from "@toboggo/shared";
@@ -13,17 +12,14 @@ const SUBJECTS: { value: string; key: string }[] = [
   { value: "Problème technique", key: "contact.subject.technical" },
   { value: "Partenariat", key: "contact.subject.partnership" },
   { value: "Presse", key: "contact.subject.press" },
-  { value: "Avis sur Toboggo", key: "contact.subject.feedback" },
 ];
-const FEEDBACK_SUBJECT = SUBJECTS[SUBJECTS.length - 1].value;
 
 export default function Contact() {
   const { t } = useTranslation("profile");
   const profile = useSession((s) => s.profile);
   const [name, setName] = useState(profile?.name ?? "");
   const [email, setEmail] = useState(profile?.email ?? "");
-  const [params] = useSearchParams();
-  const [subject, setSubject] = useState(params.get("subject") === "feedback" ? FEEDBACK_SUBJECT : SUBJECTS[0].value);
+  const [subject, setSubject] = useState(SUBJECTS[0].value);
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);

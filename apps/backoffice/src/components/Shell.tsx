@@ -69,6 +69,7 @@ export function buildNavGroups(opts: {
         items: [
           { to: "/organizations", label: "Collectivités", icon: "ic-building" },
           { to: "/users", label: "Utilisateurs", icon: "ic-users" },
+          { to: "/app-feedback", label: "Évaluations de l'app", icon: "ic-star" },
         ],
       },
     ];

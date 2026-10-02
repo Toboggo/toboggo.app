@@ -5,7 +5,11 @@
   "notifs": {
     "title": "Notifications",
     "markAllRead": "Mark all as read",
-    "filter": { "all": "All", "unread": "Unread", "read": "Read" },
+    "filter": {
+      "all": "All",
+      "unread": "Unread",
+      "read": "Read"
+    },
     "empty": "No notifications here.",
     "seePark": "View the park",
     "pref": {
@@ -112,8 +116,7 @@
       "general": "General enquiry",
       "technical": "Technical problem",
       "partnership": "Partnership",
-      "press": "Press",
-      "feedback": "Feedback on Toboggo"
+      "press": "Press"
     }
   },
   "feedback": {
@@ -227,5 +230,25 @@
       "organizer": "Organizer",
       "enRoute": "On the way"
     }
+  },
+  "appFeedback": {
+    "title": "Rate Toboggo",
+    "intro": "Your feedback helps us improve Toboggo. It stays private: only the Toboggo team can read it.",
+    "introEdit": "You already shared your feedback. You can edit it below.",
+    "ratingLabel": "Your rating",
+    "starLabel_one": "{{count}} star",
+    "starLabel_other": "{{count}} stars",
+    "titleLabel": "Title",
+    "titlePlaceholder": "In a few words",
+    "bodyLabel": "Your feedback",
+    "bodyPlaceholder": "What do you like? What could we improve?",
+    "send": "Send my feedback",
+    "update": "Update my feedback",
+    "error": "We couldn’t save your feedback. Please try again in a moment.",
+    "loadError": "We couldn’t load your previous feedback.",
+    "sentTitle": "Thank you for your feedback!",
+    "sentBody": "It has been saved. You can edit it at any time from your profile.",
+    "backToProfile": "Back to profile",
+    "signInPrompt": "Sign in to give your feedback on Toboggo."
   }
 }

@@ -13,6 +13,7 @@ export * from "./api/notifications";
 export * from "./api/groups";
 export * from "./api/communityFeed";
 export * from "./api/contact";
+export * from "./api/appFeedback";
 export * from "./api/features";
 export * from "./api/parkDetails";
 export * from "./api/contributions";

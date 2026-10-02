@@ -18,6 +18,7 @@ import Reports from "./screens/Reports";
 import Reviews from "./screens/Reviews";
 import Photos from "./screens/Photos";
 import Users from "./screens/Users";
+import AppFeedback from "./screens/AppFeedback";
 import MapScreen from "./screens/MapScreen";
 import Maintenance from "./screens/Maintenance";
 import Journal from "./screens/Journal";
@@ -44,6 +45,7 @@ function RoutedContent() {
         <Route path="/reviews" element={<Reviews />} />
         <Route path="/photos" element={<Photos />} />
         <Route path="/users" element={<Users />} />
+        <Route path="/app-feedback" element={<AppFeedback />} />
         <Route path="/map" element={<MapScreen />} />
         <Route path="/maintenance" element={<Maintenance />} />
         <Route path="/journal" element={<Journal />} />

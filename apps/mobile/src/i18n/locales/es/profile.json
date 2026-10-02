@@ -5,7 +5,11 @@
   "notifs": {
     "title": "Notificaciones",
     "markAllRead": "Marcar todo como leído",
-    "filter": { "all": "Todas", "unread": "No leídas", "read": "Leídas" },
+    "filter": {
+      "all": "Todas",
+      "unread": "No leídas",
+      "read": "Leídas"
+    },
     "empty": "No hay ninguna notificación aquí.",
     "seePark": "Ver el parque",
     "pref": {
@@ -112,8 +116,7 @@
       "general": "Consulta general",
       "technical": "Problema técnico",
       "partnership": "Colaboración",
-      "press": "Prensa",
-      "feedback": "Opinión sobre Toboggo"
+      "press": "Prensa"
     }
   },
   "feedback": {
@@ -227,5 +230,25 @@
       "organizer": "Organizador",
       "enRoute": "En camino"
     }
+  },
+  "appFeedback": {
+    "title": "Valorar Toboggo",
+    "intro": "Tu opinión nos ayuda a mejorar Toboggo. Es privada: solo el equipo de Toboggo puede leerla.",
+    "introEdit": "Ya diste tu opinión. Puedes modificarla a continuación.",
+    "ratingLabel": "Tu valoración",
+    "starLabel_one": "{{count}} estrella",
+    "starLabel_other": "{{count}} estrellas",
+    "titleLabel": "Título",
+    "titlePlaceholder": "En pocas palabras",
+    "bodyLabel": "Tu opinión",
+    "bodyPlaceholder": "¿Qué te gusta? ¿Qué podríamos mejorar?",
+    "send": "Enviar mi opinión",
+    "update": "Actualizar mi opinión",
+    "error": "No se ha podido guardar tu opinión. Vuelve a intentarlo en unos instantes.",
+    "loadError": "No se ha podido cargar tu opinión anterior.",
+    "sentTitle": "¡Gracias por tu opinión!",
+    "sentBody": "Se ha guardado. Puedes modificarla cuando quieras desde tu perfil.",
+    "backToProfile": "Volver al perfil",
+    "signInPrompt": "Inicia sesión para dar tu opinión sobre Toboggo."
   }
 }

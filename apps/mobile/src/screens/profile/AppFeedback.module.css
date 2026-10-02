@@ -1,0 +1,72 @@
+/* Écran « Évaluer Toboggo » — styles limités à cet écran. */
+.wrap {
+  padding: 0 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.intro {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+.ratingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.label {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--color-text);
+}
+/* Champs gris clair (token neutre existant — pas de hex en dur). */
+.field {
+  background: var(--color-border-neutral);
+  border-color: transparent;
+}
+.field:focus {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+}
+.error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-error);
+}
+.done {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px 24px;
+  text-align: center;
+}
+.doneStars {
+  display: inline-flex;
+  gap: 4px;
+  color: var(--color-accent);
+}
+.doneTitle {
+  margin: 8px 0 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--color-text);
+}
+.doneBody {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+/* Étoiles vides lisibles : StarInput les peint avec un token très pâle. */
+.ratingBlock svg path[fill="var(--color-border-strong)"] {
+  fill: var(--color-text-faint);
+  opacity: 0.45;
+}

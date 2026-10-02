@@ -1,6 +1,6 @@
-import { Segmented, useTheme, type ThemePreference } from "@toboggo/design-system";
+import { useTheme, type ThemePreference } from "@toboggo/design-system";
 import { useTranslation } from "react-i18next";
-import { TopBar } from "../../components/TopBar";
+import { ChoiceList, SettingsPage } from "./SettingsKit";
 
 /**
  * Apparence — Système / Clair / Sombre. Remplace l'ancien Display.tsx (qui
@@ -21,13 +21,8 @@ export default function Appearance() {
   ];
 
   return (
-    <div className="screen">
-      <TopBar title={t("settings.appearanceTitle")} />
-      <div style={{ padding: "0 20px" }}>
-        <div style={{ padding: "14px 0" }}>
-          <Segmented options={options} value={preference} onChange={setPreference} />
-        </div>
-      </div>
-    </div>
+    <SettingsPage title={t("settings.appearanceTitle")}>
+      <ChoiceList label={t("settings.appearanceTitle")} options={options} value={preference} onChange={setPreference} />
+    </SettingsPage>
   );
 }

@@ -141,7 +141,7 @@
       "emptyTitle": "Aucun favori ne correspond à ce filtre.",
       "emptyReset": "Voir tous mes favoris",
       "nearbyLocationTitle": "Activez votre localisation",
-      "nearbyLocationDesc": "Autorisez la localisation pour voir vos favoris situés à moins de {{radius}} km."
+      "nearbyLocationDesc": "Autorisez la localisation pour voir vos favoris situés à moins de {{distance}}."
     },
     "discover": {
       "title": "Envie de nouveaux parcs ?",

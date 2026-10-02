@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { useFormat } from "../../i18n/useFormat";
 import { useQuery } from "@tanstack/react-query";
 import { Button, EmptyState, Icon } from "@toboggo/design-system";
 import { haversineMeters, listParksByIds, type Park } from "@toboggo/shared";
@@ -17,6 +18,7 @@ type FilterKey = "all" | "nearby";
 export default function Favorites() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
+  const f = useFormat();
   const { t: tCommon } = useTranslation("common");
   const { t: tErr } = useTranslation("errors");
   const favorites = useSession((s) => s.profile?.favorites ?? []);
@@ -178,7 +180,7 @@ export default function Favorites() {
             <EmptyState
               iconName="ic-explore"
               title={t("favorites.filters.nearbyLocationTitle")}
-              description={t("favorites.filters.nearbyLocationDesc", { radius: DEFAULT_RADIUS_KM })}
+              description={t("favorites.filters.nearbyLocationDesc", { distance: f.distance(DEFAULT_RADIUS_KM * 1000) })}
             />
             <Button variant="secondary" block loading={locating} style={{ marginTop: 12 }} onClick={handleUseMyLocation}>
               {t("favorites.tips.location")}

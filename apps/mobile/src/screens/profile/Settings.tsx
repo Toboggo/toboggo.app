@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useTheme, type ThemePreference } from "@toboggo/design-system";
-import { TopBar } from "../../components/TopBar";
 import { useLocale } from "../../i18n/useLocale";
 import { LANGUAGE_ENDONYM } from "../../i18n/languageNames";
-import styles from "./Profile.module.css";
+import { useDistanceUnit, type DistanceUnitPreference } from "../../lib/distanceUnit";
+import { NavRow, SettingsPage, SettingsSection, kit } from "./SettingsKit";
 
 const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
   system: "settings.appearanceSystem",
@@ -12,68 +12,54 @@ const APPEARANCE_LABEL_KEY: Record<ThemePreference, string> = {
   dark: "settings.appearanceDark",
 };
 
+const UNIT_LABEL_KEY: Record<DistanceUnitPreference, string> = {
+  auto: "settings.distanceUnitAuto",
+  km: "settings.distanceUnitKm",
+  mi: "settings.distanceUnitMi",
+};
+
 /**
- * Réglages — préférences + compte + aide, séparés de Profile (identité +
- * famille + activité perso). Sous-écran : pas de bottom nav, retour vers
- * Profil via TopBar (défaut navigate(-1), seul point d'entrée existant).
+ * Compte et réglages — préférences + compte + aide, séparés de Profile
+ * (identité + famille + activité perso). Sous-écran : pas de bottom nav, retour
+ * vers Profil via TopBar (défaut navigate(-1), seul point d'entrée existant).
  */
 export default function Settings() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
   const { language } = useLocale();
   const [, appearance] = useTheme();
+  const { preference: unitPreference } = useDistanceUnit();
   const appearanceLabel = t(APPEARANCE_LABEL_KEY[appearance], { ns: "common" });
 
   return (
-    <div className="screen">
-      <TopBar title={t("settingsScreen.title")} />
-      <div style={{ padding: "0 20px" }}>
-        <h6 className={styles.kicker}>{t("applicationTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
-          <Row label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
-          <Row label={t("notifications")} onClick={() => navigate("/notifications")} />
-          <Row label={t("notificationsCenter")} onClick={() => navigate("/notifications/center")} />
-        </div>
+    <SettingsPage title={t("settingsScreen.title")}>
+      <SettingsSection title={t("applicationTitle")}>
+        <NavRow label={t("language")} value={LANGUAGE_ENDONYM[language]} onClick={() => navigate("/language")} />
+        <NavRow label={t("appearance")} value={appearanceLabel} onClick={() => navigate("/appearance")} />
+        <NavRow
+          label={t("settings.distanceUnitsTitle", { ns: "common" })}
+          value={t(UNIT_LABEL_KEY[unitPreference], { ns: "common" })}
+          onClick={() => navigate("/units")}
+        />
+        <NavRow label={t("notifications")} onClick={() => navigate("/notifications")} />
+        <NavRow label={t("notificationsCenter")} onClick={() => navigate("/notifications/center")} />
+      </SettingsSection>
 
-        <h6 className={styles.kicker}>{t("accountTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("accountScreen.personalInfo")} onClick={() => navigate("/profile/edit")} />
-          <Row label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
-          <Row label={t("accountScreen.managementKicker")} onClick={() => navigate("/profile/account")} />
-        </div>
+      <SettingsSection title={t("accountTitle")}>
+        <NavRow label={t("accountScreen.personalInfo")} onClick={() => navigate("/profile/edit")} />
+        <NavRow label={t("privacyScreen.title")} onClick={() => navigate("/legal")} />
+        <NavRow label={t("accountScreen.managementKicker")} onClick={() => navigate("/profile/account")} />
+      </SettingsSection>
 
-        <h6 className={styles.kicker}>{t("helpInfoTitle")}</h6>
-        <div className={styles.group}>
-          <Row label={t("help")} onClick={() => navigate("/help")} />
-          <Row label={t("contactUs")} onClick={() => navigate("/contact")} />
-          <Row label={t("about.title")} onClick={() => navigate("/about")} />
-          <Row label={t("privacyScreen.terms")} onClick={() => navigate("/legal/terms")} />
-          <Row label={t("privacyScreen.privacyPolicy")} onClick={() => navigate("/legal/privacy")} />
-        </div>
+      <SettingsSection title={t("helpInfoTitle")}>
+        <NavRow label={t("help")} onClick={() => navigate("/help")} />
+        <NavRow label={t("contactUs")} onClick={() => navigate("/contact")} />
+        <NavRow label={t("about.title")} onClick={() => navigate("/about")} />
+        <NavRow label={t("privacyScreen.terms")} onClick={() => navigate("/legal/terms")} />
+        <NavRow label={t("privacyScreen.privacyPolicy")} onClick={() => navigate("/legal/privacy")} />
+      </SettingsSection>
 
-        <p className={styles.versionText}>{t("about.version", { version: __APP_VERSION__ })}</p>
-      </div>
-    </div>
-  );
-}
-
-function Row({ label, value, onClick }: { label: string; value?: string; onClick: () => void }) {
-  return (
-    <button type="button" className={styles.groupRow} onClick={onClick}>
-      <span>{label}</span>
-      <span className={styles.groupRowTrailing}>
-        {value && <span className={styles.groupRowValue}>{value}</span>}
-        <Chevron />
-      </span>
-    </button>
-  );
-}
-
-function Chevron() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-text-faint)" }} aria-hidden>
-      <path d="M9 6l6 6-6 6" />
-    </svg>
+      <p className={kit.version}>{t("about.version", { version: __APP_VERSION__ })}</p>
+    </SettingsPage>
   );
 }

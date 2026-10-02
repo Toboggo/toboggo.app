@@ -19,3 +19,12 @@ if (typeof globalThis.ResizeObserver === "undefined") {
   }
   globalThis.ResizeObserver = ResizeObserverStub as unknown as typeof ResizeObserver;
 }
+
+// Distances: « Automatique » follows the device region (lib/distanceUnit.ts).
+// jsdom reports en-US, which would flip every distance assertion to miles —
+// pin a metric region so the suite is deterministic; tests that exercise the
+// miles/auto behaviour pass their own language list or stub this property.
+if (typeof navigator !== "undefined") {
+  Object.defineProperty(navigator, "languages", { value: ["fr-FR"], configurable: true });
+  Object.defineProperty(navigator, "language", { value: "fr-FR", configurable: true });
+}

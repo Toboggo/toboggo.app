@@ -4,10 +4,10 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { EmptyState, Segmented } from "@toboggo/design-system";
 import { listNotifications, markAllNotificationsRead, markNotificationRead, type AppNotification } from "@toboggo/shared";
-import { TopBar } from "../../components/TopBar";
 import { useFormat } from "../../i18n/useFormat";
 import { useSession } from "../../lib/session";
 import { queryClient } from "../../lib/queryClient";
+import { SettingsCard, SettingsPage, kit } from "./SettingsKit";
 
 const ICON: Record<AppNotification["type"], string> = {
   resolved: "✅",
@@ -39,22 +39,22 @@ export default function NotifCenter() {
   }
 
   return (
-    <div className="screen">
-      <TopBar
-        title={t("notifs.title")}
-        right={
-          <button
-            onClick={async () => {
-              await markAllNotificationsRead(userId!);
-              void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
-            }}
-            style={{ background: "none", border: "none", color: "var(--color-primary)", fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13 }}
-          >
-            {t("notifs.markAllRead")}
-          </button>
-        }
-      />
-      <div style={{ padding: "0 16px" }}>
+    <SettingsPage
+      title={t("notifs.title")}
+      right={
+        <button
+          type="button"
+          className={kit.markAll}
+          onClick={async () => {
+            await markAllNotificationsRead(userId!);
+            void queryClient.invalidateQueries({ queryKey: ["notifications", userId] });
+          }}
+        >
+          {t("notifs.markAllRead")}
+        </button>
+      }
+    >
+      <>
         <Segmented
           options={[
             { value: "all", label: t("notifs.filter.all") },
@@ -64,7 +64,7 @@ export default function NotifCenter() {
           value={filter}
           onChange={(v) => setFilter(v as any)}
         />
-        <div style={{ marginTop: 14 }}>
+        <SettingsCard>
           {filtered.length === 0 ? (
             <EmptyState icon="🔔" title={t("notifs.empty")} />
           ) : (
@@ -72,17 +72,7 @@ export default function NotifCenter() {
               <button
                 key={n.id}
                 onClick={() => onOpen(n)}
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "12px 4px",
-                  background: "none",
-                  border: "none",
-                  borderBottom: "1px solid var(--color-border)",
-                  cursor: "pointer",
-                }}
+                className={kit.notif}
               >
                 <span style={{ fontSize: 20 }}>{ICON[n.type]}</span>
                 <div style={{ flex: 1 }}>
@@ -100,8 +90,8 @@ export default function NotifCenter() {
               </button>
             ))
           )}
-        </div>
-      </div>
-    </div>
+        </SettingsCard>
+      </>
+    </SettingsPage>
   );
 }

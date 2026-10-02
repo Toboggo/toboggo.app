@@ -15,12 +15,15 @@ export function TopBar({
   onBack,
   right,
   className,
+  backClassName,
 }: {
   title?: string;
   onBack?: () => void;
   right?: ReactNode;
   /** Escape hatch for a single screen's background (e.g. Réglages) — never changes the shared default. */
   className?: string;
+  /** Same idea for the back button (e.g. the rounded-square Réglages style). */
+  backClassName?: string;
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("common");
@@ -28,7 +31,7 @@ export function TopBar({
     <header className={clsx(styles.wrap, className)}>
       <button
         type="button"
-        className={styles.back}
+        className={clsx(styles.back, backClassName)}
         onClick={onBack ?? (() => navigate(-1))}
         aria-label={t("action.back")}
       >

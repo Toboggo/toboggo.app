@@ -33,9 +33,27 @@ export function formatRating(value: number, locale: string, fractionDigits = 1):
   });
 }
 
-/** Distance lisible à partir de mètres : « 420 m » / « 1,2 km » selon la locale. */
-export function formatMeters(meters: number, locale: string): string {
+export type DistanceUnit = "km" | "mi";
+
+const METERS_PER_MILE = 1609.344;
+const FEET_PER_METER = 3.28084;
+
+/**
+ * Distance lisible à partir de mètres (la donnée interne reste toujours en
+ * mètres) : « 420 m » / « 1,2 km », ou en unités impériales « 600 ft » /
+ * « 0.7 mi ». Arrondis : mètres/pieds à la dizaine, km/mi à 1 décimale. En
+ * miles, sous 0,1 mi on passe aux pieds, comme les kilomètres passent aux mètres
+ * sous 1 km.
+ */
+export function formatMeters(meters: number, locale: string, unit: DistanceUnit = "km"): string {
   if (!Number.isFinite(meters) || meters < 0) return "";
+  if (unit === "mi") {
+    const miles = meters / METERS_PER_MILE;
+    if (miles < 0.1) {
+      return `${formatNumber(Math.round((meters * FEET_PER_METER) / 10) * 10, locale)} ft`;
+    }
+    return `${formatNumber(miles, locale, { maximumFractionDigits: 1 })} mi`;
+  }
   if (meters < 1000) {
     return `${formatNumber(Math.round(meters / 10) * 10, locale)} m`;
   }

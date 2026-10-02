@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
 import { Toggle } from "@toboggo/design-system";
 import type { Profile } from "@toboggo/shared";
-import { TopBar } from "../../components/TopBar";
 import { useSession } from "../../lib/session";
+import { SettingsPage, SettingsSection, kit } from "./SettingsKit";
 
 const ITEMS: { key: keyof Profile["notif_prefs"]; labelKey: string }[] = [
   { key: "reports", labelKey: "notifs.pref.reports" },
@@ -19,11 +19,10 @@ export default function NotificationPrefs() {
   if (!profile) return null;
 
   return (
-    <div className="screen">
-      <TopBar title={t("notifs.title")} />
-      <div style={{ padding: "0 20px" }}>
+    <SettingsPage title={t("notifs.title")}>
+      <SettingsSection>
         {ITEMS.map((item) => (
-          <div key={item.key} style={{ padding: "14px 0", borderBottom: "1px solid var(--color-border)" }}>
+          <div key={item.key} className={kit.switchRow}>
             <Toggle
               label={t(item.labelKey)}
               checked={profile.notif_prefs[item.key]}
@@ -31,25 +30,24 @@ export default function NotificationPrefs() {
             />
           </div>
         ))}
+      </SettingsSection>
 
-        <div style={{ marginTop: 20, fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, color: "var(--color-text-faint)" }}>
-          {t("notifs.channels")}
-        </div>
-        <div style={{ padding: "14px 0", borderBottom: "1px solid var(--color-border)" }}>
+      <SettingsSection title={t("notifs.channels")}>
+        <div className={kit.switchRow}>
           <Toggle
             label={t("notifs.channelPush")}
             checked={profile.notif_channels.push}
             onChange={(v) => void patchProfile({ notif_channels: { ...profile.notif_channels, push: v } })}
           />
         </div>
-        <div style={{ padding: "14px 0" }}>
+        <div className={kit.switchRow}>
           <Toggle
             label={t("notifs.channelEmail")}
             checked={profile.notif_channels.email}
             onChange={(v) => void patchProfile({ notif_channels: { ...profile.notif_channels, email: v } })}
           />
         </div>
-      </div>
-    </div>
+      </SettingsSection>
+    </SettingsPage>
   );
 }

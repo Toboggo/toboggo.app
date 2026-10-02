@@ -141,7 +141,7 @@
       "emptyTitle": "No favorites match this filter.",
       "emptyReset": "See all my favorites",
       "nearbyLocationTitle": "Turn on your location",
-      "nearbyLocationDesc": "Allow location access to see your favorites within {{radius}} km."
+      "nearbyLocationDesc": "Allow location access to see your favorites within {{distance}}."
     },
     "discover": {
       "title": "Looking for new parks?",

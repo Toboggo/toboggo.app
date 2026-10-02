@@ -30,7 +30,13 @@
     "appearanceTitle": "Apariencia",
     "appearanceSystem": "Sistema",
     "appearanceLight": "Claro",
-    "appearanceDark": "Oscuro"
+    "appearanceDark": "Oscuro",
+    "distanceUnitsTitle": "Unidades de distancia",
+    "distanceUnitsHint": "Elige la unidad de las distancias mostradas. Las distancias solo se convierten al mostrarlas.",
+    "distanceUnitAuto": "Automática",
+    "distanceUnitAutoHint": "Sigue la región de tu dispositivo — actualmente: {{unit}}.",
+    "distanceUnitKm": "Kilómetros",
+    "distanceUnitMi": "Millas"
   },
   "age": {
     "notSpecified": "Edad no indicada",

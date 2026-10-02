@@ -2,7 +2,7 @@
  * i18n — formatage localisé prêt à l'emploi dans les composants.
  *
  *   const f = useFormat();
- *   f.distance(1240)      → "1,2 km" / "1.2 km"
+ *   f.distance(1240)      → "1,2 km" / "1.2 km" (ou "0.8 mi" selon Réglages › Unités de distance)
  *   f.rating(4.25)        → "4,3" / "4.3"
  *   f.walk(12)            → "12 min"
  *   f.count(37)           → "37"
@@ -28,6 +28,7 @@ import {
   formatRating,
 } from "@toboggo/shared";
 import { useLocale } from "./useLocale";
+import { useDistanceUnit } from "../lib/distanceUnit";
 
 type AgeBandKey = "all" | "under3" | "3-6" | "6-12";
 
@@ -38,6 +39,7 @@ function ageBound(value: number | null | undefined): number | null {
 export function useFormat() {
   const { intlLocale } = useLocale();
   const { t } = useTranslation("common");
+  const { unit } = useDistanceUnit();
 
   return useMemo(() => {
     const ageRangeInner = (
@@ -61,7 +63,7 @@ export function useFormat() {
       number: (n: number) => formatCount(n, intlLocale),
       count: (n: number) => formatCount(n, intlLocale),
       rating: (n: number) => formatRating(n, intlLocale),
-      distance: (meters: number) => formatMeters(meters, intlLocale),
+      distance: (meters: number) => formatMeters(meters, intlLocale, unit),
       walk: (minutes: number) => formatMinutes(minutes, intlLocale),
       percent: (v: number) => formatPercent(v, intlLocale),
       date: (value: Date | string | number) => formatDate(value, intlLocale),
@@ -115,5 +117,5 @@ export function useFormat() {
         return t(`age.band.${key}`);
       },
     };
-  }, [intlLocale, t]);
+  }, [intlLocale, t, unit]);
 }

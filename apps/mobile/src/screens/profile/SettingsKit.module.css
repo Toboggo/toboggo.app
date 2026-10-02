@@ -1,0 +1,195 @@
+/* Kit visuel « Compte et réglages » et ses sous-pages (Langue, Apparence,
+   Unités, Notifications, Centre de notifications, Confidentialité et
+   conditions). Styles volontairement limités à ces écrans : rien de partagé
+   (TopBar, design-system) n'est modifié — on passe par className. Aucun hex :
+   tout dérive des tokens (vert Toboggo = --color-primary #2FA37C). */
+
+.page {
+  min-height: 100vh;
+  /* Gris très clair : le fond global teinté vers la bordure neutre. */
+  background: color-mix(in srgb, var(--color-bg) 65%, var(--color-border-neutral));
+  padding-bottom: calc(var(--bottom-nav-h, 0px) + 24px);
+}
+/* TopBar transparent sur le fond de page + retour en petit carré arrondi.
+   Sélecteurs doublés pour passer devant TopBar.module.css sans !important. */
+.topBar.topBar {
+  background: transparent;
+}
+.backSquare.backSquare {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+}
+.topBar h1 {
+  font-size: 18px;
+}
+
+.content {
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Carte blanche : coins 20 px, ombre légère. */
+.card {
+  background: var(--color-surface);
+  border-radius: 20px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.cardPad {
+  padding: 16px;
+}
+
+.kicker {
+  margin: 14px 4px 2px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid var(--color-border-neutral);
+  background: none;
+  font-family: var(--font-body);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+.row:last-child {
+  border-bottom: none;
+}
+.row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.rowLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.rowHint {
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+.rowTrailing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Choix unique (Langue, Apparence, Unités) — coche verte sur la sélection. */
+.choice[aria-checked="true"] {
+  color: var(--color-text);
+}
+.radio {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border-neutral);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-on-primary);
+}
+.choice[aria-checked="true"] .radio {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.hint {
+  margin: 4px 4px 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+
+/* Interrupteurs : vert Toboggo quand actifs. */
+.switchRow {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border-neutral);
+}
+.switchRow:last-child {
+  border-bottom: none;
+}
+.card [role="switch"] {
+  background: var(--color-border-neutral);
+}
+.card [role="switch"][aria-checked="true"] {
+  background: var(--color-primary);
+}
+
+.version {
+  margin: 14px 0 0;
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+  text-align: center;
+}
+
+/* Centre de notifications : filtres + lignes dans des cartes. */
+.filters {
+  margin-bottom: 4px;
+}
+.notif {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border-neutral);
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.notif:last-child {
+  border-bottom: none;
+}
+.markAll {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Documents légaux. */
+.doc {
+  padding: 18px 16px 6px;
+}
+.docSection {
+  margin-bottom: 18px;
+}
+.docSection h2 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+.docSection p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}

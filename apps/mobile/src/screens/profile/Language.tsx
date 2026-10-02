@@ -1,8 +1,7 @@
-import { Segmented } from "@toboggo/design-system";
 import { useTranslation } from "react-i18next";
-import { TopBar } from "../../components/TopBar";
 import { LANGUAGE_OPTIONS } from "../../i18n/languageNames";
 import { useLocale } from "../../i18n/useLocale";
+import { ChoiceList, SettingsPage, kit } from "./SettingsKit";
 
 /**
  * Choix de la langue — écran dédié, indépendant du compte (invité comme
@@ -15,16 +14,9 @@ export default function Language() {
   const { language, setLanguage } = useLocale();
 
   return (
-    <div className="screen">
-      <TopBar title={t("settings.languageLabel")} />
-      <div style={{ padding: "0 20px" }}>
-        <div style={{ padding: "14px 0" }}>
-          <div style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "-4px 0 14px" }}>
-            {t("settings.languageHint")}
-          </div>
-          <Segmented options={LANGUAGE_OPTIONS} value={language} onChange={setLanguage} />
-        </div>
-      </div>
-    </div>
+    <SettingsPage title={t("settings.languageLabel")}>
+      <p className={kit.hint}>{t("settings.languageHint")}</p>
+      <ChoiceList label={t("settings.languageLabel")} options={LANGUAGE_OPTIONS} value={language} onChange={setLanguage} />
+    </SettingsPage>
   );
 }

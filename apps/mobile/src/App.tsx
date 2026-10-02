@@ -46,6 +46,7 @@ import NotifCenter from "./screens/profile/NotifCenter";
 import NotifResolved from "./screens/profile/NotifResolved";
 import Language from "./screens/profile/Language";
 import Appearance from "./screens/profile/Appearance";
+import DistanceUnits from "./screens/profile/DistanceUnits";
 import LegalIndex from "./screens/profile/LegalIndex";
 import Legal from "./screens/profile/Legal";
 import Help from "./screens/profile/Help";
@@ -173,6 +174,7 @@ export default function App() {
       <Route path="/notifications/resolved/:notifId" element={<NotifResolved />} />
       <Route path="/language" element={<Language />} />
       <Route path="/appearance" element={<Appearance />} />
+      <Route path="/units" element={<DistanceUnits />} />
       {/* Ancienne route (langue + apparence mélangées) — alias pour ne pas
           casser un lien/historique existant, cf. refonte profil/réglages §7. */}
       <Route path="/display" element={<Navigate to="/appearance" replace />} />

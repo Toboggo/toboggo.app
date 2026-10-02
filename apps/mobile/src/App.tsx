@@ -7,7 +7,7 @@ import { takeResumeRoute } from "./lib/resumeRoute";
 import { trackEvent } from "./lib/analytics";
 
 import Splash from "./screens/onboarding/Splash";
-import LoginMethod from "./screens/onboarding/LoginMethod";
+import LoginMethodRedirect from "./screens/onboarding/LoginMethodRedirect";
 import AuthForm from "./screens/onboarding/AuthForm";
 import Permissions from "./screens/onboarding/Permissions";
 
@@ -122,7 +122,8 @@ export default function App() {
     <GlobalOverlays />
     <Routes>
       <Route path="/" element={<Splash />} />
-      <Route path="/login-method" element={<LoginMethod />} />
+      {/* Ancienne URL (écran de choix de méthode supprimé) → formulaire de connexion. */}
+      <Route path="/login-method" element={<LoginMethodRedirect />} />
       <Route path="/login" element={<AuthForm />} />
       <Route path="/permissions" element={<Permissions />} />
 

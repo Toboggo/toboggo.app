@@ -394,18 +394,50 @@
   color: var(--color-error);
 }
 
-.signInCta {
+.guestCard {
+  margin: 4px 0 8px;
+  padding: 20px 18px 12px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  text-align: center;
+}
+.guestCard h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  color: var(--color-text);
+}
+.guestCard p {
+  margin: 0 0 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+.guestPrimary {
   width: 100%;
-  height: 50px;
-  border-radius: 999px;
-  border: 1.5px solid var(--color-border-strong);
-  background: none;
-  color: var(--color-primary);
-  font-family: var(--font-heading);
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: inherit;
+  font-size: 16px;
   font-weight: 600;
-  font-size: 14.5px;
   cursor: pointer;
-  margin-top: 18px;
+}
+.guestCard .guestMember {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+.guestMember button {
+  background: none;
+  border: none;
+  padding: 10px 2px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 /* Libellé + sous-texte d'une action de l'écran Gestion du compte. */

@@ -19,7 +19,10 @@
     "action": "Actualizar"
   },
   "guestProfile": {
-    "prompt": "Inicia sesión para recuperar tus favoritos y tus aportaciones."
+    "title": "Únete a Toboggo",
+    "benefits": "Crea una cuenta para guardar tus parques favoritos y contribuir: añade parques, deja tu opinión, informa de un problema.",
+    "createAccount": "Crear una cuenta",
+    "alreadyMember": "¿Ya eres miembro?"
   },
   "settings": {
     "languageLabel": "Idioma",

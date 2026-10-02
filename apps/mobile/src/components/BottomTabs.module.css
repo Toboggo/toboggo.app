@@ -25,16 +25,16 @@
   /* Translucent glass: content scrolls visibly behind the dock. Solid white
      fallback first, for browsers without backdrop-filter support. */
   background: var(--color-surface, #fff);
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: var(--radius-lg);
-  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.06), var(--shadow-lg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  transition: background-color 180ms ease;
   z-index: var(--z-nav, 50);
 }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .wrap {
-    background: rgba(255, 255, 255, 0.88);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.75);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
   }
 }
 .tab {
@@ -51,6 +51,8 @@
   font-family: var(--font-heading);
   font-weight: 700;
   cursor: pointer;
+  isolation: isolate;
+  transition: color 180ms ease;
 }
 .tab span {
   font-size: 10px;
@@ -65,15 +67,27 @@
   align-items: center;
   justify-content: center;
 }
-/* Active state: color + a small dot, never a filled pill/button behind the icon. */
-.tab[data-active="1"]::after {
+/* Active pill: a pseudo-element behind icon + label, so the button itself
+   (the whole touch target) is unchanged. */
+.tab::before {
   content: "";
   position: absolute;
-  bottom: 4px;
-  width: 3.5px;
-  height: 3.5px;
-  border-radius: 50%;
-  background: var(--color-primary);
+  inset: 5px 4px;
+  z-index: -1;
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color 180ms ease;
+}
+.tab[data-active="1"]::before {
+  background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wrap,
+  .tab,
+  .tab::before {
+    transition: none;
+  }
 }
 
 :global([data-theme="dark"]) .tab {

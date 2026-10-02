@@ -1,36 +1,47 @@
 {
   "or": "or",
   "splash": {
-    "headline": "Find\nthe perfect park\nfor your children",
-    "tagline": "Thousands of parks rated\nby parents like you.",
+    "headline": "Great outings start here",
+    "tagline": "Find playgrounds near you.",
     "continueGoogle": "Continue with Google",
     "continueEmail": "Continue with email",
     "continuePhone": "Continue with a phone number",
     "legal": "By continuing, you agree to our <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>.",
     "haveAccount": "Already have an account?",
-    "signIn": "Sign in"
+    "signIn": "Sign in",
+    "explore": "Explore parks",
+    "createAccount": "Create an account"
   },
   "loginMethod": {
     "title": "Sign in",
     "subtitle": "Choose your method\nto sign in to Toboggo.",
-    "email": { "title": "With your email", "subtitle": "Fast and secure" },
-    "phone": { "title": "With your phone number", "subtitle": "Get a code by SMS" },
-    "google": { "title": "With Google", "subtitle": "One-tap sign-in" }
+    "email": {
+      "title": "With your email",
+      "subtitle": "Fast and secure"
+    },
+    "phone": {
+      "title": "With your phone number",
+      "subtitle": "Get a code by SMS"
+    },
+    "google": {
+      "title": "With Google",
+      "subtitle": "One-tap sign-in"
+    }
   },
   "auth": {
     "signupTitle": "Create an account",
     "loginTitle": "Welcome back!",
-    "signupSubtitle": "Create your account to save your favorite parks.",
-    "loginSubtitle": "Sign in to your account.",
-    "signupSubmit": "Create an account",
+    "signupSubtitle": "Keep your favorite parks within reach.",
+    "loginSubtitle": "Find your favorites and your contributions.",
+    "signupSubmit": "Create my account",
     "loginSubmit": "Sign in",
     "signupSubmitting": "Creating...",
     "loginSubmitting": "Signing in...",
     "accountCreated": "Account created — check your email to confirm.",
     "emailLabel": "Email",
-    "emailPlaceholder": "example@email.com",
+    "emailPlaceholder": "you@email.com",
     "passwordLabel": "Password",
-    "passwordPlaceholderSignup": "Choose a password",
+    "passwordPlaceholderSignup": "At least {{min}} characters",
     "passwordPlaceholderLogin": "Your password",
     "showPassword": "Show password",
     "forgotPassword": "Forgot password?",
@@ -39,7 +50,14 @@
     "haveAccount": "Already have an account?",
     "noAccount": "No account yet?",
     "switchToLogin": "Sign in",
-    "switchToSignup": "Create an account"
+    "switchToSignup": "Create an account",
+    "hidePassword": "Hide password",
+    "passwordRules": "At least {{min}} characters.",
+    "continueAsGuest": "Continue without an account",
+    "topHaveAccount": "Already have an account?",
+    "topNoAccount": "No account?",
+    "legalTerms": "Terms of use",
+    "legalPrivacy": "Privacy"
   },
   "permissions": {
     "title": "Who are you looking for parks for? 🛝",

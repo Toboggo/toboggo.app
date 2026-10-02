@@ -1,101 +1,57 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trans, useTranslation } from "react-i18next";
-import { startGoogleLogin } from "../../lib/googleLogin";
+import { useTranslation } from "react-i18next";
 import { Logo } from "@toboggo/design-system";
-import { Illustration } from "../../illustrations";
 import { useSession } from "../../lib/session";
-import { useToastStore } from "../../lib/toast";
-import { GoogleIcon, MailIcon, PhoneIcon } from "./authIcons";
+import { hasSeenWelcome, markWelcomeSeen } from "../../lib/welcomeSeen";
 import styles from "./Splash.module.css";
-
-/** Mail / Phone follow the brand green here (Google keeps its own mark). */
-const brandTint = { display: "inline-flex", color: "var(--color-primary)" } as const;
 
 export default function Splash() {
   const navigate = useNavigate();
   const userId = useSession((s) => s.userId);
-  const showToast = useToastStore((s) => s.show);
   const { t } = useTranslation("onboarding");
-  const { t: tErr } = useTranslation("errors");
-  const { t: tCommon } = useTranslation("common");
 
+  // Déjà connecté, ou accueil déjà franchi sur cet appareil : on ne le réimpose pas.
+  const skip = Boolean(userId) || hasSeenWelcome();
   useEffect(() => {
-    if (userId) navigate("/map", { replace: true });
-  }, [userId, navigate]);
+    if (skip) navigate("/map", { replace: true });
+  }, [skip, navigate]);
+  if (skip) return null;
 
-  const comingSoon = () => showToast(tCommon("comingSoon"));
-
-  const continueWithGoogle = async () => {
-    try {
-      await startGoogleLogin();
-      // On success the browser redirects to Google, so nothing else runs here.
-    } catch {
-      showToast(tErr("auth.googleUnavailable"));
-    }
+  const explore = () => {
+    markWelcomeSeen();
+    navigate("/map");
   };
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.header}>
-        <Logo size={44} variant="brand" />
-        <h1 className={styles.headline} style={{ whiteSpace: "pre-line" }}>
-          {t("splash.headline")}
-        </h1>
-        <p className={styles.tagline} style={{ whiteSpace: "pre-line" }}>
-          {t("splash.tagline")}
-        </p>
-      </div>
+      <img className={styles.photo} src="/images/welcome-park.webp" alt="" />
+      <div className={styles.scrim} />
 
-      <div className={styles.illo}>
-        <Illustration name="splashPark" />
-      </div>
-
-      <div className={styles.sheet}>
-        <button type="button" className={styles.socialBtn} onClick={continueWithGoogle}>
-          <GoogleIcon size={17} />
-          <span>{t("splash.continueGoogle")}</span>
-        </button>
-        <button type="button" className={styles.socialBtn} onClick={() => navigate("/login?mode=signup")}>
-          <span style={brandTint}>
-            <MailIcon size={18} />
-          </span>
-          <span>{t("splash.continueEmail")}</span>
-        </button>
-
-        <div className={styles.divider}>
-          <span />
-          <em>{t("or")}</em>
-          <span />
+      <div className={styles.content}>
+        <div className={styles.logo}>
+          <Logo size={44} variant="mono" tone="light" />
         </div>
 
-        <button type="button" className={styles.socialBtn} onClick={comingSoon}>
-          <span style={brandTint}>
-            <PhoneIcon size={17} />
-          </span>
-          <span>{t("splash.continuePhone")}</span>
-        </button>
+        <div className={styles.copy}>
+          <h1>{t("splash.headline")}</h1>
+          <p>{t("splash.tagline")}</p>
+        </div>
 
-        <p className={styles.legal}>
-          <Trans
-            t={t}
-            i18nKey="splash.legal"
-            components={{
-              terms: <span onClick={() => navigate("/legal/terms?from=onboarding")} />,
-              privacy: <span onClick={() => navigate("/legal/privacy?from=onboarding")} />,
-            }}
-          />
-        </p>
-
-        <p className={styles.switch}>
-          {t("splash.haveAccount")}
-          <button type="button" onClick={() => navigate("/login-method")}>
-            {t("splash.signIn")}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-primary)" }} aria-hidden>
-              <path d="M9 6l6 6-6 6" />
-            </svg>
+        <div className={styles.actions}>
+          <button type="button" className={styles.primary} onClick={explore}>
+            {t("splash.explore")}
           </button>
-        </p>
+          <button type="button" className={styles.secondary} onClick={() => navigate("/login?mode=signup")}>
+            {t("splash.createAccount")}
+          </button>
+          <p className={styles.switch}>
+            {t("splash.haveAccount")}{" "}
+            <button type="button" onClick={() => navigate("/login?mode=login")}>
+              {t("splash.signIn")}
+            </button>
+          </p>
+        </div>
       </div>
     </div>
   );

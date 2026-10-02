@@ -1,139 +1,204 @@
-/* E-mail auth form — ported from the Claude Design prototype. */
+/* Écrans d'authentification — fond blanc, police sans-serif sobre, boutons à
+   14–16 px de rayon. Palette locale à ces écrans (valeurs validées maquette). */
 
 .wrap {
+  --auth-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
+  --auth-text: #111827;
+  --auth-muted: #6b7280;
+  --auth-field: #f3f4f6;
+  --auth-line: #d1d5db;
+  --auth-green: #2fa37c;
+
   min-height: 100vh;
   min-height: 100dvh;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  background: var(--color-bg);
-  padding: calc(20px + var(--safe-top)) 24px calc(40px + var(--safe-bottom));
+  background: #fff;
+  color: var(--auth-text);
+  font-family: var(--auth-font);
+  padding: calc(12px + var(--safe-top)) 24px calc(32px + var(--safe-bottom));
+}
+.wrap button,
+.wrap input {
+  font-family: inherit;
 }
 
-.back {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  padding: 0;
-  margin-bottom: 12px;
-  color: var(--color-text-muted);
+.topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.back {
+  background: none;
+  border: none;
+  width: 44px;
+  height: 44px;
+  margin-left: -12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--auth-text);
+  cursor: pointer;
+}
+.topSwitch {
+  margin: 0;
+  font-size: 13px;
+  color: var(--auth-muted);
+  text-align: right;
+}
+.topSwitch button {
+  background: none;
+  border: none;
+  padding: 10px 0;
+  font: inherit;
+  color: var(--auth-green);
+  text-decoration: underline;
   cursor: pointer;
 }
 
 .hero {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
   text-align: center;
-  gap: 14px;
+  padding: 28px 0 28px;
+}
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+.wordmark {
+  font-family: var(--font-heading); /* wordmark du logo */
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--auth-text);
 }
 .hero h1 {
-  font-family: var(--font-heading);
-  font-size: 26px;
-  font-weight: 700;
+  font-family: inherit;
   margin: 0 0 8px;
-  line-height: 1.2;
-  color: var(--color-text);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--auth-text);
 }
 .hero p {
   margin: 0;
-  font-size: 14px;
-  color: var(--color-text-muted);
+  font-size: 16px;
+  color: var(--auth-muted);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
+/* Champ : le libellé vit dans le bloc gris, au-dessus du texte saisi. */
+.field {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-sizing: border-box;
+  min-height: 68px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--auth-field);
+  border: 1.5px solid transparent;
+}
+.field:focus-within {
+  border-color: var(--auth-green);
+}
+.fieldError {
+  border-color: var(--color-error);
+}
 .field label {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  margin-bottom: 6px;
-  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--auth-text);
 }
 .field input {
   width: 100%;
   box-sizing: border-box;
-  height: 48px;
-  padding: 0 16px;
-  border-radius: 16px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  font-size: 14px;
-  color: var(--color-text);
-}
-.field input:focus {
+  padding: 0;
+  border: none;
   outline: none;
-  border-color: var(--color-primary);
+  background: transparent;
+  font-size: 16px; /* >=16px : pas de zoom auto iOS */
+  color: var(--auth-text);
 }
-
-.pwdWrap {
-  position: relative;
+.field input::placeholder {
+  color: #9ca3af;
 }
-.pwdWrap input {
-  padding-right: 44px;
+.field:has(.eye) input {
+  padding-right: 40px;
 }
 .eye {
   position: absolute;
   right: 6px;
-  top: 0;
-  height: 48px;
-  width: 36px;
+  bottom: 8px;
+  width: 44px;
+  height: 44px;
   background: none;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--color-text-muted);
+  color: var(--auth-text);
   cursor: pointer;
 }
 
+.hint {
+  margin: 8px 0 0 2px;
+  font-size: 13px;
+  color: var(--auth-muted);
+}
 .forgot {
   text-align: right;
-  margin: 8px 0 0;
+  margin: 6px 0 0;
 }
-.forgot span {
-  font-size: 12.5px;
-  color: var(--color-primary);
-  font-weight: 700;
+.forgot button {
+  background: none;
+  border: none;
+  padding: 8px 0;
+  font-size: 14px;
+  color: var(--auth-green);
+  text-decoration: underline;
   cursor: pointer;
 }
 
-.error {
+.error,
+.ok {
   margin: 0;
-  font-size: 12.5px;
-  color: var(--color-error);
-  background: var(--color-error-tint);
+  font-size: 14px;
   border-radius: 12px;
   padding: 10px 12px;
 }
+.error {
+  color: var(--color-error);
+  background: var(--color-error-tint);
+}
 .ok {
-  margin: 0;
-  font-size: 12.5px;
-  color: var(--color-primary);
+  color: var(--auth-green);
   background: var(--color-primary-tint);
-  border-radius: 12px;
-  padding: 10px 12px;
 }
 
 .submit {
-  margin-top: 6px;
+  margin-top: 8px;
   height: 52px;
-  border-radius: 999px;
+  border-radius: 14px;
   border: none;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 15px;
-  letter-spacing: 0.03em;
-  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.35);
+  background: var(--auth-green);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -142,13 +207,14 @@
 }
 .submit:disabled {
   cursor: default;
+  opacity: 0.8;
 }
 .spinner {
   width: 16px;
   height: 16px;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.4);
-  border-top-color: var(--color-surface);
+  border-top-color: #fff;
   animation: spin 0.7s linear infinite;
   display: inline-block;
 }
@@ -161,45 +227,67 @@
 .divider {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  margin: var(--space-4) 0;
+  gap: 12px;
+  margin: 8px 0;
 }
 .divider span {
   flex: 1;
   height: 1px;
-  background: var(--color-border);
+  background: var(--auth-line);
 }
 .divider em {
-  font-size: 12px;
-  color: var(--color-text-faint);
+  font-size: 14px;
+  color: var(--auth-muted);
   font-style: normal;
 }
 
 .social {
-  height: 50px;
-  border-radius: 16px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
+  height: 52px;
+  border-radius: 14px;
+  border: 1px solid var(--auth-line);
+  background: #fff;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  font-family: var(--font-heading);
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
   font-weight: 600;
-  font-size: 14px;
-  color: var(--color-text);
+  color: var(--auth-text);
   cursor: pointer;
-  text-align: left;
 }
 
-.switch {
+.legal {
+  margin: auto 0 0;
+  padding-top: 24px;
   text-align: center;
-  margin: 8px 0 0;
   font-size: 13px;
-  color: var(--color-text-muted);
+  color: var(--auth-muted);
 }
-.switch span {
-  color: var(--color-primary);
-  font-weight: 700;
+.legal button {
+  background: none;
+  border: none;
+  padding: 8px 2px;
+  font: inherit;
+  color: var(--auth-muted);
+  text-decoration: underline;
   cursor: pointer;
+}
+
+.guest {
+  align-self: center;
+  margin-top: 16px;
+  background: none;
+  border: none;
+  min-height: 44px;
+  padding: 0 8px;
+  font-size: 15px;
+  color: var(--auth-green);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-height: 700px) {
+  .hero { padding: 12px 0 18px; }
+  .brand { margin-bottom: 14px; }
+  .hero h1 { font-size: 28px; }
 }

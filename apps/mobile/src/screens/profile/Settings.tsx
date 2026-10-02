@@ -55,8 +55,6 @@ export default function Settings() {
         <NavRow label={t("help")} onClick={() => navigate("/help")} />
         <NavRow label={t("contactUs")} onClick={() => navigate("/contact")} />
         <NavRow label={t("about.title")} onClick={() => navigate("/about")} />
-        <NavRow label={t("privacyScreen.terms")} onClick={() => navigate("/legal/terms")} />
-        <NavRow label={t("privacyScreen.privacyPolicy")} onClick={() => navigate("/legal/privacy")} />
       </SettingsSection>
 
       <p className={kit.version}>{t("about.version", { version: __APP_VERSION__ })}</p>

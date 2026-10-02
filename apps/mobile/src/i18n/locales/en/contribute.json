@@ -118,6 +118,7 @@
     "pinHint": "Move the marker to pinpoint the location.",
     "addressLabel": "Address (if you know it)",
     "addressPlaceholder": "12 Oak Street, London",
+    "addressResolving": "Looking up the address…",
     "infoTitle": "Park details",
     "infoHint": "Only fill in what you know.",
     "nameLabel": "Park name",

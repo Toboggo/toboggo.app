@@ -118,6 +118,7 @@
     "pinHint": "Déplacez le repère pour préciser l’emplacement.",
     "addressLabel": "Adresse (si vous la connaissez)",
     "addressPlaceholder": "12 rue des Tilleuls, 69000 Lyon",
+    "addressResolving": "Recherche de l’adresse…",
     "infoTitle": "Informations sur le parc",
     "infoHint": "Renseignez uniquement ce que vous savez.",
     "nameLabel": "Nom du parc",

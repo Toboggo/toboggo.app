@@ -118,6 +118,7 @@
     "pinHint": "Mueve el marcador para precisar la ubicación.",
     "addressLabel": "Dirección (si la conoces)",
     "addressPlaceholder": "Calle Mayor 12, 28013 Madrid",
+    "addressResolving": "Buscando la dirección…",
     "infoTitle": "Información del parque",
     "infoHint": "Indica solo lo que sepas.",
     "nameLabel": "Nombre del parque",

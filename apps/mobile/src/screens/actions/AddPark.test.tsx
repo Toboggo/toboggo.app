@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { buildDraftKey, createPark, readDraft, uploadPhoto, writeDraft, type DraftPrincipal } from "@toboggo/shared";
+import { buildDraftKey, createPark, readDraft, reverseGeocode, uploadPhoto, writeDraft, type DraftPrincipal, type ReverseGeocodedAddress } from "@toboggo/shared";
 import "../../i18n/testInit";
 import AddPark from "./AddPark";
 
@@ -59,6 +59,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     uploadPhoto: vi.fn().mockResolvedValue("https://x/photo.jpg"),
     listFeatures: vi.fn().mockResolvedValue([]),
     searchPlaces: vi.fn().mockResolvedValue([]),
+    reverseGeocode: vi.fn().mockResolvedValue(null),
   };
 });
 
@@ -143,6 +144,7 @@ beforeEach(() => {
   // a no-op (there's no "original" implementation to restore to) — reinstate
   // it every test, same as createPark above.
   vi.mocked(uploadPhoto).mockReset().mockResolvedValue("https://x/photo.jpg" as never);
+  vi.mocked(reverseGeocode).mockReset().mockResolvedValue(null);
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -374,5 +376,200 @@ describe("AddPark — guest → OAuth → authenticated", () => {
     expect(localStorage.getItem(key("guest"))).toBeNull();
     await screen.findByText("Parc ajouté !");
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
+  });
+});
+
+// ── Adresse : reverse geocoding Geoapify (via Edge Function) ────────────────
+const MILLAU: ReverseGeocodedAddress = {
+  address_line: "12 Rue de la Capelle",
+  postal_code: "12100",
+  city: "Millau",
+  admin_area_1: "Occitanie",
+  admin_area_2: "Aveyron",
+  country_code: "FR",
+  formatted: "12 Rue de la Capelle, 12100 Millau, France",
+};
+const addressField = () => screen.getByLabelText("Adresse (si vous la connaissez)") as HTMLInputElement;
+
+/** Choisit un lieu dans la recherche : le fly-to du FakeMap émet `moveend`,
+ * exactement comme un déplacement réel de la carte. */
+async function pickPlace(name: string, lat: number, lng: number) {
+  const { searchPlaces } = await import("@toboggo/shared");
+  vi.mocked(searchPlaces).mockResolvedValue([{ id: `poi.${name}`, name, label: `${name}, France`, lat, lng }]);
+  fireEvent.change(screen.getByPlaceholderText("Rechercher une ville, une adresse ou un lieu"), { target: { value: name } });
+  fireEvent.click(await screen.findByText(name));
+}
+
+function stubGeolocation(lat: number, lng: number) {
+  Object.defineProperty(navigator, "geolocation", {
+    configurable: true,
+    value: { getCurrentPosition: (ok: (p: unknown) => void) => ok({ coords: { latitude: lat, longitude: lng } }) },
+  });
+}
+
+describe("AddPark — adresse par reverse geocoding", () => {
+  // Mode carte (FakeMap) : l'env de test n'a pas forcément de style configuré.
+  beforeEach(() => vi.stubEnv("VITE_MAP_STYLE_URL", "https://example.test/style.json"));
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("monter l'étape Localisation ne déclenche aucun reverse geocoding", async () => {
+    renderAdd();
+    await toStep1();
+    await screen.findByText("Où se trouve le parc ?");
+    expect(reverseGeocode).not.toHaveBeenCalled();
+  });
+
+  it("restaurer un brouillon ne déclenche aucun reverse geocoding", async () => {
+    writeDraft(
+      key({ userId: "u1" }),
+      { step: 1, lat: 44.123456, lng: 3.123456, address: "Ma saisie", name: "", ageLow: 0, ageHigh: 12, ageTouched: false, services: { __set: [] }, equipment: { __set: [] }, description: "", photos: [] },
+      { schemaVersion: 1 },
+    );
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    expect(reverseGeocode).not.toHaveBeenCalled();
+    expect(addressField().value).toBe("Ma saisie");
+  });
+
+  it("position choisie (fin de déplacement) → UN appel, formulaire prérempli", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValue(MILLAU);
+    renderAdd();
+    await toStep1();
+    await pickPlace("Jardin de la Capelle", 44.0989, 3.0781);
+
+    await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+    expect(screen.getByText("12100 Millau")).toBeTruthy();
+    expect(reverseGeocode).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(reverseGeocode).mock.calls[0].slice(0, 2)).toEqual([44.0989, 3.0781]);
+  });
+
+  it("« Utiliser ma position » (GPS) → UN seul appel (pas de doublon GPS + moveend)", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValue(MILLAU);
+    stubGeolocation(44.5, 3.5);
+    renderAdd();
+    await toStep1();
+    fireEvent.click(await screen.findByLabelText("Utiliser ma position"));
+
+    await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+    expect(reverseGeocode).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(reverseGeocode).mock.calls[0].slice(0, 2)).toEqual([44.5, 3.5]);
+  });
+
+  it("erreur API → l'adresse existante est conservée (jamais vidée)", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValueOnce(MILLAU).mockRejectedValueOnce(new Error("boom"));
+    renderAdd();
+    await toStep1();
+    await pickPlace("Jardin A", 44.1, 3.1);
+    await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+
+    await pickPlace("Jardin B", 44.2, 3.2);
+    await waitFor(() => expect(reverseGeocode).toHaveBeenCalledTimes(2));
+    expect(addressField().value).toBe("12 Rue de la Capelle");
+  });
+
+  it("adresse corrigée à la main → non écrasée par un nouveau déplacement (la localité suit le repère)", async () => {
+    vi.mocked(reverseGeocode)
+      .mockResolvedValueOnce(MILLAU)
+      .mockResolvedValueOnce({ ...MILLAU, address_line: "1 Place du Marché", postal_code: "69000", city: "Lyon" });
+    renderAdd();
+    await toStep1();
+    await pickPlace("Jardin A", 44.1, 3.1);
+    await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+
+    fireEvent.change(addressField(), { target: { value: "14 Rue de la Capelle (entrée nord)" } });
+    await pickPlace("Jardin B", 45.7, 4.8);
+
+    await screen.findByText("69000 Lyon");
+    expect(addressField().value).toBe("14 Rue de la Capelle (entrée nord)");
+  });
+
+  it("création → adresse structurée persistée via createPark", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValue(MILLAU);
+    renderAdd();
+    await toStep1();
+    await pickPlace("Jardin de la Capelle", 44.0989, 3.0781);
+    await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    fireEvent.change(nameField(), { target: { value: "Jardin de la Capelle" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Passer cette étape" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Envoyer le parc" }));
+
+    await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createPark).mock.calls[0][0]).toMatchObject({
+      address_line: "12 Rue de la Capelle",
+      postal_code: "12100",
+      city: "Millau",
+      admin_area_1: "Occitanie",
+      admin_area_2: "Aveyron",
+      country_code: "FR",
+      lat: 44.0989,
+      lng: 3.0781,
+    });
+  });
+
+  it("nouveau pin dont le résultat n'a pas de rue → l'ancienne rue automatique est supprimée", async () => {
+    vi.mocked(reverseGeocode)
+      .mockResolvedValueOnce(MILLAU)
+      .mockResolvedValueOnce({ ...MILLAU, address_line: null, postal_code: "69000", city: "Lyon" });
+    renderAdd();
+    await toStep1();
+    await pickPlace("Jardin A", 44.1, 3.1);
+    await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+
+    await pickPlace("Jardin B", 45.7, 4.8);
+    await screen.findByText("69000 Lyon");
+    expect(addressField().value).toBe("");
+  });
+
+  it("pendant la résolution, l'ancienne localité disparaît et ne part jamais avec les nouvelles coordonnées", async () => {
+    vi.mocked(reverseGeocode)
+      .mockResolvedValueOnce(MILLAU)
+      .mockReturnValueOnce(new Promise(() => {})); // la 2e résolution ne revient jamais
+    renderAdd();
+    await toStep1();
+    await pickPlace("Jardin A", 44.1, 3.1);
+    await screen.findByText("12100 Millau");
+
+    await pickPlace("Jardin B", 45.7, 4.8);
+    await waitFor(() => expect(reverseGeocode).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("12100 Millau")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    fireEvent.change(nameField(), { target: { value: "Jardin B" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Passer cette étape" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Envoyer le parc" }));
+
+    await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
+    const payload = vi.mocked(createPark).mock.calls[0][0];
+    expect(payload).toMatchObject({ lat: 45.7, lng: 4.8 });
+    for (const k of ["postal_code", "city", "admin_area_1", "admin_area_2", "country_code"]) expect(payload).not.toHaveProperty(k);
+  });
+
+  describe("sans carte (contrôles de repli)", () => {
+    beforeEach(() => vi.stubEnv("VITE_MAP_STYLE_URL", ""));
+
+    it("un nudge du repère → UN appel avec la nouvelle position", async () => {
+      vi.mocked(reverseGeocode).mockResolvedValue(MILLAU);
+      renderAdd();
+      await toStep1();
+      fireEvent.click(await screen.findByText("Nord"));
+
+      await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+      expect(reverseGeocode).toHaveBeenCalledTimes(1);
+    });
+
+    it("« Ma position » → UN appel", async () => {
+      vi.mocked(reverseGeocode).mockResolvedValue(MILLAU);
+      stubGeolocation(44.5, 3.5);
+      renderAdd();
+      await toStep1();
+      fireEvent.click(await screen.findByText("Ma position"));
+
+      await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+      expect(reverseGeocode).toHaveBeenCalledTimes(1);
+      expect(vi.mocked(reverseGeocode).mock.calls[0].slice(0, 2)).toEqual([44.5, 3.5]);
+    });
   });
 });

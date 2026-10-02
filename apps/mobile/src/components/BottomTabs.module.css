@@ -49,7 +49,7 @@
   gap: 3px;
   color: var(--color-text);
   font-family: var(--font-heading);
-  font-weight: 700;
+  font-weight: 500; /* Fredoka loaded at 500/600/700 (index.html) — no synthetic weight */
   cursor: pointer;
   isolation: isolate;
   transition: color 180ms ease;
@@ -60,7 +60,7 @@
 }
 .tab[data-active="1"] {
   color: var(--color-primary);
-  font-weight: 800;
+  font-weight: 600;
 }
 .tabIcon {
   display: flex;

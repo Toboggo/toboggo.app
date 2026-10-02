@@ -1,0 +1,22 @@
+# BROUILLON — non installé. À copier vers .github/workflows/landing-data-refresh.yml
+# (voir apps/landing/seo/REFRESH.md). Nécessite le secret VERCEL_DEPLOY_HOOK_URL.
+name: landing-data-refresh
+
+on:
+  schedule:
+    - cron: "15 3 * * *" # chaque nuit à 03:15 UTC
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Déclencher le build Vercel (données Supabase fraîches)
+        env:
+          HOOK: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          test -n "$HOOK" || { echo "secret VERCEL_DEPLOY_HOOK_URL manquant"; exit 1; }
+          curl --fail --silent --show-error -X POST "$HOOK" > /dev/null
+          echo "Deploy Hook appelé."

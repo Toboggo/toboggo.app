@@ -12,10 +12,20 @@ export interface RawFeature {
   value?: string | null;
 }
 
+/** Photo utilisable sur une page SEO : UNIQUEMENT si ses droits sont validés (voir tiers.ts). */
+export interface SeoPhoto {
+  url: string;
+  /** `validated` seulement après vérification explicite ; tout autre statut = inutilisable. */
+  rightsStatus: "unknown" | "validated" | "rejected";
+}
+
 /** Parc tel que renvoyé par park_public (colonnes demandées uniquement). */
 export interface SeoPark {
+  id: string;
   name: string;
   city: string | null;
+  /** Département en clair (`admin_area_2`), pour l'affichage. */
+  adminArea2: string | null;
   postalCode: string | null;
   addressLine: string | null;
   latitude: number | null;
@@ -23,6 +33,15 @@ export interface SeoPark {
   minAge: number | null;
   maxAge: number | null;
   features: Record<string, RawFeature>;
+  /** Slug public (parks.slug) : vide pour tous les parcs tant que la migration n'est pas passée. */
+  slug: string | null;
+  verificationStatus: string | null;
+  /** Date réelle de dernière vérification (parks.last_verified_at), sinon null. */
+  lastVerifiedAt: string | null;
+  /** Lié à une collectivité (municipality) VÉRIFIÉE (organization_parks.verified ET organizations.verified). */
+  collectivityVerified: boolean;
+  /** Photos à droits validés. Toujours vide en 2A : le chargeur ne lit aucune photo. */
+  photos: SeoPhoto[];
 }
 
 const EQUIPMENT: Record<string, string> = {

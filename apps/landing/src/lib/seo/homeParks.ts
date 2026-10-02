@@ -12,8 +12,9 @@
  * Aucune photo : `image` n'est jamais renseigné ici (droits non établis).
  */
 import { DEMO_PARKS } from "../../data/demoParks";
-import { cityPath, SEO_CITIES } from "./cities";
-import { loadCities, type CityPageData } from "./cityPage";
+import { HOME_PLACE_SLUG } from "./approved";
+import { placePath } from "./places";
+import { loadSeoSite, type PlaceData } from "./seoSite";
 import { ageLabel, describePark, iconsFor, type SeoPark } from "./parks";
 
 export interface HomeParkCard {
@@ -48,7 +49,7 @@ export function toCard(park: SeoPark): HomeParkCard {
 }
 
 /** Les mieux renseignés d'abord (nombre d'infos déclarées), puis ordre alphabétique stable. */
-export function pickHomeCards(data: CityPageData, max = HOME_MAX_CARDS): HomeParkCard[] {
+export function pickHomeCards(data: Pick<PlaceData, "documented">, max = HOME_MAX_CARDS): HomeParkCard[] {
   return [...data.documented]
     .sort((a, b) => describePark(b).declaredCount - describePark(a).declaredCount || a.name.localeCompare(b.name, "fr"))
     .slice(0, max)
@@ -60,19 +61,17 @@ export function snapshotCards(): HomeParkCard[] {
 }
 
 export async function getHomeParks(env: Record<string, string | undefined>): Promise<HomeParks> {
-  const pilot = SEO_CITIES[0];
-  const cities = await loadCities(env);
-  const data = cities?.find((c) => c.city.slug === pilot.slug);
+  const site = await loadSeoSite(env);
+  const data = site?.published.find((p) => p.place.slug === HOME_PLACE_SLUG);
   if (!data || data.documented.length === 0) {
-    return { cards: snapshotCards(), cityLink: null, cityName: pilot.name, source: "snapshot" };
+    return { cards: snapshotCards(), cityLink: null, cityName: "Millau", source: "snapshot" };
   }
   const plural = data.listed.length > 1;
   return {
     cards: pickHomeCards(data),
-    cityLink: data.eligibility.eligible
-      ? { href: cityPath(data.city), label: `Voir les ${data.listed.length} ${plural ? "aires de jeux" : "aire de jeux"} à ${data.city.name}` }
-      : null,
-    cityName: data.city.name,
+    // `published` = page réellement générée : le lien ne peut pas pointer vers une 404.
+    cityLink: { href: placePath(data.place), label: `Voir les ${data.listed.length} ${plural ? "aires de jeux" : "aire de jeux"} à ${data.place.name}` },
+    cityName: data.place.name,
     source: "supabase",
   };
 }

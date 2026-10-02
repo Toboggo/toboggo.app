@@ -2,7 +2,8 @@ import { defineConfig } from "astro/config";
 import sitemap from "@astrojs/sitemap";
 import { loadEnv } from "vite";
 import { SITE_URL } from "./src/config/site.ts";
-import { loadCities, sitemapExclusions } from "./src/lib/seo/cityPage.ts";
+import { HUB_PATH } from "./src/lib/seo/places.ts";
+import { loadSeoSite, sitemapExclusions } from "./src/lib/seo/seoSite.ts";
 
 // Domaine centralisé dans src/config/site.ts (canonicals, OG, sitemap, robots.txt).
 
@@ -14,12 +15,15 @@ import { loadCities, sitemapExclusions } from "./src/lib/seo/cityPage.ts";
 // Retirer une page de cette liste ET son `noindex` seulement quand elle est finalisée.
 const SHELL_ONLY_PATHS = ["/guides", "/mentions-legales"];
 
-// Pages SEO locales : le sitemap ne contient une ville (et le hub) que si
-// lib/seo/eligibility.ts la juge indexable. Mêmes données, mêmes critères que
-// la page elle-même ; sans variables PUBLIC_SUPABASE_* aucune page n'est
-// générée et rien n'est listé. Lecture seule.
+// Pages SEO locales : une page de ville n'existe que si la ville est validée
+// ET éligible (lib/seo/eligibility.ts, source unique) ; elle est alors dans le
+// sitemap, sinon elle n'est tout simplement pas générée. Seul le hub peut
+// exister sans ville : il est alors noindex et retiré du sitemap. Le snapshot
+// Supabase est partagé (un seul chargement par build, lecture seule).
 const env = loadEnv(process.env.NODE_ENV ?? "production", process.cwd(), "PUBLIC_");
-const seoExclusions = sitemapExclusions(await loadCities(env));
+// `astro check` n'a pas besoin du sitemap : pas de lecture réseau dans ce cas.
+const isCheck = process.argv.includes("check");
+const seoExclusions = isCheck ? [] : sitemapExclusions(await loadSeoSite(env), HUB_PATH);
 
 export default defineConfig({
   site: SITE_URL,

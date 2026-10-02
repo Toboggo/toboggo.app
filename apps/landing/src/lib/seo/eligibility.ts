@@ -1,21 +1,23 @@
 /**
- * Éligibilité à l'indexation d'une page SEO locale. Pure, testée
- * (eligibility.test.ts) : la page, le sitemap et le hub s'appuient TOUS sur
- * cette fonction — aucun critère n'est dispersé ailleurs.
+ * Éligibilité d'une ville à une page SEO locale — V2.
  *
- * Seuils initiaux (validés pour le pilote Millau) : à ne changer qu'en
- * connaissance de cause, car ils décident de index/noindex.
+ * SOURCE UNIQUE : la génération des pages, le hub, le sitemap et les liens
+ * internes s'appuient tous sur `evaluateEligibility`. Aucun critère ne doit
+ * être recopié ailleurs.
+ *
+ * Une ville est éligible si et seulement si :
+ *   1. au moins 5 parcs affichables (coordonnées valides + code postal) ;
+ *   2. au moins 3 parcs documentés ;
+ *   3. au moins 20 % des parcs affichables sont documentés.
  */
 import { describePark, type SeoPark } from "./parks";
 
 export const THRESHOLDS = {
-  /** Parcs publiés ET actifs avec coordonnées + code postal. */
   minListedParks: 5,
-  /** Parcs « suffisamment documentés » parmi les parcs retenus. */
   minDocumentedParks: 3,
-  /** Part des parcs avec adresse + coordonnées. */
-  minAddressedRatio: 0.8,
-  /** « Suffisamment documenté » : au moins N infos utiles déclarées… */
+  /** Part des parcs affichables qui doivent être documentés. */
+  minDocumentedRatio: 0.2,
+  /** « Documenté » : tranche d'âge complète OU au moins N infos utiles déclarées. */
   documentedMinDeclared: 3,
 } as const;
 
@@ -43,7 +45,7 @@ export function isAddressed(park: SeoPark): boolean {
 }
 
 /**
- * Suffisamment documenté pour une fiche détaillée : tranche d'âge complète
+ * Suffisamment documenté pour une carte détaillée : tranche d'âge complète
  * (min ET max) OU ≥ 3 informations utiles déclarées (équipements, services,
  * accessibilité, clôture/ombre — revêtement exclu).
  */
@@ -53,7 +55,7 @@ export function isDocumented(park: SeoPark): boolean {
 }
 
 export interface EligibilityCheck {
-  id: "listed" | "documented" | "addressed";
+  id: "listed" | "documented" | "documentedRatio";
   passed: boolean;
   value: number;
   threshold: number;
@@ -62,17 +64,19 @@ export interface EligibilityCheck {
 export interface Eligibility {
   eligible: boolean;
   checks: EligibilityCheck[];
+  listed: number;
+  documented: number;
 }
 
-/** `parks` = parcs publiés ET actifs de la ville (le filtre est fait à la requête). */
+/** `parks` = parcs publiés ET actifs de la ville (le filtre est fait au chargement). */
 export function evaluateEligibility(parks: SeoPark[]): Eligibility {
   const listed = parks.filter(isListable);
   const documented = listed.filter(isDocumented);
-  const addressedRatio = parks.length === 0 ? 0 : parks.filter(isAddressed).length / parks.length;
+  const ratio = listed.length === 0 ? 0 : documented.length / listed.length;
   const checks: EligibilityCheck[] = [
     { id: "listed", passed: listed.length >= THRESHOLDS.minListedParks, value: listed.length, threshold: THRESHOLDS.minListedParks },
     { id: "documented", passed: documented.length >= THRESHOLDS.minDocumentedParks, value: documented.length, threshold: THRESHOLDS.minDocumentedParks },
-    { id: "addressed", passed: addressedRatio >= THRESHOLDS.minAddressedRatio, value: Number(addressedRatio.toFixed(2)), threshold: THRESHOLDS.minAddressedRatio },
+    { id: "documentedRatio", passed: ratio >= THRESHOLDS.minDocumentedRatio, value: Number(ratio.toFixed(3)), threshold: THRESHOLDS.minDocumentedRatio },
   ];
-  return { eligible: checks.every((c) => c.passed), checks };
+  return { eligible: checks.every((c) => c.passed), checks, listed: listed.length, documented: documented.length };
 }

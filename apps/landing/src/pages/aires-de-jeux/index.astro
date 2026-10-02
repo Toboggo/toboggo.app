@@ -1,18 +1,22 @@
 ---
 /**
- * Hub /aires-de-jeux/ — racine SEO. Ne présente que les villes ÉLIGIBLES de
- * lib/seo/cities.ts (aujourd'hui : Millau, ville pilote). Indexable seulement
- * s'il y a au moins une ville éligible ; sinon noindex,follow.
+ * Hub /aires-de-jeux/ — racine SEO. Ne liste QUE les pages de ville réellement
+ * générées (validées éditorialement ET éligibles : lib/seo/seoSite.ts), groupées
+ * par département. Indexable seulement s'il y a au moins une ville ; sinon
+ * noindex,follow (et hors sitemap : voir astro.config.mjs).
  */
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import Button from "../../components/Button.astro";
-import { cityPath, HUB_PATH } from "../../lib/seo/cities";
-import { loadCities } from "../../lib/seo/cityPage";
+import { HUB_PATH, placePath } from "../../lib/seo/places";
+import { loadSeoSite } from "../../lib/seo/seoSite";
+import { groupByDepartment } from "../../lib/seo/hub";
 import { breadcrumbLd, citiesItemListLd } from "../../lib/seo/jsonld";
 
-const cities = ((await loadCities(import.meta.env)) ?? []).filter((c) => c.eligibility.eligible);
-const indexable = cities.length > 0;
+const site = await loadSeoSite(import.meta.env);
+const cities = site?.published ?? [];
+const indexable = site?.hubIndexable ?? false;
+const departments = groupByDepartment(cities);
 
 const jsonLd = [
   breadcrumbLd([
@@ -47,18 +51,21 @@ const jsonLd = [
       </div>
       {
         indexable ? (
-          <ul class="card-grid city-list">
-            {cities.map((c) => (
-              <li class="info-card">
-                <h3>
-                  <a href={cityPath(c.city)}>Aires de jeux à {c.city.name}</a>
-                </h3>
-                <p>
-                  {c.listed.length} {c.listed.length > 1 ? "aires de jeux référencées" : "aire de jeux référencée"} ({c.city.department}).
-                </p>
-              </li>
-            ))}
-          </ul>
+          departments.map((dep) => (
+            <div class="department">
+              <h3>{dep.name}</h3>
+              <ul class="card-grid city-list">
+                {dep.places.map((c) => (
+                  <li class="info-card">
+                    <h4>
+                      <a href={placePath(c.place)}>Aires de jeux à {c.place.name}</a>
+                    </h4>
+                    <p>{c.listed.length} {c.listed.length > 1 ? "aires de jeux référencées" : "aire de jeux référencée"}.</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
         ) : (
           <p class="note">Aucune ville n'est disponible pour le moment.</p>
         )
@@ -100,12 +107,26 @@ const jsonLd = [
     max-width: 720px;
   }
 
-  .city-list .info-card h3 a {
+  .department + .department {
+    margin-top: var(--space-6);
+  }
+
+  .department h3 {
+    margin: 0 0 var(--space-3);
+    font-size: var(--text-lg);
+  }
+
+  .city-list .info-card h4 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-base);
+  }
+
+  .city-list .info-card h4 a {
     color: var(--color-text);
     text-decoration: none;
   }
 
-  .city-list .info-card h3 a:hover {
+  .city-list .info-card h4 a:hover {
     color: var(--color-primary-hover);
   }
 </style>

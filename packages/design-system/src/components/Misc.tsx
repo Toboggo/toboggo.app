@@ -83,24 +83,71 @@ export interface StatCardTrend {
 export interface StatCardProps {
   value: ReactNode;
   label: string;
-  /** Sprite icon shown above the value (Admin-UI-7B — KPI cards). Optional:
-   * omitted, the card renders exactly as before. */
+  /** Sprite icon shown in a small tinted badge (Admin-UI-7B / COLL-02) — omit
+   * rather than inventing one. Optional: omitted, the card renders as before. */
   icon?: IconName;
   /** Secondary/contextual line (e.g. "dont 2 critiques"). */
   hint?: ReactNode;
   /** Optional delta/tendency, real data only — see `StatCardTrend`. */
   trend?: StatCardTrend;
-  tone?: "primary" | "warning" | "error" | "info" | "neutral";
+  /** Tints the icon badge. `warning` is reserved for a real count that needs
+   * attention (> 0) and also colours the value in the `inline` layout.
+   * `primary` / `accent` are static category tints (brand green / amber) for a
+   * healthy, non-alert metric (COLL-02D §1). */
+  tone?: "primary" | "warning" | "error" | "info" | "accent" | "neutral";
+  /** `stacked` (default, Admin-UI-7B): icon above the value. `inline`
+   * (COLL-02): icon on the left, value and label on the right — the
+   * collectivité Dashboard KPI strip. Both are additive; callers without
+   * `icon`/`layout` render exactly as before. */
+  layout?: "stacked" | "inline";
+  /** `inline` only — opt-in "headline KPI" treatment (larger value, a discreet
+   * neutral-bordered frame). */
+  emphasized?: boolean;
+  /** `inline` only — extra line under the label: a real derived figure only
+   * (e.g. an average rating), never a placeholder (COLL-02C). */
+  secondary?: ReactNode;
   onClick?: () => void;
 }
 
 /**
- * Common stat/KPI tile primitive (Admin-UI-7B — Visual Foundation). Existing
- * calls (`<StatCard value label onClick? />`, e.g. Maintenance.tsx) keep
- * rendering identically: `icon`/`hint`/`trend`/`tone` are all optional and
- * additive.
+ * Common stat/KPI tile primitive. Existing calls (`<StatCard value label
+ * onClick? />`, e.g. Maintenance.tsx) keep rendering identically: every prop
+ * but `value`/`label` is optional and additive.
  */
-export function StatCard({ value, label, icon, hint, trend, tone = "neutral", onClick }: StatCardProps) {
+export function StatCard({
+  value,
+  label,
+  icon,
+  hint,
+  trend,
+  tone = "neutral",
+  layout = "stacked",
+  emphasized,
+  secondary,
+  onClick,
+}: StatCardProps) {
+  if (layout === "inline") {
+    return (
+      <button
+        type="button"
+        className={clsx(styles.inlineCard, tone !== "neutral" && styles[`tone-${tone}`], emphasized && styles.emphasized)}
+        onClick={onClick}
+        disabled={!onClick}
+      >
+        {icon && (
+          <span className={styles.inlineIcon}>
+            <Icon name={icon} size={emphasized ? 20 : 18} />
+          </span>
+        )}
+        <span className={styles.inlineBody}>
+          <span className={styles.inlineValue}>{value}</span>
+          <span className={styles.inlineLabel}>{label}</span>
+          {secondary && <span className={styles.inlineSecondary}>{secondary}</span>}
+        </span>
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"

@@ -79,6 +79,7 @@ export function ReportsPanel({ parkId, parkName }: { parkId: string; parkName: s
           report={selected}
           parkName={parkName}
           canManage={canResolveReport}
+          linkToPark={false}
           onClose={() => {
             setSelected(null);
             // ReportModal invalidates ["bo-reports"] (l'écran /reports), pas

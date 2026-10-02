@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Input, Segmented, Select, StatCard } from "@toboggo/design-system";
 import { completeMaintenance, createMaintenance, listMaintenance, listParks, listTeam, logActivity, type Maintenance as MaintenanceType, type MaintenanceRecurrence } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
+import { ParkLink } from "../components/ParkLink";
 import { MaintenanceModal } from "../components/MaintenanceModal";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
@@ -109,7 +110,7 @@ export default function Maintenance() {
               )}
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>
-                  {park?.name} {item.recur !== "none" && <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>↻ {item.recur === "monthly" ? "Mensuel" : "Annuel"}</span>}
+                  {park ? <ParkLink parkId={park.id}>{park.name}</ParkLink> : null} {item.recur !== "none" && <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>↻ {item.recur === "monthly" ? "Mensuel" : "Annuel"}</span>}
                 </div>
                 <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
                   {new Date(item.date).toLocaleDateString("fr-FR")} · {item.note} · {item.assignee ?? "Non assigné"}

@@ -9,6 +9,7 @@ import {
   getParkHistory,
   listFeatures,
   listMedia,
+  listOrgParkIds,
   listParkEditsWithDetails,
   listParkFeatures,
   listReportsForPark,
@@ -34,6 +35,8 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listMedia: vi.fn().mockResolvedValue([]),
     listExternalIds: vi.fn().mockResolvedValue([]),
     listSources: vi.fn().mockResolvedValue([]),
+    // COLL-03C — garde de périmètre collectivité (`useScopedPark`).
+    listOrgParkIds: vi.fn().mockResolvedValue(["p1"]),
     // Admin-UI-9B — Collectivité dans l'entête : requête ciblée par id.
     getOrganization: vi.fn().mockResolvedValue(null),
     setParkStatus: vi.fn().mockResolvedValue(undefined),
@@ -134,6 +137,7 @@ describe("ParkDetail — /parks/:id", () => {
     perms.canResolveReport = true;
     scope.isAdmin = false;
     scope.communeId = "org-1";
+    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue(["p1"]);
     vi.mocked(getPark).mockReset().mockResolvedValue(makePark() as never);
     vi.mocked(getParkHistory).mockReset().mockResolvedValue([]);
     vi.mocked(listSources).mockReset().mockResolvedValue([]);
@@ -177,6 +181,9 @@ describe("ParkDetail — /parks/:id", () => {
     });
 
     it("ne montre plus les cards 'Statuts & métadonnées' ni 'Source & provenance' (doublons du header 9B)", async () => {
+      // Test Admin-UI : fiche Admin (la fiche collectivité ajoute son bloc « État du parc », testé plus bas).
+      scope.isAdmin = true;
+      scope.communeId = undefined;
       vi.mocked(listSources).mockResolvedValue([
         { id: "s1", park_id: "p1", source_type: "osm", source_name: null, source_url: null, license: null, last_synced_at: null, created_at: "2026-01-01" },
       ] as never);
@@ -205,6 +212,9 @@ describe("ParkDetail — /parks/:id", () => {
     });
 
     it("n'affiche jamais 'Adresse non renseignée' — la ligne Adresse est omise si absente", async () => {
+      // Test Admin-UI : fiche Admin (la fiche collectivité ajoute son bloc « État du parc », testé plus bas).
+      scope.isAdmin = true;
+      scope.communeId = undefined;
       vi.mocked(getPark).mockReset().mockResolvedValue(
         makePark({ formatted_address: null, address_line: null, city: null, postal_code: null }) as never,
       );
@@ -361,6 +371,9 @@ describe("ParkDetail — /parks/:id", () => {
   });
 
   it("Admin-UI-9D : les champs facultatifs absents (âges, description, OSM) sont omis proprement, jamais 'Non renseigné'", async () => {
+    // Test Admin-UI : fiche Admin (la fiche collectivité ajoute son bloc « État du parc », testé plus bas).
+    scope.isAdmin = true;
+    scope.communeId = undefined;
     renderDetail();
     await screen.findByRole("heading", { name: "Parc des Sources" });
     fireEvent.click(screen.getByRole("tab", { name: "Données / Informations" }));
@@ -504,6 +517,9 @@ describe("ParkDetail — /parks/:id", () => {
     });
 
     it("Source : affiche toutes les sources réelles, pas seulement la première", async () => {
+      // Test Admin-UI : fiche Admin (la fiche collectivité ajoute son bloc « État du parc », testé plus bas).
+      scope.isAdmin = true;
+      scope.communeId = undefined;
       vi.mocked(listSources).mockResolvedValue([
         { id: "s1", park_id: "p1", source_type: "osm", source_name: null, source_url: null, license: null, last_synced_at: null, created_at: "2026-01-01" },
         { id: "s2", park_id: "p1", source_type: "municipality", source_name: null, source_url: null, license: null, last_synced_at: null, created_at: "2026-01-01" },
@@ -540,5 +556,89 @@ describe("ParkDetail — /parks/:id", () => {
       fireEvent.click(screen.getByRole("button", { name: "Actions du parc" }));
       expect(screen.getByRole("menuitem", { name: "Débloquer" })).toBeTruthy();
     });
+  });
+});
+
+describe("ParkDetail — périmètre collectivité & état du parc (COLL-03C)", () => {
+  beforeEach(() => {
+    perms.canEditPark = true;
+    perms.canResolveReport = true;
+    scope.isAdmin = false;
+    scope.communeId = "org-1";
+    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue(["p1"]);
+    vi.mocked(getPark).mockReset().mockResolvedValue(makePark() as never);
+    vi.mocked(listSources).mockReset().mockResolvedValue([]);
+    vi.mocked(listReviewsForPark).mockReset().mockResolvedValue([]);
+    vi.mocked(listReportsForPark).mockReset().mockResolvedValue([]);
+    vi.mocked(listParkEditsWithDetails).mockReset().mockResolvedValue([]);
+    vi.mocked(getParkHistory).mockReset().mockResolvedValue([]);
+  });
+
+  it("shows the loading state before the park resolves", () => {
+    vi.mocked(getPark).mockReset().mockReturnValue(new Promise(() => {}) as never);
+    renderDetail();
+    expect(screen.getByText("Chargement…")).toBeTruthy();
+  });
+
+  it("shows the error state when the load fails", async () => {
+    vi.mocked(getPark).mockReset().mockRejectedValue(new Error("boom"));
+    renderDetail();
+    expect(await screen.findByText("Parc introuvable")).toBeTruthy();
+  });
+
+  it("treats a park outside the organisation like an unknown id — and loads nothing about it", async () => {
+    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue(["autre-parc"]);
+    renderDetail();
+    expect(await screen.findByText("Parc introuvable")).toBeTruthy();
+    expect(screen.getByText(/n'existe pas ou n'est pas accessible/i)).toBeTruthy();
+    expect(screen.queryByRole("tablist")).toBeNull();
+    expect(getPark).not.toHaveBeenCalled();
+    // none of the side queries may run before the scope check has passed
+    expect(listSources).not.toHaveBeenCalled();
+    expect(listReviewsForPark).not.toHaveBeenCalled();
+    expect(listReportsForPark).not.toHaveBeenCalled();
+    expect(listParkEditsWithDetails).not.toHaveBeenCalled();
+  });
+
+  it("does not apply the organisation guard to the admin, who has no « État du parc » block", async () => {
+    scope.isAdmin = true;
+    scope.communeId = undefined;
+    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue([]);
+    renderDetail();
+    expect(await screen.findByRole("heading", { name: "Parc des Sources" })).toBeTruthy();
+    expect(listOrgParkIds).not.toHaveBeenCalled();
+    expect(screen.queryByText("État du parc")).toBeNull();
+  });
+
+  it("lists the missing information and routes each one to the right tab", async () => {
+    renderDetail(); // fixture: address only → 4 missing
+    expect(await screen.findByText("État du parc")).toBeTruthy();
+    expect(screen.getByText("1/5 renseignées")).toBeTruthy();
+    const todo = screen.getAllByRole("button", { name: "À compléter" });
+    expect(todo).toHaveLength(4);
+    fireEvent.click(todo[todo.length - 2]); // Photo
+    expect(await screen.findByRole("tab", { name: "Photos", selected: true })).toBeTruthy();
+  });
+
+  it("shows the missing items as plain text (no action) without edit permission", async () => {
+    perms.canEditPark = false;
+    renderDetail();
+    await screen.findByText("État du parc");
+    expect(screen.queryByRole("button", { name: "À compléter" })).toBeNull();
+    expect(screen.getAllByText("À compléter")).toHaveLength(4);
+  });
+
+  it("does not duplicate reports or edit proposals in the état du parc block (they have their own tab)", async () => {
+    renderDetail();
+    await screen.findByText("État du parc");
+    expect(screen.queryByText("Aucun signalement sur ce parc.")).toBeNull();
+    expect(screen.queryByText("Propositions à vérifier")).toBeNull();
+  });
+
+  it("keeps the list context (filters, page) in the way back", async () => {
+    renderDetail();
+    await screen.findByRole("heading", { name: "Parc des Sources" });
+    const back = screen.getByRole("link", { name: "Mes parcs" }) as HTMLAnchorElement;
+    expect(back.getAttribute("href")).toBe("/parks?status=pending&page=2");
   });
 });

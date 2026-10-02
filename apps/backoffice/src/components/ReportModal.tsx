@@ -12,6 +12,7 @@ import {
   REPORT_REASON_LABEL,
   type Report,
 } from "@toboggo/shared";
+import { ParkLink } from "./ParkLink";
 import { ReportStatusTag, ReportSeverityTag } from "./StatusTag";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
@@ -73,11 +74,14 @@ export function ReportModal({
   parkName,
   onClose,
   canManage,
+  linkToPark = true,
 }: {
   report: ReportWithPark | null;
   parkName?: string;
   onClose: () => void;
   canManage: boolean;
+  /** Off when the modal is opened from that park's own detail page. */
+  linkToPark?: boolean;
 }) {
   const { communeId, isAdmin } = useOrgScope();
   const userName = useOrgSession((s) => s.userName);
@@ -161,7 +165,13 @@ export function ReportModal({
     <Dialog open onClose={onClose} title="Signalement">
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-          <strong>{report.parks?.name ?? parkName}</strong>
+          {linkToPark && report.park_id ? (
+            <ParkLink parkId={report.park_id}>
+              <strong>{report.parks?.name ?? parkName}</strong>
+            </ParkLink>
+          ) : (
+            <strong>{report.parks?.name ?? parkName}</strong>
+          )}
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
             <ReportSeverityTag severity={report.severity} />
             <ReportStatusTag status={report.status} />

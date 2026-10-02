@@ -7,8 +7,8 @@ import {
   setParkCover,
   uploadPhoto,
   type ParkMedia,
-  type SourceType,
 } from "@toboggo/shared";
+import { SOURCE_LABEL } from "../../lib/sourceLabels";
 import { useOrgScope } from "../../lib/orgScope";
 import { useOrgSession } from "../../lib/orgSession";
 import { useAsyncAction } from "../../lib/useAsyncAction";
@@ -16,16 +16,6 @@ import { queryClient } from "../../lib/queryClient";
 import styles from "../ParkDetail.module.css";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-
-const SOURCE_LABEL: Partial<Record<SourceType, string>> = {
-  user: "Contribution",
-  municipality: "Collectivité",
-  toboggo: "Toboggo",
-  osm: "OpenStreetMap",
-  open_data: "Open data",
-  partner: "Partenaire",
-  other: "Autre",
-};
 
 function provenance(m: ParkMedia): string | null {
   const parts: string[] = [];

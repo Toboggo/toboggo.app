@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
@@ -46,8 +46,14 @@ vi.mock("maplibre-gl", () => {
     }
     remove() {}
   }
+  // `LngLatBounds` : utilisé par la mini-carte du Dashboard Collectivité (CommuneDashboard).
+  class FakeBounds {
+    extend() {
+      return this;
+    }
+  }
   const instances: { maps: FakeMap[]; markers: FakeMarker[] } = { maps: [], markers: [] };
-  return { __esModule: true, default: { Map: FakeMap, Marker: FakeMarker }, __instances: instances };
+  return { __esModule: true, default: { Map: FakeMap, Marker: FakeMarker, LngLatBounds: FakeBounds }, __instances: instances };
 });
 vi.mock("maplibre-gl/dist/maplibre-gl.css", () => ({}));
 
@@ -350,34 +356,33 @@ describe("Dashboard — Admin-UI-2", () => {
     expect(screen.getByTestId("loc").textContent).toBe("/validation");
   });
 
-  it("vue Collectivité : conserve le comportement existant (pas de donut ni d'actions rapides admin)", async () => {
+  it("routage : un Admin voit AdminDashboard, une collectivité voit CommuneDashboard (aucun état partagé)", async () => {
+    renderDashboard();
+    expect(await screen.findByText("Vue d'ensemble de l'activité Toboggo.")).toBeTruthy();
+    expect(screen.queryByText("Vue d'ensemble de votre collectivité")).toBeNull();
+    cleanup();
+
     scope.isAdmin = false;
     scope.communeId = "org-1";
     renderDashboard();
-    await screen.findByText("Publiés");
+    expect(await screen.findByText("Vue d'ensemble de votre collectivité")).toBeTruthy();
+    expect(screen.queryByText("Vue d'ensemble de l'activité Toboggo.")).toBeNull();
+  });
+
+  it("vue Collectivité : pas de donut ni d'actions rapides admin, et aucune requête Admin", async () => {
+    scope.isAdmin = false;
+    scope.communeId = "org-1";
+    renderDashboard();
+    await screen.findByText("Parcs gérés");
     expect(screen.queryByText("Répartition des parcs par source")).toBeNull();
     expect(screen.queryByText("Actions rapides")).toBeNull();
     expect(getParkSourceDistribution).not.toHaveBeenCalled();
   });
-
-  it("Admin-UI-4 : KPI Collectivités/Utilisateurs réels, cliquables, sans le mot « actives »", async () => {
-    renderDashboard();
-    expect(await screen.findByText("Collectivités")).toBeTruthy();
-    expect(await screen.findByText("5")).toBeTruthy();
-    expect(screen.getByText("Utilisateurs")).toBeTruthy();
-    expect(await screen.findByText("4")).toBeTruthy();
-    expect(screen.queryByText(/actives?/i)).toBeNull();
-    expect(screen.queryByText(/utilisateurs actifs/i)).toBeNull();
-
-    fireEvent.click(screen.getByText("Collectivités").closest("button")!);
-    expect(screen.getByTestId("loc").textContent).toBe("/organizations");
-  });
-
   it("Admin-UI-4 : le KPI Collectivités/Utilisateurs n'existe pas côté Collectivité", async () => {
     scope.isAdmin = false;
     scope.communeId = "org-1";
     renderDashboard();
-    await screen.findByText("Publiés");
+    await screen.findByText("Parcs gérés");
     expect(screen.queryByText("Collectivités")).toBeNull();
     expect(screen.queryByText("Utilisateurs")).toBeNull();
     expect(listCommunes).not.toHaveBeenCalled();

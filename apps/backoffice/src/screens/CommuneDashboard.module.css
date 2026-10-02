@@ -1,0 +1,436 @@
+/* Largeur de contenu maîtrisée (COLL-02B §1) — scopée au Dashboard seul : ne
+ * touche pas `.bo-content` (partagé par tous les écrans, dont
+ * `Parks`/`ParkDetail` hors périmètre de ce lot). Fluide jusqu'à 1220px, ce
+ * plafond n'est atteint qu'au-delà de ~1440px de fenêtre (1440 - 216 sidebar
+ * - 2×28 padding ≈ 1168px de colonne, déjà sous le plafond) : pleine largeur
+ * à 1280 et 1440, jamais écrasé. */
+.page {
+  max-width: 1220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+.title {
+  font-size: 22px;
+}
+.subtitle {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
+
+/* ── Bande KPI ──────────────────────────────────────────────────────────── */
+.kpiStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+/* ── Grille "À traiter" + "Patrimoine" ─────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── « À traiter » ──────────────────────────────────────────────────────── */
+.actionList {
+  display: flex;
+  flex-direction: column;
+}
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 7px 0;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border-neutral);
+  font-size: 13.5px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.actionRow:last-child {
+  border-bottom: none;
+}
+.actionRow.static {
+  cursor: default;
+}
+.actionRow:hover:not(.static) {
+  color: var(--color-primary-hover);
+}
+.actionLabel {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.actionText {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.actionIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.actionIconSlot {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+/* ── Patrimoine (COLL-02D §3) ───────────────────────────────────────────── */
+/* Collectivité : pleine largeur, résumé compact (n'a plus "À traiter" comme
+ * partenaire de ligne — §2) ; admin : carte demi-largeur inchangée, à côté
+ * d'"À traiter". */
+.patrimonyCompact {
+  padding: 12px 18px;
+}
+.patrimonyTotal {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-text);
+  flex-shrink: 0;
+}
+.patrimonyBar {
+  display: flex;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--color-bg-alt);
+  margin-bottom: 10px;
+}
+.barPublished {
+  background: var(--color-primary);
+}
+.barPending {
+  background: var(--color-accent);
+}
+.barBlocked {
+  background: var(--color-error);
+}
+.patrimonyLegend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 14px;
+}
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 1px 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+.legendItem:hover {
+  color: var(--color-text);
+}
+.legendItem strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+.legendDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dotPublished {
+  background: var(--color-primary);
+}
+.dotPending {
+  background: var(--color-accent);
+}
+.dotBlocked {
+  background: var(--color-error);
+}
+.legendTotal {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin-left: auto;
+}
+.legendTotal strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* ── Activité récente ──────────────────────────────────────────────────── */
+.activityRow {
+  display: flex;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--color-border-neutral);
+}
+.activityRow:last-child {
+  border-bottom: none;
+}
+.activityDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.activityBody {
+  min-width: 0;
+}
+.activityText {
+  font-size: 13px;
+}
+.activityMeta {
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+}
+.activityEmpty {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+/* ── Rangées d'aperçus opérationnels (COLL-02C §7) ─────────────────────── */
+.rowTwo {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: var(--space-4);
+  align-items: start;
+}
+.rowThree {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .rowTwo,
+  .rowThree {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Combines a real count badge with a "Voir tout" button in one header slot
+ * (Entretien à venir, Avis récents) without them colliding. */
+.panelHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* "Activité récente" redevient un bloc secondaire (COLL-02C §5) : même
+ * surface de carte, densité réduite et titre plus discret. */
+.secondaryCard .sectionTitleCompact {
+  margin-bottom: 0;
+}
+.secondaryCard {
+  padding: 12px 16px;
+}
+.sectionTitleCompact {
+  font-family: var(--font-heading);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+/* ── Listes compactes partagées par les panneaux "aperçus" ─────────────── */
+.panelList {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.panelRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--color-border-neutral);
+}
+.panelRow:last-child {
+  border-bottom: none;
+  padding-bottom: 1px;
+}
+.panelRow:first-child {
+  padding-top: 1px;
+}
+.panelRowBody {
+  min-width: 0;
+  flex: 1;
+}
+.panelRowTitle {
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panelRowMuted {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+.panelRowMeta {
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panelRowComment {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.panelThumb {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-xs);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+/* ── Pilotage signalements : évolution + répartition (COLL-02C §3) ─────── */
+.trendChart {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 56px;
+}
+.trendBarWrap {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.trendBar {
+  width: 100%;
+  min-height: 2px;
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
+  background: var(--color-primary);
+}
+.trendLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin-top: 4px;
+}
+
+.statusBar {
+  display: flex;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--color-bg-alt);
+  margin: 16px 0 10px;
+}
+.statusOpen {
+  background: var(--color-accent);
+}
+.statusProgress {
+  background: var(--color-info);
+}
+.statusResolved {
+  background: var(--color-primary);
+}
+.statusDismissed {
+  background: var(--color-text-faint);
+}
+.statusLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.statusLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.statusLegendItem strong {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+/* ── Mini-carte (COLL-02C §4) ────────────────────────────────────────────── */
+.miniMap {
+  position: relative;
+  height: 196px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border-neutral);
+}
+.mapFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 180px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  text-align: center;
+  padding: 16px;
+}
+.mapCaption {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+}
+
+/* ── Skeleton (chargement, COLL-02B §10) ───────────────────────────────── */
+.skeletonGap {
+  margin-top: 12px;
+}
+.skeletonGapSm {
+  margin-top: 6px;
+}
+.kpiSkeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.kpiSkeletonBody {
+  flex: 1;
+  min-width: 0;
+}

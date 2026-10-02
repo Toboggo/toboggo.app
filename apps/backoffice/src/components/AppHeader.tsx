@@ -24,7 +24,16 @@ const ROLE_LABEL: Record<TeamRole, string> = {
  * (table `notifications` = app parents) — une icône inerte serait un lien
  * mort déguisé, reporté au lot qui la rend réelle.
  */
-export function AppHeader({ orgLabel, screenLabel }: { orgLabel: string; screenLabel?: string }) {
+export function AppHeader({
+  orgLabel,
+  screenLabel,
+  detailLabel,
+}: {
+  orgLabel: string;
+  screenLabel?: string;
+  /** Last crumb of a detail route (e.g. the park name). */
+  detailLabel?: string;
+}) {
   const navigate = useNavigate();
   const { isAdmin } = useOrgScope();
   const { userName, userEmail, currentRole, signOut } = useOrgSession();
@@ -65,7 +74,15 @@ export function AppHeader({ orgLabel, screenLabel }: { orgLabel: string; screenL
             <span aria-hidden="true" className={styles.sep}>
               ›
             </span>
-            <span className={styles.current}>{screenLabel}</span>
+            <span className={detailLabel ? undefined : styles.current}>{screenLabel}</span>
+          </>
+        )}
+        {screenLabel && detailLabel && (
+          <>
+            <span aria-hidden="true" className={styles.sep}>
+              ›
+            </span>
+            <span className={styles.current}>{detailLabel}</span>
           </>
         )}
       </nav>

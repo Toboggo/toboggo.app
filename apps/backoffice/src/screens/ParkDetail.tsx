@@ -5,14 +5,12 @@ import clsx from "clsx";
 import { Button, Menu, MenuItem, Tabs, TabPanel, useToast } from "@toboggo/design-system";
 import {
   getOrganization,
-  getPark,
   listParkEditsWithDetails,
   listReportsForPark,
   listReviewsForPark,
   listSources,
   logActivity,
   setParkStatus,
-  type SourceType,
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkStatusTag, ParkVerificationTag } from "../components/StatusTag";
@@ -21,6 +19,8 @@ import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
 import { usePermissions } from "../lib/permissions";
 import { useAsyncAction } from "../lib/useAsyncAction";
+import { useScopedPark } from "../lib/useScopedPark";
+import { SOURCE_LABEL } from "../lib/sourceLabels";
 import { useUnsavedChangesGuard } from "../lib/useUnsavedChangesGuard";
 import { parkStatusTransitions } from "../lib/parkStatus";
 import { queryClient } from "../lib/queryClient";
@@ -30,6 +30,7 @@ import { FeaturesPanel } from "./parkDetail/FeaturesPanel";
 import { PhotosPanel } from "./parkDetail/PhotosPanel";
 import { ReviewsPanel } from "./parkDetail/ReviewsPanel";
 import { ReportsPanel } from "./parkDetail/ReportsPanel";
+import { ParkOverview } from "./parkDetail/ParkOverview";
 import { ParkEditsPanel } from "./parkDetail/ParkEditsPanel";
 import { HistoryPanel } from "./parkDetail/HistoryPanel";
 import styles from "./ParkDetail.module.css";
@@ -54,18 +55,6 @@ function tabLabel(base: string, count: number, alert = false) {
     </>
   );
 }
-
-// Même libellés que Parks.tsx (`SOURCE_LABEL`) / Photos.tsx / PhotosPanel.tsx —
-// pas de 2e formulation pour les mêmes 7 valeurs de `source_type`.
-const SOURCE_LABEL: Record<SourceType, string> = {
-  user: "Contributeur",
-  municipality: "Collectivité",
-  toboggo: "Toboggo",
-  open_data: "Open data",
-  partner: "Partenaire",
-  osm: "OpenStreetMap",
-  other: "Autre",
-};
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 
@@ -116,11 +105,9 @@ export default function ParkDetail() {
   const [featuresDirty, setFeaturesDirty] = useState(false);
   const confirmIfDirty = useUnsavedChangesGuard(infoDirty || featuresDirty);
 
-  const { data: park, isLoading, isError } = useQuery({
-    queryKey: ["park", id],
-    queryFn: () => getPark(id),
-    enabled: !!id,
-  });
+  // Collectivité: the id must belong to the active organisation (`useScopedPark`);
+  // Admin is unscoped. An out-of-scope id fails like an unknown one.
+  const { data: park, isLoading, isError } = useScopedPark(id);
 
   // Source réelle (`park_sources.source_type`) — même donnée que la colonne
   // Source de /parks (Admin-UI-5B), affichée ici dans l'entête + la Vue
@@ -128,10 +115,15 @@ export default function ParkDetail() {
   // normalement qu'une seule ligne (cf. commentaire de
   // `getParkSourceDistribution`), mais ne s'arrête plus arbitrairement à la
   // première s'il y en a plusieurs.
+  // Collectivité: nothing about the park is fetched before the scope check has
+  // passed (`park` only resolves for an in-scope id). Admin is unscoped and
+  // keeps firing these in parallel with the park itself.
+  const sideQueriesEnabled = !!id && (!!isAdmin || !!park);
+
   const { data: sources = [] } = useQuery({
     queryKey: ["park-sources", id],
     queryFn: () => listSources(id),
-    enabled: !!id,
+    enabled: sideQueriesEnabled,
   });
 
   // Admin-UI-9B — Collectivité dans l'entête : fiche unique, donc une
@@ -151,17 +143,17 @@ export default function ParkDetail() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["park-reviews", id],
     queryFn: () => listReviewsForPark(id),
-    enabled: !!id,
+    enabled: sideQueriesEnabled,
   });
   const { data: reports = [] } = useQuery({
     queryKey: ["park-reports", id],
     queryFn: () => listReportsForPark(id),
-    enabled: !!id,
+    enabled: sideQueriesEnabled,
   });
   const { data: edits = [] } = useQuery({
     queryKey: ["park-edits-details", id],
     queryFn: () => listParkEditsWithDetails({ parkId: id }),
-    enabled: !!id,
+    enabled: sideQueriesEnabled,
   });
   const openReportsCount = reports.filter((r) => r.status === "open").length;
   const pendingEditsCount = edits.filter((e) => e.status === "pending").length;
@@ -214,7 +206,7 @@ export default function ParkDetail() {
   }
 
   const transitions = canEditPark ? parkStatusTransitions(park.status) : [];
-  const sourceLabel = sources.length > 0 ? sources.map((s) => SOURCE_LABEL[s.source_type]).join(", ") : "—";
+  const sourceLabel = sources.length > 0 ? sources.map((s) => SOURCE_LABEL[s.source_type] ?? s.source_type).join(", ") : "—";
 
   return (
     <div>
@@ -271,6 +263,8 @@ export default function ParkDetail() {
           </div>
         )}
       </div>
+
+      {!isAdmin && <ParkOverview park={park} canEdit={canEditPark} onOpenTab={(t) => void handleTabChange(t)} />}
 
       <Tabs
         label="Sections du parc"

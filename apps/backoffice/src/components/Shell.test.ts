@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNavGroups, NAV_ICON_GAPS } from "./Shell";
+import { buildNavGroups, isNavActive, NAV_ICON_GAPS, resolveScreenLabel } from "./Shell";
 
 /** Routes actually registered in `App.tsx`'s `<Routes>` — kept in sync by
  * hand (small, stable list). Any nav item pointing outside this set would be
@@ -128,5 +128,37 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
     expect(NAV_ICON_GAPS["/organizations"]).toBeUndefined();
     expect(NAV_ICON_GAPS["/maintenance"]).toBeTruthy();
     expect(NAV_ICON_GAPS["/journal"]).toBeTruthy();
+  });
+});
+
+describe("breadcrumb & active state on dynamic routes", () => {
+  const items = buildNavGroups({ isAdmin: false, pendingParks: 0, openReports: 0, pendingMedia: 0, pendingEdits: 0 }).flatMap((g) => g.items);
+
+  it("resolves the section label for an exact route", () => {
+    expect(resolveScreenLabel(items, "/parks")).toBe("Mes parcs");
+    expect(resolveScreenLabel(items, "/")).toBe("Tableau de bord");
+  });
+
+  it("resolves the parent section for /parks/:id and /parks/new", () => {
+    expect(resolveScreenLabel(items, "/parks/4afbcae8-b5b9-4646-8fd5-48c70d9cb188")).toBe("Mes parcs");
+    expect(resolveScreenLabel(items, "/parks/new")).toBe("Mes parcs");
+  });
+
+  it("uses the admin label on the admin sidebar", () => {
+    const admin = buildNavGroups({ isAdmin: true, pendingParks: 0, openReports: 0, pendingMedia: 0, pendingEdits: 0 }).flatMap((g) => g.items);
+    expect(resolveScreenLabel(admin, "/parks/abc")).toBe("Parcs");
+  });
+
+  it("never resolves '/' as a parent of unknown routes, nor a prefix lookalike", () => {
+    expect(resolveScreenLabel(items, "/inconnu")).toBeUndefined();
+    expect(resolveScreenLabel(items, "/parksfoo")).toBeUndefined();
+  });
+
+  it("keeps a nav entry active on its sub-routes only", () => {
+    expect(isNavActive("/parks", "/parks")).toBe(true);
+    expect(isNavActive("/parks", "/parks/abc")).toBe(true);
+    expect(isNavActive("/parks", "/parksfoo")).toBe(false);
+    expect(isNavActive("/", "/")).toBe(true);
+    expect(isNavActive("/", "/parks")).toBe(false);
   });
 });

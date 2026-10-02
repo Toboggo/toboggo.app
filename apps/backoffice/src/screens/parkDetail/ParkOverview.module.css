@@ -1,0 +1,68 @@
+/* État du parc collectivité (COLL-03C) — tokens uniquement. */
+.grid {
+  margin-bottom: 16px;
+  max-width: 560px;
+}
+
+.progress {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border-neutral);
+  font-size: 13px;
+}
+.checkItem:last-child {
+  border-bottom: none;
+}
+.checkLabel {
+  flex: 1;
+  min-width: 0;
+}
+.done,
+.todo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.done {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.todo {
+  background: var(--color-bg-alt);
+  color: var(--color-text-faint);
+}
+.ok,
+.muted {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+.link {
+  background: none;
+  border: none;
+  padding: 4px 0;
+  color: var(--color-primary-hover);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.link:hover {
+  text-decoration: underline;
+}

@@ -190,3 +190,93 @@
     animation: none;
   }
 }
+
+/* ── StatCard `layout="inline"` (COLL-02) ───────────────────────────────────
+ * Variante « icône à gauche, valeur à droite » du Dashboard Collectivité.
+ * Classes dédiées (`inline*`) : la variante `stacked` ci-dessus (Admin-UI-7B,
+ * défaut) n'est jamais affectée. */
+.inlineCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.inlineCard:not(:disabled):hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+.inlineCard:disabled {
+  cursor: default;
+}
+.inlineIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.inlineCard.tone-warning .inlineIcon {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+.inlineCard.tone-primary .inlineIcon {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.inlineCard.tone-accent .inlineIcon {
+  background: var(--color-accent-tint);
+  color: var(--color-warning-text);
+}
+.inlineBody {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.inlineValue {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 700;
+}
+.inlineCard.tone-warning .inlineValue {
+  color: var(--color-warning-text);
+}
+.inlineCard.emphasized {
+  border: 1px solid var(--color-border-neutral);
+  padding: 14px 16px;
+}
+.inlineCard.emphasized .inlineIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+}
+.inlineCard.emphasized .inlineValue {
+  font-size: 28px;
+}
+.inlineLabel {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inlineSecondary {
+  color: var(--color-text-faint);
+  font-size: 11.5px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

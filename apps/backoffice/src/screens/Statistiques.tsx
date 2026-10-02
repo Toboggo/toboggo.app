@@ -75,7 +75,7 @@ export default function Statistiques() {
             .sort((a, b) => b.views - a.views)
             .slice(0, 6)
             .map((p) => (
-              <div key={p.id} onClick={() => navigate("/parks")} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer", fontSize: 12.5 }}>
+              <div key={p.id} onClick={() => navigate(`/parks/${p.id}`)} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, cursor: "pointer", fontSize: 12.5 }}>
                 <span style={{ width: 90, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                 <Bar pct={totalViews ? (p.views / totalViews) * 100 : 0} />
                 <span>{p.views}</span>

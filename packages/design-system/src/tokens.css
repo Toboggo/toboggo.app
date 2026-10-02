@@ -65,6 +65,18 @@
   --color-accent: #ffb020;
   --color-accent-tint: #fff3dc;
 
+  /* Bordure neutre, gris très clair désaturé — distincte de --color-border
+   * (qui tire vers le beige de la palette d'origine) pour les surfaces qui
+   * doivent rester strictement neutres (back-office, COLL-02B). Additif :
+   * ne remplace --color-border nulle part. */
+  --color-border-neutral: #e4e4e1;
+
+  /* Vert Toboggo très sombre et désaturé, réservé au fond de la sidebar
+   * back-office — jamais de noir pur (docs/DESIGN-SYSTEM.md, COLL-02B §2).
+   * Fixe quel que soit le thème (surface de marque, pas une surface de
+   * contenu) : même valeur dans le bloc [data-theme="dark"] ci-dessous. */
+  --color-sidebar-bg: #132921;
+
   --color-info: #4c9eeb;
   --color-info-tint: #eaf3fd;
 
@@ -244,6 +256,9 @@
 
   --color-accent: #ffc257;
   --color-accent-tint: #3a2917;
+
+  --color-border-neutral: #384039;
+  --color-sidebar-bg: #132921;
 
   --color-info: #7eb8ef;
   --color-info-tint: #172736;

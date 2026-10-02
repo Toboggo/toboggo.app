@@ -1,11 +1,12 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Icon, Logo, type IconName } from "@toboggo/design-system";
 import { listParkEdits, listParks, listPendingMedia, listReports } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
+import { useScopedPark } from "../lib/useScopedPark";
 import { AppHeader } from "./AppHeader";
 import styles from "./Shell.module.css";
 
@@ -102,6 +103,22 @@ export function buildNavGroups(opts: {
   ];
 }
 
+/** A nav entry is active on its own route and on its sub-routes
+ * (`/parks` stays highlighted on `/parks/:id`). `/` only matches itself. */
+export function isNavActive(to: string, pathname: string): boolean {
+  return to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
+}
+
+/** Label of the section a path belongs to: exact match first, then the
+ * longest nav entry whose route is a parent of the path. */
+export function resolveScreenLabel(items: NavItem[], pathname: string): string | undefined {
+  const exact = items.find((item) => item.to === pathname);
+  if (exact) return exact.label;
+  return items
+    .filter((item) => item.to !== "/" && isNavActive(item.to, pathname))
+    .sort((a, b) => b.to.length - a.to.length)[0]?.label;
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -134,7 +151,13 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const groups = buildNavGroups({ isAdmin, pendingParks, openReports, pendingMedia, pendingEdits });
   const allItems = groups.flatMap((g) => g.items);
-  const currentLabel = allItems.find((item) => item.to === location.pathname)?.label;
+  const currentLabel = resolveScreenLabel(allItems, location.pathname);
+
+  // Last crumb of a park route: the park name (same query as the detail page, so no extra request).
+  const parkRoute = matchPath("/parks/:id", location.pathname);
+  const crumbParkId = parkRoute && parkRoute.params.id !== "new" ? (parkRoute.params.id ?? "") : "";
+  const { data: crumbPark } = useScopedPark(crumbParkId);
+  const detailLabel = parkRoute?.params.id === "new" ? "Nouveau parc" : crumbPark?.name;
 
   const hasAdmin = memberships.some((m) => m.commune_id === null);
   const communeMemberships = memberships.filter((m) => m.commune_id !== null);
@@ -197,12 +220,12 @@ export function Shell({ children }: { children: ReactNode }) {
             <div key={group.title} className={styles.group}>
               <div className={styles.groupTitle}>{group.title}</div>
               {group.items.map((item) => {
-                const active = location.pathname === item.to;
+                const active = isNavActive(item.to, location.pathname);
                 return (
                   <button
                     key={item.to}
                     className={clsx(styles.navItem, active && styles.active)}
-                    aria-current={active ? "page" : undefined}
+                    aria-current={location.pathname === item.to ? "page" : undefined}
                     onClick={() => navigate(item.to)}
                   >
                     <span className={styles.navLabel}>
@@ -222,7 +245,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
       </aside>
       <div className={styles.column}>
-        <AppHeader orgLabel={orgLabel} screenLabel={currentLabel} />
+        <AppHeader orgLabel={orgLabel} screenLabel={currentLabel} detailLabel={detailLabel} />
         <main id="main-content" className="bo-content" ref={mainRef} tabIndex={-1}>
           {children}
         </main>

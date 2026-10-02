@@ -52,3 +52,29 @@ describe("ErrorState — Admin-UI-7B (shared compact error pattern)", () => {
     expect(screen.getByText("Erreur réseau.")).toBeTruthy();
   });
 });
+
+describe("StatCard — layout inline, secondary line (COLL-02C)", () => {
+  it("renders a secondary line when provided", () => {
+    render(<StatCard layout="inline" value={12} label="Avis reçus" secondary="★ 4.3 moyenne" onClick={vi.fn()} />);
+    expect(screen.getByText("★ 4.3 moyenne")).toBeTruthy();
+  });
+
+  it("renders no secondary line when omitted — existing callers are unaffected", () => {
+    render(<StatCard layout="inline" value={3} label="Entretiens" onClick={vi.fn()} />);
+    expect(screen.queryByText(/moyenne/)).toBeNull();
+  });
+});
+
+describe("StatCard — both layouts coexist (Admin stacked default, Collectivité inline)", () => {
+  it("defaults to the stacked layout: hint renders, no inline body", () => {
+    const { container } = render(<StatCard value={4} label="Parcs" hint="dont 1" />);
+    expect(screen.getByText("dont 1")).toBeTruthy();
+    expect(container.querySelector('[class*="inlineBody"]')).toBeNull();
+  });
+
+  it("inline layout renders the body wrapper and the icon badge", () => {
+    const { container } = render(<StatCard layout="inline" value={4} label="Parcs" icon="ic-list" tone="primary" onClick={vi.fn()} />);
+    expect(container.querySelector('[class*="inlineBody"]')).not.toBeNull();
+    expect(container.querySelector('[class*="inlineIcon"]')).not.toBeNull();
+  });
+});

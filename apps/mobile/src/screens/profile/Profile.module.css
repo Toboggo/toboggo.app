@@ -408,32 +408,27 @@
   margin-top: 18px;
 }
 
-/* Déconnexion — action secondaire et discrète, volontairement distincte du
-   traitement destructif de la suppression de compte (voir .dangerZone). Le
-   filet du haut marque une coupure claire malgré un espacement resserré. */
-.signOutBtn {
-  display: block;
-  width: 100%;
-  margin-top: 18px;
-  padding: 14px 10px 10px;
-  border: none;
-  border-top: 1px solid var(--color-border);
-  background: none;
-  font-family: var(--font-body);
-  font-size: 13.5px;
-  font-weight: 600;
+/* Libellé + sous-texte d'une action de l'écran Gestion du compte. */
+.actionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.actionHint {
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.4;
   color: var(--color-text-muted);
-  text-align: center;
-  cursor: pointer;
 }
-.signOutBtn:hover,
-.signOutBtn:focus-visible {
-  color: var(--color-text);
+/* Suppression de compte — seule action en rouge (icône + titre). */
+.dangerRow {
+  width: 100%;
+  justify-content: flex-start;
+  color: var(--color-error);
 }
-.signOutBtn:focus-visible {
-  outline: 2px solid var(--color-border-strong);
-  outline-offset: 2px;
-  border-radius: var(--radius-xs);
+.dangerTitle {
+  color: var(--color-error);
 }
 .versionText {
   margin: 2px 0 0;
@@ -452,12 +447,6 @@
 .dangerKicker {
   composes: kicker;
   color: var(--color-error);
-}
-.dangerText {
-  margin: 0 0 14px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--color-text-muted);
 }
 .dialogError {
   margin: 12px 0 0;

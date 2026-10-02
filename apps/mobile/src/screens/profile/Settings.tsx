@@ -1,9 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { signOut, purgeDraftsForPrincipal } from "@toboggo/shared";
 import { useTheme, type ThemePreference } from "@toboggo/design-system";
 import { TopBar } from "../../components/TopBar";
-import { useSession } from "../../lib/session";
 import { useLocale } from "../../i18n/useLocale";
 import { LANGUAGE_ENDONYM } from "../../i18n/languageNames";
 import styles from "./Profile.module.css";
@@ -25,13 +23,6 @@ export default function Settings() {
   const { language } = useLocale();
   const [, appearance] = useTheme();
   const appearanceLabel = t(APPEARANCE_LABEL_KEY[appearance], { ns: "common" });
-
-  async function handleSignOut() {
-    const uid = useSession.getState().userId;
-    await signOut();
-    if (uid) purgeDraftsForPrincipal({ userId: uid });
-    navigate("/");
-  }
 
   return (
     <div className="screen">
@@ -61,9 +52,6 @@ export default function Settings() {
           <Row label={t("privacyScreen.privacyPolicy")} onClick={() => navigate("/legal/privacy")} />
         </div>
 
-        <button type="button" className={styles.signOutBtn} onClick={handleSignOut}>
-          {t("signOut")}
-        </button>
         <p className={styles.versionText}>{t("about.version", { version: __APP_VERSION__ })}</p>
       </div>
     </div>

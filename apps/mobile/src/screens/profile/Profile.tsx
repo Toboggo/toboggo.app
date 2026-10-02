@@ -256,6 +256,15 @@ export default function Profile() {
             );
           })}
         </div>
+
+        <div className={styles.group} style={{ marginTop: 20 }}>
+          <Row
+            icon="ic-star"
+            label={t("feedback.title")}
+            sublabel={t("feedback.hint")}
+            onClick={() => navigate("/contact?subject=feedback")}
+          />
+        </div>
       </div>
 
       <BottomTabs />
@@ -265,12 +274,16 @@ export default function Profile() {
 
 function Row({
   iconSrc,
+  icon,
   label,
+  sublabel,
   value,
   onClick,
 }: {
   iconSrc?: string;
+  icon?: IconName;
   label: string;
+  sublabel?: string;
   value?: string;
   onClick: () => void;
 }) {
@@ -278,7 +291,15 @@ function Row({
     <button type="button" className={styles.groupRow} onClick={onClick}>
       <span className={styles.groupRowMain}>
         {iconSrc && <img className={styles.groupRowIcon} src={iconSrc} alt="" aria-hidden="true" />}
-        <span>{label}</span>
+        {icon && <Icon name={icon} size={20} />}
+        {sublabel ? (
+          <span className={styles.actionText}>
+            <span>{label}</span>
+            <span className={styles.actionHint}>{sublabel}</span>
+          </span>
+        ) : (
+          <span>{label}</span>
+        )}
       </span>
       <span className={styles.groupRowTrailing}>
         {value && <span className={styles.groupRowValue}>{value}</span>}

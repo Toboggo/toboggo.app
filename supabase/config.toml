@@ -415,3 +415,11 @@ enabled = true
 client_id = "69336757446-d5udeshptbgo7m08rnueqo2umf9a9g0j.apps.googleusercontent.com"
 secret = "env(SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET)"
 skip_nonce_check = false
+
+# Reverse geocoding (adresse d'un pin) — appelé aussi par les INVITÉS. `supabase-js`
+# n'envoie pas de Bearer aux fonctions avec une clé `sb_publishable_*` sans session :
+# `verify_jwt = true` bloquerait donc tout invité. Désactivé pour CETTE fonction
+# uniquement ; elle se protège elle-même (voir supabase/functions/reverse-geocode/index.ts).
+[functions.reverse-geocode]
+enabled = true
+verify_jwt = false

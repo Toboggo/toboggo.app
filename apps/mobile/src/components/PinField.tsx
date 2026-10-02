@@ -7,18 +7,6 @@ import { mapStyleUrl, searchPlaces, type GeoPlace } from "@toboggo/shared";
 import { Button, Chip, Icon, Input } from "@toboggo/design-system";
 import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../lib/geo";
 
-/**
- * MapTiler/Mapbox-style geocoding ids are prefixed with the feature's kind
- * ("address.…", "poi.…", "place.…", "municipality.…", "region.…"…) — the only
- * structured (non-heuristic) signal this payload carries for "is this a
- * precise, on-the-ground location, or an administrative area". Only the
- * former is precise enough to stand in as the park's address; a city or
- * region match must never be copied into it.
- */
-function isPreciseAddress(place: GeoPlace): boolean {
-  return /^(address|poi)\./.test(place.id);
-}
-
 // Debounce dedicated to the (billed, remote) geocoding call — matches the
 // convention already used in SearchOverlay.tsx.
 const GEOCODE_DEBOUNCE_MS = 300;
@@ -39,8 +27,10 @@ function CrosshairIcon() {
  * Position-first location picker.
  *
  * The pin's coordinate is the primary datum — searching a place or using GPS
- * only ever recentres the map/pin, never writes an address by itself (see
- * `onChange`, which only ever receives coordinates). A real MapLibre map is
+ * only ever recentres the map/pin; this component never writes an address
+ * itself. `onChange` only ever receives coordinates, and `onPositionCommitted`
+ * tells the parent a position was really chosen so it can enrich it (reverse
+ * geocoding) once. A real MapLibre map is
  * shown when `VITE_MAP_STYLE_URL` is configured: the pin stays pinned to the
  * centre and the user pans the map under it (the most reliable touch pattern
  * on small screens). When no map style is configured the component degrades
@@ -50,18 +40,19 @@ export function PinField({
   lat,
   lng,
   onChange,
-  onAddressResolved,
+  onPositionCommitted,
 }: {
   lat: number;
   lng: number;
   onChange: (lat: number, lng: number) => void;
   /**
-   * Called only when a selected search result carries a precise, exploitable
-   * address (see `isPreciseAddress`) — never for a vague city/region match,
-   * and never as a side effect of GPS or manual pin drag. Omit to leave the
-   * address field alone entirely (existing callers keep their behaviour).
+   * Called once per position the user actually chose: end of a map pan/zoom
+   * (`moveend`, not every intermediate frame), the end of the fly-to that a
+   * place search or "Ma position" triggers, or a no-map nudge. Never on mount
+   * nor when a draft is restored (the map is created at `lat`/`lng` and emits
+   * nothing until the user or a recenter moves it). Omit to opt out.
    */
-  onAddressResolved?: (address: string) => void;
+  onPositionCommitted?: (lat: number, lng: number) => void;
 }) {
   const { t } = useTranslation("contribute");
   const styleUrl = mapStyleUrl();
@@ -69,6 +60,8 @@ export function PinField({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onCommittedRef = useRef(onPositionCommitted);
+  onCommittedRef.current = onPositionCommitted;
 
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -94,6 +87,7 @@ export function PinField({
       mapRef.current.flyTo({ center: [nextLng, nextLat], zoom: 16 });
     } else {
       onChangeRef.current(nextLat, nextLng);
+      onCommittedRef.current?.(nextLat, nextLng);
     }
   }
 
@@ -101,9 +95,8 @@ export function PinField({
     setQuery("");
     setDebouncedQuery("");
     recenter(place.lat, place.lng);
-    // A place search only ever recentres the pin — it becomes the address
-    // only when the result itself is precise enough to actually be one.
-    if (onAddressResolved && isPreciseAddress(place)) onAddressResolved(place.label);
+    // A place search only recentres the pin; the address is then resolved once,
+    // from the final position, like for any other way of placing the pin.
   }
 
   async function handleUseMyLocation() {
@@ -134,7 +127,10 @@ export function PinField({
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     const emit = () => {
       const c = map.getCenter();
-      onChangeRef.current(Number(c.lat.toFixed(6)), Number(c.lng.toFixed(6)));
+      const nextLat = Number(c.lat.toFixed(6));
+      const nextLng = Number(c.lng.toFixed(6));
+      onChangeRef.current(nextLat, nextLng);
+      onCommittedRef.current?.(nextLat, nextLng);
     };
     map.on("moveend", emit);
     return () => {
@@ -218,7 +214,7 @@ export function PinField({
             {nudges.map((n) => (
               <Chip
                 key={n.key}
-                onClick={() => onChange(Number((lat + n.dLat).toFixed(6)), Number((lng + n.dLng).toFixed(6)))}
+                onClick={() => recenter(Number((lat + n.dLat).toFixed(6)), Number((lng + n.dLng).toFixed(6)))}
               >
                 {t(`pin.nudge.${n.key}`)}
               </Chip>

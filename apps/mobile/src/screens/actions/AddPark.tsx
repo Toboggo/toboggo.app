@@ -31,6 +31,8 @@ import { AddParkSearch } from "../../components/AddParkSearch";
 import { PinField } from "../../components/PinField";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { useFormat } from "../../i18n/useFormat";
+import { addressToParkInput, applyResolvedAddress, formatLocality, localityFor, type DraftLocality } from "../../lib/addressDraft";
+import { useAddressResolver } from "../../lib/useAddressResolver";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../../lib/geo";
 import { useSession } from "../../lib/session";
@@ -56,6 +58,11 @@ interface AddParkDraft {
   lat: number;
   lng: number;
   address: string;
+  /** Adresse saisie/corrigée à la main : un reverse geocoding ne l'écrase plus
+   * (voir `applyResolvedAddress`). Absent des anciens brouillons = non édité. */
+  addressEdited?: boolean;
+  /** Code postal / ville / régions / pays du repère (reverse geocoding). */
+  locality?: DraftLocality | null;
   name: string;
   ageLow: number;
   ageHigh: number;
@@ -184,6 +191,19 @@ export default function AddPark() {
     deserialize: reviveSets,
   });
 
+  // Reverse geocoding (Geoapify, via Edge Function) d'une position réellement
+  // choisie — jamais au montage ni à la restauration d'un brouillon.
+  // Dès qu'une nouvelle résolution démarre (ou échoue), la localité de l'ancien
+  // repère est retirée : elle ne peut ni s'afficher ni partir avec les nouvelles
+  // coordonnées. Le texte de l'adresse, lui, est conservé (jamais vidé par un échec).
+  const dropLocality = () => setDraft((d) => (d.locality ? { ...d, locality: null } : d));
+  const { resolve: resolveAddress, resolving: resolvingAddress } = useAddressResolver({
+    onStart: dropLocality,
+    onResolved: (a, pos) => setDraft((d) => ({ ...d, ...applyResolvedAddress(d, a, pos) })),
+    onUnresolved: dropLocality,
+  });
+  const pinLocality = localityFor(draft, { lat: draft.lat, lng: draft.lng });
+
   // A restored draft claiming step 3 (Photos) or 4 (Vérification) without a
   // name — the one hard precondition step 2 enforces before letting you past
   // it — falls back to step 2 instead of skipping it. Never mutates storage.
@@ -235,6 +255,7 @@ export default function AddPark() {
       useGeo.getState().setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
       useGeo.getState().setPermission("granted");
       patch({ lat: pos.lat, lng: pos.lng });
+      resolveAddress(pos.lat, pos.lng);
     } catch {
       useGeo.getState().setPermission("denied");
     } finally {
@@ -304,7 +325,7 @@ export default function AddPark() {
         status: "pending",
         created_by: uid,
       };
-      if (draft.address.trim()) input.formatted_address = draft.address.trim();
+      Object.assign(input, addressToParkInput(draft, { lat: draft.lat, lng: draft.lng }));
       if (draft.ageTouched) {
         input.age_min = draft.ageLow;
         input.age_max = draft.ageHigh;
@@ -409,7 +430,7 @@ export default function AddPark() {
             lat={draft.lat}
             lng={draft.lng}
             onChange={(lat, lng) => patch({ lat, lng })}
-            onAddressResolved={(address) => patch({ address })}
+            onPositionCommitted={resolveAddress}
           />
           <p style={{ fontSize: 11.5, color: "var(--color-text-faint)", margin: "6px 0 0" }}>
             {t("addPark.pinHint")}
@@ -417,10 +438,15 @@ export default function AddPark() {
           <Input
             label={t("addPark.addressLabel")}
             value={draft.address}
-            onChange={(e) => patch({ address: e.target.value })}
+            onChange={(e) => patch({ address: e.target.value, addressEdited: e.target.value.trim() !== "" })}
             placeholder={t("addPark.addressPlaceholder")}
             style={{ marginTop: 16 }}
           />
+          {(resolvingAddress || formatLocality(pinLocality)) && (
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "6px 0 0" }} aria-live="polite">
+              {resolvingAddress ? t("addPark.addressResolving") : formatLocality(pinLocality)}
+            </p>
+          )}
           <Button block style={{ marginTop: 24 }} onClick={() => setStep(2)}>
             {t("common.continue")}
           </Button>
@@ -521,7 +547,7 @@ export default function AddPark() {
 
           <VerifySection title={t("steps.location")} onEdit={() => setStep(1)}>
             <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
-              {draft.address.trim() || t("addPark.locationOnMap")}
+              {[draft.address.trim(), formatLocality(pinLocality)].filter(Boolean).join(", ") || t("addPark.locationOnMap")}
             </div>
           </VerifySection>
 

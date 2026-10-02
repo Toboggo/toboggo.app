@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { Park } from "@toboggo/shared";
+import { reverseGeocode, searchPlaces, type Park } from "@toboggo/shared";
 import "../../i18n/testInit";
 import ParkDetail from "./ParkDetail";
 
@@ -11,6 +11,8 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
   return {
     ...actual,
     incrementParkViews: vi.fn().mockResolvedValue(undefined),
+    reverseGeocode: vi.fn(),
+    searchPlaces: vi.fn(),
   };
 });
 
@@ -171,5 +173,18 @@ describe("ParkDetail — Itinéraire CTA", () => {
     expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
+  });
+});
+
+describe("ParkDetail — adresse persistée", () => {
+  it("affiche l'adresse enregistrée telle quelle, sans aucun géocodage (reverse ni recherche) ni appel réseau", () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    renderDetail({ formatted_address: "12 Rue de la Capelle, 12100 Millau" });
+
+    expect(screen.getByText("12 Rue de la Capelle, 12100 Millau")).toBeTruthy();
+    expect(reverseGeocode).not.toHaveBeenCalled();
+    expect(searchPlaces).not.toHaveBeenCalled();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
 });

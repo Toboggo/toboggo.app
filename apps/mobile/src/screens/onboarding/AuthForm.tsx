@@ -2,15 +2,18 @@ import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { signIn, signUp, sendPasswordReset } from "@toboggo/shared";
-import { Logo } from "@toboggo/design-system";
+import { LogoMark } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
 import { takeResumeRoute } from "../../lib/resumeRoute";
 import { trackEvent } from "../../lib/analytics";
+import { markWelcomeSeen } from "../../lib/welcomeSeen";
 import { clearGoogleLoginMarker, startGoogleLogin } from "../../lib/googleLogin";
 import { ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Règle réelle : minimum Supabase (`minimum_password_length`), aucune autre exigence. */
+const MIN_PASSWORD_LENGTH = 6;
 
 export default function AuthForm() {
   const [params] = useSearchParams();
@@ -41,7 +44,7 @@ export default function AuthForm() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!EMAIL_RE.test(email) || password.length < 6) {
+    if (!EMAIL_RE.test(email) || password.length < MIN_PASSWORD_LENGTH) {
       setError(tErr("auth.invalidForm"));
       return;
     }
@@ -102,8 +105,13 @@ export default function AuthForm() {
       setError(tErr("auth.emailForReset"));
       return;
     }
-    await sendPasswordReset(email);
-    setResetSent(true);
+    try {
+      await sendPasswordReset(email);
+      setError(null);
+      setResetSent(true);
+    } catch {
+      setError(tErr("auth.generic"));
+    }
   }
 
   const continueWithGoogle = async () => {
@@ -114,65 +122,101 @@ export default function AuthForm() {
     }
   };
 
-  const inputStyle = { borderColor: error ? "var(--color-error)" : "var(--color-border)" };
+  const goBack = () => {
+    // Pas d'historique (ouverture directe de /login) : retour à l'accueil.
+    if (window.history.state?.idx > 0) navigate(-1);
+    else navigate("/");
+  };
+
+  const continueAsGuest = () => {
+    markWelcomeSeen();
+    navigate("/map");
+  };
+
+  const toggleMode = () => {
+    setMode(isSignup ? "login" : "signup");
+    setError(null);
+    setResetSent(false);
+  };
+
+  const fieldClass = `${styles.field} ${error ? styles.fieldError : ""}`;
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.back} onClick={() => navigate(-1)} aria-label={tCommon("action.back")}>
-        <ChevronLeft />
-      </button>
-
-      <div className={styles.hero}>
-        <Logo size={30} variant="brand" />
-        <div>
-          <h1>{title}</h1>
-          <p>{subtitle}</p>
-        </div>
+      <div className={styles.topbar}>
+        <button type="button" className={styles.back} onClick={goBack} aria-label={tCommon("action.back")}>
+          <ChevronLeft />
+        </button>
+        <p className={styles.topSwitch}>
+          {isSignup ? t("auth.topHaveAccount") : t("auth.topNoAccount")}{" "}
+          <button type="button" onClick={toggleMode}>
+            {isSignup ? t("auth.switchToLogin") : t("auth.switchToSignup")}
+          </button>
+        </p>
       </div>
 
-      <form className={styles.form} onSubmit={submit}>
-        <div className={styles.field}>
+      <div className={styles.hero}>
+        <div className={styles.brand}>
+          <LogoMark size={72} />
+          <span className={styles.wordmark}>Toboggo</span>
+        </div>
+        <h1>{title}</h1>
+        <p>{subtitle}</p>
+      </div>
+
+      <form className={styles.form} onSubmit={submit} noValidate>
+        <div className={fieldClass}>
           <label htmlFor="auth-email">{t("auth.emailLabel")}</label>
           <input
             id="auth-email"
             type="email"
             autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            enterKeyHint="next"
             placeholder={t("auth.emailPlaceholder")}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
           />
         </div>
 
-        <div className={styles.field}>
-          <label htmlFor="auth-pwd">{t("auth.passwordLabel")}</label>
-          <div className={styles.pwdWrap}>
+        <div>
+          <div className={fieldClass}>
+            <label htmlFor="auth-pwd">{t("auth.passwordLabel")}</label>
             <input
               id="auth-pwd"
               type={showPwd ? "text" : "password"}
               autoComplete={isSignup ? "new-password" : "current-password"}
-              placeholder={isSignup ? t("auth.passwordPlaceholderSignup") : t("auth.passwordPlaceholderLogin")}
+              enterKeyHint="go"
+              aria-describedby={isSignup ? "auth-pwd-hint" : undefined}
+              placeholder={isSignup ? t("auth.passwordPlaceholderSignup", { min: MIN_PASSWORD_LENGTH }) : t("auth.passwordPlaceholderLogin")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={inputStyle}
             />
-            <button type="button" className={styles.eye} onClick={() => setShowPwd((v) => !v)} aria-label={t("auth.showPassword")}>
+            <button type="button" className={styles.eye} onClick={() => setShowPwd((v) => !v)} aria-label={showPwd ? t("auth.hidePassword") : t("auth.showPassword")} aria-pressed={showPwd}>
               <EyeIcon />
             </button>
           </div>
-          {!isSignup && (
+          {isSignup ? (
+            <p id="auth-pwd-hint" className={styles.hint}>
+              {t("auth.passwordRules", { min: MIN_PASSWORD_LENGTH })}
+            </p>
+          ) : (
             <p className={styles.forgot}>
-              <span onClick={forgotPassword}>{t("auth.forgotPassword")}</span>
+              <button type="button" onClick={forgotPassword}>
+                {t("auth.forgotPassword")}
+              </button>
             </p>
           )}
         </div>
 
-        {error && <p className={styles.error}>{error}</p>}
+        {error && <p className={styles.error} role="alert">{error}</p>}
         {resetSent && (
-          <p className={styles.ok}>{t("auth.resetSent", { email })}</p>
+          <p className={styles.ok} role="status">{t("auth.resetSent", { email })}</p>
         )}
 
-        <button type="submit" className={styles.submit} disabled={loading} style={{ opacity: loading ? 0.85 : 1 }}>
+        <button type="submit" className={styles.submit} disabled={loading} aria-busy={loading}>
           {loading && <span className={styles.spinner} />}
           <span>{submitLabel}</span>
         </button>
@@ -184,17 +228,22 @@ export default function AuthForm() {
         </div>
 
         <button type="button" className={styles.social} onClick={continueWithGoogle}>
-          <GoogleIcon size={17} />
+          <GoogleIcon size={20} />
           <span>{t("auth.continueGoogle")}</span>
         </button>
-
-        <p className={styles.switch}>
-          {isSignup ? t("auth.haveAccount") : t("auth.noAccount")}{" "}
-          <span onClick={() => (setMode(isSignup ? "login" : "signup"), setError(null))}>
-            {isSignup ? t("auth.switchToLogin") : t("auth.switchToSignup")}
-          </span>
-        </p>
       </form>
+
+      {isSignup ? (
+        <p className={styles.legal}>
+          <button type="button" onClick={() => navigate("/legal/terms?from=onboarding")}>{t("auth.legalTerms")}</button>
+          <span aria-hidden> · </span>
+          <button type="button" onClick={() => navigate("/legal/privacy?from=onboarding")}>{t("auth.legalPrivacy")}</button>
+        </p>
+      ) : (
+        <button type="button" className={styles.guest} onClick={continueAsGuest}>
+          {t("auth.continueAsGuest")}
+        </button>
+      )}
     </div>
   );
 }

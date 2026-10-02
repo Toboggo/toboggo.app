@@ -1,17 +1,17 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { deleteOwnAccount } from "@toboggo/shared";
-import { Button, Dialog } from "@toboggo/design-system";
+import { deleteOwnAccount, signOut, purgeDraftsForPrincipal } from "@toboggo/shared";
+import { Button, Dialog, Icon } from "@toboggo/design-system";
 import { TopBar } from "../../components/TopBar";
+import { useSession } from "../../lib/session";
 import styles from "./Profile.module.css";
 
 /**
- * Écran "Gestion du compte" — regroupe les informations personnelles, la
- * confidentialité et la suppression de compte. La déconnexion vit désormais
- * au bas de l'écran Profil (action secondaire, hors de cet écran) pour ne
- * jamais partager le même niveau visuel que la suppression, qui reste ici,
- * isolée en bas dans une zone clairement séparée.
+ * Écran "Gestion du compte" — informations personnelles, confidentialité, puis
+ * deux actions volontairement distinctes : la déconnexion (neutre, réversible)
+ * et la suppression de compte (rouge, isolée dans la zone sensible, derrière
+ * une confirmation).
  */
 export default function Account() {
   const navigate = useNavigate();
@@ -23,6 +23,13 @@ export default function Account() {
   function openDeleteConfirm() {
     setDeleteFailed(false);
     setConfirmDeleteOpen(true);
+  }
+
+  async function handleSignOut() {
+    const uid = useSession.getState().userId;
+    await signOut();
+    if (uid) purgeDraftsForPrincipal({ userId: uid });
+    navigate("/");
   }
 
   async function onDeleteAccount() {
@@ -54,12 +61,29 @@ export default function Account() {
           </button>
         </div>
 
+        <h6 className={styles.kicker}>{t("accountScreen.sessionKicker")}</h6>
+        <div className={styles.group}>
+          <button type="button" className={styles.groupRow} onClick={handleSignOut}>
+            <span className={styles.actionText}>
+              <span>{t("signOut")}</span>
+              <span className={styles.actionHint}>{t("accountScreen.signOutHint")}</span>
+            </span>
+          </button>
+        </div>
+
         <div className={styles.dangerZone}>
           <h6 className={styles.dangerKicker}>{t("accountScreen.dangerKicker")}</h6>
-          <p className={styles.dangerText}>{t("privacyScreen.deleteConfirmBody")}</p>
-          <Button variant="danger" size="sm" onClick={openDeleteConfirm}>
-            {t("privacyScreen.deleteAccount")}
-          </Button>
+          <div className={styles.group}>
+            <button type="button" className={`${styles.groupRow} ${styles.dangerRow}`} onClick={openDeleteConfirm}>
+              <span className={styles.groupRowMain}>
+                <Icon name="ic-trash" size={18} />
+                <span className={styles.actionText}>
+                  <span className={styles.dangerTitle}>{t("privacyScreen.deleteAccount")}</span>
+                  <span className={styles.actionHint}>{t("accountScreen.deleteHint")}</span>
+                </span>
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -79,7 +103,7 @@ export default function Account() {
         }
       >
         <p style={{ fontSize: 14, color: "var(--color-text-muted)" }}>
-          {t("privacyScreen.deleteConfirmBody")}
+          {t("accountScreen.deleteConfirmDetail")}
         </p>
         {deleteFailed && (
           <p role="alert" className={styles.dialogError}>

@@ -66,8 +66,8 @@
   "appearance": "Appearance",
   "helpInfoTitle": "Help & information",
   "settingsScreen": {
-    "title": "Settings",
-    "open": "Open settings"
+    "title": "Account & settings",
+    "open": "Open account & settings"
   },
   "contactUs": "Contact us",
   "accountTitle": "Account",
@@ -112,8 +112,13 @@
       "general": "General enquiry",
       "technical": "Technical problem",
       "partnership": "Partnership",
-      "press": "Press"
+      "press": "Press",
+      "feedback": "Feedback on Toboggo"
     }
+  },
+  "feedback": {
+    "title": "Give feedback on Toboggo",
+    "hint": "Share your experience"
   },
   "signOut": "Sign out",
   "favorites": {
@@ -191,6 +196,9 @@
     "deleteError": "We couldn’t delete your account. Please try again in a moment."
   },
   "accountScreen": {
+    "signOutHint": "You can sign back in at any time.",
+    "deleteHint": "Permanently deletes your account and personal data.",
+    "deleteConfirmDetail": "This action is permanent. Your profile, reviews, children you added, favorites and notifications will be deleted. Parks, photos, reports and edits you suggested may be kept anonymously.",
     "sessionKicker": "Session",
     "managementKicker": "Account management",
     "infoKicker": "Your information",

@@ -66,8 +66,8 @@
   "appearance": "Apparence",
   "helpInfoTitle": "Aide & informations",
   "settingsScreen": {
-    "title": "Réglages",
-    "open": "Ouvrir les réglages"
+    "title": "Compte et réglages",
+    "open": "Ouvrir compte et réglages"
   },
   "contactUs": "Nous contacter",
   "accountTitle": "Compte",
@@ -112,8 +112,13 @@
       "general": "Question générale",
       "technical": "Problème technique",
       "partnership": "Partenariat",
-      "press": "Presse"
+      "press": "Presse",
+      "feedback": "Avis sur Toboggo"
     }
+  },
+  "feedback": {
+    "title": "Donner mon avis sur Toboggo",
+    "hint": "Partagez votre expérience"
   },
   "signOut": "Se déconnecter",
   "favorites": {
@@ -191,6 +196,9 @@
     "deleteError": "La suppression de votre compte n’a pas abouti. Réessayez dans quelques instants."
   },
   "accountScreen": {
+    "signOutHint": "Vous pourrez vous reconnecter à tout moment.",
+    "deleteHint": "Supprime définitivement votre compte et vos données personnelles.",
+    "deleteConfirmDetail": "Cette action est définitive. Votre profil, vos avis, vos enfants renseignés, vos favoris et vos notifications seront supprimés. Les parcs, photos, signalements et modifications que vous avez proposés peuvent être conservés de façon anonyme.",
     "sessionKicker": "Session",
     "managementKicker": "Gestion du compte",
     "infoKicker": "Vos informations",

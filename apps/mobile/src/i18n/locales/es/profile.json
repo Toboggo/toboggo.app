@@ -66,8 +66,8 @@
   "appearance": "Apariencia",
   "helpInfoTitle": "Ayuda e información",
   "settingsScreen": {
-    "title": "Ajustes",
-    "open": "Abrir ajustes"
+    "title": "Cuenta y ajustes",
+    "open": "Abrir cuenta y ajustes"
   },
   "contactUs": "Contáctanos",
   "accountTitle": "Cuenta",
@@ -112,8 +112,13 @@
       "general": "Consulta general",
       "technical": "Problema técnico",
       "partnership": "Colaboración",
-      "press": "Prensa"
+      "press": "Prensa",
+      "feedback": "Opinión sobre Toboggo"
     }
+  },
+  "feedback": {
+    "title": "Dar mi opinión sobre Toboggo",
+    "hint": "Comparte tu experiencia"
   },
   "signOut": "Cerrar sesión",
   "favorites": {
@@ -191,6 +196,9 @@
     "deleteError": "No se ha podido eliminar tu cuenta. Vuelve a intentarlo en unos instantes."
   },
   "accountScreen": {
+    "signOutHint": "Podrás volver a iniciar sesión cuando quieras.",
+    "deleteHint": "Elimina definitivamente tu cuenta y tus datos personales.",
+    "deleteConfirmDetail": "Esta acción es definitiva. Se eliminarán tu perfil, tus opiniones, los niños que añadiste, tus favoritos y tus notificaciones. Los parques, fotos, problemas notificados y modificaciones que propusiste pueden conservarse de forma anónima.",
     "sessionKicker": "Sesión",
     "managementKicker": "Gestión de la cuenta",
     "infoKicker": "Tu información",

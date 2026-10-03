@@ -157,7 +157,7 @@ export interface UpdateMyReviewInput {
 /**
  * Edits the caller's own review in place (same row — never a second review).
  * Only content columns are written; `created_at` is untouched, `updated_at` is
- * bumped by `reviews_touch`, `edited_at` + the park aggregates by the 0040
+ * bumped by `reviews_touch`, `edited_at` + the park aggregates by the 0042
  * triggers. Ownership is enforced server-side (RLS `reviews_update_own` +
  * `reviews_author_guard`); the `user_id` filter here is belt-and-braces and
  * makes a non-owner call return no row ⇒ throws, never a silent success.

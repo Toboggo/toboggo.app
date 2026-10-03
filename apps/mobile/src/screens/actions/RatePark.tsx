@@ -57,7 +57,7 @@ const DEFAULT_SUB_RATINGS: ReviewSubRatings = { clean: 2, safety: 2, equipment: 
 /** `/review/:reviewId/edit` — loads the caller's own review, then mounts the
  * rating form in edit mode. Anything that is not the caller's editable review
  * (missing, someone else's, no longer published) gets a neutral dead end: the
- * real guard is RLS (migration 0040), this only avoids offering a form that
+ * real guard is RLS (migration 0042), this only avoids offering a form that
  * could never save. */
 export function EditReviewRoute() {
   const { reviewId } = useParams();

@@ -445,7 +445,7 @@ export interface Review {
   reply_at: string | null;
   created_at: string;
   updated_at: string;
-  /** Last author edit of the content (0040) — null if never edited. */
+  /** Last author edit of the content (0042) — null if never edited. */
   edited_at?: string | null;
 
   // compatibility accessors

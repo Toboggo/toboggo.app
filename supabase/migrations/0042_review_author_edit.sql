@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- 0040 — Modification de son propre avis (mobile : « Modifier mon avis »)
+-- 0042 — Modification de son propre avis (mobile : « Modifier mon avis »)
 -- ────────────────────────────────────────────────────────────────────────────
 -- ADDITIVE ET IDEMPOTENTE : une colonne, une policy, une fonction + un trigger.
 -- Aucune colonne / policy existante modifiée ni supprimée (coexistence V1/V2).

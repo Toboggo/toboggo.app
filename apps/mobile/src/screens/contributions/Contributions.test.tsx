@@ -83,7 +83,7 @@ describe("Contributions hub — rendering", () => {
   it("renders the header, the add-park CTA and the 4 quick actions", async () => {
     listMyContributions.mockResolvedValue([]);
     renderHub();
-    await screen.findByRole("heading", { name: "Contributions" });
+    await screen.findByRole("heading", { name: "Mes ajouts" });
     screen.getByText("Ensemble, gardons les infos des parcs à jour.");
     screen.getByText("Ajouter un parc");
     screen.getByText("Ajouter des photos");

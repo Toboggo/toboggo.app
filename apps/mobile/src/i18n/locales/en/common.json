@@ -78,5 +78,6 @@
   "park": {
     "generic": "Playground",
     "displayName": "{{generic}} • {{qualifier}}"
-  }
+  },
+  "anonymousAuthor": "Toboggo parent"
 }

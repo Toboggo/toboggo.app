@@ -250,5 +250,23 @@
     "sentBody": "Il a bien été enregistré. Vous pouvez le modifier à tout moment depuis votre profil.",
     "backToProfile": "Retour au profil",
     "signInPrompt": "Connectez-vous pour donner votre avis sur Toboggo."
+  },
+  "username": {
+    "title": "Choisissez votre pseudo",
+    "subtitle": "C'est le nom que les autres verront sur Toboggo.",
+    "label": "Votre pseudo",
+    "placeholder": "ex. Camille",
+    "help": "Visible sur vos avis et contributions.",
+    "rules": "{{min}} à {{max}} caractères.",
+    "submit": "C'est parti !",
+    "submitting": "Enregistrement…",
+    "footnote": "Modifiable à tout moment depuis votre profil.",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "saved": "Pseudo mis à jour",
+    "tooShort": "Votre pseudo doit contenir au moins {{min}} caractères.",
+    "tooLong": "Votre pseudo ne peut pas dépasser {{max}} caractères.",
+    "invalidChars": "Évitez les caractères @, < et >.",
+    "generic": "Enregistrement impossible. Réessayez."
   }
 }

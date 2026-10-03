@@ -39,13 +39,13 @@ export default function GroupOuting() {
   });
 
   async function onCreate(parkId: string) {
-    await createGroup(parkId, userId, profile?.name ?? t("group.you"));
+    await createGroup(parkId, userId, profile?.name || t("group.you"));
     void queryClient.invalidateQueries({ queryKey: ["my-group", userId] });
     setShowPicker(false);
   }
 
   async function onJoin() {
-    const g = await joinGroup(joinCode, profile?.name ?? t("group.you"));
+    const g = await joinGroup(joinCode, profile?.name || t("group.you"));
     if (!g) return showToast(t("group.invalidCode"));
     void queryClient.invalidateQueries({ queryKey: ["my-group", userId] });
   }

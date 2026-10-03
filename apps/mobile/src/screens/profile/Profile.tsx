@@ -65,12 +65,13 @@ const BADGE_ART: Partial<Record<string, { src: string; earned: boolean }>> = {
 };
 
 function initials(name: string) {
-  return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  return name.split(" ").filter(Boolean).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 }
 
 export default function Profile() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
+  const { t: tCommon } = useTranslation("common");
   const f = useFormat();
   const { language } = useLocale();
   const [, appearance] = useTheme();
@@ -126,6 +127,7 @@ export default function Profile() {
   }
 
   const stats: Stats = { parks: myParks.length, reviews: myReviews.length, favorites: profile.favorites.length };
+  const displayName = profile.name || tCommon("anonymousAuthor");
   const memberSinceYear = profile.created_at ? new Date(profile.created_at).getFullYear() : NaN;
   const previewBadges = BADGES.slice(0, BADGES_PREVIEW_COUNT);
 
@@ -148,9 +150,9 @@ export default function Profile() {
       </div>
 
       <div className={styles.idRow}>
-        <div className={styles.avatar}>{initials(profile.name)}</div>
+        <div className={styles.avatar}>{initials(displayName)}</div>
         <div className={styles.idText}>
-          <div className={styles.idName}>{profile.name}</div>
+          <div className={styles.idName}>{displayName}</div>
           {!Number.isNaN(memberSinceYear) && (
             <div className={styles.idMeta}>{t("memberSince", { year: memberSinceYear })}</div>
           )}

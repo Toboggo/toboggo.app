@@ -1,7 +1,7 @@
 import { getSupabase } from "../supabaseClient";
 import { listOrgParkIds } from "./parks";
-import type { AgeBand, Review } from "../types";
-import type { TablesInsert } from "../types/database.types";
+import type { AgeBand, Review, ReviewSubRatings } from "../types";
+import type { TablesInsert, TablesUpdate } from "../types/database.types";
 
 /**
  * `reviews.stars` is a V1-coexistence column: NOT NULL, no DEFAULT, mirrored
@@ -136,6 +136,55 @@ export async function createReview(input: CreateReviewInput): Promise<Review> {
     .select()
     .single();
   if (error) throw error;
+  return hydrate(data);
+}
+
+export async function getReview(id: string): Promise<Review | null> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase.from("reviews").select("*").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data ? hydrate(data) : null;
+}
+
+export interface UpdateMyReviewInput {
+  stars: number;
+  sub_ratings: ReviewSubRatings | null;
+  /** `null` ⇒ no age recommendation (both bounds cleared). */
+  age_band: AgeBand | null;
+  comment: string | null;
+}
+
+/**
+ * Edits the caller's own review in place (same row — never a second review).
+ * Only content columns are written; `created_at` is untouched, `updated_at` is
+ * bumped by `reviews_touch`, `edited_at` + the park aggregates by the 0040
+ * triggers. Ownership is enforced server-side (RLS `reviews_update_own` +
+ * `reviews_author_guard`); the `user_id` filter here is belt-and-braces and
+ * makes a non-owner call return no row ⇒ throws, never a silent success.
+ */
+export async function updateMyReview(id: string, userId: string, input: UpdateMyReviewInput): Promise<Review> {
+  const supabase = getSupabase();
+  const sub = input.sub_ratings;
+  const [rMin, rMax] = input.age_band ? AGE_BAND_RANGE[input.age_band] : [null, null];
+  const row: TablesUpdate<"reviews"> = {
+    rating: input.stars,
+    cleanliness: sub?.clean ?? null,
+    safety: sub?.safety ?? null,
+    equipment: sub?.equipment ?? null,
+    comfort: sub?.comfort ?? null,
+    recommended_min_age: rMin,
+    recommended_max_age: rMax,
+    comment: input.comment,
+  };
+  const { data, error } = await supabase
+    .from("reviews")
+    .update(row)
+    .eq("id", id)
+    .eq("user_id", userId)
+    .select()
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Review not found or not editable");
   return hydrate(data);
 }
 

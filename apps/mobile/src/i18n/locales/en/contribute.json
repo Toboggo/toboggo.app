@@ -316,5 +316,21 @@
     "verifyTitle": "Check your correction",
     "notePrefix": "Details: {{value}}",
     "submit": "Submit the change"
+  },
+  "review": {
+    "menuLabel": "Actions for your review",
+    "editedOn": "Edited on {{date}}",
+    "edit": {
+      "menu": "Edit my review",
+      "title": "Edit my review",
+      "save": "Save changes",
+      "saved": "Your review has been updated",
+      "error": "Your review could not be updated. Your changes are kept, please try again.",
+      "unavailable": "This review can no longer be edited.",
+      "leaveTitle": "Leave without saving?",
+      "leaveBody": "Your changes will not be saved.",
+      "leaveStay": "Keep editing",
+      "leaveConfirm": "Leave"
+    }
   }
 }

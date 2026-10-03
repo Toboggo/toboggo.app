@@ -130,7 +130,7 @@ export default function Contributions() {
           {recent.length > 0 && (
             <div className={styles.recentList}>
               {recent.map((item) => (
-                <ContributionRow key={item.id} item={item} onClick={() => openContribution(item.parkId)} />
+                <ContributionRow key={item.id} item={item} onClick={() => openContribution(item.parkId)} onEditReview={(i) => navigate(`/review/${i.sourceId}/edit`)} />
               ))}
             </div>
           )}

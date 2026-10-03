@@ -20,7 +20,7 @@ import DetailReviews from "./screens/detail/DetailReviews";
 
 import ActionIntro from "./screens/actions/ActionIntro";
 import AddPark from "./screens/actions/AddPark";
-import RatePark from "./screens/actions/RatePark";
+import RatePark, { EditReviewRoute } from "./screens/actions/RatePark";
 import ReportProblem from "./screens/actions/ReportProblem";
 import AddPhotos from "./screens/actions/AddPhotos";
 import EditInfo from "./screens/actions/EditInfo";
@@ -147,6 +147,7 @@ export default function App() {
       <Route path="/action-intro/:type" element={<ActionIntro />} />
       <Route path="/add" element={<AddPark />} />
       <Route path="/rate" element={<RatePark />} />
+      <Route path="/review/:reviewId/edit" element={<EditReviewRoute />} />
       <Route path="/report" element={<ReportProblem />} />
       <Route path="/photo-add" element={<AddPhotos />} />
       <Route path="/contribute/edit" element={<EditInfo />} />

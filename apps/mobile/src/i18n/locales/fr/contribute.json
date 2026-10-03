@@ -316,5 +316,21 @@
     "verifyTitle": "Vérifiez votre correction",
     "notePrefix": "Précision : {{value}}",
     "submit": "Proposer la modification"
+  },
+  "review": {
+    "menuLabel": "Actions sur votre avis",
+    "editedOn": "Modifié le {{date}}",
+    "edit": {
+      "menu": "Modifier mon avis",
+      "title": "Modifier mon avis",
+      "save": "Enregistrer les modifications",
+      "saved": "Votre avis a été mis à jour",
+      "error": "Votre avis n’a pas pu être mis à jour. Vos modifications sont conservées, réessayez.",
+      "unavailable": "Cet avis n’est plus modifiable.",
+      "leaveTitle": "Quitter sans enregistrer ?",
+      "leaveBody": "Vos modifications ne seront pas enregistrées.",
+      "leaveStay": "Continuer la modification",
+      "leaveConfirm": "Quitter"
+    }
   }
 }

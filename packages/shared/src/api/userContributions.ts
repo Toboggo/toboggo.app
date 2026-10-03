@@ -32,6 +32,8 @@ export interface UserContribution {
   photoCount?: number;
   /** `type === "review"` only. */
   rating?: number;
+  /** `type === "review"` only — last author edit of the content, if any. */
+  editedAt?: string | null;
   /** `type === "report"` only — `reports.category`. */
   reportCategory?: string | null;
 }
@@ -142,6 +144,7 @@ export async function listMyContributions(userId: string): Promise<UserContribut
       status: rv.status,
       thumbnail: null,
       rating: rv.rating,
+      editedAt: rv.edited_at ?? null,
     });
   }
 

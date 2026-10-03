@@ -202,7 +202,7 @@ export default function ContributionsHistory() {
             {filteredItems.length > 0 && (
               <div className={styles.list}>
                 {filteredItems.map((item) => (
-                  <ContributionRow key={item.id} item={item} onClick={() => openContribution(item.parkId)} />
+                  <ContributionRow key={item.id} item={item} onClick={() => openContribution(item.parkId)} onEditReview={(i) => navigate(`/review/${i.sourceId}/edit`)} />
                 ))}
               </div>
             )}

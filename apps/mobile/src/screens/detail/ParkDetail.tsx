@@ -14,6 +14,7 @@ import { useGeo } from "../../lib/geo";
 import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
 import { DirectionsSheet } from "../../components/DirectionsSheet";
+import { ReviewMenu } from "../../components/ReviewMenu";
 import { trackEvent, distanceBucket } from "../../lib/analytics";
 import styles from "./Detail.module.css";
 
@@ -47,11 +48,14 @@ export default function ParkDetail() {
   const [params] = useSearchParams();
   const { data: park, isLoading } = usePark(id);
   const { data: reviews = [], isLoading: reviewsLoading } = useParkReviews(id);
+  const { t: tContribute } = useTranslation("contribute");
   const { lat, lng } = useGeo();
   const [photoIndex, setPhotoIndex] = useState(0);
   const [shareOpen, setShareOpen] = useState(params.get("share") === "1");
   const [contribOpen, setContribOpen] = useState(false);
   const userId = useSession((s) => s.userId);
+  // Newest own review (list is created_at desc) — « Votre avis » block.
+  const myReview = userId ? reviews.find((r) => r.user_id === userId) : undefined;
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
   const { openDirections, directionsSheetProps } = useDirections();
@@ -320,7 +324,25 @@ export default function ParkDetail() {
             {t("action.seeAll", { ns: "common" })}
           </button>
         </div>
-        {reviews.slice(0, 2).map((r) => (
+        {myReview && (
+          <div className={styles.myReview}>
+            <div className={styles.myReviewHead}>
+              <div>
+                <div className={styles.reviewName}>{t("yourReview")}</div>
+                <div className={styles.reviewStars}>
+                  <Stars value={myReview.stars} size={11} />
+                </div>
+              </div>
+              {myReview.status === "published" && <ReviewMenu onEdit={() => navigate(`/review/${myReview.id}/edit`)} />}
+            </div>
+            {myReview.comment && <p>{myReview.comment}</p>}
+            <div className={styles.myReviewMeta}>
+              {f.date(myReview.created_at)}
+              {myReview.edited_at && ` · ${tContribute("review.editedOn", { date: f.date(myReview.edited_at) })}`}
+            </div>
+          </div>
+        )}
+        {reviews.filter((r) => r.id !== myReview?.id).slice(0, 2).map((r) => (
           <div key={r.id} className={styles.review}>
             <div className={styles.reviewName}>{r.author_name}</div>
             <div className={styles.reviewStars}>
@@ -329,9 +351,11 @@ export default function ParkDetail() {
             {r.comment && <p>{r.comment}</p>}
           </div>
         ))}
-        <button type="button" className={styles.giveReview} onClick={() => navigate(`/rate?park=${park.id}`)}>
-          {t("giveReview")}
-        </button>
+        {!myReview && (
+          <button type="button" className={styles.giveReview} onClick={() => navigate(`/rate?park=${park.id}`)}>
+            {t("giveReview")}
+          </button>
+        )}
       </div>
 
       <div className={styles.footer}>

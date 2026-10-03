@@ -8,6 +8,7 @@ import {
   getContributionTypeIcon,
 } from "../lib/contributionPresentation";
 import { useFormat } from "../i18n/useFormat";
+import { ReviewMenu } from "./ReviewMenu";
 import styles from "./ContributionRow.module.css";
 
 const TONE_TO_TAG: Record<string, "primary" | "warning" | "info" | "error" | "neutral"> = {
@@ -21,7 +22,16 @@ const TONE_TO_TAG: Record<string, "primary" | "warning" | "info" | "error" | "ne
 /** One row of a parent's contribution history — used both on the hub's "Vos
  * dernières contributions" and on the full history list, so the two always
  * read the same way. */
-export function ContributionRow({ item, onClick }: { item: UserContribution; onClick: () => void }) {
+export function ContributionRow({
+  item,
+  onClick,
+  onEditReview,
+}: {
+  item: UserContribution;
+  onClick: () => void;
+  /** Reviews only: adds the « ⋯ » → « Modifier mon avis » action (published reviews). */
+  onEditReview?: (item: UserContribution) => void;
+}) {
   const { t } = useTranslation("contribute");
   const f = useFormat();
   const typeIcon = getContributionTypeIcon(item.type);
@@ -30,8 +40,10 @@ export function ContributionRow({ item, onClick }: { item: UserContribution; onC
   const detail = getContributionDetail(item, t);
   const location = [item.parkName, item.city].filter(Boolean).join(" · ");
 
-  return (
-    <button type="button" className={styles.row} onClick={onClick}>
+  const canEdit = item.type === "review" && item.status === "published" && !!onEditReview;
+
+  const row = (
+    <button type="button" className={canEdit ? `${styles.row} ${styles.rowGrow}` : styles.row} onClick={onClick}>
       <span className={styles.thumb} style={item.thumbnail ? { backgroundImage: `url(${item.thumbnail})` } : undefined}>
         {!item.thumbnail && ("iconName" in typeIcon ? <Icon name={typeIcon.iconName} size={22} /> : <span aria-hidden>{typeIcon.emoji}</span>)}
         {item.thumbnail && (
@@ -48,7 +60,10 @@ export function ContributionRow({ item, onClick }: { item: UserContribution; onC
         {item.type === "review" && typeof item.rating === "number" && (
           <span className={styles.subtitle}>★ {f.rating(item.rating)}</span>
         )}
-        <span className={styles.meta}>{f.relativeDate(item.createdAt)}</span>
+        <span className={styles.meta}>
+          {f.relativeDate(item.createdAt)}
+          {item.type === "review" && item.editedAt && ` · ${t("review.editedOn", { date: f.date(item.editedAt) })}`}
+        </span>
       </span>
 
       <span className={styles.trailing}>
@@ -56,5 +71,13 @@ export function ContributionRow({ item, onClick }: { item: UserContribution; onC
         <Icon name="ic-back" size={16} style={{ color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
       </span>
     </button>
+  );
+
+  if (!canEdit) return row;
+  return (
+    <div className={styles.rowWrap}>
+      {row}
+      <ReviewMenu onEdit={() => onEditReview(item)} />
+    </div>
   );
 }

@@ -316,5 +316,21 @@
     "verifyTitle": "Revisa tu corrección",
     "notePrefix": "Detalle: {{value}}",
     "submit": "Proponer la modificación"
+  },
+  "review": {
+    "menuLabel": "Acciones de tu opinión",
+    "editedOn": "Editada el {{date}}",
+    "edit": {
+      "menu": "Editar mi opinión",
+      "title": "Editar mi opinión",
+      "save": "Guardar los cambios",
+      "saved": "Tu opinión se ha actualizado",
+      "error": "No se ha podido actualizar tu opinión. Tus cambios se conservan, inténtalo de nuevo.",
+      "unavailable": "Esta opinión ya no se puede editar.",
+      "leaveTitle": "¿Salir sin guardar?",
+      "leaveBody": "Tus cambios no se guardarán.",
+      "leaveStay": "Seguir editando",
+      "leaveConfirm": "Salir"
+    }
   }
 }

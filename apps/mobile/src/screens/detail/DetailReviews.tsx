@@ -24,6 +24,7 @@ export default function DetailReviews() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation("detail");
+  const { t: tContribute } = useTranslation("contribute");
   const f = useFormat();
   const { data: park } = usePark(id);
   const { data: reviews = [] } = useParkReviews(id);
@@ -72,7 +73,10 @@ export default function DetailReviews() {
               <div className={styles.cardMeta}>
                 <div className={styles.cardTop}>
                   <span className={styles.name}>{r.author_name}</span>
-                  <span className={styles.date}>{f.date(r.created_at)}</span>
+                  <span className={styles.date}>
+                    {f.date(r.created_at)}
+                    {r.edited_at && ` · ${tContribute("review.editedOn", { date: f.date(r.edited_at) })}`}
+                  </span>
                 </div>
                 <div className={styles.cardStars}>
                   <Stars value={r.stars} />

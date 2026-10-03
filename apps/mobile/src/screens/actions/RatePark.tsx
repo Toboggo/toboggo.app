@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Button, Chip, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
-import { addMedia, buildDraftKey, createReview, getParkDisplayName, uploadPhoto, type AgeBand, type ReviewSubRatings } from "@toboggo/shared";
+import { Button, Chip, Dialog, EmptyState, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
+import { addMedia, buildDraftKey, createReview, getParkDisplayName, getReview, updateMyReview, uploadPhoto, type AgeBand, type Review, type ReviewSubRatings } from "@toboggo/shared";
 import { WizardHeader } from "../../components/WizardHeader";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { ParkPicker } from "../../components/ParkPicker";
@@ -43,14 +44,66 @@ interface RateParkDraft {
   step: number;
   stars: number;
   subRatings: ReviewSubRatings;
-  ageBand: AgeBand;
+  /** `null`/`"all"` only when editing a review whose age recommendation has no chip. */
+  ageBand: AgeBand | null;
   comment: string;
   /** Already-uploaded photo URL only — onPickFile requires `userId`, so a
    * guest never has one to persist. */
   photo: string | null;
 }
 
-export default function RatePark() {
+const DEFAULT_SUB_RATINGS: ReviewSubRatings = { clean: 2, safety: 2, equipment: 2, comfort: 2 };
+
+/** `/review/:reviewId/edit` — loads the caller's own review, then mounts the
+ * rating form in edit mode. Anything that is not the caller's editable review
+ * (missing, someone else's, no longer published) gets a neutral dead end: the
+ * real guard is RLS (migration 0042), this only avoids offering a form that
+ * could never save. */
+export function EditReviewRoute() {
+  const { reviewId } = useParams();
+  const navigate = useNavigate();
+  const { t } = useTranslation("contribute");
+  const { t: tErr } = useTranslation("errors");
+  const { t: tCommon } = useTranslation("common");
+  const userId = useSession((s) => s.userId);
+  const sessionLoading = useSession((s) => s.loading);
+  const { data: review, isLoading, isError, refetch } = useQuery({
+    queryKey: ["review", reviewId],
+    queryFn: () => getReview(reviewId!),
+    enabled: !!reviewId && !!userId,
+  });
+
+  if (sessionLoading) return <div className="screen" />;
+  if (!userId) return <Navigate to="/login" replace />;
+  if (isLoading) return <div className="screen" />;
+  if (isError) {
+    return (
+      <div className="screen" style={{ padding: "calc(40px + var(--safe-top)) 20px 0" }}>
+        <EmptyState icon="⚠️" title={tErr("generic")} />
+        <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => void refetch()}>
+          {tCommon("action.retry")}
+        </Button>
+      </div>
+    );
+  }
+  if (!review || review.user_id !== userId || review.status !== "published") {
+    return (
+      <div className="screen" style={{ padding: "calc(40px + var(--safe-top)) 20px 0" }}>
+        <EmptyState icon="🔒" title={t("review.edit.unavailable")} />
+        <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => navigate(-1)}>
+          {tCommon("action.back")}
+        </Button>
+      </div>
+    );
+  }
+  return <RatePark editing={review} />;
+}
+
+function sameSubRatings(a: ReviewSubRatings, b: ReviewSubRatings): boolean {
+  return CRITERIA.every((c) => a[c.key] === b[c.key]);
+}
+
+export default function RatePark({ editing }: { editing?: Review } = {}) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const wantsResume = params.get("resume") === "1";
@@ -60,13 +113,13 @@ export default function RatePark() {
   const { t } = useTranslation("contribute");
   const { t: tErr } = useTranslation("errors");
   const { t: tCommon } = useTranslation("common");
-  const [parkId, setParkId] = useState<string | null>(params.get("park"));
+  const [parkId, setParkId] = useState<string | null>(editing?.park_id ?? params.get("park"));
   const { data: park } = usePark(parkId ?? undefined);
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
   // Entered with a park already chosen (`?park=`): "Parc" is pre-checked and
   // Back from "Avis" leaves the flow — the user never saw the picker.
-  const preselected = useRef(Boolean(params.get("park"))).current;
+  const preselected = useRef(Boolean(editing ?? params.get("park"))).current;
   // Only meaningful with a park already chosen, and never over a resumed send.
   const presetStars = useRef(params.get("park") && !wantsResume ? parsePresetStars(params.get("stars")) : 0).current;
 
@@ -74,11 +127,13 @@ export default function RatePark() {
   // parkId yet (still on the picker) ⇒ no key ⇒ no persistence — step 0 has no
   // form data of its own anyway. Guest → signed-in handover runs in an effect
   // (useAdoptedDraftKey), never during render.
-  const guestDraftKey = parkId
+  // Edit mode never uses the creation draft: the source of truth is the
+  // published review, and its unsaved changes are guarded by `dirty` instead.
+  const guestDraftKey = parkId && !editing
     ? buildDraftKey({ surface: "mobile", flow: "park.rate", scope: { parkId }, principal: "guest" })
     : null;
   const userDraftKey =
-    parkId && userId
+    parkId && userId && !editing
       ? buildDraftKey({ surface: "mobile", flow: "park.rate", scope: { parkId }, principal: { userId } })
       : null;
   const draftKey = useAdoptedDraftKey(guestDraftKey, userDraftKey);
@@ -90,7 +145,16 @@ export default function RatePark() {
     flush: flushRateDraft,
   } = usePersistentDraft<RateParkDraft>(
     draftKey,
-    { step: parkId ? 1 : 0, stars: presetStars, subRatings: { clean: 2, safety: 2, equipment: 2, comfort: 2 }, ageBand: "3-6", comment: "", photo: null },
+    editing
+      ? {
+          step: 1,
+          stars: editing.rating,
+          subRatings: editing.sub_ratings ?? DEFAULT_SUB_RATINGS,
+          ageBand: editing.age_band,
+          comment: editing.comment ?? "",
+          photo: null,
+        }
+      : { step: parkId ? 1 : 0, stars: presetStars, subRatings: DEFAULT_SUB_RATINGS, ageBand: "3-6", comment: "", photo: null },
     { schemaVersion: RATE_PARK_DRAFT_VERSION, ttlMs: RATE_PARK_DRAFT_TTL_MS, restore: "auto" },
   );
 
@@ -100,6 +164,36 @@ export default function RatePark() {
   const clampedStep = Math.min(Math.max(draft.step, 0), 2);
   const step = clampedStep >= 2 && draft.stars === 0 ? 1 : clampedStep;
   const setStep = (next: number) => patch({ step: next });
+
+  // Edit mode: unsaved changes + leave guard (BrowserRouter has no route
+  // blocker, so the in-app back/close buttons and a tab close are guarded).
+  const dirty =
+    !!editing &&
+    (draft.stars !== editing.rating ||
+      draft.ageBand !== editing.age_band ||
+      draft.comment !== (editing.comment ?? "") ||
+      !sameSubRatings(draft.subRatings, editing.sub_ratings ?? DEFAULT_SUB_RATINGS));
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      if (savedRef.current) return;
+      e.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+  /** Back to where the edit started (park sheet or Contributions); direct
+   * entry with no history falls back to the park. */
+  function leaveEdit() {
+    if ((window.history.state as { idx?: number } | null)?.idx) navigate(-1);
+    else navigate(`/park/${parkId}`, { replace: true });
+  }
+  function requestLeave() {
+    if (dirty && !savedRef.current) setLeaveOpen(true);
+    else leaveEdit();
+  }
 
   // The rating picked in the visit prompt is the user's latest explicit
   // choice: it wins over a star count restored from an older draft. Applied
@@ -131,7 +225,7 @@ export default function RatePark() {
   // (`?resume=1` explicite) et prime.
   const contributionStartedTracked = useRef(false);
   useEffect(() => {
-    if (contributionStartedTracked.current) return;
+    if (editing || contributionStartedTracked.current) return;
     contributionStartedTracked.current = true;
     trackEvent("contribution_started", {
       contribution_type: "review",
@@ -154,6 +248,10 @@ export default function RatePark() {
   }
 
   function submit() {
+    if (editing) {
+      void doSaveEdit();
+      return;
+    }
     if (!parkId) return;
     const uid = useSession.getState().userId;
     if (uid) {
@@ -166,6 +264,37 @@ export default function RatePark() {
     flushRateDraft();
     setResumeRoute(`/rate?park=${parkId}&resume=1`);
     navigate("/login", { replace: true });
+  }
+
+  async function doSaveEdit() {
+    if (!editing || !userId) return;
+    setSaving(true);
+    try {
+      await updateMyReview(editing.id, userId, {
+        stars: draft.stars,
+        // Untouched criteria keep the stored value (incl. "none") rather than
+        // materialising the form defaults on a review that never had them.
+        sub_ratings: sameSubRatings(draft.subRatings, editing.sub_ratings ?? DEFAULT_SUB_RATINGS)
+          ? editing.sub_ratings
+          : draft.subRatings,
+        age_band: draft.ageBand,
+        comment: draft.comment || null,
+      });
+      savedRef.current = true;
+      void queryClient.invalidateQueries({ queryKey: ["park-reviews", editing.park_id] });
+      void queryClient.invalidateQueries({ queryKey: ["park", editing.park_id] });
+      void queryClient.invalidateQueries({ queryKey: ["review", editing.id] });
+      void queryClient.invalidateQueries({ queryKey: ["my-contributions"] });
+      void queryClient.invalidateQueries({ queryKey: ["my-reviews"] });
+      void queryClient.invalidateQueries({ queryKey: ["nearby-parks"] });
+      useToastStore.getState().show(t("review.edit.saved"));
+      leaveEdit();
+    } catch {
+      // Form state is untouched: the user keeps everything they typed.
+      useToastStore.getState().show(t("review.edit.error"));
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function doSubmit(uid: string) {
@@ -218,7 +347,7 @@ export default function RatePark() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantsResume, userId, parkId, draft.stars]);
 
-  if (done) {
+  if (done && !editing) {
     // Contribution terminée : le wizard ne doit plus rester visible ni
     // interactif derrière la confirmation — remplacé par un fond neutre, la
     // Success Sheet porte tout le contenu et les CTA. "Voir le parc" et
@@ -251,10 +380,23 @@ export default function RatePark() {
         step={step}
         total={STEPPER.length}
         steps={STEPPER.map((k) => t(k))}
-        onBack={() =>
-          step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
-        }
+        onBack={() => {
+          if (editing) {
+            if (step === 1) requestLeave();
+            else setStep(1);
+            return;
+          }
+          if (step === 0 || (step === 1 && preselected)) navigate(-1);
+          else setStep(step - 1);
+        }}
+        onClose={editing ? requestLeave : undefined}
       />
+
+      {editing && (
+        <h1 style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 20, textAlign: "center", margin: "0 20px 12px" }}>
+          {t("review.edit.title")}
+        </h1>
+      )}
 
       {step === 0 && (
         <ParkPicker
@@ -325,7 +467,7 @@ export default function RatePark() {
             onChange={(e) => patch({ comment: e.target.value })}
             help={`${draft.comment.length}/200`}
           />
-          {draft.photo ? (
+          {editing ? null : draft.photo ? (
             <div style={{ width: 90, height: 90, borderRadius: 14, backgroundImage: `url(${draft.photo})`, backgroundSize: "cover", marginTop: 12 }} />
           ) : (
             <label
@@ -346,12 +488,33 @@ export default function RatePark() {
               +<input type="file" accept="image/*" hidden onChange={onPickFile} />
             </label>
           )}
-          <PhotoTip />
-          <Button block loading={saving} style={{ marginTop: 24 }} onClick={submit}>
-            {t("rate.submit")}
+          {!editing && <PhotoTip />}
+          <Button block loading={saving} disabled={editing ? !dirty : false} style={{ marginTop: 24 }} onClick={submit}>
+            {editing ? t("review.edit.save") : t("rate.submit")}
           </Button>
         </div>
       )}
+
+      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} title={t("review.edit.leaveTitle")}>
+        <p style={{ fontSize: 13.5, color: "var(--color-text)", margin: "0 0 4px" }}>{t("review.edit.leaveBody")}</p>
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <Button type="button" variant="secondary" block onClick={() => setLeaveOpen(false)}>
+            {t("review.edit.leaveStay")}
+          </Button>
+          <Button
+            type="button"
+            variant="danger"
+            block
+            onClick={() => {
+              setLeaveOpen(false);
+              savedRef.current = true;
+              leaveEdit();
+            }}
+          >
+            {t("review.edit.leaveConfirm")}
+          </Button>
+        </div>
+      </Dialog>
     </div>
   );
 }

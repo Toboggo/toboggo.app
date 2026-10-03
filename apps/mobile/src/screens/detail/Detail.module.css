@@ -482,3 +482,27 @@
   gap: 8px;
   box-shadow: 0 10px 24px rgba(22, 163, 74, 0.35);
 }
+
+/* « Votre avis » — l'avis de l'utilisateur, au-dessus des avis des autres parents. */
+.myReview {
+  padding: 12px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-tint);
+}
+.myReviewHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.myReview p {
+  font-size: 13.5px;
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+}
+.myReviewMeta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}

@@ -5,8 +5,10 @@ import {
   isSupabaseConfigured,
   onAuthStateChange,
   toggleFavorite as apiToggleFavorite,
+  setUsername as apiSetUsername,
   updateProfile as apiUpdateProfile,
   type Profile,
+  type ProfilePatch,
 } from "@toboggo/shared";
 import { identifyAnalyticsUser, registerIsAuthenticated, resetAnalyticsIdentity, trackEvent } from "./analytics";
 import { clearGoogleLoginMarker, consumeGoogleLoginMarker, isNewAccount } from "./googleLogin";
@@ -40,7 +42,9 @@ interface SessionState {
   setGuestMode: (v: boolean) => void;
   setPendingResume: (fn: (() => void) | null) => void;
   refreshProfile: () => Promise<void>;
-  patchProfile: (patch: Partial<Profile>) => Promise<void>;
+  patchProfile: (patch: ProfilePatch) => Promise<void>;
+  /** Enregistre le pseudo public de l'utilisateur courant (validé client + serveur). */
+  saveUsername: (name: string) => Promise<void>;
   toggleFavorite: (parkId: string) => void;
 }
 
@@ -62,7 +66,7 @@ export const useSession = create<SessionState>((set, get) => ({
           // événement auth, pour que signup/login_completed lui soient rattachés.
           identifyAnalyticsUser(session.user.id);
           trackGoogleAuthIfPending(session.user);
-          void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
+          void bootstrapProfile(session.user.id, session.user.email!);
         } else {
           // OAuth échoué/abandonné : le marqueur ne doit pas survivre.
           clearGoogleLoginMarker();
@@ -100,15 +104,17 @@ export const useSession = create<SessionState>((set, get) => ({
       getSession().then((session) => {
         if (session?.user) {
           trackGoogleAuthIfPending(session.user);
-          void bootstrapProfile(session.user.id, session.user.user_metadata?.name, session.user.email!);
+          void bootstrapProfile(session.user.id, session.user.email!);
         }
       });
     });
 
-    async function bootstrapProfile(userId: string, name: string | undefined, email: string) {
+    // Le pseudo n'est jamais déduit de l'e-mail ni du nom Google : profil créé
+    // avec `name` vide, choisi ensuite par l'utilisateur (écran /choose-username).
+    async function bootstrapProfile(userId: string, email: string) {
       set({ loading: true });
       try {
-        const profile = await getOrCreateProfile(userId, name || email.split("@")[0], email);
+        const profile = await getOrCreateProfile(userId, "", email);
         set({ userId, profile, loading: false });
         const resume = get().pendingResume;
         if (resume) {
@@ -130,6 +136,12 @@ export const useSession = create<SessionState>((set, get) => ({
     const { userId, profile } = get();
     if (!userId || !profile) return;
     const updated = await apiUpdateProfile(userId, patch);
+    set({ profile: updated });
+  },
+  saveUsername: async (name) => {
+    const { userId } = get();
+    if (!userId) throw new Error("not_authenticated");
+    const updated = await apiSetUsername(userId, name);
     set({ profile: updated });
   },
   // Single place every screen toggles a favourite through (map, "Autour de

@@ -250,5 +250,23 @@
     "sentBody": "It has been saved. You can edit it at any time from your profile.",
     "backToProfile": "Back to profile",
     "signInPrompt": "Sign in to give your feedback on Toboggo."
+  },
+  "username": {
+    "title": "Choose your username",
+    "subtitle": "This is the name others will see on Toboggo.",
+    "label": "Your username",
+    "placeholder": "e.g. Camille",
+    "help": "Shown on your reviews and contributions.",
+    "rules": "{{min}} to {{max}} characters.",
+    "submit": "Let's go!",
+    "submitting": "Saving…",
+    "footnote": "You can change it anytime from your profile.",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "Username updated",
+    "tooShort": "Your username must be at least {{min}} characters.",
+    "tooLong": "Your username can't exceed {{max}} characters.",
+    "invalidChars": "Please avoid the characters @, < and >.",
+    "generic": "Couldn't save. Please try again."
   }
 }

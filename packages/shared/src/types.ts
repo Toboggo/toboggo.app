@@ -625,6 +625,12 @@ export interface Profile {
   offline_mode: boolean;
   suspended: boolean;
   created_at: string;
+  /**
+   * Horodatage du choix explicite du pseudo (migration 0041). `null` = pas encore
+   * choisi => écran « Choisissez votre pseudo ». `undefined` = colonne absente
+   * (base non migrée) : jamais traité comme « à choisir ».
+   */
+  name_confirmed_at?: string | null;
 }
 
 /** A parent's child — month/year of birth only, no name, no full birthdate. Age is always derived (see `computeChildAge`), never stored. */

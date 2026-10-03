@@ -174,7 +174,7 @@ export default function RatePark() {
       await createReview({
         park_id: parkId,
         user_id: uid,
-        author_name: profile?.name ?? "Vous",
+        author_name: profile?.name || tCommon("anonymousAuthor"),
         stars: draft.stars,
         sub_ratings: draft.subRatings,
         comment: draft.comment || null,

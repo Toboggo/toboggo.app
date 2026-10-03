@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Navigate, Route, Routes, useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useSession } from "./lib/session";
 import { useIconSprite } from "@toboggo/design-system";
 import { GlobalOverlays } from "./components/GlobalOverlays";
@@ -10,6 +10,7 @@ import Splash from "./screens/onboarding/Splash";
 import LoginMethodRedirect from "./screens/onboarding/LoginMethodRedirect";
 import AuthForm from "./screens/onboarding/AuthForm";
 import Permissions from "./screens/onboarding/Permissions";
+import ChooseUsername from "./screens/onboarding/ChooseUsername";
 
 import MapExplore from "./screens/map/MapExplore";
 import ParkDetail from "./screens/detail/ParkDetail";
@@ -80,7 +81,12 @@ export default function App() {
   const init = useSession((s) => s.init);
   const loading = useSession((s) => s.loading);
   const userId = useSession((s) => s.userId);
+  // Pseudo pas encore choisi (`name_confirmed_at` explicitement NULL — jamais
+  // `undefined`, cas d'une base non migrée) : première connexion e-mail/Google.
+  const needsUsername = useSession((s) => s.profile?.name_confirmed_at === null);
   const navigate = useNavigate();
+  const location = useLocation();
+  const usernamePromptedFor = useRef<string | null>(null);
   useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
 
   // Le thème (Système/Clair/Sombre) est appliqué par useTheme lui-même dès
@@ -112,10 +118,21 @@ export default function App() {
   // just-in-time auth flow (which, for Google OAuth, is a full-page redirect).
   // Once authenticated, return to that flow to finish the send.
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || needsUsername) return; // pseudo d'abord : ChooseUsername reprend la route
     const route = takeResumeRoute();
     if (route) navigate(route, { replace: true });
-  }, [userId, navigate]);
+  }, [userId, needsUsername, navigate]);
+
+  // Propose l'écran « Choisissez votre pseudo » UNE fois par compte et par
+  // chargement (pas un verrou : naviguer ailleurs reste possible ; l'écran
+  // revient au prochain chargement tant que le pseudo n'est pas choisi).
+  // `next` = page interrompue, pour y revenir (ex. /permissions après inscription).
+  useEffect(() => {
+    if (!userId || !needsUsername || usernamePromptedFor.current === userId) return;
+    usernamePromptedFor.current = userId;
+    if (location.pathname === "/choose-username") return;
+    navigate("/choose-username", { replace: true, state: { next: location.pathname + location.search } });
+  }, [userId, needsUsername, location.pathname, location.search, navigate]);
 
   if (loading) return null;
 
@@ -128,6 +145,7 @@ export default function App() {
       <Route path="/login-method" element={<LoginMethodRedirect />} />
       <Route path="/login" element={<AuthForm />} />
       <Route path="/permissions" element={<Permissions />} />
+      <Route path="/choose-username" element={<ChooseUsername />} />
 
       <Route path="/map" element={<MapExplore />} />
       <Route path="/park/:id" element={<ParkDetail />} />

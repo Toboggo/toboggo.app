@@ -54,7 +54,7 @@ export default function AuthForm() {
     clearGoogleLoginMarker();
     try {
       if (isSignup) {
-        const res = await signUp(email, password, email.split("@")[0]);
+        const res = await signUp(email, password);
         showToast(t("auth.accountCreated"));
         // Only jump straight to a pending contribution when a session was issued
         // right away (email confirmation disabled); otherwise the draft waits.

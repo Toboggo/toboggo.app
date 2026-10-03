@@ -250,5 +250,23 @@
     "sentBody": "Se ha guardado. Puedes modificarla cuando quieras desde tu perfil.",
     "backToProfile": "Volver al perfil",
     "signInPrompt": "Inicia sesión para dar tu opinión sobre Toboggo."
+  },
+  "username": {
+    "title": "Elige tu apodo",
+    "subtitle": "Es el nombre que verán los demás en Toboggo.",
+    "label": "Tu apodo",
+    "placeholder": "p. ej. Camila",
+    "help": "Visible en tus opiniones y contribuciones.",
+    "rules": "De {{min}} a {{max}} caracteres.",
+    "submit": "¡Vamos!",
+    "submitting": "Guardando…",
+    "footnote": "Puedes cambiarlo en cualquier momento desde tu perfil.",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "saved": "Apodo actualizado",
+    "tooShort": "Tu apodo debe tener al menos {{min}} caracteres.",
+    "tooLong": "Tu apodo no puede superar los {{max}} caracteres.",
+    "invalidChars": "Evita los caracteres @, < y >.",
+    "generic": "No se pudo guardar. Inténtalo de nuevo."
   }
 }

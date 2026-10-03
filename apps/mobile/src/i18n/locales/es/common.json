@@ -78,5 +78,6 @@
   "park": {
     "generic": "Área de juegos",
     "displayName": "{{generic}} • {{qualifier}}"
-  }
+  },
+  "anonymousAuthor": "Familia Toboggo"
 }

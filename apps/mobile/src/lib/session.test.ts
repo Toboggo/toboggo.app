@@ -135,7 +135,8 @@ describe("useSession.init", () => {
     useSession.getState().init();
     await flush();
     expect(useSession.getState().userId).toBe("user-1");
-    expect(useSession.getState().profile?.name).toBe("Alice");
+    // Le pseudo n'est plus déduit du nom des métadonnées ni de l'e-mail : profil créé à name "".
+    expect(useSession.getState().profile?.name).toBe("");
     expect(useSession.getState().loading).toBe(false);
     expect(supa.profileCalls).toBe(1);
   });
@@ -187,7 +188,7 @@ describe("useSession.init", () => {
 
     expect(sawLoadingTrue).toBe(true);
     expect(useSession.getState().userId).toBe("user-2");
-    expect(useSession.getState().profile?.name).toBe("Bob");
+    expect(useSession.getState().profile?.name).toBe("");
   });
 
   it("guest just-in-time login (null → user) runs the pendingResume callback", async () => {

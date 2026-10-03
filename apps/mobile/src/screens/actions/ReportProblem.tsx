@@ -150,7 +150,7 @@ export default function ReportProblem() {
       await createReport({
         park_id: parkId,
         user_id: uid,
-        reported_by_name: profile?.name ?? "Vous",
+        reported_by_name: profile?.name || tCommon("anonymousAuthor"),
         reason,
         equipment,
         comment: comment || null,

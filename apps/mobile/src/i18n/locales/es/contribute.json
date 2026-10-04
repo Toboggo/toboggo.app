@@ -83,7 +83,29 @@
     "submit": "Publicar mi opinión",
     "published": "Opinión publicada. ¡Gracias!",
     "doneBody": "Tu opinión se ha publicado y ayuda a otros padres a elegir {{park}}.",
-    "photoPendingNote": "Tu foto aparecerá en la ficha del parque tras la verificación de nuestro equipo."
+    "photoPendingNote": "Tu foto aparecerá en la ficha del parque tras la verificación de nuestro equipo.",
+    "experienceTitle": "Mi experiencia",
+    "criteriaTitle": "¿Qué tal fue?",
+    "starWord": {
+      "1": "Decepcionante",
+      "2": "Regular",
+      "3": "Bien",
+      "4": "Muy bien",
+      "5": "Excelente"
+    },
+    "face": {
+      "1": "Mal",
+      "2": "Regular",
+      "3": "Bien"
+    },
+    "alreadyReviewed": "Ya has opinado sobre este parque. Puedes editar tu opinión en lugar de publicar otra.",
+    "verifyTitle": "Revisar mi opinión",
+    "verifyHint": "Vuelve a leer tu opinión antes de publicarla.",
+    "commentTitle": "Comentario",
+    "noComment": "Sin comentario",
+    "verifyNote": "Tu opinión se publica al instante; la foto, si la hay, se revisa antes de ser visible.",
+    "submitError": "No se pudo publicar tu opinión. Tus respuestas se conservan: inténtalo de nuevo.",
+    "leaveBody": "Tu borrador se guarda 24 h en este dispositivo: podrás retomarlo más tarde."
   },
   "addParkSearch": {
     "title": "¿Este parque ya existe?",
@@ -126,10 +148,10 @@
       "comfort": "Servicios y confort",
       "characteristics": "Características del parque"
     },
-    "photosTitle": "Fotos",
-    "photosHint": "Añade una foto para ayudar a otros padres a reconocer el parque.",
-    "verifyTitle": "Revisa antes de enviar",
-    "verifyHint": "Todavía podrás modificar cada sección antes del envío.",
+    "photosTitle": "¿Una foto del parque?",
+    "photosHint": "Ayuda a las familias a reconocerlo.",
+    "verifyTitle": "¿Todo correcto?",
+    "verifyHint": "Revisa tu aportación antes de enviarla.",
     "section": {
       "park": "Parque",
       "services": "Servicios y características",
@@ -170,7 +192,7 @@
     },
     "details": {
       "title": "Pequeños detalles útiles",
-      "hint": "Esta información ayuda a las familias a preparar su salida.",
+      "hint": "Esta información facilita las salidas en familia.",
       "services": "Servicios en el lugar",
       "comfort": "Acceso y comodidad"
     },
@@ -197,7 +219,15 @@
     "summaryTitle": "Resumen",
     "summary": {
       "unnamed": "Sin nombre — se mostrará como «Área de juegos»",
-      "notProvided": "No indicado"
+      "notProvided": "No indicado",
+      "gamesAges": "Juegos y edades",
+      "services": "Servicios y acceso",
+      "noGames": "Sin juegos indicados",
+      "noAge": "Edad no indicada",
+      "unknownList": "No indicado: {{list}}",
+      "noNote": "Sin precisiones",
+      "noPhotos": "Sin fotos",
+      "moderation": "Tu aportación se revisará antes de publicarse."
     },
     "submitting": "Enviando…",
     "submitError": "No se pudo enviar. Tus datos se conservan: revisa tu conexión e inténtalo de nuevo.",
@@ -207,12 +237,24 @@
       "body": "Tu borrador se guarda 24 h en este dispositivo: podrás retomarlo más tarde.",
       "stay": "Seguir editando",
       "leave": "Salir"
+    },
+    "gamesAgesTitle": "Los juegos y las edades",
+    "gamesAgesHint": "¿Qué juegos hay en este parque? Selecciona todo lo que haya.",
+    "dup": {
+      "verify": "Verificar esta ubicación",
+      "checking": "Verificando…",
+      "banner": "Ya hay un parque registrado cerca.",
+      "distance": "A {{distance}} del marcador",
+      "thisOne": "Es este parque",
+      "another": "No, es otro parque",
+      "confirmOnly": "Confirma solo si se trata de un lugar distinto.",
+      "error": "No se pudo comprobar los parques ya registrados alrededor del marcador. Inténtalo de nuevo: no significa que no haya ninguno."
     }
   },
   "addPhotos": {
     "subtitle": "Añade fotos para compartir este lugar con la comunidad.",
     "takePhoto": "Hacer una foto",
-    "chooseFromLibrary": "Elegir de la galería",
+    "chooseFromLibrary": "Elegir fotos",
     "counter": "{{count}} / {{max}} fotos",
     "readyCount_one": "{{count}} foto lista para enviar",
     "readyCount_other": "{{count}} fotos listas para enviar",
@@ -220,9 +262,14 @@
     "doneTitle": "¡Foto enviada!",
     "doneBody_one": "¡Gracias! Tu foto se verá en la ficha del parque tras la verificación de nuestro equipo.",
     "doneBody_other": "¡Gracias! Tus fotos se verán en la ficha del parque tras la verificación de nuestro equipo.",
-    "submit_one": "Enviar {{count}} foto",
-    "submit_other": "Enviar {{count}} fotos",
-    "sentToast": "Foto enviada, pendiente de validación."
+    "sentToast": "Foto enviada, pendiente de validación.",
+    "headerTitle": "Añadir fotos",
+    "title": "Tus fotos",
+    "verifyTitle": "Revisar y enviar",
+    "moderation": "Tus fotos se revisarán antes de publicarse.",
+    "submitError": "No se pudo enviar. Tus fotos se conservan: inténtalo de nuevo.",
+    "leaveBody": "Las fotos elegidas se perderán si sales ahora.",
+    "submit": "Enviar fotos"
   },
   "report": {
     "problemQuestion": "¿Cuál es el problema?",
@@ -230,7 +277,15 @@
     "describeLabel": "Describe el problema",
     "submit": "Enviar el informe",
     "doneTitle": "¡Informe enviado!",
-    "doneBody": "Gracias por contribuir a la seguridad de los niños. Te mantendremos informado del avance."
+    "doneBody": "Gracias por contribuir a la seguridad de los niños. Te mantendremos informado del avance.",
+    "describeTitle": "Describir el problema",
+    "equipmentUnspecified": "Sin especificar",
+    "verifyTitle": "Revisar el aviso",
+    "verifyHint": "Vuelve a leerlo antes de enviarlo.",
+    "descriptionTitle": "Descripción",
+    "noDescription": "Sin descripción",
+    "submitError": "No se pudo enviar el aviso. Tus datos se conservan: inténtalo de nuevo.",
+    "leaveBody": "Tu borrador se guarda 24 h en este dispositivo: podrás retomarlo más tarde."
   },
   "reason": {
     "broken_equipment": "Juego roto / peligroso",
@@ -429,5 +484,26 @@
       "confirmations": "Información confirmada"
     },
     "note": "Solo cuentan los aportes publicados o validados. Has enviado {{total}} en total."
+  },
+  "flow": {
+    "stepOf": "Paso {{current}} de {{total}}",
+    "retry": "Reintentar",
+    "leave": {
+      "title": "¿Salir de esta contribución?",
+      "stay": "Quedarme",
+      "leave": "Salir"
+    },
+    "chooser": {
+      "title": "¿Qué parque?",
+      "hint": "Busca y selecciona el parque en cuestión.",
+      "searchLabel": "Buscar un parque",
+      "selected": "Parque elegido",
+      "none": "No encuentro mi parque",
+      "error": "La búsqueda ha fallado."
+    },
+    "photos": {
+      "uploading": "Enviando la foto…"
+    },
+    "photoOptional": "Foto (opcional)"
   }
 }

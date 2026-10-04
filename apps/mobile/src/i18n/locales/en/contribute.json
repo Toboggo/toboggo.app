@@ -83,7 +83,29 @@
     "submit": "Post my review",
     "published": "Review posted. Thank you!",
     "doneBody": "Your review has been posted and helps other parents choose {{park}}.",
-    "photoPendingNote": "Your photo will appear on the park page once our team has reviewed it."
+    "photoPendingNote": "Your photo will appear on the park page once our team has reviewed it.",
+    "experienceTitle": "My experience",
+    "criteriaTitle": "How was it?",
+    "starWord": {
+      "1": "Disappointing",
+      "2": "Fair",
+      "3": "Good",
+      "4": "Very good",
+      "5": "Excellent"
+    },
+    "face": {
+      "1": "Not good",
+      "2": "Fair",
+      "3": "Good"
+    },
+    "alreadyReviewed": "You already reviewed this park. You can edit your review instead of posting a second one.",
+    "verifyTitle": "Check my review",
+    "verifyHint": "Read your review again before publishing.",
+    "commentTitle": "Comment",
+    "noComment": "No comment",
+    "verifyNote": "Your review is published right away; a photo, if any, is checked before it becomes visible.",
+    "submitError": "Your review couldn’t be published. Your answers are kept: try again.",
+    "leaveBody": "Your draft is kept for 24 h on this device: you can pick it up later."
   },
   "addParkSearch": {
     "title": "Is this park already listed?",
@@ -126,10 +148,10 @@
       "comfort": "Services & comfort",
       "characteristics": "Park features"
     },
-    "photosTitle": "Photos",
-    "photosHint": "Add a photo to help other parents recognise the park.",
-    "verifyTitle": "Check before sending",
-    "verifyHint": "You can still edit each section before sending.",
+    "photosTitle": "A photo of the park?",
+    "photosHint": "Help families recognise it.",
+    "verifyTitle": "All good?",
+    "verifyHint": "Check your submission before sending it.",
     "section": {
       "park": "Park",
       "services": "Services & features",
@@ -170,7 +192,7 @@
     },
     "details": {
       "title": "Useful little details",
-      "hint": "This helps families plan their outing.",
+      "hint": "This info makes family outings easier.",
       "services": "On-site services",
       "comfort": "Access and comfort"
     },
@@ -197,7 +219,15 @@
     "summaryTitle": "Summary",
     "summary": {
       "unnamed": "No name given — it will show as “Playground”",
-      "notProvided": "Not provided"
+      "notProvided": "Not provided",
+      "gamesAges": "Equipment and ages",
+      "services": "Services and access",
+      "noGames": "No equipment given",
+      "noAge": "Age not provided",
+      "unknownList": "Not provided: {{list}}",
+      "noNote": "No extra note",
+      "noPhotos": "No photos",
+      "moderation": "Your submission will be checked before it is published."
     },
     "submitting": "Sending…",
     "submitError": "Sending failed. Your information is kept: check your connection and try again.",
@@ -207,12 +237,24 @@
       "body": "Your draft is kept for 24 h on this device: you can pick it up later.",
       "stay": "Keep editing",
       "leave": "Leave"
+    },
+    "gamesAgesTitle": "Play equipment and ages",
+    "gamesAgesHint": "What play equipment is in this park? Select everything that’s there.",
+    "dup": {
+      "verify": "Check this location",
+      "checking": "Checking…",
+      "banner": "A park is already listed nearby.",
+      "distance": "{{distance}} from the pin",
+      "thisOne": "This is the park",
+      "another": "No, it’s a different park",
+      "confirmOnly": "Only confirm if it’s a different place.",
+      "error": "Couldn’t check for parks already listed around this pin. Try again — this doesn’t mean there are none."
     }
   },
   "addPhotos": {
     "subtitle": "Add photos to share this place with the community.",
     "takePhoto": "Take a photo",
-    "chooseFromLibrary": "Choose from library",
+    "chooseFromLibrary": "Choose photos",
     "counter": "{{count}} / {{max}} photos",
     "readyCount_one": "{{count}} photo ready to send",
     "readyCount_other": "{{count}} photos ready to send",
@@ -220,9 +262,14 @@
     "doneTitle": "Photo sent!",
     "doneBody_one": "Thank you! Your photo will appear on the park page after our team reviews it.",
     "doneBody_other": "Thank you! Your photos will appear on the park page after our team reviews it.",
-    "submit_one": "Send {{count}} photo",
-    "submit_other": "Send {{count}} photos",
-    "sentToast": "Photo sent, awaiting approval."
+    "sentToast": "Photo sent, awaiting approval.",
+    "headerTitle": "Add photos",
+    "title": "Your photos",
+    "verifyTitle": "Check and send",
+    "moderation": "Your photos will be checked before they are published.",
+    "submitError": "Sending failed. Your photos are kept: try again.",
+    "leaveBody": "The photos you picked will be lost if you leave now.",
+    "submit": "Send photos"
   },
   "report": {
     "problemQuestion": "What's the problem?",
@@ -230,7 +277,15 @@
     "describeLabel": "Describe the problem",
     "submit": "Send the report",
     "doneTitle": "Report sent!",
-    "doneBody": "Thank you for helping keep children safe. We'll keep you posted on progress."
+    "doneBody": "Thank you for helping keep children safe. We'll keep you posted on progress.",
+    "describeTitle": "Describe the problem",
+    "equipmentUnspecified": "Not specified",
+    "verifyTitle": "Check the report",
+    "verifyHint": "Read it again before sending.",
+    "descriptionTitle": "Description",
+    "noDescription": "No description",
+    "submitError": "The report couldn’t be sent. Your information is kept: try again.",
+    "leaveBody": "Your draft is kept for 24 h on this device: you can pick it up later."
   },
   "reason": {
     "broken_equipment": "Broken / dangerous equipment",
@@ -429,5 +484,26 @@
       "confirmations": "Confirmed information"
     },
     "note": "Only published or validated contributions count. You have sent {{total}} in total."
+  },
+  "flow": {
+    "stepOf": "Step {{current}} of {{total}}",
+    "retry": "Try again",
+    "leave": {
+      "title": "Leave this contribution?",
+      "stay": "Stay",
+      "leave": "Leave"
+    },
+    "chooser": {
+      "title": "Which park?",
+      "hint": "Search, then select the park concerned.",
+      "searchLabel": "Search for a park",
+      "selected": "Selected park",
+      "none": "I can’t find my park",
+      "error": "The search failed."
+    },
+    "photos": {
+      "uploading": "Uploading photo…"
+    },
+    "photoOptional": "Photo (optional)"
   }
 }

@@ -1,51 +1,9 @@
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon, IconButton } from "@toboggo/design-system";
+import { Icon } from "@toboggo/design-system";
 import { ParkGlyph } from "./ParkGlyph";
 import { AGE_BANDS, type Answer, type ServiceKey } from "../../lib/addParkModel";
-import styles from "./AddPark.module.css";
-
-/** En-tête compact : retour · titre · fermeture, « Étape X sur N », barre de progression. */
-export function AddParkHeader({
-  step,
-  total,
-  onBack,
-  onClose,
-}: {
-  /** Index 0-based de l'étape courante. */
-  step: number;
-  total: number;
-  onBack: () => void;
-  onClose: () => void;
-}) {
-  const { t } = useTranslation("contribute");
-  const { t: tCommon } = useTranslation("common");
-  const stepLabel = t("addPark.stepOf", { current: step + 1, total });
-  return (
-    <header className={styles.header}>
-      <div className={styles.headerRow}>
-        <IconButton aria-label={tCommon("action.back")} onClick={onBack}>
-          <Icon name="ic-back" size={18} />
-        </IconButton>
-        <h1 className={styles.headerTitle}>{t("addPark.headerTitle")}</h1>
-        <IconButton aria-label={tCommon("action.close")} onClick={onClose}>
-          <Icon name="ic-close" size={18} />
-        </IconButton>
-      </div>
-      <p className={styles.stepMeta}>{stepLabel}</p>
-      <div
-        className={styles.progress}
-        role="progressbar"
-        aria-label={stepLabel}
-        aria-valuemin={1}
-        aria-valuemax={total}
-        aria-valuenow={step + 1}
-      >
-        <div className={styles.progressFill} style={{ width: `${((step + 1) / total) * 100}%` }} />
-      </div>
-    </header>
-  );
-}
+import styles from "../flow/Flow.module.css";
 
 export interface GameOption {
   code: string;
@@ -180,15 +138,17 @@ export function TriStateRow({
 }
 
 /** Carte du récapitulatif avec son bouton « Modifier ». */
-export function SummaryCard({ title, onEdit, children }: { title: string; onEdit: () => void; children: ReactNode }) {
+export function SummaryCard({ title, onEdit, hideEdit = false, children }: { title: string; onEdit: () => void; hideEdit?: boolean; children: ReactNode }) {
   const { t } = useTranslation("contribute");
   return (
     <section className={styles.summaryCard}>
       <div className={styles.summaryHead}>
         <span className={styles.summaryTitle}>{title}</span>
-        <button type="button" className={styles.summaryEdit} onClick={onEdit} aria-label={`${t("common.edit")} — ${title}`}>
-          {t("common.edit")}
-        </button>
+        {!hideEdit && (
+          <button type="button" className={styles.summaryEdit} onClick={onEdit} aria-label={`${t("common.edit")} — ${title}`}>
+            {t("common.edit")}
+          </button>
+        )}
       </div>
       {children}
     </section>

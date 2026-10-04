@@ -83,7 +83,29 @@
     "submit": "Publier mon avis",
     "published": "Avis publié. Merci !",
     "doneBody": "Votre avis a été publié et aide d’autres parents à choisir {{park}}.",
-    "photoPendingNote": "Votre photo sera visible sur la fiche du parc après vérification par notre équipe."
+    "photoPendingNote": "Votre photo sera visible sur la fiche du parc après vérification par notre équipe.",
+    "experienceTitle": "Mon expérience",
+    "criteriaTitle": "Comment c’était ?",
+    "starWord": {
+      "1": "Décevant",
+      "2": "Moyen",
+      "3": "Bien",
+      "4": "Très bien",
+      "5": "Excellent"
+    },
+    "face": {
+      "1": "Pas bien",
+      "2": "Moyen",
+      "3": "Bien"
+    },
+    "alreadyReviewed": "Vous avez déjà donné votre avis sur ce parc. Vous pouvez le modifier plutôt que d’en publier un second.",
+    "verifyTitle": "Vérifier mon avis",
+    "verifyHint": "Relisez votre avis avant de le publier.",
+    "commentTitle": "Commentaire",
+    "noComment": "Aucun commentaire",
+    "verifyNote": "Votre avis est publié immédiatement ; une photo éventuelle est vérifiée avant d’être visible.",
+    "submitError": "Votre avis n’a pas pu être publié. Vos réponses sont conservées : réessayez.",
+    "leaveBody": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard."
   },
   "addParkSearch": {
     "title": "Ce parc existe-t-il déjà ?",
@@ -126,10 +148,10 @@
       "comfort": "Services & confort",
       "characteristics": "Caractéristiques du parc"
     },
-    "photosTitle": "Photos",
-    "photosHint": "Ajoutez une photo pour aider les autres parents à reconnaître le parc.",
-    "verifyTitle": "Vérifiez avant d’envoyer",
-    "verifyHint": "Vous pourrez encore modifier chaque section avant l’envoi.",
+    "photosTitle": "Une photo du parc ?",
+    "photosHint": "Aidez les familles à le reconnaître.",
+    "verifyTitle": "Tout est bon ?",
+    "verifyHint": "Vérifiez votre ajout avant de l’envoyer.",
     "section": {
       "park": "Parc",
       "services": "Services & caractéristiques",
@@ -170,7 +192,7 @@
     },
     "details": {
       "title": "Les petits détails utiles",
-      "hint": "Ces infos aident les familles à préparer leur sortie.",
+      "hint": "Ces infos facilitent les sorties en famille.",
       "services": "Services sur place",
       "comfort": "Accès et confort"
     },
@@ -197,7 +219,15 @@
     "summaryTitle": "Récapitulatif",
     "summary": {
       "unnamed": "Nom non renseigné — il s’affichera comme « Aire de jeux »",
-      "notProvided": "Non renseigné"
+      "notProvided": "Non renseigné",
+      "gamesAges": "Jeux et âges",
+      "services": "Services et accès",
+      "noGames": "Aucun jeu renseigné",
+      "noAge": "Âge non renseigné",
+      "unknownList": "Non renseigné : {{list}}",
+      "noNote": "Aucune précision",
+      "noPhotos": "Aucune photo",
+      "moderation": "Votre ajout sera vérifié avant publication."
     },
     "submitting": "Envoi en cours…",
     "submitError": "L’envoi n’a pas abouti. Vos informations sont conservées : vérifiez votre connexion puis réessayez.",
@@ -207,12 +237,24 @@
       "body": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard.",
       "stay": "Continuer la saisie",
       "leave": "Quitter"
+    },
+    "gamesAgesTitle": "Les jeux et les âges",
+    "gamesAgesHint": "Quels jeux trouve-t-on dans ce parc ? Sélectionnez tout ce qui est présent.",
+    "dup": {
+      "verify": "Vérifier cet emplacement",
+      "checking": "Vérification…",
+      "banner": "Un parc est déjà référencé à proximité.",
+      "distance": "À {{distance}} du repère",
+      "thisOne": "C’est ce parc",
+      "another": "Non, c’est un autre parc",
+      "confirmOnly": "Confirmez uniquement s’il s’agit d’un lieu différent.",
+      "error": "Impossible de vérifier les parcs déjà référencés autour de ce repère. Réessayez : ce n’est pas la preuve qu’il n’y en a pas."
     }
   },
   "addPhotos": {
     "subtitle": "Ajoutez des photos pour partager ce lieu avec la communauté.",
     "takePhoto": "Prendre une photo",
-    "chooseFromLibrary": "Choisir dans la photothèque",
+    "chooseFromLibrary": "Choisir des photos",
     "counter": "{{count}} / {{max}} photos",
     "readyCount_one": "{{count}} photo prête à être envoyée",
     "readyCount_other": "{{count}} photos prêtes à être envoyées",
@@ -220,9 +262,14 @@
     "doneTitle": "Photo envoyée !",
     "doneBody_one": "Merci ! Votre photo sera visible sur la fiche du parc après vérification par notre équipe.",
     "doneBody_other": "Merci ! Vos photos seront visibles sur la fiche du parc après vérification par notre équipe.",
-    "submit_one": "Envoyer {{count}} photo",
-    "submit_other": "Envoyer {{count}} photos",
-    "sentToast": "Photo envoyée, en attente de validation."
+    "sentToast": "Photo envoyée, en attente de validation.",
+    "headerTitle": "Ajouter des photos",
+    "title": "Vos photos",
+    "verifyTitle": "Vérifier et envoyer",
+    "moderation": "Vos photos seront vérifiées avant publication.",
+    "submitError": "L’envoi n’a pas abouti. Vos photos sont conservées : réessayez.",
+    "leaveBody": "Les photos choisies seront perdues si vous quittez maintenant.",
+    "submit": "Envoyer les photos"
   },
   "report": {
     "problemQuestion": "Quel est le problème ?",
@@ -230,7 +277,15 @@
     "describeLabel": "Décrivez le problème",
     "submit": "Envoyer le signalement",
     "doneTitle": "Signalement envoyé !",
-    "doneBody": "Merci de contribuer à la sécurité des enfants. Nous vous tiendrons informé de l’avancement."
+    "doneBody": "Merci de contribuer à la sécurité des enfants. Nous vous tiendrons informé de l’avancement.",
+    "describeTitle": "Décrire le problème",
+    "equipmentUnspecified": "Non précisé",
+    "verifyTitle": "Vérifier le signalement",
+    "verifyHint": "Relisez avant d’envoyer.",
+    "descriptionTitle": "Description",
+    "noDescription": "Aucune description",
+    "submitError": "Le signalement n’a pas pu être envoyé. Vos informations sont conservées : réessayez.",
+    "leaveBody": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard."
   },
   "reason": {
     "broken_equipment": "Jeu cassé / dangereux",
@@ -429,5 +484,26 @@
       "confirmations": "Informations confirmées"
     },
     "note": "Seuls les ajouts publiés ou validés comptent. Vous en avez envoyé {{total}} au total."
+  },
+  "flow": {
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "retry": "Réessayer",
+    "leave": {
+      "title": "Quitter cette contribution ?",
+      "stay": "Rester",
+      "leave": "Quitter"
+    },
+    "chooser": {
+      "title": "Quel parc ?",
+      "hint": "Recherchez puis sélectionnez le parc concerné.",
+      "searchLabel": "Rechercher un parc",
+      "selected": "Parc choisi",
+      "none": "Je ne trouve pas mon parc",
+      "error": "La recherche a échoué."
+    },
+    "photos": {
+      "uploading": "Envoi de la photo…"
+    },
+    "photoOptional": "Photo (facultatif)"
   }
 }

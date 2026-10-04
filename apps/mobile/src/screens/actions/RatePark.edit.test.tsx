@@ -74,8 +74,10 @@ function renderEdit() {
 }
 
 const comment = () => screen.getByLabelText(/Votre commentaire/) as HTMLTextAreaElement;
-async function toStep2() {
+/** Étape « Mon expérience » (commentaire inclus) → étape « Vérifier mon avis ». */
+async function toVerify() {
   fireEvent.click(await screen.findByRole("button", { name: "Continuer" }));
+  await screen.findByText("Vérifier mon avis");
 }
 
 describe("RatePark — edit mode (Modifier mon avis)", () => {
@@ -90,19 +92,22 @@ describe("RatePark — edit mode (Modifier mon avis)", () => {
   it("prefills the form, titles it « Modifier mon avis » and never creates a review", async () => {
     renderEdit();
     expect(await screen.findByRole("heading", { name: "Modifier mon avis" })).toBeTruthy();
-    await toStep2();
-    expect(comment().value).toBe("Super parc");
+    expect((await screen.findByLabelText(/Votre commentaire/) as HTMLTextAreaElement).value).toBe("Super parc");
+    expect(screen.getByText("Étape 1 sur 2")).toBeTruthy(); // le parc est fixé : pas d'étape « Choisir le parc »
     expect(createReview).not.toHaveBeenCalled();
   });
 
   it("disables saving until something changes, then updates the same review and returns", async () => {
     renderEdit();
-    await toStep2();
-    const save = screen.getByRole("button", { name: "Enregistrer les modifications" }) as HTMLButtonElement;
-    expect(save.disabled).toBe(true);
+    await toVerify();
+    expect((screen.getByRole("button", { name: "Enregistrer les modifications" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
 
-    fireEvent.change(comment(), { target: { value: "Vraiment super" } });
+    fireEvent.change(await screen.findByLabelText(/Votre commentaire/), { target: { value: "Vraiment super" } });
+    await toVerify();
+    const save = screen.getByRole("button", { name: "Enregistrer les modifications" }) as HTMLButtonElement;
     expect(save.disabled).toBe(false);
+    fireEvent.click(save);
     fireEvent.click(save);
 
     await waitFor(() => expect(updateMyReview).toHaveBeenCalledTimes(1));
@@ -120,10 +125,12 @@ describe("RatePark — edit mode (Modifier mon avis)", () => {
   it("keeps what the user typed when saving fails", async () => {
     vi.mocked(updateMyReview).mockRejectedValueOnce(new Error("boom"));
     renderEdit();
-    await toStep2();
-    fireEvent.change(comment(), { target: { value: "Texte en cours" } });
+    fireEvent.change(await screen.findByLabelText(/Votre commentaire/), { target: { value: "Texte en cours" } });
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer les modifications" }));
-    await waitFor(() => expect(toasts.list.some((m) => m.includes("conservées"))).toBe(true));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/conservées/);
+    await waitFor(() => expect((screen.getByRole("button", { name: "Enregistrer les modifications" }) as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
     expect(comment().value).toBe("Texte en cours");
     expect(screen.getByTestId("loc").textContent).toBe("/review/r1/edit");
   });
@@ -131,8 +138,7 @@ describe("RatePark — edit mode (Modifier mon avis)", () => {
   it("asks before leaving with unsaved changes, and leaves freely without", async () => {
     renderEdit();
     await screen.findByRole("heading", { name: "Modifier mon avis" });
-    await toStep2();
-    fireEvent.change(comment(), { target: { value: "x" } });
+    fireEvent.change(await screen.findByLabelText(/Votre commentaire/), { target: { value: "x" } });
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
     expect(await screen.findByText("Quitter sans enregistrer ?")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Continuer la modification" }));

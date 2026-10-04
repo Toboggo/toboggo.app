@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- Test historique `app_feedback` (migration 0044) — délai 30 j, dernier avis
+-- Test historique `app_feedback` (migrations 0044 + 0045) — délai 30 j, dernier avis
 -- seul modifiable, isolation, note globale = derniers avis.
 -- USAGE (base LOCALE ou STAGING — JAMAIS la production) :
 --   docker exec -i supabase_db_<project> psql -U postgres -d postgres \

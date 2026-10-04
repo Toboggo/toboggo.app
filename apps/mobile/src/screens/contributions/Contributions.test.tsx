@@ -164,7 +164,7 @@ describe("Contributions hub — recent contributions & impact", () => {
     listMyContributions.mockResolvedValue([{ ...EDIT_ITEM, status: "approved" }]);
     renderHub();
     await screen.findByText("Merci pour votre aide !");
-    screen.getByText("contributions publiées");
+    screen.getByText("ajouts publiés");
     screen.getByText("parcs améliorés");
     expect(screen.queryByText(/parents/i)).toBeNull();
   });

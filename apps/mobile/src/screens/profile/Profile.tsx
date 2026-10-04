@@ -161,14 +161,14 @@ export default function Profile() {
 
       <div className={styles.body}>
         <div className={`${styles.statsCard} ${styles.hubCard}`}>
-          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions")}>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions/history?type=park")}>
             <img className={styles.statIcon} src="/profile/icon-park-added.svg" alt="" aria-hidden="true" />
             <span className={styles.statText}>
               <span className={styles.statValue}>{stats.parks}</span>
               <span className={styles.statLabel}>{t("stats.parks")}</span>
             </span>
           </button>
-          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions")}>
+          <button type="button" className={styles.statItem} onClick={() => navigate("/contributions/history?type=review")}>
             <img className={styles.statIcon} src="/profile/icon-review.svg" alt="" aria-hidden="true" />
             <span className={styles.statText}>
               <span className={styles.statValue}>{stats.reviews}</span>

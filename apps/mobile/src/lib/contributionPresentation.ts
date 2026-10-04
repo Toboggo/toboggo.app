@@ -69,7 +69,7 @@ export interface ContributionTypeIcon {
 export function getContributionTypeIcon(type: UserContributionType): ContributionTypeIcon {
   switch (type) {
     case "park":
-      return { iconName: "ic-plus", tone: "neutral" };
+      return { iconName: "ic-explore", tone: "neutral" };
     case "edit":
       return { iconName: "ic-pencil", tone: "amber" };
     case "media":
@@ -104,4 +104,37 @@ export function getContributionTitle(item: UserContribution, t: TFn): string {
 export function getContributionDetail(item: UserContribution, t: TFn): string | null {
   if (item.type === "report" && item.reportCategory) return t(`reason.${item.reportCategory}`);
   return null;
+}
+
+/** Display order of the status buckets (shared by the history filter and « Mes stats »). */
+export const STATUS_LABEL_ORDER = [
+  "hub.status.published",
+  "hub.status.pending",
+  "hub.status.inProgress",
+  "hub.status.resolved",
+  "hub.status.rejected",
+  "hub.status.dismissed",
+] as const;
+
+const STATUS_PREFIX = "hub.status.";
+/** `hub.status.pending` → `pending` (the value used in the URL `?status=`). */
+export const statusKeyToParam = (labelKey: string): string => labelKey.slice(STATUS_PREFIX.length);
+/** Inverse of `statusKeyToParam`; null for an unknown param. */
+export function statusParamToKey(param: string | null): string | null {
+  const key = param ? STATUS_PREFIX + param : null;
+  return key && (STATUS_LABEL_ORDER as readonly string[]).includes(key) ? key : null;
+}
+
+/** Contributions per status bucket, in display order, empty buckets omitted. */
+export function countByStatus(items: UserContribution[]): { labelKey: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const i of items) {
+    const key = getContributionStatusPresentation(i.type, i.status).labelKey;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return STATUS_LABEL_ORDER.filter((k) => counts.has(k)).map((k) => ({ labelKey: k, count: counts.get(k)! }));
+}
+
+export function isContributionType(value: string | null): value is UserContributionType {
+  return !!value && (CONTRIBUTION_TYPES as string[]).includes(value);
 }

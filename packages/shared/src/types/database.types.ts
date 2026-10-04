@@ -750,6 +750,55 @@ export type Database = {
           },
         ]
       }
+      park_confirmations: {
+        Row: {
+          confirmed_status: Database["public"]["Enums"]["feature_status"]
+          created_at: string
+          feature_id: string
+          id: string
+          park_id: string
+          user_id: string
+        }
+        Insert: {
+          confirmed_status: Database["public"]["Enums"]["feature_status"]
+          created_at?: string
+          feature_id: string
+          id?: string
+          park_id: string
+          user_id: string
+        }
+        Update: {
+          confirmed_status?: Database["public"]["Enums"]["feature_status"]
+          created_at?: string
+          feature_id?: string
+          id?: string
+          park_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "park_confirmations_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "features"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_confirmations_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "park_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "park_confirmations_park_id_fkey"
+            columns: ["park_id"]
+            isOneToOne: false
+            referencedRelation: "parks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       park_edits: {
         Row: {
           changes: Json

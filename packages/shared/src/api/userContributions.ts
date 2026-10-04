@@ -1,4 +1,4 @@
-import { listMyParks } from "./parks";
+import { listMyParks, listParksByIds } from "./parks";
 import { listMyReviews } from "./reviews";
 import { listMyReports } from "./reports";
 import { listMyParkEdits } from "./contributions";
@@ -25,6 +25,9 @@ export interface UserContribution {
    * here; label/tone mapping is a UI concern (per contribution type). */
   status: string;
   thumbnail: string | null;
+  /** The park's own cover photo (miniature fallback for rows with no photo of
+   * their own: edits, reviews…). Cosmetic — null when unknown or unreachable. */
+  parkPhoto?: string | null;
   /** `type === "edit"` only — which part of the park record was corrected
    * (`park_edits.changes.target`, set by EditInfo's wizard). */
   editTarget?: string | null;
@@ -149,6 +152,18 @@ export async function listMyContributions(userId: string): Promise<UserContribut
   }
 
   items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  // Cosmetic enrichment, one extra query for all parks at once; a failure must
+  // never hide the user's contributions.
+  const parkIds = [...new Set(items.map((i) => i.parkId).filter((id): id is string => id != null))];
+  if (parkIds.length > 0) {
+    try {
+      const covers = new Map((await listParksByIds(parkIds)).map((p) => [p.id, p.cover_photo]));
+      for (const item of items) item.parkPhoto = (item.parkId && covers.get(item.parkId)) || null;
+    } catch {
+      /* photos stay absent */
+    }
+  }
   return items;
 }
 
@@ -179,4 +194,12 @@ export function computeImpactStats(items: UserContribution[]): UserImpactStats {
   const completed = items.filter((i) => COMPLETED_STATUS[i.type].includes(i.status));
   const parkIds = new Set(completed.map((i) => i.parkId).filter((id): id is string => id != null));
   return { publishedCount: completed.length, parksImprovedCount: parkIds.size };
+}
+
+/** Per-type count of the contributions that reached a completed state (same
+ * rule as `computeImpactStats`) — the detail behind « Voir mes stats ». */
+export function computeCompletedByType(items: UserContribution[]): Record<UserContributionType, number> {
+  const out: Record<UserContributionType, number> = { park: 0, edit: 0, media: 0, report: 0, review: 0 };
+  for (const i of items) if (COMPLETED_STATUS[i.type].includes(i.status)) out[i.type] += 1;
+  return out;
 }

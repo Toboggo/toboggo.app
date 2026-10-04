@@ -214,10 +214,11 @@
     "impact": {
       "title": "Merci pour votre aide !",
       "published": "contributions publiées",
-      "parksImproved": "parcs améliorés"
+      "parksImproved": "parcs améliorés",
+      "seeStats": "Voir mes stats"
     },
     "recent": {
-      "title": "Vos dernières contributions"
+      "title": "Vos derniers ajouts"
     },
     "empty": {
       "title": "Vous n’avez encore rien contribué",
@@ -240,6 +241,24 @@
       "resolved": "Résolu",
       "rejected": "Refusé",
       "dismissed": "Fermé"
+    },
+    "verify": {
+      "title": "À vérifier près de chez vous",
+      "locating": "Recherche des parcs près de vous…",
+      "loading": "Chargement des parcs à vérifier…",
+      "denied": "Activez la localisation pour voir les parcs à vérifier près de chez vous.",
+      "enableLocation": "Activer la localisation",
+      "errorLoading": "Impossible de charger les parcs à vérifier pour le moment.",
+      "empty": "Rien à vérifier près de vous pour le moment. Merci !",
+      "questionAvailable": "Y a-t-il bien : {{feature}} ?",
+      "questionUnavailable": "Confirmez-vous l’absence de : {{feature}} ?",
+      "yes": "Oui, c’est bon",
+      "edit": "Modifier",
+      "confirmAria": "Oui, « {{feature}} » est exact pour {{park}}",
+      "editAria": "Modifier les informations de {{park}}",
+      "thanks": "Merci, votre confirmation est enregistrée !",
+      "error": "Impossible d’enregistrer votre confirmation. Réessayez.",
+      "unavailable": "Cette fonctionnalité n’est pas encore disponible. Revenez bientôt !"
     }
   },
   "history": {
@@ -335,5 +354,19 @@
     "menu": {
       "title": "Votre avis"
     }
+  },
+  "stats": {
+    "title": "Mes stats",
+    "signedOut": "Connectez-vous pour voir vos statistiques.",
+    "byTypeTitle": "Vos ajouts publiés",
+    "byType": {
+      "media": "Photos",
+      "edit": "Modifications",
+      "park": "Nouveaux parcs",
+      "report": "Signalements résolus",
+      "review": "Avis",
+      "confirmations": "Informations confirmées"
+    },
+    "note": "Seuls les ajouts publiés ou validés comptent. Vous en avez envoyé {{total}} au total."
   }
 }

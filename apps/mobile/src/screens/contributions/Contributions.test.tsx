@@ -168,6 +168,23 @@ describe("Contributions hub — recent contributions & impact", () => {
     screen.getByText("parcs améliorés");
     expect(screen.queryByText(/parents/i)).toBeNull();
   });
+
+  it("'Voir mes stats' opens the real stats view", async () => {
+    listMyContributions.mockResolvedValue([{ ...EDIT_ITEM, status: "approved" }]);
+    renderHub();
+    fireEvent.click(await screen.findByRole("button", { name: "Voir mes stats" }));
+    await waitFor(() => expect(loc()).toBe("/contributions/stats"));
+  });
+});
+
+describe("Contributions hub — « À vérifier près de chez vous »", () => {
+  it("never invents a park: without a position it asks to enable location", async () => {
+    listMyContributions.mockResolvedValue([]);
+    renderHub();
+    await screen.findByText("À vérifier près de chez vous");
+    await screen.findByText(/Activez la localisation/);
+    expect(screen.queryByRole("button", { name: /Oui, c’est bon/ })).toBeNull();
+  });
 });
 
 describe("Contributions hub — empty / loading / error", () => {

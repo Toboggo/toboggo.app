@@ -331,6 +331,9 @@
       "leaveBody": "Tus cambios no se guardarán.",
       "leaveStay": "Seguir editando",
       "leaveConfirm": "Salir"
+    },
+    "menu": {
+      "title": "Tu opinión"
     }
   }
 }

@@ -82,6 +82,7 @@ export default function MapExplore() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
+  const fabAddRef = useRef<HTMLButtonElement>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [recenterSignal, setRecenterSignal] = useState(0);
   // Destination géographique explicitement recherchée (cadrée sur sa bbox).
@@ -528,7 +529,17 @@ export default function MapExplore() {
               <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
             </svg>
           </button>
-          <button type="button" className={styles.fabAdd} onClick={() => setQuickMenuOpen(true)} aria-label={t("a11y.contribute")}>
+          <button
+            type="button"
+            ref={fabAddRef}
+            className={styles.fabAdd}
+            data-open={quickMenuOpen || undefined}
+            onClick={() => setQuickMenuOpen((o) => !o)}
+            aria-label={t("a11y.contribute")}
+            aria-haspopup="menu"
+            aria-expanded={quickMenuOpen}
+            aria-controls={quickMenuOpen ? "quick-menu" : undefined}
+          >
             <Icon name="ic-plus" size={22} />
           </button>
         </div>
@@ -600,7 +611,7 @@ export default function MapExplore() {
         }}
         onClose={() => setRadiusOpen(false)}
       />
-      <QuickMenu open={quickMenuOpen} onClose={() => setQuickMenuOpen(false)} />
+      <QuickMenu id="quick-menu" label={t("a11y.contribute")} open={quickMenuOpen} anchorRef={fabAddRef} onClose={() => setQuickMenuOpen(false)} />
     </div>
   );
 }

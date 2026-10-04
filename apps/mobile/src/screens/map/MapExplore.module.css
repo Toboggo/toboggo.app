@@ -181,6 +181,17 @@
   color: var(--color-on-primary);
   box-shadow: var(--shadow-lg);
 }
+.fabAdd svg {
+  transition: transform var(--duration-base) var(--ease-emphasized);
+}
+.fabAdd[data-open] svg {
+  transform: rotate(45deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .fabAdd svg {
+    transition: none;
+  }
+}
 .fabRecenter {
   background: var(--color-surface);
   box-shadow: var(--shadow-md);

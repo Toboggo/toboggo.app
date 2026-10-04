@@ -331,6 +331,9 @@
       "leaveBody": "Your changes will not be saved.",
       "leaveStay": "Keep editing",
       "leaveConfirm": "Leave"
+    },
+    "menu": {
+      "title": "Your review"
     }
   }
 }

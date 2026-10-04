@@ -77,7 +77,7 @@ export function ContributionRow({
   return (
     <div className={styles.rowWrap}>
       {row}
-      <ReviewMenu onEdit={() => onEditReview(item)} />
+      <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />
     </div>
   );
 }

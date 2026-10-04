@@ -28,6 +28,27 @@ describe("ContributionRow — review edit entry", () => {
     expect(onEdit).toHaveBeenCalledWith(base);
   });
 
+  it("opens a compact dialog (title, park subtitle, Annuler) closable by Annuler, backdrop and Escape; scroll locked while open", () => {
+    render(<ContributionRow item={base} onClick={() => {}} onEditReview={vi.fn()} />);
+    const open = () => fireEvent.click(screen.getByRole("button", { name: "Actions sur votre avis" }));
+
+    open();
+    const dialog = screen.getByRole("dialog", { name: "Votre avis" });
+    expect(dialog.textContent).toContain("Square Voltaire");
+    expect(document.body.style.overflow).toBe("hidden");
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(document.body.style.overflow).not.toBe("hidden");
+
+    open();
+    fireEvent.click(screen.getByTestId("review-menu-backdrop"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    open();
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
   it("offers no menu for non-reviews or non-published reviews", () => {
     const onEdit = vi.fn();
     const { rerender } = render(<ContributionRow item={{ ...base, status: "flagged" }} onClick={() => {}} onEditReview={onEdit} />);

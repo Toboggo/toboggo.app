@@ -333,7 +333,7 @@ export default function ParkDetail() {
                   <Stars value={myReview.stars} size={11} />
                 </div>
               </div>
-              {myReview.status === "published" && <ReviewMenu onEdit={() => navigate(`/review/${myReview.id}/edit`)} />}
+              {myReview.status === "published" && <ReviewMenu onEdit={() => navigate(`/review/${myReview.id}/edit`)} parkName={getParkDisplayName(park, t)} />}
             </div>
             {myReview.comment && <p>{myReview.comment}</p>}
             <div className={styles.myReviewMeta}>

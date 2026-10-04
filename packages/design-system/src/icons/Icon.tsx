@@ -57,6 +57,7 @@ export type IconName =
   | "ic-search"
   | "ic-download"
   | "ic-trash"
+  | "ic-pencil"
   | "ic-warning";
 
 const SPRITE_URL = "/icons-sprite.svg"; // servi depuis public/ de chaque app

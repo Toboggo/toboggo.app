@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Icon } from "@toboggo/design-system";
+import { Button, Icon, type IconName } from "@toboggo/design-system";
 import {
   computeImpactStats,
   computeStatsBreakdown,
@@ -16,6 +16,16 @@ import { useSession } from "../../lib/session";
 import styles from "./Contributions.module.css";
 
 const HISTORY = "/contributions/history";
+
+/** Pictogram + tone of each status bucket (sprite icons only). */
+const STATUS_VISUAL: Record<string, { icon: IconName; tone: "green" | "amber" | "blue" | "red" | "neutral" }> = {
+  "hub.status.published": { icon: "ic-check", tone: "green" },
+  "hub.status.resolved": { icon: "ic-check", tone: "green" },
+  "hub.status.pending": { icon: "ic-clock", tone: "amber" },
+  "hub.status.inProgress": { icon: "ic-clock", tone: "blue" },
+  "hub.status.rejected": { icon: "ic-close", tone: "red" },
+  "hub.status.dismissed": { icon: "ic-close", tone: "neutral" },
+};
 
 /** « Mes stats » — only figures computed from the user's real rows. Every row
  * that shows a chevron opens the matching filtered list (`/contributions/history`). */
@@ -141,22 +151,30 @@ export default function ContributionsStats() {
               <>
                 <h2 className={styles.sectionTitle}>{t("stats.statusTitle")}</h2>
                 <ul className={styles.statList}>
-                  {byStatus.map(({ labelKey, count }) => (
+                  {byStatus.map(({ labelKey, count }) => {
+                    const visual = STATUS_VISUAL[labelKey] ?? { icon: "ic-clock" as IconName, tone: "neutral" as const };
+                    return (
                     <li key={labelKey}>
                       <button
                         type="button"
                         className={styles.statRow}
                         onClick={() => navigate(`${HISTORY}?status=${statusKeyToParam(labelKey)}`)}
                       >
+                        <span className={styles.statusIcon} data-tone={visual.tone} aria-hidden>
+                          <Icon name={visual.icon} size={18} />
+                        </span>
                         <span className={styles.statText}>
                           <span className={styles.statLabel}>{t(labelKey)}</span>
                           <span className={styles.statHint}>{t(`stats.statusHint.${statusKeyToParam(labelKey)}`)}</span>
                         </span>
-                        <span className={styles.statValue}>{f.number(count)}</span>
+                        <span className={styles.statValue} data-tone={visual.tone}>
+                          {f.number(count)}
+                        </span>
                         <Icon name="ic-back" size={14} style={{ flex: "none", color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
                       </button>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </>
             )}

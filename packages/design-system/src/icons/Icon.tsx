@@ -60,6 +60,7 @@ export type IconName =
   | "ic-trash"
   | "ic-pencil"
   | "ic-leaf"
+  | "ic-clock"
   | "ic-warning";
 
 const SPRITE_URL = "/icons-sprite.svg"; // servi depuis public/ de chaque app

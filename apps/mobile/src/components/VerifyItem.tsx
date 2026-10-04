@@ -59,6 +59,7 @@ export function VerifyItem({
             onClick={onConfirm}
             aria-label={t("hub.verify.confirmAria", { feature, park: item.park.name })}
           >
+            {!busy && <Icon name="ic-check" size={16} />}
             {failed ? t("hub.verify.retry") : t("hub.verify.yes")}
           </Button>
           <Button
@@ -68,7 +69,8 @@ export function VerifyItem({
             onClick={onEdit}
             aria-label={t("hub.verify.editAria", { park: item.park.name })}
           >
-            {t("hub.verify.edit")}
+            <Icon name="ic-pencil" size={16} />
+          {t("hub.verify.edit")}
           </Button>
         </div>
       </div>

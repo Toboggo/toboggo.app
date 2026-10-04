@@ -86,16 +86,14 @@
     "photoPendingNote": "Your photo will appear on the park page once our team has reviewed it."
   },
   "addParkSearch": {
-    "title": "Which park would you like to add?",
-    "subtitle": "Let's first check it isn't already listed.",
-    "searchLabel": "Search for a park or an address",
+    "title": "Is this park already listed?",
+    "subtitle": "Let’s first check it isn’t already listed.",
+    "searchLabel": "Search for an existing park",
     "searchPlaceholder": "Park name, street, city…",
     "noResults": "No park found for this search.",
-    "locationDenied": "Location not allowed — you can continue without it, or search for an address above.",
-    "nearby": "Nearby parks",
+    "nearby": "Parks already listed near the pin",
     "nearbyLoading": "Searching for parks around you…",
     "nearbyNone": "No known parks nearby.",
-    "none": "None of these",
     "seeMore": "Show more ({{count}})"
   },
   "pin": {
@@ -119,11 +117,11 @@
     "addressLabel": "Address (if you know it)",
     "addressPlaceholder": "12 Oak Street, London",
     "addressResolving": "Looking up the address…",
-    "infoTitle": "Park details",
-    "infoHint": "Only fill in what you know.",
-    "nameLabel": "Park name",
+    "infoTitle": "What’s there?",
+    "infoHint": "Fill in what you know.",
+    "nameLabel": "Park name (optional)",
     "namePlaceholder": "Victoria Gardens",
-    "descriptionLabel": "Description (optional)",
+    "descriptionLabel": "Anything useful to add? (optional)",
     "serviceGroup": {
       "comfort": "Services & comfort",
       "characteristics": "Park features"
@@ -146,6 +144,69 @@
     "success": {
       "title": "Park added!",
       "body": "Thank you for helping parents discover new places."
+    },
+    "headerTitle": "Add a park",
+    "stepOf": "Step {{current}} of {{total}}",
+    "confirmLocation": "Confirm location",
+    "games": {
+      "title": "Play equipment on site",
+      "seeAll": "See all equipment",
+      "seeLess": "See fewer"
+    },
+    "game": {
+      "climbing": "Climbing",
+      "carousel": "Roundabout"
+    },
+    "ages": {
+      "title": "What ages is it for?",
+      "unknown": "I don’t know",
+      "contiguousHint": "Pick age ranges that follow each other (for example 0–3 and 3–6 yrs).",
+      "band": {
+        "0-3": "0–3 yrs",
+        "3-6": "3–6 yrs",
+        "6-12": "6–12 yrs",
+        "12+": "12 yrs and up"
+      }
+    },
+    "details": {
+      "title": "Useful little details",
+      "hint": "This helps families plan their outing.",
+      "services": "On-site services",
+      "comfort": "Access and comfort"
+    },
+    "service": {
+      "wc": "Toilets",
+      "benches": "Benches",
+      "water": "Drinking water",
+      "parking": "Parking nearby",
+      "shade": "Shaded areas",
+      "fenced": "Fenced park",
+      "pmr": "Wheelchair-accessible entrance"
+    },
+    "answer": {
+      "yes": "Yes",
+      "no": "No",
+      "unknown": "?",
+      "unknownAria": "I don’t know",
+      "legend": "? = I don’t know"
+    },
+    "descriptionPlaceholder": "Toilets closed in winter…",
+    "finalTitle": "Photos and review",
+    "finalHint": "Add photos if you have any, then review before sending.",
+    "photosSection": "Photos (optional)",
+    "summaryTitle": "Summary",
+    "summary": {
+      "unnamed": "No name given — it will show as “Playground”",
+      "notProvided": "Not provided"
+    },
+    "submitting": "Sending…",
+    "submitError": "Sending failed. Your information is kept: check your connection and try again.",
+    "photosPartial": "The park was created, but some photos could not be added. You can add them from its page.",
+    "close": {
+      "title": "Leave adding this park?",
+      "body": "Your draft is kept for 24 h on this device: you can pick it up later.",
+      "stay": "Keep editing",
+      "leave": "Leave"
     }
   },
   "addPhotos": {

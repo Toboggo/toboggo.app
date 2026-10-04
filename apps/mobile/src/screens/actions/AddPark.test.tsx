@@ -336,8 +336,8 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
 
   it("createPark failure → clear inline error, stays on the summary, draft conserved, retry possible", async () => {
     vi.mocked(createPark).mockRejectedValueOnce(new Error("RLS denied"));
+    seed({ step: 2, name: "Square Échec", answers: { wc: "yes" }, ageBands: ["3-6"] });
     renderAdd();
-    await toFinal("Square Échec");
     send();
 
     const alert = await screen.findByRole("alert");
@@ -345,7 +345,11 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(alert.textContent).toMatch(/Vos informations sont conservées/);
     expect(alert.textContent).not.toMatch(/RLS/);
     expect(loc()).toBe("/add");
-    expect((readDraft(key({ userId: "u1" }), READ) as { name?: string })?.name).toBe("Square Échec");
+    const kept = readDraft(key({ userId: "u1" }), READ) as { name?: string; answers?: Record<string, string>; ageBands?: string[] };
+    expect(kept.name).toBe("Square Échec");
+    expect(kept.answers).toEqual({ wc: "yes" });
+    expect(kept.ageBands).toEqual(["3-6"]);
+    expect(screen.getByText("Toilettes : Oui")).toBeTruthy();
 
     // Le bouton est de nouveau actif : un second essai aboutit.
     await waitFor(() => expect(screen.getByRole("button", { name: "Envoyer le parc" }).hasAttribute("disabled")).toBe(false));
@@ -479,9 +483,9 @@ describe("AddPark — parcours (maquette)", () => {
     expect(band("0–3 ans").getAttribute("aria-pressed")).toBe("true");
     expect(band("3–6 ans").getAttribute("aria-pressed")).toBe("true");
     // 12+ n'est pas voisin de 0–6 : refusé, pas converti en plage 0–12.
-    fireEvent.click(band("12 ans et +"));
-    expect(band("12 ans et +").getAttribute("aria-pressed")).toBe("false");
-    expect(screen.getByText(/tranches d’âge qui se suivent/)).toBeTruthy();
+    fireEvent.click(band("12 ans"));
+    expect(band("12 ans").getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByText(/ne se suivent pas/)).toBeTruthy();
     // « Je ne sais pas » est exclusif.
     fireEvent.click(band("Je ne sais pas"));
     expect(band("0–3 ans").getAttribute("aria-pressed")).toBe("false");

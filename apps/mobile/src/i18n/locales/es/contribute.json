@@ -160,12 +160,12 @@
     "ages": {
       "title": "¿Para qué edades?",
       "unknown": "No lo sé",
-      "contiguousHint": "Elige tramos de edad consecutivos (por ejemplo 0–3 y 3–6 años).",
+      "contiguousHint": "Esos tramos no son consecutivos: elige edades seguidas (por ejemplo 0–3 y 3–6 años).",
       "band": {
         "0-3": "0–3 años",
         "3-6": "3–6 años",
         "6-12": "6–12 años",
-        "12+": "12 años o más"
+        "12+": "12 años"
       }
     },
     "details": {

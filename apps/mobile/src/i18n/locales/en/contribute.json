@@ -160,12 +160,12 @@
     "ages": {
       "title": "What ages is it for?",
       "unknown": "I don’t know",
-      "contiguousHint": "Pick age ranges that follow each other (for example 0–3 and 3–6 yrs).",
+      "contiguousHint": "These ranges aren’t consecutive: pick ages that follow each other (for example 0–3 and 3–6 yrs).",
       "band": {
         "0-3": "0–3 yrs",
         "3-6": "3–6 yrs",
         "6-12": "6–12 yrs",
-        "12+": "12 yrs and up"
+        "12+": "12 yrs"
       }
     },
     "details": {

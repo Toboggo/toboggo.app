@@ -160,12 +160,12 @@
     "ages": {
       "title": "Pour quels âges ?",
       "unknown": "Je ne sais pas",
-      "contiguousHint": "Choisissez des tranches d’âge qui se suivent (par exemple 0–3 ans et 3–6 ans).",
+      "contiguousHint": "Ces tranches ne se suivent pas : choisissez des âges consécutifs (par exemple 0–3 ans et 3–6 ans).",
       "band": {
         "0-3": "0–3 ans",
         "3-6": "3–6 ans",
         "6-12": "6–12 ans",
-        "12+": "12 ans et +"
+        "12+": "12 ans"
       }
     },
     "details": {

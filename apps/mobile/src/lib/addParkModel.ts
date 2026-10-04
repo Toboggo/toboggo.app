@@ -17,7 +17,10 @@ export const AGE_BANDS = [
   { id: "0-3", min: 0, max: 3 },
   { id: "3-6", min: 3, max: 6 },
   { id: "6-12", min: 6, max: 12 },
-  // 12 est le plafond d'âge de l'app (curseur d'origine, `MAX_CHILD_AGE_YEARS`).
+  // « 12 ans » (et non « 12 ans et + ») : le modèle n'a pas de borne ouverte — les
+  // filtres (`suitsChildren`, `ParkList`) ignorent tout parc dont une borne est
+  // NULL, et `parks_v1_compat` ramène un max NULL à 12. 12 est de toute façon le
+  // plafond d'âge de l'app (`MAX_CHILD_AGE_YEARS`) ; le libellé reste donc exact.
   { id: "12+", min: 12, max: 12 },
 ] as const;
 

@@ -34,6 +34,8 @@ import GroupOuting from "./screens/social/GroupOuting";
 
 import Contributions from "./screens/contributions/Contributions";
 import ContributionsHistory from "./screens/contributions/ContributionsHistory";
+import ContributionsStats from "./screens/contributions/ContributionsStats";
+import VerifyList from "./screens/contributions/VerifyList";
 import Activity from "./screens/contributions/Activity";
 
 import Profile from "./screens/profile/Profile";
@@ -178,6 +180,8 @@ export default function App() {
 
       <Route path="/contributions" element={<Contributions />} />
       <Route path="/contributions/history" element={<ContributionsHistory />} />
+      <Route path="/contributions/stats" element={<ContributionsStats />} />
+      <Route path="/contributions/verify" element={<VerifyList />} />
       <Route path="/activity" element={<Activity />} />
 
       <Route path="/profile" element={<Profile />} />

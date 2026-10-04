@@ -275,10 +275,11 @@
     "impact": {
       "title": "¡Gracias por tu ayuda!",
       "published": "contribuciones publicadas",
-      "parksImproved": "parques mejorados"
+      "parksImproved": "parques mejorados",
+      "seeStats": "Ver mis estadísticas"
     },
     "recent": {
-      "title": "Tus últimas contribuciones"
+      "title": "Tus últimos aportes"
     },
     "empty": {
       "title": "Aún no has contribuido",
@@ -301,6 +302,24 @@
       "resolved": "Resuelto",
       "rejected": "Rechazado",
       "dismissed": "Cerrado"
+    },
+    "verify": {
+      "title": "Por verificar cerca de ti",
+      "locating": "Buscando parques cerca de ti…",
+      "loading": "Cargando parques por verificar…",
+      "denied": "Activa la ubicación para ver los parques por verificar cerca de ti.",
+      "enableLocation": "Activar la ubicación",
+      "errorLoading": "No se pudieron cargar los parques por verificar ahora mismo.",
+      "empty": "Nada que verificar cerca de ti por ahora. ¡Gracias!",
+      "questionAvailable": "¿Realmente hay: {{feature}}?",
+      "questionUnavailable": "¿Confirmas que no hay: {{feature}}?",
+      "yes": "Sí, es correcto",
+      "edit": "Editar",
+      "confirmAria": "Sí, «{{feature}}» es correcto en {{park}}",
+      "editAria": "Editar la información de {{park}}",
+      "thanks": "¡Gracias, tu confirmación está guardada!",
+      "error": "No se pudo guardar tu confirmación. Inténtalo de nuevo.",
+      "unavailable": "Esta función aún no está disponible. ¡Vuelve pronto!"
     }
   },
   "history": {
@@ -396,5 +415,19 @@
     "menu": {
       "title": "Tu opinión"
     }
+  },
+  "stats": {
+    "title": "Mis estadísticas",
+    "signedOut": "Inicia sesión para ver tus estadísticas.",
+    "byTypeTitle": "Tus aportes publicados",
+    "byType": {
+      "media": "Fotos",
+      "edit": "Modificaciones",
+      "park": "Parques nuevos",
+      "report": "Avisos resueltos",
+      "review": "Opiniones",
+      "confirmations": "Información confirmada"
+    },
+    "note": "Solo cuentan los aportes publicados o validados. Has enviado {{total}} en total."
   }
 }

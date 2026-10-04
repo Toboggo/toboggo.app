@@ -58,22 +58,26 @@ export function getContributionTypeFilterLabel(type: UserContributionType, t: TF
   return t(`history.filters.type.${type}`);
 }
 
-export type ContributionTypeIcon = { iconName: IconName } | { emoji: string };
+export type ContributionTypeTone = "green" | "amber" | "red" | "blue" | "neutral";
+export interface ContributionTypeIcon {
+  iconName: IconName;
+  /** Pastel background / icon colour pair of the row's type pictogram. */
+  tone: ContributionTypeTone;
+}
 
-/** Mirrors the icons already used for these actions in `QuickMenu`/
- * `ContributeSheet` — no new pictogram invented here. */
+/** Same pictograms as the hub's quick actions (SVG sprite — no emoji). */
 export function getContributionTypeIcon(type: UserContributionType): ContributionTypeIcon {
   switch (type) {
     case "park":
-      return { iconName: "ic-plus" };
+      return { iconName: "ic-plus", tone: "neutral" };
     case "edit":
-      return { emoji: "✏️" };
+      return { iconName: "ic-pencil", tone: "amber" };
     case "media":
-      return { emoji: "📷" };
+      return { iconName: "ic-camera", tone: "green" };
     case "report":
-      return { iconName: "ic-flag" };
+      return { iconName: "ic-warning", tone: "red" };
     case "review":
-      return { iconName: "ic-review" };
+      return { iconName: "ic-star", tone: "blue" };
   }
 }
 

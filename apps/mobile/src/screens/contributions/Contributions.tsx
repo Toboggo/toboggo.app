@@ -1,18 +1,20 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Button, EmptyState, Icon } from "@toboggo/design-system";
+import { Button, EmptyState, Icon, type IconName } from "@toboggo/design-system";
 import { computeImpactStats, listMyContributions } from "@toboggo/shared";
 import { BottomTabs } from "../../components/BottomTabs";
 import { ContributionRow } from "../../components/ContributionRow";
+import { NearbyVerifyCard } from "../../components/NearbyVerifyCard";
+import { useFormat } from "../../i18n/useFormat";
 import { useSession } from "../../lib/session";
 import styles from "./Contributions.module.css";
 
-const QUICK_ACTIONS: { key: "photos" | "editInfo" | "report" | "rate"; to: string; emoji: string; tone: "green" | "amber" | "red" | "blue" }[] = [
-  { key: "photos", to: "/photo-add", emoji: "📷", tone: "green" },
-  { key: "editInfo", to: "/contribute/edit/pick-park", emoji: "✏️", tone: "amber" },
-  { key: "report", to: "/report", emoji: "⚠️", tone: "red" },
-  { key: "rate", to: "/rate", emoji: "⭐", tone: "blue" },
+const QUICK_ACTIONS: { key: "photos" | "editInfo" | "report" | "rate"; to: string; icon: IconName; tone: "green" | "amber" | "red" | "blue" }[] = [
+  { key: "photos", to: "/photo-add", icon: "ic-camera", tone: "green" },
+  { key: "editInfo", to: "/contribute/edit/pick-park", icon: "ic-pencil", tone: "amber" },
+  { key: "report", to: "/report", icon: "ic-warning", tone: "red" },
+  { key: "rate", to: "/rate", icon: "ic-star", tone: "blue" },
 ];
 
 const RECENT_COUNT = 3;
@@ -22,6 +24,7 @@ export default function Contributions() {
   const { t } = useTranslation("contribute");
   const { t: tCommon } = useTranslation("common");
   const { t: tErr } = useTranslation("errors");
+  const f = useFormat();
   const userId = useSession((s) => s.userId);
 
   const {
@@ -76,27 +79,42 @@ export default function Contributions() {
               onClick={() => navigate(action.to)}
             >
               <span className={styles.quickIcon} aria-hidden>
-                {action.emoji}
+                <Icon name={action.icon} size={24} />
               </span>
-              {t(`hub.quickActions.${action.key}`)}
+              <span className={styles.quickLabel}>{t(`hub.quickActions.${action.key}`)}</span>
             </button>
           ))}
         </div>
 
+        <NearbyVerifyCard />
+
         {impact && (
-          <div className={styles.impactCard}>
-            <div className={styles.impactTitle}>{t("hub.impact.title")}</div>
+          <section className={styles.impactCard} aria-labelledby="impact-title">
+            <div className={styles.impactHeader}>
+              <span className={styles.impactBadge} aria-hidden>
+                <Icon name="ic-leaf" size={22} />
+              </span>
+              <h2 id="impact-title" className={styles.impactTitle}>
+                {t("hub.impact.title")}
+                <span className={styles.impactHeart} aria-hidden>
+                  <Icon name="ic-heart" size={14} />
+                </span>
+              </h2>
+              <button type="button" className={styles.seeAll} onClick={() => navigate("/contributions/stats")}>
+                {t("hub.impact.seeStats")}
+              </button>
+            </div>
             <div className={styles.impactStats}>
               <div className={styles.impactStat}>
-                <strong>{impact.publishedCount}</strong>
+                <strong>{f.number(impact.publishedCount)}</strong>
                 <span>{t("hub.impact.published")}</span>
               </div>
               <div className={styles.impactStat}>
-                <strong>{impact.parksImprovedCount}</strong>
+                <strong>{f.number(impact.parksImprovedCount)}</strong>
                 <span>{t("hub.impact.parksImproved")}</span>
               </div>
             </div>
-          </div>
+          </section>
         )}
 
         <div>
@@ -111,7 +129,7 @@ export default function Contributions() {
 
           {isError && (
             <>
-              <EmptyState icon="⚠️" title={tErr("generic")} />
+              <EmptyState iconName="ic-warning" title={tErr("generic")} />
               <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => refetch()}>
                 {tCommon("action.retry")}
               </Button>

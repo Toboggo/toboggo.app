@@ -275,10 +275,11 @@
     "impact": {
       "title": "Thanks for your help!",
       "published": "contributions published",
-      "parksImproved": "parks improved"
+      "parksImproved": "parks improved",
+      "seeStats": "See my stats"
     },
     "recent": {
-      "title": "Your latest contributions"
+      "title": "Your latest additions"
     },
     "empty": {
       "title": "You haven't contributed yet",
@@ -301,6 +302,24 @@
       "resolved": "Resolved",
       "rejected": "Rejected",
       "dismissed": "Closed"
+    },
+    "verify": {
+      "title": "To verify near you",
+      "locating": "Looking for parks near you…",
+      "loading": "Loading parks to verify…",
+      "denied": "Turn on location to see parks to verify near you.",
+      "enableLocation": "Turn on location",
+      "errorLoading": "Couldn’t load the parks to verify right now.",
+      "empty": "Nothing to verify near you for now. Thank you!",
+      "questionAvailable": "Is this really there: {{feature}}?",
+      "questionUnavailable": "Do you confirm this is not there: {{feature}}?",
+      "yes": "Yes, that’s right",
+      "edit": "Edit",
+      "confirmAria": "Yes, “{{feature}}” is correct for {{park}}",
+      "editAria": "Edit the information of {{park}}",
+      "thanks": "Thanks, your confirmation is saved!",
+      "error": "Couldn’t save your confirmation. Please try again.",
+      "unavailable": "This feature isn’t available yet. Check back soon!"
     }
   },
   "history": {
@@ -396,5 +415,19 @@
     "menu": {
       "title": "Your review"
     }
+  },
+  "stats": {
+    "title": "My stats",
+    "signedOut": "Sign in to see your stats.",
+    "byTypeTitle": "Your published contributions",
+    "byType": {
+      "media": "Photos",
+      "edit": "Edits",
+      "park": "New parks",
+      "report": "Resolved reports",
+      "review": "Reviews",
+      "confirmations": "Confirmed information"
+    },
+    "note": "Only published or validated contributions count. You have sent {{total}} in total."
   }
 }

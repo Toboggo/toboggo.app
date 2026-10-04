@@ -329,7 +329,7 @@
     },
     "impact": {
       "title": "Merci pour votre aide !",
-      "published": "contributions publiées",
+      "published": "ajouts publiés",
       "parksImproved": "parcs améliorés",
       "seeStats": "Voir mes stats"
     },
@@ -374,7 +374,9 @@
       "editAria": "Modifier les informations de {{park}}",
       "thanks": "Merci, votre confirmation est enregistrée !",
       "error": "Impossible d’enregistrer votre confirmation. Réessayez.",
-      "unavailable": "Cette fonctionnalité n’est pas encore disponible. Revenez bientôt !"
+      "unavailable": "Cette fonctionnalité n’est pas encore disponible. Revenez bientôt !",
+      "subtitle": "Aidez-nous à maintenir des informations fiables",
+      "retry": "Réessayer"
     }
   },
   "history": {
@@ -409,7 +411,9 @@
     "emptyFiltered": {
       "title": "Aucune contribution ne correspond à ces filtres.",
       "cta": "Réinitialiser les filtres"
-    }
+    },
+    "activeFilter": "Filtre : {{filter}}",
+    "allAdditions": "Tous les ajouts"
   },
   "edit": {
     "target": {
@@ -473,17 +477,34 @@
   },
   "stats": {
     "title": "Mes stats",
-    "signedOut": "Connectez-vous pour voir vos statistiques.",
-    "byTypeTitle": "Vos ajouts publiés",
+    "heroTitle": "Vos ajouts font la différence",
+    "heroSubtitle": "Merci de faire grandir Toboggo.",
+    "published": "Ajouts publiés",
+    "parksImproved": "Parcs améliorés",
+    "byTypeTitle": "Mes ajouts en détail",
+    "photosHint_one": "{{count}} ajout de photos",
+    "photosHint_other": "{{count}} ajouts de photos",
     "byType": {
       "media": "Photos",
-      "edit": "Modifications",
-      "park": "Nouveaux parcs",
-      "report": "Signalements résolus",
+      "edit": "Informations",
+      "park": "Parcs proposés",
+      "report": "Signalements",
       "review": "Avis",
       "confirmations": "Informations confirmées"
     },
-    "note": "Seuls les ajouts publiés ou validés comptent. Vous en avez envoyé {{total}} au total."
+    "confirmedTitle": "Informations confirmées",
+    "confirmedHint": "Merci d’avoir aidé à vérifier ces informations.",
+    "statusTitle": "Suivi de mes ajouts",
+    "statusHint": {
+      "published": "Visibles sur Toboggo.",
+      "pending": "En cours de validation par notre équipe.",
+      "inProgress": "Pris en compte par notre équipe.",
+      "resolved": "Problèmes résolus.",
+      "rejected": "Non retenus.",
+      "dismissed": "Fermés sans suite."
+    },
+    "note": "Chaque ajout aide à garder les infos à jour.",
+    "signedOut": "Connectez-vous pour voir vos statistiques."
   },
   "flow": {
     "stepOf": "Étape {{current}} sur {{total}}",

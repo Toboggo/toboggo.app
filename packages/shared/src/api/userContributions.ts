@@ -196,10 +196,28 @@ export function computeImpactStats(items: UserContribution[]): UserImpactStats {
   return { publishedCount: completed.length, parksImprovedCount: parkIds.size };
 }
 
-/** Per-type count of the contributions that reached a completed state (same
- * rule as `computeImpactStats`) — the detail behind « Voir mes stats ». */
-export function computeCompletedByType(items: UserContribution[]): Record<UserContributionType, number> {
-  const out: Record<UserContributionType, number> = { park: 0, edit: 0, media: 0, report: 0, review: 0 };
-  for (const i of items) if (COMPLETED_STATUS[i.type].includes(i.status)) out[i.type] += 1;
-  return out;
+export interface StatsBreakdownRow {
+  type: UserContributionType;
+  /** Contributions of this type, all statuses (a row is only shown when > 0). */
+  total: number;
+  /** Contributions of this type that reached a completed state. */
+  completed: number;
+  /** `media` only — number of PHOTOS inside the completed batches (a batch of
+   * 3 photos is 1 contribution but 3 photos). */
+  completedPhotos?: number;
+}
+
+/** Per-type detail behind « Mes stats ». Only types the user really has. */
+export function computeStatsBreakdown(items: UserContribution[]): StatsBreakdownRow[] {
+  const order: UserContributionType[] = ["media", "review", "edit", "park", "report"];
+  const rows: StatsBreakdownRow[] = [];
+  for (const type of order) {
+    const ofType = items.filter((i) => i.type === type);
+    if (ofType.length === 0) continue;
+    const done = ofType.filter((i) => COMPLETED_STATUS[type].includes(i.status));
+    const row: StatsBreakdownRow = { type, total: ofType.length, completed: done.length };
+    if (type === "media") row.completedPhotos = done.reduce((n, i) => n + (i.photoCount ?? 1), 0);
+    rows.push(row);
+  }
+  return rows;
 }

@@ -329,7 +329,7 @@
     },
     "impact": {
       "title": "¡Gracias por tu ayuda!",
-      "published": "contribuciones publicadas",
+      "published": "aportes publicados",
       "parksImproved": "parques mejorados",
       "seeStats": "Ver mis estadísticas"
     },
@@ -374,7 +374,9 @@
       "editAria": "Editar la información de {{park}}",
       "thanks": "¡Gracias, tu confirmación está guardada!",
       "error": "No se pudo guardar tu confirmación. Inténtalo de nuevo.",
-      "unavailable": "Esta función aún no está disponible. ¡Vuelve pronto!"
+      "unavailable": "Esta función aún no está disponible. ¡Vuelve pronto!",
+      "subtitle": "Ayúdanos a mantener la información fiable",
+      "retry": "Reintentar"
     }
   },
   "history": {
@@ -409,7 +411,9 @@
     "emptyFiltered": {
       "title": "Ninguna contribución coincide con estos filtros.",
       "cta": "Restablecer filtros"
-    }
+    },
+    "activeFilter": "Filtro: {{filter}}",
+    "allAdditions": "Todos los aportes"
   },
   "edit": {
     "target": {
@@ -473,17 +477,34 @@
   },
   "stats": {
     "title": "Mis estadísticas",
-    "signedOut": "Inicia sesión para ver tus estadísticas.",
-    "byTypeTitle": "Tus aportes publicados",
+    "heroTitle": "Tus aportes marcan la diferencia",
+    "heroSubtitle": "Gracias por ayudar a crecer a Toboggo.",
+    "published": "Aportes publicados",
+    "parksImproved": "Parques mejorados",
+    "byTypeTitle": "Mis aportes en detalle",
+    "photosHint_one": "{{count}} aporte de fotos",
+    "photosHint_other": "{{count}} aportes de fotos",
     "byType": {
       "media": "Fotos",
-      "edit": "Modificaciones",
-      "park": "Parques nuevos",
-      "report": "Avisos resueltos",
+      "edit": "Información",
+      "park": "Parques propuestos",
+      "report": "Avisos",
       "review": "Opiniones",
       "confirmations": "Información confirmada"
     },
-    "note": "Solo cuentan los aportes publicados o validados. Has enviado {{total}} en total."
+    "confirmedTitle": "Información confirmada",
+    "confirmedHint": "Gracias por ayudar a verificar esta información.",
+    "statusTitle": "Seguimiento de mis aportes",
+    "statusHint": {
+      "published": "Visibles en Toboggo.",
+      "pending": "En revisión por nuestro equipo.",
+      "inProgress": "Tenido en cuenta por nuestro equipo.",
+      "resolved": "Problemas resueltos.",
+      "rejected": "No aceptados.",
+      "dismissed": "Cerrados sin acción."
+    },
+    "note": "Cada aporte ayuda a mantener la información al día.",
+    "signedOut": "Inicia sesión para ver tus estadísticas."
   },
   "flow": {
     "stepOf": "Paso {{current}} de {{total}}",

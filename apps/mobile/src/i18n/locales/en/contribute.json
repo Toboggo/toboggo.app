@@ -329,7 +329,7 @@
     },
     "impact": {
       "title": "Thanks for your help!",
-      "published": "contributions published",
+      "published": "additions published",
       "parksImproved": "parks improved",
       "seeStats": "See my stats"
     },
@@ -374,7 +374,9 @@
       "editAria": "Edit the information of {{park}}",
       "thanks": "Thanks, your confirmation is saved!",
       "error": "Couldn’t save your confirmation. Please try again.",
-      "unavailable": "This feature isn’t available yet. Check back soon!"
+      "unavailable": "This feature isn’t available yet. Check back soon!",
+      "subtitle": "Help us keep information reliable",
+      "retry": "Try again"
     }
   },
   "history": {
@@ -409,7 +411,9 @@
     "emptyFiltered": {
       "title": "No contribution matches these filters.",
       "cta": "Reset filters"
-    }
+    },
+    "activeFilter": "Filter: {{filter}}",
+    "allAdditions": "All additions"
   },
   "edit": {
     "target": {
@@ -473,17 +477,34 @@
   },
   "stats": {
     "title": "My stats",
-    "signedOut": "Sign in to see your stats.",
-    "byTypeTitle": "Your published contributions",
+    "heroTitle": "Your additions make a difference",
+    "heroSubtitle": "Thank you for helping Toboggo grow.",
+    "published": "Additions published",
+    "parksImproved": "Parks improved",
+    "byTypeTitle": "My additions in detail",
+    "photosHint_one": "{{count}} photo contribution",
+    "photosHint_other": "{{count}} photo contributions",
     "byType": {
       "media": "Photos",
-      "edit": "Edits",
-      "park": "New parks",
-      "report": "Resolved reports",
+      "edit": "Information",
+      "park": "Parks suggested",
+      "report": "Reports",
       "review": "Reviews",
       "confirmations": "Confirmed information"
     },
-    "note": "Only published or validated contributions count. You have sent {{total}} in total."
+    "confirmedTitle": "Confirmed information",
+    "confirmedHint": "Thank you for helping verify this information.",
+    "statusTitle": "Status of my additions",
+    "statusHint": {
+      "published": "Visible on Toboggo.",
+      "pending": "Being reviewed by our team.",
+      "inProgress": "Taken into account by our team.",
+      "resolved": "Problems resolved.",
+      "rejected": "Not accepted.",
+      "dismissed": "Closed without action."
+    },
+    "note": "Every addition helps keep information up to date.",
+    "signedOut": "Sign in to see your stats."
   },
   "flow": {
     "stepOf": "Step {{current}} of {{total}}",

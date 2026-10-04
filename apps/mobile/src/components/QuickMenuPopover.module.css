@@ -1,0 +1,78 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-sheet, 95);
+}
+.backdrop {
+  position: absolute;
+  inset: 0;
+  background: transparent;
+}
+.menu {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-1, 4px) 0;
+  max-height: calc(100dvh - 32px - var(--safe-top, 0px) - var(--safe-bottom, 0px));
+  overflow-y: auto;
+  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 96%, transparent);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  transform-origin: bottom right;
+  animation: pop 160ms var(--ease-emphasized, ease-out);
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 20px;
+  background: none;
+  border: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.item svg {
+  flex: none;
+  color: var(--color-text);
+}
+.item + .item {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-border) 55%, transparent);
+}
+.item:active {
+  background: var(--color-surface-alt);
+}
+.item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+@media (hover: hover) {
+  .item:hover {
+    background: var(--color-surface-alt);
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+}

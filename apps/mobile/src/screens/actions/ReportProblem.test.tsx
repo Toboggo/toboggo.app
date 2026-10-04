@@ -44,7 +44,7 @@ vi.mock("../../lib/parksQuery", () => ({
 
 const key = (parkId: string, principal: DraftPrincipal) =>
   buildDraftKey({ surface: "mobile", flow: "park.report", scope: { parkId }, principal });
-const READ = { schemaVersion: 1, ttlMs: 24 * 60 * 60 * 1000 };
+const READ = { schemaVersion: 2, ttlMs: 24 * 60 * 60 * 1000 };
 const RESUME_KEY = "toboggo:contrib-resume";
 
 function renderReport(search = "?park=p1") {
@@ -66,9 +66,15 @@ function renderReport(search = "?park=p1") {
 const commentField = () => screen.getByLabelText(/Décrivez le problème/) as HTMLTextAreaElement;
 const equipmentField = () => screen.getByLabelText(/Équipement concerné/) as HTMLSelectElement;
 
+/** Étape « Décrire le problème » : catégorie + description (même étape). */
 async function fillStep2(comment = "Le toboggan est fissuré") {
-  fireEvent.click(await screen.findByText("Problème de sécurité"));
+  fireEvent.click(await screen.findByRole("button", { name: "Problème de sécurité" }));
   fireEvent.change(await screen.findByLabelText(/Décrivez le problème/), { target: { value: comment } });
+}
+/** → « Vérifier le signalement ». */
+async function toVerify() {
+  fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+  await screen.findByText("Relisez avant d’envoyer.");
 }
 
 beforeEach(() => {
@@ -95,7 +101,7 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
   });
 
   it("restores a stored draft automatically (interruption / refresh)", async () => {
-    writeDraft(key("p1", { userId: "u1" }), { reason: "safety", equipment: "Balançoire", comment: "déjà écrit" }, { schemaVersion: 1 });
+    writeDraft(key("p1", { userId: "u1" }), { reason: "safety", equipment: "Balançoire", comment: "déjà écrit" }, { schemaVersion: 2 });
     renderReport();
     // jumped straight to the details step, fields rehydrated
     await waitFor(() => expect(commentField().value).toBe("déjà écrit"));
@@ -107,6 +113,7 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
     await fillStep2("à envoyer");
     await waitFor(() => expect(readDraft(key("p1", { userId: "u1" }), READ)).not.toBeNull(), { timeout: 2000 });
 
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
     await waitFor(() => expect(createReport).toHaveBeenCalledTimes(1));
     await screen.findByText("Signalement envoyé !");
@@ -118,6 +125,7 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
   it("success sheet — primary CTA \"Retour au parc\" replaces the wizard entry with the park page", async () => {
     renderReport();
     await fillStep2("à voir");
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
     await screen.findByText("Signalement envoyé !");
 
@@ -128,6 +136,7 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
   it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
     renderReport();
     await fillStep2("à la carte");
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
     await screen.findByText("Signalement envoyé !");
 
@@ -141,24 +150,26 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
     await fillStep2("échec");
     await waitFor(() => expect(readDraft(key("p1", { userId: "u1" }), READ)).not.toBeNull(), { timeout: 2000 });
 
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
     await waitFor(() => expect(createReport).toHaveBeenCalled());
-    // Server error details are never surfaced verbatim — a generic, translated
-    // message is shown instead (see doSubmit's catch).
-    expect(toasts.list).toContain("Une erreur est survenue");
+    // Server error details are never surfaced verbatim — a clear inline message.
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Vos informations sont conservées/);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Envoyer le signalement/ })).toHaveProperty("disabled", false));
+    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
     expect(commentField().value).toBe("échec");
     expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string })?.comment).toBe("échec");
   });
 
   it("a draft for park p1 is not restored for park p2", async () => {
-    writeDraft(key("p1", { userId: "u1" }), { reason: "safety", equipment: "Autre", comment: "p1 only" }, { schemaVersion: 1 });
+    writeDraft(key("p1", { userId: "u1" }), { reason: "safety", equipment: "Autre", comment: "p1 only" }, { schemaVersion: 2 });
     // usePark mock returns undefined for anything but p1 → render p1 then check p2 in isolation via the key
     renderReport("?park=p2");
     expect(readDraft(key("p2", { userId: "u1" }), READ)).toBeNull();
   });
 
   it("a draft written by user A is not restored for user B", async () => {
-    writeDraft(key("p1", { userId: "A" }), { reason: "safety", equipment: "Autre", comment: "A private" }, { schemaVersion: 1 });
+    writeDraft(key("p1", { userId: "A" }), { reason: "safety", equipment: "Autre", comment: "A private" }, { schemaVersion: 2 });
     sess.userId = "B";
     renderReport();
     expect(screen.getByText("Quel est le problème ?")).toBeTruthy(); // empty, step 1
@@ -176,6 +187,7 @@ describe("ReportProblem — guest → OAuth → authenticated", () => {
       { timeout: 2000 },
     );
 
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
     await screen.findByText("LOGIN");
     expect(JSON.parse(localStorage.getItem(RESUME_KEY)!).route).toBe("/report?park=p1&resume=1");
@@ -186,8 +198,8 @@ describe("ReportProblem — guest → OAuth → authenticated", () => {
 
   it("back authenticated with ?resume=1 → guest draft adopted, guest key removed, report auto-sent", async () => {
     // guest left a draft; another guest draft for a different park must survive
-    writeDraft(key("p1", "guest"), { reason: "safety", equipment: "Toboggan", comment: "repris après login" }, { schemaVersion: 1 });
-    writeDraft(key("p9", "guest"), { reason: "safety", equipment: "Autre", comment: "autre parc" }, { schemaVersion: 1 });
+    writeDraft(key("p1", "guest"), { reason: "safety", equipment: "Toboggan", comment: "repris après login" }, { schemaVersion: 2 });
+    writeDraft(key("p9", "guest"), { reason: "safety", equipment: "Autre", comment: "autre parc" }, { schemaVersion: 2 });
     sess.userId = "u1";
 
     renderReport("?park=p1&resume=1");
@@ -211,9 +223,9 @@ describe("ReportProblem — guest → OAuth → authenticated", () => {
   it("guest + user draft collide → the newer one (by savedAt) wins", async () => {
     const base = 1_700_000_000_000;
     const now = vi.spyOn(Date, "now").mockReturnValue(base);
-    writeDraft(key("p1", { userId: "u1" }), { reason: "safety", equipment: "Autre", comment: "vieux user" }, { schemaVersion: 1 });
+    writeDraft(key("p1", { userId: "u1" }), { reason: "safety", equipment: "Autre", comment: "vieux user" }, { schemaVersion: 2 });
     now.mockReturnValue(base + 4_000);
-    writeDraft(key("p1", "guest"), { reason: "cleanliness", equipment: "Toboggan", comment: "guest récent" }, { schemaVersion: 1 });
+    writeDraft(key("p1", "guest"), { reason: "cleanliness", equipment: "Toboggan", comment: "guest récent" }, { schemaVersion: 2 });
     now.mockReturnValue(base + 8_000);
     sess.userId = "u1";
 
@@ -222,5 +234,72 @@ describe("ReportProblem — guest → OAuth → authenticated", () => {
       expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string })?.comment).toBe("guest récent"),
     );
     expect(localStorage.getItem(key("p1", "guest"))).toBeNull();
+  });
+});
+
+describe("ReportProblem — parcours en 3 étapes", () => {
+  it("park preselected → 2 displayed steps; categories are pressable cards; Continuer needs a category", async () => {
+    renderReport();
+    expect(await screen.findByText("Étape 1 sur 2")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", true);
+    const card = screen.getByRole("button", { name: "Propreté" });
+    expect(card.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(card);
+    expect(card.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", false);
+  });
+
+  it("the equipment field only shows for categories where it matters, and nothing is preselected", async () => {
+    renderReport();
+    fireEvent.click(await screen.findByRole("button", { name: "Propreté" }));
+    expect(screen.queryByLabelText(/Équipement concerné/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Jeu cassé / dangereux" }));
+    expect(equipmentField().value).toBe("");
+    // sent without any invented equipment
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    await screen.findByText("Relisez avant d’envoyer.");
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
+    await waitFor(() => expect(createReport).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createReport).mock.calls[0][0]).toMatchObject({ reason: "broken_equipment", equipment: undefined });
+  });
+
+  it("nothing is sent before the summary; the summary recaps and its « Modifier » goes back", async () => {
+    renderReport();
+    await fillStep2("fissure au sol");
+    expect(screen.queryByRole("button", { name: /Envoyer le signalement/ })).toBeNull();
+    await toVerify();
+    expect(createReport).not.toHaveBeenCalled();
+    expect(screen.getByText("Problème de sécurité")).toBeTruthy();
+    expect(screen.getByText("fissure au sol")).toBeTruthy();
+    expect(screen.getByText("Aucune photo")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Modifier — Description/ }));
+    await screen.findByLabelText(/Décrivez le problème/);
+  });
+
+  it("closing with a draft asks first; double tap sends once; failure then retry works", async () => {
+    vi.mocked(createReport).mockRejectedValueOnce(new Error("network"));
+    renderReport();
+    await fillStep2("x");
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Rester" }));
+    await toVerify();
+    const send = screen.getByRole("button", { name: /Envoyer le signalement/ });
+    fireEvent.click(send);
+    fireEvent.click(send);
+    await screen.findByRole("alert");
+    expect(createReport).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole("button", { name: /Envoyer le signalement/ })).toHaveProperty("disabled", false));
+    fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
+    await screen.findByText("Signalement envoyé !");
+    expect(createReport).toHaveBeenCalledTimes(2);
+  });
+
+  it("a v1 draft migrates: the default equipment is dropped when the category does not need it", async () => {
+    writeDraft(key("p1", { userId: "u1" }), { reason: "cleanliness", equipment: "Toboggan", comment: "sale" }, { schemaVersion: 1 });
+    renderReport();
+    await waitFor(() => expect(commentField().value).toBe("sale"));
+    fireEvent.click(screen.getByRole("button", { name: "Jeu cassé / dangereux" }));
+    expect(equipmentField().value).toBe("");
   });
 });

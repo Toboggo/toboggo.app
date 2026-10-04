@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { buildDraftKey, createPark, listFeatures, readDraft, reverseGeocode, uploadPhoto, writeDraft, type DraftPrincipal, type ReverseGeocodedAddress } from "@toboggo/shared";
+import { buildDraftKey, createPark, fetchNearbyParks, listFeatures, readDraft, reverseGeocode, uploadPhoto, writeDraft, type DraftPrincipal, type ReverseGeocodedAddress } from "@toboggo/shared";
 import "../../i18n/testInit";
 import AddPark from "./AddPark";
 
@@ -43,14 +43,6 @@ vi.mock("maplibre-gl", () => {
   };
 });
 
-// La détection des doublons (requêtes réseau) n'est pas l'objet de ces tests :
-// un stub expose seulement le choix d'un parc existant.
-vi.mock("../../components/AddParkSearch", () => ({
-  AddParkSearch: ({ onPickExisting }: { onPickExisting: (p: { id: string }) => void }) => (
-    <button onClick={() => onPickExisting({ id: "existing-1" })}>pick-existing</button>
-  ),
-}));
-
 vi.mock("@toboggo/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@toboggo/shared")>();
   return {
@@ -62,6 +54,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listFeatures: vi.fn().mockResolvedValue([]),
     searchPlaces: vi.fn().mockResolvedValue([]),
     reverseGeocode: vi.fn().mockResolvedValue(null),
+    fetchNearbyParks: vi.fn().mockResolvedValue([]),
   };
 });
 
@@ -88,7 +81,7 @@ vi.mock("../../lib/toast", () => ({
 }));
 
 const key = (principal: DraftPrincipal) => buildDraftKey({ surface: "mobile", flow: "park.add", principal });
-const READ = { schemaVersion: 2, ttlMs: 24 * 60 * 60 * 1000 };
+const READ = { schemaVersion: 3, ttlMs: 24 * 60 * 60 * 1000 };
 const RESUME_KEY = "toboggo:contrib-resume";
 
 function LocationProbe() {
@@ -135,18 +128,30 @@ function draftV2(over: Record<string, unknown> = {}) {
   };
 }
 const seed = (over: Record<string, unknown> = {}, principal: DraftPrincipal = { userId: "u1" }) =>
-  writeDraft(key(principal), draftV2(over), { schemaVersion: 2 });
+  writeDraft(key(principal), draftV2(over), { schemaVersion: 3 });
 
-const confirm = () => fireEvent.click(screen.getByRole("button", { name: "Confirmer l’emplacement" }));
+const verify = () => fireEvent.click(screen.getByRole("button", { name: "Vérifier cet emplacement" }));
 const next = () => fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
 
-/** Étape 1 (Informations). */
+/** Étape 1 (Jeux et âges) : l'emplacement est vérifié, sans candidat. */
 async function toInfo() {
   await screen.findByText("Où se trouve le parc ?");
-  confirm();
-  await screen.findByText("Qu’y trouve-t-on ?");
+  verify();
+  await screen.findByText("Les jeux et les âges");
 }
-/** Étape 2 (Photos et vérification) ; nom facultatif. */
+/** Étape 2 (Les petits détails utiles). */
+async function toDetails() {
+  await toInfo();
+  next();
+  await screen.findByText("Les petits détails utiles");
+}
+/** Étape 3 (Photos). */
+async function toPhotos() {
+  await toDetails();
+  next();
+  await screen.findByText("Une photo du parc ?");
+}
+/** Étape 5 (Récapitulatif) ; nom facultatif. */
 async function toFinal(name?: string) {
   await toInfo();
   if (name) {
@@ -157,7 +162,11 @@ async function toFinal(name?: string) {
     await waitFor(() => expect((readDraft(key(principal), READ) as { name?: string })?.name).toBe(name), { timeout: 2000 });
   }
   next();
-  await screen.findByText("Photos et vérification");
+  await screen.findByText("Les petits détails utiles");
+  next();
+  await screen.findByText("Une photo du parc ?");
+  next();
+  await screen.findByText("Tout est bon ?");
 }
 const send = () => fireEvent.click(screen.getByRole("button", { name: "Envoyer le parc" }));
 const radio = (group: string, name: string) =>
@@ -173,6 +182,7 @@ beforeEach(() => {
   // it every test, same as createPark above.
   vi.mocked(uploadPhoto).mockReset().mockResolvedValue("https://x/photo.jpg" as never);
   vi.mocked(reverseGeocode).mockReset().mockResolvedValue(null);
+  vi.mocked(fetchNearbyParks).mockReset().mockResolvedValue([]);
   vi.mocked(listFeatures).mockReset().mockResolvedValue([]);
   // jsdom n'implémente pas window.scrollTo (appelé à chaque changement d'étape).
   window.scrollTo = vi.fn() as never;
@@ -180,11 +190,12 @@ beforeEach(() => {
 afterEach(() => vi.restoreAllMocks());
 
 describe("AddPark — persistent draft (LOT 3D.E)", () => {
-  it("no stored draft → starts on the location step (3 steps, header « Étape 1 sur 3 »)", async () => {
+  it("no stored draft → starts on the location step (5 steps, header « Étape 1 sur 5 »)", async () => {
     renderAdd();
     expect(await screen.findByText("Où se trouve le parc ?")).toBeTruthy();
-    expect(screen.getByText("Étape 1 sur 3")).toBeTruthy();
+    expect(screen.getByText("Étape 1 sur 5")).toBeTruthy();
     expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("1");
+    expect(screen.getByRole("button", { name: "Vérifier cet emplacement" })).toBeTruthy();
   });
 
   it("typing autosaves the draft (debounced) under the user key", async () => {
@@ -201,21 +212,34 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     seed({ step: 1, name: "Square Repris" });
     renderAdd();
     expect(nameField().value).toBe("Square Repris");
-    expect(screen.getByText("Étape 2 sur 3")).toBeTruthy();
+    expect(screen.getByText("Étape 2 sur 5")).toBeTruthy();
   });
 
-  it("final step restored when the location was confirmed — name is optional", () => {
-    seed({ step: 2 });
+  it("summary step restored when the location was confirmed — name is optional", () => {
+    seed({ step: 4 });
     renderAdd();
-    expect(screen.getByText("Photos et vérification")).toBeTruthy();
+    expect(screen.getByText("Tout est bon ?")).toBeTruthy();
     expect(screen.getByText(/Nom non renseigné/)).toBeTruthy();
+    expect(screen.getByText("Votre ajout sera vérifié avant publication.")).toBeTruthy();
   });
 
   it("a restored step ≥ 1 WITHOUT a confirmed location falls back to the location step, no crash", () => {
-    seed({ step: 2, locationConfirmed: false });
+    seed({ step: 4, locationConfirmed: false });
     renderAdd();
     expect(screen.getByText("Où se trouve le parc ?")).toBeTruthy();
-    expect(screen.queryByText("Photos et vérification")).toBeNull();
+    expect(screen.queryByText("Tout est bon ?")).toBeNull();
+  });
+
+  it("a v2 (3-step) draft is migrated: same data, step remapped (info → 1, summary → 4)", () => {
+    writeDraft(
+      key({ userId: "u1" }),
+      draftV2({ step: 2, name: "Ancien v2", answers: { wc: "yes" } }),
+      { schemaVersion: 2 },
+    );
+    renderAdd();
+    expect(screen.getByText("Tout est bon ?")).toBeTruthy();
+    expect(screen.getByText("Ancien v2")).toBeTruthy();
+    expect(screen.getByText("Toilettes : Oui")).toBeTruthy();
   });
 
   it("an old (v1) draft is ignored, never misread", () => {
@@ -228,12 +252,13 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(screen.getByText("Où se trouve le parc ?")).toBeTruthy();
   });
 
-  it("restoring a position does not trigger a geocoding search", async () => {
+  it("restoring a position does not trigger a geocoding search nor a duplicate check", async () => {
     const { searchPlaces } = await import("@toboggo/shared");
-    seed({ step: 0, lat: 44.123456, lng: 3.123456 });
+    seed({ step: 0, lat: 44.123456, lng: 3.123456, locationConfirmed: false });
     renderAdd();
     await screen.findByText("Où se trouve le parc ?");
     expect(vi.mocked(searchPlaces)).not.toHaveBeenCalled();
+    expect(fetchNearbyParks).not.toHaveBeenCalled();
   });
 
   it("flushes to storage on pagehide (app switch / backgrounding)", async () => {
@@ -246,7 +271,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
 
   it("only photo URL strings ever reach localStorage — never a File/Blob", async () => {
     renderAdd();
-    await toFinal();
+    await toPhotos();
     const fileInput = document.querySelector('input[type="file"]:not([capture])') as HTMLInputElement;
     const file = new File(["fake-bytes"], "park.jpg", { type: "image/jpeg" });
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -260,31 +285,34 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(parsed.data.photos.every((p: unknown) => typeof p === "string")).toBe(true);
   });
 
-  it("final step offers camera + library as distinct inputs; photos are optional", async () => {
+  it("photo step: camera + library inputs, optional — « Continuer » and « Passer cette étape » both advance", async () => {
     renderAdd();
-    await toFinal();
-    expect(screen.getByRole("button", { name: /Prendre une photo/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Choisir dans la photothèque/ })).toBeTruthy();
+    await toPhotos();
+    expect(screen.getByRole("button", { name: "Prendre une photo" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Choisir des photos" })).toBeTruthy();
     const cam = document.querySelector('input[type="file"][capture]') as HTMLInputElement;
     const lib = document.querySelector('input[type="file"]:not([capture])') as HTMLInputElement;
     expect(cam.getAttribute("capture")).toBe("environment");
     expect(cam.multiple).toBe(false);
     expect(lib.multiple).toBe(true);
     expect(screen.getByText("0 / 4 photos")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Envoyer le parc" }).hasAttribute("disabled")).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Passer cette étape" }));
+    await screen.findByText("Tout est bon ?");
+    expect(screen.getByText("Aucune photo")).toBeTruthy();
   });
 
   it("library multi-pick: uploads up to the 4-photo cap, toasts the overflow; photos can be removed", async () => {
     renderAdd();
-    await toFinal();
+    await toPhotos();
     const lib = document.querySelector('input[type="file"]:not([capture])') as HTMLInputElement;
     const files = Array.from({ length: 6 }, (_, i) => new File(["x"], `p${i}.jpg`, { type: "image/jpeg" }));
     fireEvent.change(lib, { target: { files } });
     await waitFor(() => expect(screen.getByText("4 / 4 photos")).toBeTruthy());
     expect(vi.mocked(uploadPhoto)).toHaveBeenCalledTimes(4);
-    expect(screen.queryByRole("button", { name: /Prendre une photo/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Prendre une photo" })).toBeNull();
     fireEvent.click(screen.getAllByRole("button", { name: /Retirer/ })[0]!);
     expect(screen.getByText("3 / 4 photos")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Passer cette étape" })).toBeNull();
   });
 
   it("createPark success → the draft is cleared before navigating, no resurrection on late pagehide", async () => {
@@ -297,6 +325,19 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
     window.dispatchEvent(new Event("pagehide"));
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
+  });
+
+  it("nothing is submitted before the summary: « Envoyer le parc » exists only on step 5", async () => {
+    renderAdd();
+    await toInfo();
+    expect(screen.queryByRole("button", { name: "Envoyer le parc" })).toBeNull();
+    next();
+    await screen.findByText("Les petits détails utiles");
+    expect(screen.queryByRole("button", { name: "Envoyer le parc" })).toBeNull();
+    next();
+    await screen.findByText("Une photo du parc ?");
+    expect(screen.queryByRole("button", { name: "Envoyer le parc" })).toBeNull();
+    expect(createPark).not.toHaveBeenCalled();
   });
 
   it("success sheet — \"Voir le parc\" replaces the wizard entry with the park page", async () => {
@@ -336,7 +377,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
 
   it("createPark failure → clear inline error, stays on the summary, draft conserved, retry possible", async () => {
     vi.mocked(createPark).mockRejectedValueOnce(new Error("RLS denied"));
-    seed({ step: 2, name: "Square Échec", answers: { wc: "yes" }, ageBands: ["3-6"] });
+    seed({ step: 4, name: "Square Échec", answers: { wc: "yes" }, ageBands: ["3-6"] });
     renderAdd();
     send();
 
@@ -375,7 +416,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
   it("photos failing AFTER the park exists is not fatal (no duplicate-inducing retry)", async () => {
     const { addParkPhotos } = await import("@toboggo/shared");
     vi.mocked(addParkPhotos).mockRejectedValueOnce(new Error("storage"));
-    seed({ step: 2, photos: ["https://x/a.jpg"] });
+    seed({ step: 4, photos: ["https://x/a.jpg"] });
     renderAdd();
     send();
     await screen.findByText("Parc ajouté !");
@@ -389,6 +430,96 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     renderAdd();
     expect(screen.getByText("Où se trouve le parc ?")).toBeTruthy();
     expect(readDraft(key({ userId: "B" }), READ)).toBeNull();
+  });
+});
+
+describe("AddPark — vérification des doublons (étape 1)", () => {
+  const park = (id: string, name: string, d: number) =>
+    ({ id, name, formatted_address: `${id} rue Test, Lyon`, distance_m: d, photos: [], latitude: 44.1, longitude: 3.1 }) as never;
+
+  it("sans candidat : on poursuit à l'étape suivante, sans choix intermédiaire", async () => {
+    renderAdd();
+    await toInfo();
+    expect(fetchNearbyParks).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(fetchNearbyParks).mock.calls[0][0]).toMatchObject({ radiusMeters: 500 });
+  });
+
+  it("avec candidats : choix explicite dans la même étape, aucun bouton générique pour le contourner", async () => {
+    vi.mocked(fetchNearbyParks).mockResolvedValue([park("a1", "Square des Tilleuls", 35)]);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    verify();
+    await screen.findByText("Un parc est déjà référencé à proximité.");
+    expect(screen.getByText("Square des Tilleuls")).toBeTruthy();
+    expect(screen.getByText(/À 40.m du repère/)).toBeTruthy();
+    // Ni « Vérifier » ni « Continuer » : seul le choix explicite est proposé.
+    expect(screen.queryByRole("button", { name: "Vérifier cet emplacement" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Continuer" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Non, c’est un autre parc" })).toBeTruthy();
+    expect(screen.queryByText("Les jeux et les âges")).toBeNull();
+  });
+
+  it("« C'est ce parc » ouvre le parcours de complétion de la fiche existante, sans créer de parc", async () => {
+    vi.mocked(fetchNearbyParks).mockResolvedValue([park("a1", "Square des Tilleuls", 35)]);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    verify();
+    fireEvent.click(await screen.findByRole("button", { name: "C’est ce parc" }));
+    expect(loc()).toBe("/contribute/edit");
+    expect(createPark).not.toHaveBeenCalled();
+  });
+
+  it("« Non, c'est un autre parc » poursuit la création", async () => {
+    vi.mocked(fetchNearbyParks).mockResolvedValue([park("a1", "Square des Tilleuls", 35)]);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    verify();
+    fireEvent.click(await screen.findByRole("button", { name: "Non, c’est un autre parc" }));
+    await screen.findByText("Les jeux et les âges");
+  });
+
+  it("échec de la recherche : erreur claire + nouvelle tentative, jamais interprété comme « aucun doublon »", async () => {
+    vi.mocked(fetchNearbyParks).mockRejectedValueOnce(new Error("network"));
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    verify();
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toMatch(/Impossible de vérifier/);
+    expect(screen.queryByText("Les jeux et les âges")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    await screen.findByText("Les jeux et les âges");
+    expect(fetchNearbyParks).toHaveBeenCalledTimes(2);
+  });
+
+  it("déplacer le repère après une vérification invalide le choix et relance la vérification", async () => {
+    vi.mocked(fetchNearbyParks)
+      .mockResolvedValueOnce([park("a1", "Square des Tilleuls", 35)])
+      .mockResolvedValueOnce([park("b2", "Jardin Neuf", 80)]);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    verify();
+    await screen.findByText("Square des Tilleuls");
+    await pickPlace("Ailleurs", 45.7, 4.8);
+    await screen.findByText("Jardin Neuf");
+    expect(screen.queryByText("Square des Tilleuls")).toBeNull();
+    expect(fetchNearbyParks).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetchNearbyParks).mock.calls[1][0]).toMatchObject({ lat: 45.7, lng: 4.8 });
+  });
+
+  it("une réponse obsolète (ancien repère) ne s'affiche jamais pour le nouveau", async () => {
+    let resolveOld!: (v: unknown) => void;
+    vi.mocked(fetchNearbyParks)
+      .mockReturnValueOnce(new Promise((r) => (resolveOld = r)) as never)
+      .mockResolvedValueOnce([park("b2", "Jardin Neuf", 80)]);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    verify();
+    await pickPlace("Ailleurs", 45.7, 4.8);
+    await screen.findByText("Jardin Neuf");
+    resolveOld([park("a1", "Square Obsolète", 10)]);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByText("Square Obsolète")).toBeNull();
+    expect(screen.getByText("Jardin Neuf")).toBeTruthy();
   });
 });
 
@@ -408,12 +539,19 @@ describe("AddPark — parcours (maquette)", () => {
       expect(screen.getByRole("button", { name: label })).toBeTruthy();
     }
     expect(screen.queryByRole("button", { name: "Tyrolienne" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Voir tous les jeux" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Voir tous les jeux" }));
     // Tous les équipements `play` du catalogue, en français (jamais le code anglais) ; pas les services.
     for (const label of ["Tyrolienne", "Bascule", "Marelle"]) expect(screen.getByRole("button", { name: label })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /seesaw|hopscotch|zipline/i })).toBeNull();
     expect(screen.queryByRole("button", { name: "Toilettes" })).toBeNull();
     expect(screen.getByRole("button", { name: "Voir moins de jeux" })).toBeTruthy();
+  });
+
+  it("step 2 holds games + ages only — no service, no photo", async () => {
+    renderAdd();
+    await toInfo();
+    expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(document.querySelector('input[type="file"]')).toBeNull();
   });
 
   it("games are multi-select (aria-pressed), toggle on/off, and persist as a Set", async () => {
@@ -435,12 +573,18 @@ describe("AddPark — parcours (maquette)", () => {
   it("everything is unknown by default, and a draft with no answers sends NO service key (never false)", async () => {
     renderAdd();
     await toInfo();
+    next();
+    await screen.findByText("Les petits détails utiles");
     for (const group of ["Toilettes", "Bancs", "Eau potable", "Parking à proximité", "Zones ombragées", "Parc clôturé", "Entrée accessible en fauteuil"]) {
       expect(radio(group, "Je ne sais pas").getAttribute("aria-checked")).toBe("true");
+      expect(radio(group, "Oui").getAttribute("aria-checked")).toBe("false");
     }
     expect(screen.getByText("? = Je ne sais pas")).toBeTruthy();
     next();
-    await screen.findByText("Photos et vérification");
+    await screen.findByText("Une photo du parc ?");
+    next();
+    await screen.findByText("Tout est bon ?");
+    expect(screen.getByText(/Non renseigné : Toilettes, Bancs/)).toBeTruthy();
     send();
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(createPark).mock.calls[0][0];
@@ -451,9 +595,11 @@ describe("AddPark — parcours (maquette)", () => {
     expect(payload.name).toBe("Aire de jeux");
   });
 
-  it("Oui → true, Non → false, ? → absent ; reselecting « ? » clears an answer", async () => {
+  it("Oui → true, Non → false, ? → absent ; the summary tells « non » from « non renseigné »", async () => {
     renderAdd();
     await toInfo();
+    next();
+    await screen.findByText("Les petits détails utiles");
     fireEvent.click(radio("Toilettes", "Oui"));
     fireEvent.click(radio("Bancs", "Non"));
     fireEvent.click(radio("Eau potable", "Oui"));
@@ -462,11 +608,12 @@ describe("AddPark — parcours (maquette)", () => {
     expect(radio("Toilettes", "Oui").getAttribute("aria-checked")).toBe("true");
     expect(radio("Eau potable", "Oui").getAttribute("aria-checked")).toBe("false");
     next();
-    await screen.findByText("Photos et vérification");
-    // récapitulatif : Oui/Non listés, inconnus omis
+    await screen.findByText("Une photo du parc ?");
+    next();
+    await screen.findByText("Tout est bon ?");
     expect(screen.getByText("Toilettes : Oui")).toBeTruthy();
     expect(screen.getByText("Bancs : Non")).toBeTruthy();
-    expect(screen.queryByText(/Eau potable :/)).toBeNull();
+    expect(screen.getByText(/Non renseigné : Eau potable, Parking à proximité, Zones ombragées, Entrée accessible en fauteuil/)).toBeTruthy();
     send();
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(createPark).mock.calls[0][0];
@@ -474,15 +621,20 @@ describe("AddPark — parcours (maquette)", () => {
     for (const k of ["water", "parking", "shade", "pmr"]) expect(payload).not.toHaveProperty(k);
   });
 
-  it("age bands: multi-select contiguous → min/max; unknown is exclusive; disjoint refused with a hint", async () => {
+  it("age bands: the 4 ranges sit on ONE row; multi-select contiguous; unknown exclusive; disjoint refused with a hint", async () => {
     renderAdd();
     await toInfo();
     const band = (n: string) => screen.getByRole("button", { name: n });
+    // Une seule rangée de 4 colonnes égales ; « Je ne sais pas » dessous.
+    const grid = band("0–3 ans").parentElement as HTMLElement;
+    expect(grid.className).toMatch(/ageGrid/);
+    expect(["0–3 ans", "3–6 ans", "6–12 ans", "12 ans", "Je ne sais pas"].map((n) => band(n).parentElement)).toEqual(Array(5).fill(grid));
+    expect(screen.queryByRole("button", { name: "12 ans et +" })).toBeNull();
     fireEvent.click(band("0–3 ans"));
     fireEvent.click(band("3–6 ans"));
     expect(band("0–3 ans").getAttribute("aria-pressed")).toBe("true");
     expect(band("3–6 ans").getAttribute("aria-pressed")).toBe("true");
-    // 12+ n'est pas voisin de 0–6 : refusé, pas converti en plage 0–12.
+    // 12 ans n'est pas voisin de 0–6 : refusé, pas converti en plage 0–12.
     fireEvent.click(band("12 ans"));
     expect(band("12 ans").getAttribute("aria-pressed")).toBe("false");
     expect(screen.getByText(/ne se suivent pas/)).toBeTruthy();
@@ -494,36 +646,52 @@ describe("AddPark — parcours (maquette)", () => {
     expect(band("Je ne sais pas").getAttribute("aria-pressed")).toBe("false");
     fireEvent.click(band("3–6 ans"));
     next();
-    await screen.findByText("Photos et vérification");
+    await screen.findByText("Les petits détails utiles");
+    next();
+    await screen.findByText("Une photo du parc ?");
+    next();
+    await screen.findByText("Tout est bon ?");
     send();
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     expect(vi.mocked(createPark).mock.calls[0][0]).toMatchObject({ age_min: 3, age_max: 12 });
   });
 
   it("back from the summary → answers, games, ages, location and photos are all preserved", async () => {
-    seed({ step: 2, name: "Square Retour", equipment: { __set: ["slide"] }, ageBands: ["3-6"], answers: { wc: "yes", pmr: "no" }, description: "Fermé l’hiver", photos: ["https://x/a.jpg"] });
+    seed({ step: 4, name: "Square Retour", equipment: { __set: ["slide"] }, ageBands: ["3-6"], answers: { wc: "yes", pmr: "no" }, description: "Fermé l’hiver", photos: ["https://x/a.jpg"] });
     renderAdd();
-    fireEvent.click(screen.getAllByRole("button", { name: /Modifier — Parc/ })[0]!);
-    await screen.findByText("Qu’y trouve-t-on ?");
+    fireEvent.click(screen.getByRole("button", { name: /Modifier — Jeux et âges/ }));
+    await screen.findByText("Les jeux et les âges");
     expect(nameField().value).toBe("Square Retour");
     expect(screen.getByRole("button", { name: "Toboggan" }).getAttribute("aria-pressed")).toBe("true");
     expect(screen.getByRole("button", { name: "3–6 ans" }).getAttribute("aria-pressed")).toBe("true");
+    next();
+    await screen.findByText("Les petits détails utiles");
     expect(radio("Toilettes", "Oui").getAttribute("aria-checked")).toBe("true");
     expect(radio("Entrée accessible en fauteuil", "Non").getAttribute("aria-checked")).toBe("true");
     expect((screen.getByLabelText("Une précision utile ? (facultatif)") as HTMLTextAreaElement).value).toBe("Fermé l’hiver");
-    // retour à l'étape 1 (Localisation) : l'emplacement et les photos sont intacts
+    // retour jusqu'à l'étape 1 (Localisation) : l'emplacement et les photos sont intacts
+    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
     fireEvent.click(screen.getByRole("button", { name: "Retour" }));
     await screen.findByText("Où se trouve le parc ?");
     expect((readDraft(key({ userId: "u1" }), READ) as { photos?: string[] })?.photos).toEqual(["https://x/a.jpg"]);
     expect((readDraft(key({ userId: "u1" }), READ) as { lat?: number })?.lat).toBe(44.1);
+    // l'emplacement déjà validé : « Continuer » directement, sans nouvelle vérification
+    expect(screen.getByRole("button", { name: "Continuer" })).toBeTruthy();
+    expect(fetchNearbyParks).not.toHaveBeenCalled();
   });
 
-  it("closing with entered data asks for confirmation; « Continuer la saisie » stays, « Quitter » leaves", async () => {
+  it("changing the step scrolls back to the top", async () => {
+    renderAdd();
+    await toInfo();
+    expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
+  });
+
+  it("closing with entered data asks for confirmation; « Rester » stays, « Quitter » leaves", async () => {
     seed({ step: 1, name: "Square Quitter" });
     renderAdd();
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Continuer la saisie" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rester" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(loc()).toBe("/add");
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
@@ -536,13 +704,6 @@ describe("AddPark — parcours (maquette)", () => {
     await screen.findByText("Où se trouve le parc ?");
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
     await screen.findByText("CARTE");
-  });
-
-  it("an existing park picked in the duplicate check opens its page", async () => {
-    renderAdd();
-    fireEvent.click(await screen.findByText("pick-existing"));
-    await screen.findByText("FICHE PARC");
-    expect(loc()).toBe("/park/existing-1");
   });
 });
 
@@ -560,7 +721,7 @@ describe("AddPark — guest → OAuth → authenticated", () => {
   });
 
   it("back authenticated with ?resume=1 → guest draft adopted, guest key removed, park auto-created", async () => {
-    seed({ step: 2, name: "Square Après Login" }, "guest");
+    seed({ step: 4, name: "Square Après Login" }, "guest");
     sess.userId = "u1";
     renderAdd("?resume=1");
 
@@ -678,11 +839,12 @@ describe("AddPark — adresse par reverse geocoding", () => {
     await screen.findByText("Où se trouve le parc ?");
     await pickPlace("Jardin de la Capelle", 44.0989, 3.0781);
     await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
-    confirm();
-    await screen.findByText("Qu’y trouve-t-on ?");
+    verify();
+    await screen.findByText("Les jeux et les âges");
     fireEvent.change(nameField(), { target: { value: "Jardin de la Capelle" } });
-    next();
-    await screen.findByText("Photos et vérification");
+    next(); await screen.findByText("Les petits détails utiles");
+    next(); await screen.findByText("Une photo du parc ?");
+    next(); await screen.findByText("Tout est bon ?");
     send();
 
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
@@ -725,11 +887,12 @@ describe("AddPark — adresse par reverse geocoding", () => {
     await waitFor(() => expect(reverseGeocode).toHaveBeenCalledTimes(2));
     expect(screen.queryByText("12100 Millau")).toBeNull();
 
-    confirm();
-    await screen.findByText("Qu’y trouve-t-on ?");
+    verify();
+    await screen.findByText("Les jeux et les âges");
     fireEvent.change(nameField(), { target: { value: "Jardin B" } });
-    next();
-    await screen.findByText("Photos et vérification");
+    next(); await screen.findByText("Les petits détails utiles");
+    next(); await screen.findByText("Une photo du parc ?");
+    next(); await screen.findByText("Tout est bon ?");
     send();
 
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));

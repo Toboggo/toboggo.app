@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { buildDraftKey, createReview, readDraft, uploadPhoto, writeDraft, type DraftPrincipal } from "@toboggo/shared";
+import { buildDraftKey, createReview, listMyReviews, readDraft, searchParks, uploadPhoto, writeDraft, type DraftPrincipal } from "@toboggo/shared";
 import "../../i18n/testInit";
 import RatePark from "./RatePark";
 
@@ -15,6 +15,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     addMedia: addMediaMock,
     uploadPhoto: vi.fn().mockResolvedValue("https://x/photo.jpg"),
     searchParks: vi.fn().mockResolvedValue([]),
+    listMyReviews: vi.fn().mockResolvedValue([]),
   };
 });
 
@@ -50,7 +51,7 @@ vi.mock("../../lib/analytics", () => ({ trackEvent: trackEventMock }));
 
 const key = (parkId: string, principal: DraftPrincipal) =>
   buildDraftKey({ surface: "mobile", flow: "park.rate", scope: { parkId }, principal });
-const READ = { schemaVersion: 1, ttlMs: 24 * 60 * 60 * 1000 };
+const READ = { schemaVersion: 2, ttlMs: 24 * 60 * 60 * 1000 };
 const RESUME_KEY = "toboggo:contrib-resume";
 
 function LocationProbe() {
@@ -82,11 +83,17 @@ const commentField = () => screen.getByLabelText(/Votre commentaire/) as HTMLTex
 async function rate(stars = 4) {
   fireEvent.click(await screen.findByRole("button", { name: `${stars} étoiles` }));
 }
-async function toStep2(stars = 4, parkId = "p1", principal?: DraftPrincipal) {
+/** Étape « Mon expérience » : note choisie (le commentaire est sur la même étape). */
+async function toExperience(stars = 4, parkId = "p1", principal?: DraftPrincipal) {
   await rate(stars);
   const p: DraftPrincipal = principal ?? (sess.userId ? { userId: sess.userId } : "guest");
   await waitFor(() => expect((readDraft(key(parkId, p), READ) as { stars?: number })?.stars).toBe(stars), { timeout: 2000 });
+}
+/** Étape « Vérifier mon avis ». */
+async function toVerify(stars = 4, parkId = "p1", principal?: DraftPrincipal) {
+  await toExperience(stars, parkId, principal);
   fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+  await screen.findByText("Vérifier mon avis");
 }
 
 beforeEach(() => {
@@ -94,6 +101,8 @@ beforeEach(() => {
   sess.userId = "u1";
   toasts.list.length = 0;
   vi.mocked(createReview).mockReset().mockResolvedValue({ id: "r1" } as never);
+  vi.mocked(listMyReviews).mockReset().mockResolvedValue([]);
+  vi.mocked(searchParks).mockReset().mockResolvedValue([]);
   vi.mocked(uploadPhoto).mockReset().mockResolvedValue("https://x/photo.jpg" as never);
   trackEventMock.mockReset();
 });
@@ -114,7 +123,7 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
   });
 
   it("?stars= overrides the star count of an older stored draft", async () => {
-    writeDraft(key("p1", { userId: "u1" }), { step: 1, stars: 2, subRatings: { clean: 2, safety: 2, equipment: 2, comfort: 2 }, ageBand: "3-6", comment: "Déjà écrit", photo: null }, { schemaVersion: 1 });
+    writeDraft(key("p1", { userId: "u1" }), { step: 1, stars: 2, subRatings: { clean: 2, safety: 2, equipment: 2, comfort: 2 }, ageBand: "3-6", comment: "Déjà écrit", photo: null }, { schemaVersion: 2 });
     renderRate("?park=p1&stars=5");
     await screen.findByText("Square Voltaire");
     await waitFor(() => expect((readDraft(key("p1", { userId: "u1" }), READ) as { stars?: number; comment?: string })).toMatchObject({ stars: 5, comment: "Déjà écrit" }), { timeout: 2000 });
@@ -174,7 +183,7 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
 
   it("rating + comment autosave (debounced) under the user key", async () => {
     renderRate();
-    await toStep2();
+    await toExperience();
     fireEvent.change(commentField(), { target: { value: "Très bien" } });
     await waitFor(
       () => expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string })?.comment).toBe("Très bien"),
@@ -185,8 +194,8 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
   it("restores a stored draft automatically, landing on the saved step", () => {
     writeDraft(
       key("p1", { userId: "u1" }),
-      { step: 2, stars: 5, subRatings: { clean: 3, safety: 3, equipment: 3, comfort: 3 }, ageBand: "6-12", comment: "Repris", photo: null },
-      { schemaVersion: 1 },
+      { step: 1, stars: 5, subRatings: { clean: 3, safety: 3, equipment: 3, comfort: 3 }, ageBand: "6-12", comment: "Repris", photo: null },
+      { schemaVersion: 2 },
     );
     renderRate();
     expect(commentField().value).toBe("Repris");
@@ -196,11 +205,11 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
     writeDraft(
       key("p1", { userId: "u1" }),
       { step: 2, stars: 0, subRatings: { clean: 2, safety: 2, equipment: 2, comfort: 2 }, ageBand: "3-6", comment: "orphan", photo: null },
-      { schemaVersion: 1 },
+      { schemaVersion: 2 },
     );
     renderRate();
     expect(await screen.findByText("Comment était votre visite ?")).toBeTruthy();
-    expect(screen.queryByLabelText(/Votre commentaire/)).toBeNull();
+    expect(screen.queryByText("Vérifier mon avis")).toBeNull();
   });
 
   it("flushes to storage on pagehide", async () => {
@@ -212,7 +221,7 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
 
   it("createReview success → the draft is cleared before navigating, no resurrection on late pagehide", async () => {
     renderRate();
-    await toStep2();
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
 
     await waitFor(() => expect(createReview).toHaveBeenCalledTimes(1));
@@ -234,18 +243,21 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
   it("createReview failure → stays on the form, draft conserved", async () => {
     vi.mocked(createReview).mockRejectedValue(new Error("network"));
     renderRate();
-    await toStep2();
+    await toExperience();
     fireEvent.change(commentField(), { target: { value: "Ne part pas" } });
     await waitFor(
       () => expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string })?.comment).toBe("Ne part pas"),
       { timeout: 2000 },
     );
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    await screen.findByText("Vérifier mon avis");
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
 
     await waitFor(() => expect(createReview).toHaveBeenCalled());
-    // Server error details are never surfaced verbatim — a generic, translated
-    // message is shown instead (see doSubmit's catch).
-    expect(toasts.list).toContain("Une erreur est survenue");
+    // Server error details are never surfaced verbatim — a clear inline message
+    // is shown instead, answers kept, button re-enabled for a retry.
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Vos réponses sont conservées/);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Publier mon avis" })).toHaveProperty("disabled", false));
     expect(loc()).toBe("/rate");
     expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string })?.comment).toBe("Ne part pas");
 
@@ -258,7 +270,7 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
     writeDraft(
       key("p1", { userId: "u1" }),
       { step: 2, stars: 5, subRatings: { clean: 3, safety: 3, equipment: 3, comfort: 3 }, ageBand: "6-12", comment: "p1 only", photo: null },
-      { schemaVersion: 1 },
+      { schemaVersion: 2 },
     );
     renderRate("?park=p2");
     expect(readDraft(key("p2", { userId: "u1" }), READ)).toBeNull();
@@ -268,7 +280,7 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
     writeDraft(
       key("p1", { userId: "A" }),
       { step: 2, stars: 5, subRatings: { clean: 3, safety: 3, equipment: 3, comfort: 3 }, ageBand: "6-12", comment: "A private", photo: null },
-      { schemaVersion: 1 },
+      { schemaVersion: 2 },
     );
     sess.userId = "B";
     renderRate();
@@ -280,7 +292,7 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
 describe("RatePark — success sheet", () => {
   it("primary CTA \"Voir le parc\" replaces the wizard entry with the park page", async () => {
     renderRate();
-    await toStep2();
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
     await screen.findByText("Merci !");
 
@@ -291,7 +303,7 @@ describe("RatePark — success sheet", () => {
 
   it("secondary CTA \"Retour à la carte\" replaces the wizard entry with the map", async () => {
     renderRate();
-    await toStep2();
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
     await screen.findByText("Merci !");
 
@@ -302,7 +314,7 @@ describe("RatePark — success sheet", () => {
 
   it("dismissing the sheet (backdrop) also replaces the wizard entry with the map — never back into the finished wizard", async () => {
     renderRate();
-    await toStep2();
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
     await screen.findByText("Merci !");
 
@@ -315,7 +327,7 @@ describe("RatePark — success sheet", () => {
 
   it("no photo attached → the review is published, no photo-moderation mention", async () => {
     renderRate();
-    await toStep2();
+    await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
     const heading = await screen.findByText("Merci !");
 
@@ -325,12 +337,14 @@ describe("RatePark — success sheet", () => {
 
   it("photo attached → the review is published, but the photo is separately called out as pending review", async () => {
     const { container } = renderRate();
-    await toStep2();
+    await toExperience();
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["x"], "photo.jpg", { type: "image/jpeg" })] } });
     await waitFor(() =>
       expect((readDraft(key("p1", { userId: "u1" }), READ) as { photo?: string })?.photo).toBe("https://x/photo.jpg"),
     );
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    await screen.findByText("Vérifier mon avis");
 
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
     await waitFor(() =>
@@ -345,12 +359,14 @@ describe("RatePark — guest → OAuth → authenticated", () => {
   it("guest rates, hits send → resume route stashed, draft under the guest key", async () => {
     sess.userId = null;
     renderRate();
-    await toStep2(4, "p1", "guest");
+    await toExperience(4, "p1", "guest");
     fireEvent.change(commentField(), { target: { value: "Invité" } });
     await waitFor(
       () => expect((readDraft(key("p1", "guest"), READ) as { comment?: string })?.comment).toBe("Invité"),
       { timeout: 2000 },
     );
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    await screen.findByText("Vérifier mon avis");
 
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
     await screen.findByText("LOGIN");
@@ -363,12 +379,12 @@ describe("RatePark — guest → OAuth → authenticated", () => {
     writeDraft(
       key("p1", "guest"),
       { step: 2, stars: 5, subRatings: { clean: 3, safety: 3, equipment: 3, comfort: 3 }, ageBand: "6-12", comment: "Repris après login", photo: null },
-      { schemaVersion: 1 },
+      { schemaVersion: 2 },
     );
     writeDraft(
       key("p9", "guest"),
       { step: 2, stars: 2, subRatings: { clean: 1, safety: 1, equipment: 1, comfort: 1 }, ageBand: "3-6", comment: "autre parc", photo: null },
-      { schemaVersion: 1 },
+      { schemaVersion: 2 },
     );
     sess.userId = "u1";
     renderRate("?park=p1&resume=1");
@@ -379,5 +395,84 @@ describe("RatePark — guest → OAuth → authenticated", () => {
     expect((readDraft(key("p9", "guest"), READ) as { comment?: string })?.comment).toBe("autre parc");
     await screen.findByText("Merci !");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
+  });
+});
+
+describe("RatePark — parcours en 3 étapes", () => {
+  it("park preselected → 2 displayed steps (« Étape 1 sur 2 »), no chooser; summary lets the user edit", async () => {
+    renderRate();
+    await screen.findByText("Square Voltaire");
+    expect(screen.getByText("Étape 1 sur 2")).toBeTruthy();
+    await toVerify(3);
+    expect(screen.getByText("Étape 2 sur 2")).toBeTruthy();
+    expect(screen.getByText("Bien")).toBeTruthy(); // libellé explicite de la note
+    fireEvent.click(screen.getByRole("button", { name: /Modifier — Avis/ }));
+    await screen.findByText("Comment était votre visite ?");
+    expect(screen.getByRole("button", { name: "3 étoiles" })).toBeTruthy();
+  });
+
+  it("explicit star label under the stars", async () => {
+    renderRate();
+    await rate(5);
+    expect(screen.getByText("Excellent")).toBeTruthy();
+  });
+
+  it("criteria faces are labelled radios (≥44px targets via class) and persist", async () => {
+    renderRate();
+    await rate(4);
+    const group = screen.getByRole("radiogroup", { name: "Propreté" });
+    fireEvent.click(within(group).getByRole("radio", { name: "Bien" }));
+    await waitFor(() =>
+      expect((readDraft(key("p1", { userId: "u1" }), READ) as { subRatings?: { clean?: number } })?.subRatings?.clean).toBe(3),
+    );
+  });
+
+  it("no park yet → chooser first (3 steps), explicit selection required, then the experience step", async () => {
+    vi.mocked(searchParks).mockResolvedValue([{ id: "p1", name: "Square Voltaire", formatted_address: "1 rue X", photos: [] }] as never);
+    renderRate("");
+    expect(await screen.findByText("Étape 1 sur 3")).toBeTruthy();
+    const cont = screen.getByRole("button", { name: "Continuer" });
+    expect(cont).toHaveProperty("disabled", true);
+    fireEvent.change(screen.getByLabelText("Rechercher un parc"), { target: { value: "Volt" } });
+    fireEvent.click(await screen.findByRole("button", { name: /Square Voltaire/ }));
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", false);
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    await screen.findByText("Comment était votre visite ?");
+    expect(screen.getByText("Étape 2 sur 3")).toBeTruthy();
+  });
+
+  it("an existing review → the edit flow is offered instead of a duplicate", async () => {
+    vi.mocked(listMyReviews).mockResolvedValue([{ id: "r9", park_id: "p1", status: "published" }] as never);
+    renderRate();
+    expect(await screen.findByText(/Vous avez déjà donné votre avis/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Modifier mon avis" }));
+    expect(loc()).toBe("/review/r9/edit");
+    expect(createReview).not.toHaveBeenCalled();
+  });
+
+  it("failure keeps answers, re-enables the button, and a retry succeeds; a double tap sends once", async () => {
+    vi.mocked(createReview).mockRejectedValueOnce(new Error("network"));
+    renderRate();
+    await toVerify();
+    const btn = screen.getByRole("button", { name: "Publier mon avis" });
+    fireEvent.click(btn);
+    fireEvent.click(btn);
+    await screen.findByRole("alert");
+    expect(createReview).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Publier mon avis" })).toHaveProperty("disabled", false));
+    fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
+    await screen.findByText("Merci !");
+    expect(createReview).toHaveBeenCalledTimes(2);
+  });
+
+  it("a v1 draft sitting on the comment step is migrated to the experience step", async () => {
+    writeDraft(
+      key("p1", { userId: "u1" }),
+      { step: 2, stars: 5, subRatings: { clean: 3, safety: 3, equipment: 3, comfort: 3 }, ageBand: "6-12", comment: "v1", photo: null },
+      { schemaVersion: 1 },
+    );
+    renderRate();
+    expect(commentField().value).toBe("v1");
+    expect(screen.getByText("Étape 1 sur 2")).toBeTruthy();
   });
 });

@@ -5,16 +5,18 @@ import { Button } from "@toboggo/design-system";
 import {
   addParkPhotos,
   canDecodeImage,
-  getParkDisplayName,
+  type Park,
   ImageValidationError,
   looksLikeHeic,
   uploadPhoto,
   validateImageFile,
 } from "@toboggo/shared";
-import { WizardHeader } from "../../components/WizardHeader";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
-import { ParkPicker } from "../../components/ParkPicker";
-import { PhotoPicker, TipBlock } from "../../components/PhotoPicker";
+import { PhotoPicker } from "../../components/PhotoPicker";
+import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
+import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
+import { SummaryCard } from "../../components/addPark/AddParkParts";
+import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { requireAccount, useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
@@ -59,19 +61,15 @@ const MAX_PHOTOS = 5;
 // natif (`<input type="file">`) n'est même pas rendu tant que l'utilisateur
 // n'est pas connecté (voir le rendu conditionnel ci-dessous).
 
-// Named stepper shared with the other contribution wizards (see AddPark). The
-// three stages are stable across entry points: arriving with `?park=` just
-// starts on "Photos" with "Parc" already checked — the step is never dropped.
-// Keys resolved against the `contribute` namespace.
-const STEPPER = ["steps.park", "steps.photos", "steps.confirmation"];
-
 export default function AddPhotos() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { t } = useTranslation("contribute");
   const { t: tErr } = useTranslation("errors");
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
-  const { data: park } = usePark(parkId ?? undefined);
+  const { data: fetchedPark } = usePark(parkId ?? undefined);
+  const [chosen, setChosen] = useState<Park | null>(null);
+  const park = chosen ?? fetchedPark;
   const userId = useSession((s) => s.userId);
   const showToast = useToastStore((s) => s.show);
   const preselected = useRef(Boolean(params.get("park"))).current;
@@ -80,6 +78,11 @@ export default function AddPhotos() {
   const [picks, setPicks] = useState<PhotoPick[]>([]);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  // Verrou synchrone anti double envoi + URLs déjà téléversées : un nouvel essai
+  // après un échec partiel ne re-téléverse jamais une photo déjà envoyée.
+  const submittingRef = useRef(false);
+  const uploadedRef = useRef(new Map<File, string>());
 
   // `contribution_started` — une fois par montage. Limite documentée : ce
   // wizard n'a pas de marqueur `?resume=1` (il utilise `requireAccount`, pas
@@ -164,14 +167,21 @@ export default function AddPhotos() {
   // (source = "user"). They enter the moderation queue (status = pending).
   async function upload(uid: string, targetPark: string, files: File[]): Promise<boolean> {
     const urls: string[] = [];
-    for (const file of files) urls.push(await uploadPhoto("parkPhotos", file, uid));
+    for (const file of files) {
+      let url = uploadedRef.current.get(file);
+      if (!url) {
+        url = await uploadPhoto("parkPhotos", file, uid);
+        uploadedRef.current.set(file, url);
+      }
+      urls.push(url);
+    }
     await addParkPhotos(targetPark, urls, { source: "user", userId: uid });
     void queryClient.invalidateQueries({ queryKey: ["park", targetPark] });
     return true;
   }
 
   function submit() {
-    if (!parkId || !park || !picks.length) return;
+    if (submittingRef.current || !parkId || !park || !picks.length) return;
     const targetPark = parkId;
     const files = picks.map((p) => p.file);
     const uid = useSession.getState().userId;
@@ -186,7 +196,9 @@ export default function AddPhotos() {
       return;
     }
 
+    submittingRef.current = true;
     setSaving(true);
+    setSubmitError(false);
     upload(uid, targetPark, files)
       .then(() => {
         // `had_just_in_time_auth` est volontairement OMISE (propriété
@@ -202,9 +214,19 @@ export default function AddPhotos() {
         });
         setDone(true);
       })
-      .catch(() => showToast(tErr("image.uploadFailed")))
-      .finally(() => setSaving(false));
+      .catch(() => setSubmitError(true))
+      .finally(() => {
+        submittingRef.current = false;
+        setSaving(false);
+      });
   }
+
+  // Parc fourni par la fiche : l'étape « Choisir le parc » n'est pas affichée, la
+  // progression ne compte que les étapes réellement présentées.
+  const offset = preselected ? 1 : 0;
+  const total = 3 - offset;
+  const guard = useLeaveGuard({ dirty: picks.length > 0, onLeave: () => navigate("/map"), body: t("addPhotos.leaveBody") });
+  const back = () => (step === offset ? (picks.length ? guard.request() : navigate(-1)) : setStep(step - 1));
 
   if (done) {
     // Contribution terminée : le wizard ne doit plus rester visible ni
@@ -227,105 +249,90 @@ export default function AddPhotos() {
     );
   }
 
+  let footer: React.ReactNode;
+  if (step === 0) {
+    footer = (
+      <Button block disabled={!park} onClick={() => park && (setParkId(park.id), setStep(1))}>
+        {t("common.continue")}
+      </Button>
+    );
+  } else if (step === 1) {
+    footer = (
+      <Button block disabled={!picks.length} onClick={() => setStep(2)}>
+        {t("common.continue")}
+      </Button>
+    );
+  } else {
+    footer = (
+      <Button block loading={saving} disabled={!picks.length} onClick={submit}>
+        {t("addPhotos.submit")}
+      </Button>
+    );
+  }
+
   return (
-    <div className="screen">
-      <WizardHeader
-        step={step}
-        total={STEPPER.length}
-        steps={STEPPER.map((k) => t(k))}
-        onBack={() =>
-          step === 0 || (step === 1 && preselected) ? navigate(-1) : setStep(step - 1)
-        }
-      />
-
-      {step === 0 && (
-        <ParkPicker
-          onPick={(p) => {
-            setParkId(p.id);
-            setStep(1);
-          }}
-          onNone={() => navigate("/action-intro/add")}
-        />
-      )}
-
-      {step === 1 && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{park && getParkDisplayName(park, t)}</h2>
-          <p style={{ fontSize: 13.5, color: "var(--color-text-muted)", marginBottom: 12 }}>
-            {t("addPhotos.subtitle")}
-          </p>
-
-          <PhotoPicker
-            previews={picks.map((p) => p.preview)}
-            max={MAX_PHOTOS}
-            onFiles={addFiles}
-            onRemove={removePick}
-            canPick={Boolean(userId)}
-            onRequireAuth={requirePhotoAuth}
+    <>
+      <FlowShell
+        title={t("addPhotos.headerTitle")}
+        step={step - offset}
+        total={total}
+        stepKey={step}
+        onBack={back}
+        onClose={guard.request}
+        footer={footer}
+      >
+        {step === 0 && (
+          <ParkChooser
+            selected={park && chosen ? park : null}
+            onSelect={(p) => setChosen(p)}
+            onNone={() => navigate("/add")}
           />
-          {!userId && (
-            <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
-              {t("common.accountRequiredPhotos")}
-            </p>
-          )}
-          <Button block disabled={!picks.length} style={{ marginTop: 16 }} onClick={() => setStep(2)}>
-            {t("common.continue")}
-          </Button>
-        </div>
-      )}
+        )}
 
-      {step === 2 && (
-        // Étape réellement atteinte désormais — jusqu'ici "Confirmation" n'était
-        // qu'un libellé de stepper jamais rendu (le bouton de l'étape Photos
-        // envoyait directement). L'upload/la création de la contribution ne se
-        // déclenchent qu'ici, sur clic explicite ; "Modifier les photos" revient
-        // à l'étape 1 sans toucher à `picks` (état du composant, inchangé par un
-        // simple changement de `step`).
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("steps.confirmation")}</h2>
-          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16, marginBottom: 4 }}>
-            {park && getParkDisplayName(park, t)}
-          </p>
-          <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            {t("addPhotos.readyCount", { count: picks.length })}
-          </p>
+        {step === 1 && (
+          <>
+            <h2 className={styles.title}>{t("addPhotos.title")}</h2>
+            <p className={styles.subtitle}>{t("addPhotos.subtitle")}</p>
+            {park && <div style={{ marginBottom: 16 }}><ParkCardMini park={park} /></div>}
+            <PhotoPicker
+              previews={picks.map((p) => p.preview)}
+              max={MAX_PHOTOS}
+              onFiles={addFiles}
+              onRemove={removePick}
+              canPick={Boolean(userId)}
+              onRequireAuth={requirePhotoAuth}
+            />
+            {!userId && <p className={styles.muted} style={{ marginTop: 12 }}>{t("common.accountRequiredPhotos")}</p>}
+          </>
+        )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
-            {picks.map((pick, i) => (
-              <div
-                key={i}
-                style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${pick.preview})`, backgroundSize: "cover", backgroundPosition: "center" }}
-              />
-            ))}
-          </div>
-
-          <TipBlock label={t("photoTip.label")} text={t("photoTip.text")} />
-
-          <Button block loading={saving} disabled={!picks.length} style={{ marginTop: 16 }} onClick={submit}>
-            {t("addPhotos.submit", { count: picks.length })}
-          </Button>
-          <button
-            type="button"
-            onClick={() => setStep(1)}
-            style={{
-              display: "block",
-              width: "100%",
-              textAlign: "center",
-              background: "none",
-              border: "none",
-              color: "var(--color-primary)",
-              fontFamily: "var(--font-heading)",
-              fontWeight: 700,
-              fontSize: 14,
-              cursor: "pointer",
-              padding: 12,
-              marginTop: 4,
-            }}
-          >
-            {t("addPhotos.editPhotos")}
-          </button>
-        </div>
-      )}
-    </div>
+        {step === 2 && (
+          <>
+            <h2 className={styles.title}>{t("addPhotos.verifyTitle")}</h2>
+            <p className={styles.subtitle}>{t("addPhotos.readyCount", { count: picks.length })}</p>
+            <SummaryCard title={t("steps.park")} onEdit={() => setStep(0)} hideEdit={preselected}>
+              {park && <ParkCardMini park={park} />}
+            </SummaryCard>
+            <SummaryCard title={t("steps.photos")} onEdit={() => setStep(1)}>
+              <div className={styles.thumbs}>
+                {picks.map((pick, i) => (
+                  <div key={i} className={styles.thumb} style={{ backgroundImage: `url(${pick.preview})` }} />
+                ))}
+              </div>
+            </SummaryCard>
+            <p className={styles.legend}>{t("addPhotos.moderation")}</p>
+            <div aria-live="polite" role="status">
+              {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
+            </div>
+            {submitError && (
+              <div className={styles.errorBox} role="alert">
+                {t("addPhotos.submitError")}
+              </div>
+            )}
+          </>
+        )}
+      </FlowShell>
+      {guard.dialog}
+    </>
   );
 }

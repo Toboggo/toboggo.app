@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { Icon } from "@toboggo/design-system";
+import { Button, Icon } from "@toboggo/design-system";
+import styles from "./flow/Flow.module.css";
 
 // Sélecteur de photos partagé (AddPhotos + AddPark) : aperçus avec suppression,
 // compteur, deux sources distinctes (caméra / photothèque) et conseil. Ne
@@ -19,6 +20,7 @@ export function PhotoPicker({
   canPick,
   onRequireAuth,
   busy = false,
+  showCounter = true,
 }: {
   previews: string[];
   max: number;
@@ -28,6 +30,8 @@ export function PhotoPicker({
   canPick: boolean;
   onRequireAuth: () => void;
   busy?: boolean;
+  /** Masque « n / max photos » (parcours à photo unique). */
+  showCounter?: boolean;
 }) {
   const { t } = useTranslation("contribute");
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -41,118 +45,71 @@ export function PhotoPicker({
 
   return (
     <>
+      {previews.length < max && (
+        <div className={styles.dropzone}>
+          <CameraIcon size={34} />
+          <div className={styles.dropzoneButtons}>
+            <Button
+              block
+              disabled={busy}
+              onClick={canPick ? () => cameraInputRef.current?.click() : onRequireAuth}
+            >
+              {t("addPhotos.takePhoto")}
+            </Button>
+            <Button
+              block
+              variant="secondary"
+              disabled={busy}
+              onClick={canPick ? () => libraryInputRef.current?.click() : onRequireAuth}
+            >
+              {t("addPhotos.chooseFromLibrary")}
+            </Button>
+          </div>
+          {canPick && (
+            <>
+              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onChange} />
+              <input ref={libraryInputRef} type="file" accept="image/*" multiple={max > 1} hidden onChange={onChange} />
+            </>
+          )}
+        </div>
+      )}
+      {busy && (
+        <p className={styles.counter} role="status">
+          {t("flow.photos.uploading")}
+        </p>
+      )}
+
       {previews.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div className={styles.thumbGrid}>
           {previews.map((src, i) => (
-            <div key={i} style={{ position: "relative" }}>
-              <div style={{ aspectRatio: "1", borderRadius: 14, backgroundImage: `url(${src})`, backgroundSize: "cover", backgroundPosition: "center" }} />
-              <button
-                type="button"
-                aria-label={t("common.removePhoto")}
-                onClick={() => onRemove(i)}
-                style={{ position: "absolute", top: 6, right: 6, width: 26, height: 26, borderRadius: "50%", border: "none", background: "rgba(0,0,0,0.55)", color: "#fff", cursor: "pointer", display: "grid", placeItems: "center" }}
-              >
-                <Icon name="ic-close" size={14} />
+            <div key={i} className={styles.thumbWrap}>
+              <div className={styles.thumb2} style={{ backgroundImage: `url(${src})` }} />
+              <button type="button" className={styles.thumbRemove} aria-label={t("common.removePhoto")} onClick={() => onRemove(i)}>
+                <span className={styles.thumbRemoveDot}>
+                  <Icon name="ic-close" size={14} />
+                </span>
               </button>
             </div>
           ))}
         </div>
       )}
 
-      <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 10 }}>
-        {t("addPhotos.counter", { count: previews.length, max })}
-      </p>
-
-      {previews.length < max && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <PhotoSourceRow
-            tone="primary"
-            icon={<CameraIcon />}
-            label={t("addPhotos.takePhoto")}
-            disabled={busy}
-            onClick={canPick ? () => cameraInputRef.current?.click() : onRequireAuth}
-          />
-          <PhotoSourceRow
-            tone="neutral"
-            icon={<GalleryIcon />}
-            label={t("addPhotos.chooseFromLibrary")}
-            disabled={busy}
-            onClick={canPick ? () => libraryInputRef.current?.click() : onRequireAuth}
-          />
-          {canPick && (
-            <>
-              <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" hidden onChange={onChange} />
-              <input ref={libraryInputRef} type="file" accept="image/*" multiple hidden onChange={onChange} />
-            </>
-          )}
-        </div>
+      {showCounter && (
+        <p className={styles.counter}>{t("addPhotos.counter", { count: previews.length, max })}</p>
       )}
 
-      <TipBlock label={t("photoTip.label")} text={t("photoTip.text")} />
+      <p className={styles.tipSoft}>
+        {t("photoTip.label")} — {t("photoTip.text")}
+      </p>
     </>
   );
 }
 
-// Ligne pleine largeur « source de photo » (caméra / photothèque). Pictogrammes
-// en SVG inline : pas de symbole caméra/photothèque dans `icons-sprite.svg`.
-function PhotoSourceRow({
-  tone,
-  icon,
-  label,
-  onClick,
-  disabled,
-}: {
-  tone: "primary" | "neutral";
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
+function CameraIcon({ size = 22 }: { size?: number }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
-        width: "100%",
-        padding: "15px 16px",
-        borderRadius: 14,
-        border: tone === "primary" ? "1px solid transparent" : "1px solid var(--color-border)",
-        background: tone === "primary" ? "var(--color-primary-tint)" : "var(--color-surface)",
-        color: "var(--color-text)",
-        cursor: disabled ? "default" : "pointer",
-        opacity: disabled ? 0.6 : 1,
-        font: "inherit",
-        textAlign: "left",
-      }}
-    >
-      <span style={{ display: "flex", color: tone === "primary" ? "var(--color-primary)" : "var(--color-text-muted)", flexShrink: 0 }}>
-        {icon}
-      </span>
-      <span style={{ flex: 1, fontWeight: 600, fontSize: 15 }}>{label}</span>
-      <Chevron />
-    </button>
-  );
-}
-
-function CameraIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z" />
       <circle cx="12" cy="13" r="3.2" />
-    </svg>
-  );
-}
-
-function GalleryIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <rect x="3" y="4" width="18" height="16" rx="2.5" />
-      <circle cx="8.5" cy="9.5" r="1.6" />
-      <path d="M21 16.5 15.5 11 6 20" />
     </svg>
   );
 }
@@ -185,14 +142,6 @@ function BulbIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }} aria-hidden>
       <path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.5.4.8 1 .8 1.7v.3h5.6v-.3c0-.7.3-1.3.8-1.7A6 6 0 0 0 12 3Z" />
-    </svg>
-  );
-}
-
-function Chevron() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--color-text-faint)", flexShrink: 0 }} aria-hidden>
-      <path d="M9 6l6 6-6 6" />
     </svg>
   );
 }

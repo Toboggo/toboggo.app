@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { addParkPhotos, uploadPhoto } from "@toboggo/shared";
+import { addParkPhotos, searchParks, uploadPhoto } from "@toboggo/shared";
 import "../../i18n/testInit";
 import AddPhotos from "./AddPhotos";
 
@@ -18,6 +18,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     // pass validation without any need to mock them.
     addParkPhotos: vi.fn().mockResolvedValue(undefined),
     uploadPhoto: vi.fn().mockResolvedValue("https://x/photo.jpg"),
+    searchParks: vi.fn().mockResolvedValue([]),
   };
 });
 
@@ -123,6 +124,7 @@ beforeEach(() => {
   sess.pendingResume = null;
   toasts.list.length = 0;
   vi.mocked(addParkPhotos).mockReset().mockResolvedValue(undefined);
+  vi.mocked(searchParks).mockReset().mockResolvedValue([]);
   vi.mocked(uploadPhoto).mockReset().mockResolvedValue("https://x/photo.jpg" as never);
 });
 
@@ -146,7 +148,7 @@ describe("AddPhotos — account required BEFORE the file picker (LOT 3D.F, point
   it("guest clicks the library action → auth is triggered too, not just the camera one", async () => {
     renderPhotos();
     await screen.findByText("Square Voltaire");
-    fireEvent.click(screen.getByRole("button", { name: /Choisir dans la photothèque/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Choisir des photos/ }));
 
     await screen.findByText("LOGIN");
     expect(uploadPhoto).not.toHaveBeenCalled();
@@ -252,7 +254,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
 
     // Server error details are never surfaced verbatim — a generic, translated
     // message is shown instead (see AddPhotos.tsx submit()'s catch).
-    await waitFor(() => expect(toasts.list).toContain("Échec de l’envoi de la photo"));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Vos photos sont conservées/);
     expect(screen.queryByText("Photo envoyée !")).toBeNull();
     expect(screen.getByRole("button", { name: /Envoyer/ })).toHaveProperty("disabled", false);
   });
@@ -325,7 +327,7 @@ describe("AddPhotos — take a photo vs choose from the library", () => {
     await screen.findByText("Square Voltaire");
 
     expect(screen.getByRole("button", { name: /Prendre une photo/ })).toBeTruthy();
-    expect(screen.getByRole("button", { name: /Choisir dans la photothèque/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Choisir des photos/ })).toBeTruthy();
     expect(cameraInput(container)).toBeTruthy();
     expect(libraryInput(container)).toBeTruthy();
   });
@@ -391,7 +393,7 @@ describe("AddPhotos — take a photo vs choose from the library", () => {
     expect(toasts.list).toContain("Vous pouvez ajouter 5 photos maximum.");
     // Both actions disappear once the cap is reached — nothing left to add.
     expect(screen.queryByRole("button", { name: /Prendre une photo/ })).toBeNull();
-    expect(screen.queryByRole("button", { name: /Choisir dans la photothèque/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Choisir des photos/ })).toBeNull();
   });
 
   it("an invalid file in a multi-select is rejected with a toast, valid ones in the same batch are still kept", async () => {
@@ -508,7 +510,7 @@ describe("AddPhotos — real Confirmation step (Continuer / Modifier les photos)
 
     // "Confirmation" also appears as a (future/current) stepper label at every
     // step — the heading is what proves the screen itself changed.
-    expect(await screen.findByRole("heading", { name: "Confirmation" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Vérifier et envoyer" })).toBeTruthy();
     expect(uploadPhoto).not.toHaveBeenCalled();
     expect(addParkPhotos).not.toHaveBeenCalled();
   });
@@ -535,7 +537,7 @@ describe("AddPhotos — real Confirmation step (Continuer / Modifier les photos)
     goToConfirmation();
     await screen.findByText("2 photos prêtes à être envoyées");
 
-    fireEvent.click(screen.getByRole("button", { name: "Modifier les photos" }));
+    fireEvent.click(screen.getByRole("button", { name: /Modifier — Photos/ }));
 
     expect(await screen.findByText("2 / 5 photos")).toBeTruthy();
     expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(2);
@@ -568,5 +570,63 @@ describe("AddPhotos — real Confirmation step (Continuer / Modifier les photos)
 
     expect(await screen.findByText("1 / 5 photos")).toBeTruthy();
     expect(container.querySelectorAll('button[aria-label="Retirer cette photo"]')).toHaveLength(1);
+  });
+});
+
+describe("AddPhotos — parcours en 3 étapes", () => {
+  it("park from the park page → only 2 displayed steps; photos required (Continuer disabled) then recap", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    expect(await screen.findByText("Étape 1 sur 2")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", true);
+    pick(container);
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", false);
+    goToConfirmation();
+    expect(await screen.findByText("Étape 2 sur 2")).toBeTruthy();
+    expect(screen.getByText("Vos photos seront vérifiées avant publication.")).toBeTruthy();
+    // le parc est fixé : pas de « Modifier » sur la carte Parc
+    expect(screen.queryByRole("button", { name: /Modifier — Parc/ })).toBeNull();
+  });
+
+  it("no park yet → 3 steps starting with an explicit park choice", async () => {
+    sess.userId = "u1";
+    vi.mocked(searchParks).mockResolvedValue([{ id: "p1", name: "Square Voltaire", formatted_address: "1 rue X", photos: [] }] as never);
+    renderPhotos("");
+    expect(await screen.findByText("Étape 1 sur 3")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Continuer" })).toHaveProperty("disabled", true);
+    fireEvent.change(screen.getByLabelText("Rechercher un parc"), { target: { value: "Volt" } });
+    fireEvent.click(await screen.findByRole("button", { name: /Square Voltaire/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    expect(await screen.findByText("Étape 2 sur 3")).toBeTruthy();
+  });
+
+  it("failure keeps the photos; the retry does NOT re-upload what was already uploaded; double tap sends once", async () => {
+    sess.userId = "u1";
+    vi.mocked(addParkPhotos).mockRejectedValueOnce(new Error("db"));
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container, makeFile("a.jpg"));
+    goToConfirmation();
+    const btn = await screen.findByRole("button", { name: "Envoyer les photos" });
+    fireEvent.click(btn);
+    fireEvent.click(btn);
+    await screen.findByRole("alert");
+    expect(uploadPhoto).toHaveBeenCalledTimes(1);
+    expect(addParkPhotos).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Envoyer les photos" })).toHaveProperty("disabled", false));
+    fireEvent.click(screen.getByRole("button", { name: "Envoyer les photos" }));
+    await screen.findByText("Photo envoyée !");
+    expect(uploadPhoto).toHaveBeenCalledTimes(1); // déjà téléversée : réutilisée
+    expect(addParkPhotos).toHaveBeenCalledTimes(2);
+  });
+
+  it("closing with picked photos asks for confirmation", async () => {
+    sess.userId = "u1";
+    const { container } = renderPhotos();
+    await screen.findByText("Square Voltaire");
+    pick(container);
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByText(/seront perdues/)).toBeTruthy();
   });
 });

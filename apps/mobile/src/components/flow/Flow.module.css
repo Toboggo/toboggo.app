@@ -154,22 +154,27 @@
 /* ── Âges ────────────────────────────────────────────────────────────── */
 .ageGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  /* Les 4 tranches restent sur UNE ligne, colonnes égales (même à 320 px) ;
+     « Je ne sais pas » occupe la ligne du dessous. */
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 .pill {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 48px;
-  padding: 8px 12px;
+  min-height: 52px;
+  padding: 6px 2px;
+  text-align: center;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -344,4 +349,244 @@
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   z-index: 20;
+}
+
+/* ── Pied de page : variante avec action secondaire ─────────────────── */
+.footerStack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pageTall {
+  padding-bottom: calc(176px + var(--safe-bottom));
+}
+.ghostBtn {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* ── Cartes de parc (choix du parc, doublons) ────────────────────────── */
+.parkList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.parkCard {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.parkCard[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+}
+.parkThumb {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-xs);
+  background-size: cover;
+  background-position: center;
+}
+.parkBody {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.parkName {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.parkMeta {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+.banner {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-tint);
+  color: var(--color-text);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.candidate {
+  padding: 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+.candidate .parkCard {
+  border: 0;
+  padding: 0;
+  cursor: default;
+}
+.candidateHead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.candidateCta {
+  margin-top: 10px;
+}
+
+/* ── Zone photos ─────────────────────────────────────────────────────── */
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 14px;
+  border: 1.5px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  text-align: center;
+}
+.dropzoneButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.thumbGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.thumbWrap {
+  position: relative;
+}
+.thumb2 {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  background-size: cover;
+  background-position: center;
+}
+.thumbRemove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  background: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.thumbRemoveDot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+}
+.counter {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.tipSoft {
+  margin: 14px 2px 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+/* ── Catégories (signalement) ────────────────────────────────────────── */
+.catGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.catCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 84px;
+  padding: 12px 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font: inherit;
+  color: var(--color-text);
+  text-align: center;
+  cursor: pointer;
+}
+.catCard[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-pressed);
+}
+.catLabel {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+/* ── Note (avis) ─────────────────────────────────────────────────────── */
+.ratingBlock {
+  text-align: center;
+  padding: 6px 0 2px;
+}
+.ratingWord {
+  margin: 8px 0 0;
+  min-height: 22px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-primary-pressed);
+}
+.faceRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--color-border);
+}
+.faceRow:first-child {
+  border-top: 0;
+}
+.faceBtn {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 20px;
+  cursor: pointer;
+}
+.faceBtn[aria-checked="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
 }

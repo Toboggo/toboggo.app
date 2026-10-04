@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
-  Dialog,
+  Icon,
   Input,
   Textarea,
   Tag,
@@ -15,6 +15,7 @@ import {
   addParkPhotos,
   buildDraftKey,
   createPark,
+  fetchNearbyParks,
   listFeatures,
   logActivity,
   uploadPhoto,
@@ -22,11 +23,12 @@ import {
   type Park,
 } from "@toboggo/shared";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
-import { AddParkSearch } from "../../components/AddParkSearch";
 import { PinField } from "../../components/PinField";
 import { PhotoPicker } from "../../components/PhotoPicker";
-import { AddParkHeader, AgeButtons, GameGrid, SummaryCard, TriStateRow, type GameOption } from "../../components/addPark/AddParkParts";
-import styles from "../../components/addPark/AddPark.module.css";
+import { AgeButtons, GameGrid, SummaryCard, TriStateRow, type GameOption } from "../../components/addPark/AddParkParts";
+import { FlowShell, FooterSecondary, useLeaveGuard } from "../../components/flow/FlowShell";
+import { ParkCardMini } from "../../components/flow/ParkChooser";
+import styles from "../../components/flow/Flow.module.css";
 import { useFormat } from "../../i18n/useFormat";
 import { addressToParkInput, applyResolvedAddress, formatLocality, localityFor, type DraftLocality } from "../../lib/addressDraft";
 import { useAddressResolver } from "../../lib/useAddressResolver";
@@ -52,13 +54,26 @@ import {
 // Plafond client des photos du brouillon (inchangé).
 const MAX_PHOTOS = 4;
 
-// 3 étapes : 0 Localisation · 1 Informations · 2 Photos et vérification.
-const TOTAL_STEPS = 3;
+// 5 étapes : 0 Localisation (+ doublons) · 1 Jeux et âges · 2 Petits détails ·
+// 3 Photos · 4 Récapitulatif.
+const TOTAL_STEPS = 5;
+/** Rayon de la détection de doublons autour du repère. */
+const DUP_RADIUS_M = 500;
+/** ~11 m : deux repères à cette précision sont « le même emplacement ». */
+const posKey = (lat: number, lng: number) => `${lat.toFixed(4)},${lng.toFixed(4)}`;
 
 // Brouillon persistant (LOT 3D.E) — socle partagé `usePersistentDraft`.
 // v2 : parcours à 3 étapes, tranches d'âge, réponses Oui/Non/inconnu (un brouillon
 // v1 — étapes 0-4, plage d'âge continue — est ignoré, jamais mal interprété).
-const ADD_PARK_DRAFT_VERSION = 2;
+// v3 : 5 étapes ; un brouillon v2 est migré (mêmes données, étape remappée).
+const ADD_PARK_DRAFT_VERSION = 3;
+/** v2 : 0 Localisation · 1 Informations (jeux, âges, détails) · 2 Photos + vérification. */
+const V2_STEP_TO_V3: Record<number, number> = { 0: 0, 1: 1, 2: 4 };
+function migrateDraft(data: unknown, fromVersion: number): AddParkDraft | null {
+  if (fromVersion !== 2 || !data || typeof data !== "object") return null;
+  const d = data as AddParkDraft;
+  return { ...d, step: V2_STEP_TO_V3[d.step] ?? 0 };
+}
 const ADD_PARK_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 
 interface AddParkDraft {
@@ -71,7 +86,7 @@ interface AddParkDraft {
   addressEdited?: boolean;
   /** Code postal / ville / régions / pays du repère (reverse geocoding). */
   locality?: DraftLocality | null;
-  /** L'utilisateur a validé l'emplacement (étape 0 franchie). */
+  /** Emplacement vérifié (doublons écartés) et validé : étape 0 franchie. Repasse à faux dès que le repère bouge. */
   locationConfirmed: boolean;
   name: string;
   equipment: Set<string>;
@@ -118,7 +133,6 @@ export default function AddPark() {
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState(false);
-  const [confirmClose, setConfirmClose] = useState(false);
   const [showAllGames, setShowAllGames] = useState(false);
   const [ageRejected, setAgeRejected] = useState(false);
   // Garde synchrone contre le double envoi (le `saving` React arrive un rendu trop tard).
@@ -164,6 +178,7 @@ export default function AddPark() {
     schemaVersion: ADD_PARK_DRAFT_VERSION,
     ttlMs: ADD_PARK_DRAFT_TTL_MS,
     restore: "auto",
+    migrate: migrateDraft,
     serialize: replaceSets,
     deserialize: reviveSets,
   });
@@ -186,10 +201,35 @@ export default function AddPark() {
   // jamais le stockage.
   const clampedStep = Math.min(Math.max(draft.step, 0), TOTAL_STEPS - 1);
   const step = clampedStep >= 1 && !draft.locationConfirmed ? 0 : clampedStep;
-  const setStep = (next: number) => {
-    patch({ step: next });
-    window.scrollTo?.(0, 0);
-  };
+  const setStep = (next: number) => patch({ step: next });
+
+  // ── Détection de doublons (étape 0) ──────────────────────────────────
+  // `checkPos` = position pour laquelle la vérification a été demandée. La
+  // requête est indexée par cette position : une réponse pour un ancien repère
+  // ne peut jamais s'afficher pour le nouveau. Si le repère bouge après une
+  // vérification, elle est relancée automatiquement et le choix est invalidé.
+  const [checkPos, setCheckPos] = useState<{ lat: number; lng: number } | null>(null);
+  const dup = useQuery({
+    queryKey: ["add-park-dup", checkPos ? posKey(checkPos.lat, checkPos.lng) : null],
+    queryFn: () => fetchNearbyParks({ lat: checkPos!.lat, lng: checkPos!.lng, radiusMeters: DUP_RADIUS_M }),
+    enabled: checkPos !== null,
+    retry: false,
+    gcTime: 0,
+  });
+  const candidates = dup.data ?? [];
+  function onPinChange(nlat: number, nlng: number) {
+    const moved = posKey(nlat, nlng) !== posKey(draft.lat, draft.lng);
+    patch(moved ? { lat: nlat, lng: nlng, locationConfirmed: false } : { lat: nlat, lng: nlng });
+    if (moved && checkPos) setCheckPos({ lat: nlat, lng: nlng });
+  }
+  // Aucun candidat : on poursuit normalement.
+  useEffect(() => {
+    if (step !== 0 || !checkPos || draft.locationConfirmed || saving || done) return;
+    if (dup.isSuccess && dup.data.length === 0 && posKey(checkPos.lat, checkPos.lng) === posKey(draft.lat, draft.lng)) {
+      patch({ locationConfirmed: true, step: 1 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, checkPos, dup.isSuccess, dup.data, draft.locationConfirmed, draft.lat, draft.lng, saving, done]);
 
   const [uploading, setUploading] = useState(false);
   const autoSubmitted = useRef(false);
@@ -297,14 +337,11 @@ export default function AddPark() {
     draft.description.trim() !== "" ||
     draft.photos.length > 0;
 
+  const guard = useLeaveGuard({ dirty: isDirty, onLeave: () => navigate("/map"), body: t("addPark.close.body") });
   function handleBack() {
     if (step > 0) return setStep(step - 1);
-    if (isDirty) return setConfirmClose(true);
+    if (isDirty) return guard.request();
     navigate(-1);
-  }
-  function handleClose() {
-    if (isDirty) return setConfirmClose(true);
-    navigate("/map");
   }
 
   function publish() {
@@ -427,100 +464,166 @@ export default function AddPark() {
     );
   }
 
-  const cta =
-    step === 0 ? t("addPark.confirmLocation") : step === 1 ? t("common.continue") : t("addPark.submit");
-  const onCta = () => {
-    if (step === 0) {
-      patch({ locationConfirmed: true, step: 1 });
-      window.scrollTo?.(0, 0);
-    } else if (step === 1) setStep(2);
-    else publish();
-  };
-
   const answerText = (a: "yes" | "no") => t(`addPark.answer.${a}`);
   const answeredServices = SERVICE_GROUPS.flatMap((g) => g.keys).filter((k) => draft.answers[k]);
+  const unansweredServices = SERVICE_GROUPS.flatMap((g) => g.keys).filter((k) => !draft.answers[k]);
+  const addressLine = [draft.address.trim(), formatLocality(pinLocality)].filter(Boolean).join(", ");
+
+  // Pied de page selon l'étape. Étape 0 : aucun bouton générique ne contourne le
+  // choix explicite lorsqu'il existe des candidats.
+  let footer: React.ReactNode;
+  let stacked = false;
+  if (step === 0) {
+    const checking = checkPos !== null && dup.isFetching;
+    if (draft.locationConfirmed) {
+      footer = <Button block onClick={() => setStep(1)}>{t("common.continue")}</Button>;
+    } else if (checking) {
+      footer = <Button block disabled>{t("addPark.dup.checking")}</Button>;
+    } else if (dup.isError) {
+      footer = <Button block onClick={() => void dup.refetch()}>{t("flow.retry")}</Button>;
+    } else if (checkPos && candidates.length > 0) {
+      footer = (
+        <Button block variant="secondary" onClick={() => patch({ locationConfirmed: true, step: 1 })}>
+          {t("addPark.dup.another")}
+        </Button>
+      );
+    } else {
+      footer = (
+        <Button block onClick={() => setCheckPos({ lat: draft.lat, lng: draft.lng })}>
+          {t("addPark.dup.verify")}
+        </Button>
+      );
+    }
+  } else if (step === 1 || step === 2) {
+    footer = <Button block onClick={() => setStep(step + 1)}>{t("common.continue")}</Button>;
+  } else if (step === 3) {
+    stacked = draft.photos.length === 0;
+    footer = (
+      <>
+        <Button block disabled={uploading} onClick={() => setStep(4)}>{t("common.continue")}</Button>
+        {stacked && <FooterSecondary onClick={() => setStep(4)}>{t("common.skip")}</FooterSecondary>}
+      </>
+    );
+  } else {
+    footer = <Button block loading={saving} onClick={publish}>{t("addPark.submit")}</Button>;
+  }
 
   return (
-    <div className={styles.page}>
-      <AddParkHeader step={step} total={TOTAL_STEPS} onBack={handleBack} onClose={handleClose} />
-
-      {step === 0 && (
-        <main className={styles.content}>
-          <h2 className={styles.title}>{t("addPark.locationTitle")}</h2>
-          <p className={styles.subtitle}>{t("addPark.locationHint")}</p>
-          <PinField
-            lat={draft.lat}
-            lng={draft.lng}
-            onChange={(lat, lng) => patch({ lat, lng })}
-            onPositionCommitted={resolveAddress}
-          />
-          <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "6px 0 0" }}>{t("addPark.pinHint")}</p>
-          <Input
-            label={t("addPark.addressLabel")}
-            value={draft.address}
-            onChange={(e) => patch({ address: e.target.value, addressEdited: e.target.value.trim() !== "" })}
-            onFocus={scrollFieldIntoView}
-            placeholder={t("addPark.addressPlaceholder")}
-            style={{ marginTop: 16 }}
-          />
-          {(resolvingAddress || formatLocality(pinLocality)) && (
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "6px 0 0" }} aria-live="polite">
-              {resolvingAddress ? t("addPark.addressResolving") : formatLocality(pinLocality)}
-            </p>
-          )}
-          <AddParkSearch lat={draft.lat} lng={draft.lng} onPickExisting={(p) => navigate(`/park/${p.id}`)} />
-        </main>
-      )}
-
-      {step === 1 && (
-        <main className={styles.content}>
-          <h2 className={styles.title}>{t("addPark.infoTitle")}</h2>
-          <p className={styles.subtitle}>{t("addPark.infoHint")}</p>
-
-          <Input
-            label={t("addPark.nameLabel")}
-            value={draft.name}
-            onChange={(e) => patch({ name: e.target.value })}
-            onFocus={scrollFieldIntoView}
-            placeholder={t("addPark.namePlaceholder")}
-            autoComplete="off"
-          />
-
-          <section className={styles.section} aria-labelledby="add-park-games">
-            <h3 className={styles.sectionTitle} id="add-park-games">
-              {t("addPark.games.title")}
-            </h3>
-            <GameGrid games={visibleGames} selected={draft.equipment} onToggle={toggleGame} />
-            {hasMoreGames && (
-              <button
-                type="button"
-                className={styles.linkButton}
-                aria-expanded={showAllGames}
-                onClick={() => setShowAllGames((v) => !v)}
-              >
-                {showAllGames ? t("addPark.games.seeLess") : t("addPark.games.seeAll")}
-              </button>
-            )}
-          </section>
-
-          <section className={styles.section} aria-labelledby="add-park-ages">
-            <h3 className={styles.sectionTitle} id="add-park-ages">
-              {t("addPark.ages.title")}
-            </h3>
-            <AgeButtons
-              bands={draft.ageBands}
-              unknown={draft.ageUnknown}
-              onToggleBand={onToggleBand}
-              onUnknown={onAgeUnknown}
-              rejected={ageRejected}
+    <>
+      <FlowShell
+        title={t("addPark.headerTitle")}
+        step={step}
+        total={TOTAL_STEPS}
+        stepKey={step}
+        onBack={handleBack}
+        onClose={guard.request}
+        footer={footer}
+        stackedFooter={stacked}
+      >
+        {step === 0 && (
+          <>
+            <h2 className={styles.title}>{t("addPark.locationTitle")}</h2>
+            <p className={styles.subtitle}>{t("addPark.locationHint")}</p>
+            <PinField lat={draft.lat} lng={draft.lng} onChange={onPinChange} onPositionCommitted={resolveAddress} />
+            <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "6px 0 0" }}>{t("addPark.pinHint")}</p>
+            <Input
+              label={t("addPark.addressLabel")}
+              value={draft.address}
+              onChange={(e) => patch({ address: e.target.value, addressEdited: e.target.value.trim() !== "" })}
+              onFocus={scrollFieldIntoView}
+              placeholder={t("addPark.addressPlaceholder")}
+              style={{ marginTop: 16 }}
             />
-          </section>
+            {(resolvingAddress || formatLocality(pinLocality)) && (
+              <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "6px 0 0" }} aria-live="polite">
+                {resolvingAddress ? t("addPark.addressResolving") : formatLocality(pinLocality)}
+              </p>
+            )}
 
-          <section className={styles.section} aria-labelledby="add-park-details">
-            <h3 className={styles.sectionTitle} id="add-park-details">
-              {t("addPark.details.title")}
-            </h3>
-            <p className={styles.sectionHint}>{t("addPark.details.hint")}</p>
+            <div aria-live="polite">
+              {checkPos && dup.isFetching && <p className={styles.muted} style={{ marginTop: 16 }}>{t("addPark.dup.checking")}</p>}
+              {checkPos && dup.isError && (
+                <div className={styles.errorBox} role="alert">
+                  {t("addPark.dup.error")}
+                </div>
+              )}
+            </div>
+            {checkPos && !dup.isFetching && !draft.locationConfirmed && candidates.length > 0 && (
+              <section aria-labelledby="add-park-dup-title">
+                <div className={styles.banner} id="add-park-dup-title">
+                  <Icon name="ic-warning" size={18} />
+                  <span>{t("addPark.dup.banner")}</span>
+                </div>
+                <div className={styles.parkList}>
+                  {candidates.slice(0, 5).map((p) => (
+                    <div key={p.id} className={styles.candidate}>
+                      <ParkCardMini park={p} meta={t("addPark.dup.distance", { distance: f.distance(p.distance_m) })} />
+                      <Button
+                        block
+                        className={styles.candidateCta}
+                        onClick={() => navigate(`/contribute/edit?park=${p.id}`)}
+                      >
+                        {t("addPark.dup.thisOne")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <p className={styles.sectionHint} style={{ marginTop: 12 }}>{t("addPark.dup.confirmOnly")}</p>
+              </section>
+            )}
+          </>
+        )}
+
+        {step === 1 && (
+          <>
+            <h2 className={styles.title}>{t("addPark.gamesAgesTitle")}</h2>
+            <p className={styles.subtitle}>{t("addPark.gamesAgesHint")}</p>
+
+            <Input
+              label={t("addPark.nameLabel")}
+              value={draft.name}
+              onChange={(e) => patch({ name: e.target.value })}
+              onFocus={scrollFieldIntoView}
+              placeholder={t("addPark.namePlaceholder")}
+              autoComplete="off"
+            />
+
+            <section className={styles.section} aria-labelledby="add-park-games">
+              <h3 className={styles.sectionTitle} id="add-park-games">
+                {t("addPark.games.title")}
+              </h3>
+              <GameGrid games={visibleGames} selected={draft.equipment} onToggle={toggleGame} />
+              {hasMoreGames && (
+                <button
+                  type="button"
+                  className={styles.linkButton}
+                  aria-expanded={showAllGames}
+                  onClick={() => setShowAllGames((v) => !v)}
+                >
+                  {showAllGames ? t("addPark.games.seeLess") : t("addPark.games.seeAll")}
+                </button>
+              )}
+            </section>
+
+            <section className={styles.section} aria-labelledby="add-park-ages">
+              <h3 className={styles.sectionTitle} id="add-park-ages">
+                {t("addPark.ages.title")}
+              </h3>
+              <AgeButtons
+                bands={draft.ageBands}
+                unknown={draft.ageUnknown}
+                onToggleBand={onToggleBand}
+                onUnknown={onAgeUnknown}
+                rejected={ageRejected}
+              />
+            </section>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <h2 className={styles.title}>{t("addPark.details.title")}</h2>
+            <p className={styles.subtitle}>{t("addPark.details.hint")}</p>
             {SERVICE_GROUPS.map((group) => (
               <div key={group.titleKey}>
                 <div className={styles.groupTitle}>{t(group.titleKey)}</div>
@@ -538,130 +641,116 @@ export default function AddPark() {
               </div>
             ))}
             <p className={styles.legend}>{t("addPark.answer.legend")}</p>
-          </section>
-
-          <section className={styles.section}>
-            <Textarea
-              label={t("addPark.descriptionLabel")}
-              value={draft.description}
-              onChange={(e) => patch({ description: e.target.value })}
-              onFocus={scrollFieldIntoView}
-              placeholder={t("addPark.descriptionPlaceholder")}
-              rows={3}
-            />
-          </section>
-        </main>
-      )}
-
-      {step === 2 && (
-        <main className={styles.content}>
-          <h2 className={styles.title}>{t("addPark.finalTitle")}</h2>
-          <p className={styles.subtitle}>{t("addPark.finalHint")}</p>
-
-          <h3 className={styles.sectionTitle}>{t("addPark.photosSection")}</h3>
-          <p className={styles.sectionHint}>{t("addPark.photosHint")}</p>
-          <PhotoPicker
-            previews={draft.photos}
-            max={MAX_PHOTOS}
-            onFiles={addFiles}
-            onRemove={removePhoto}
-            canPick={Boolean(userId)}
-            onRequireAuth={() => showToast(t("common.accountRequiredPhotos"))}
-            busy={uploading}
-          />
-
-          <h3 className={styles.sectionTitle} style={{ marginTop: 26, marginBottom: 12 }}>
-            {t("addPark.summaryTitle")}
-          </h3>
-
-          <SummaryCard title={t("steps.location")} onEdit={() => setStep(0)}>
-            <div className={styles.muted}>
-              {[draft.address.trim(), formatLocality(pinLocality)].filter(Boolean).join(", ") || t("addPark.locationOnMap")}
-            </div>
-          </SummaryCard>
-
-          <SummaryCard title={t("addPark.section.park")} onEdit={() => setStep(1)}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>
-              {draft.name.trim() || <span className={styles.muted}>{t("addPark.summary.unnamed")}</span>}
-            </div>
-          </SummaryCard>
-
-          <SummaryCard title={t("addPark.games.title")} onEdit={() => setStep(1)}>
-            {draft.equipment.size > 0 ? (
-              <div className={styles.tags}>
-                {Array.from(draft.equipment).map((code) => (
-                  <Tag key={code} tone="primary">
-                    {gameLabel(code)}
-                  </Tag>
-                ))}
-              </div>
-            ) : (
-              <span className={styles.muted}>{t("addPark.summary.notProvided")}</span>
-            )}
-          </SummaryCard>
-
-          <SummaryCard title={t("addPark.ages.title")} onEdit={() => setStep(1)}>
-            {ageRange ? (
-              <Tag>{f.ageRange(ageRange.min, ageRange.max)}</Tag>
-            ) : (
-              <span className={styles.muted}>{t("addPark.summary.notProvided")}</span>
-            )}
-          </SummaryCard>
-
-          <SummaryCard title={t("addPark.details.title")} onEdit={() => setStep(1)}>
-            {answeredServices.length > 0 ? (
-              <div className={styles.tags}>
-                {answeredServices.map((k) => (
-                  <Tag key={k} tone={draft.answers[k] === "yes" ? "primary" : undefined}>
-                    {t(`addPark.service.${k}`)} : {answerText(draft.answers[k]!)}
-                  </Tag>
-                ))}
-              </div>
-            ) : (
-              <span className={styles.muted}>{t("addPark.summary.notProvided")}</span>
-            )}
-          </SummaryCard>
-
-          {draft.description.trim() && (
-            <SummaryCard title={t("addPark.section.description")} onEdit={() => setStep(1)}>
-              <p className={styles.muted} style={{ margin: 0 }}>
-                {draft.description}
-              </p>
-            </SummaryCard>
-          )}
-
-          <div aria-live="polite" role="status">
-            {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
-          </div>
-          {submitError && (
-            <div className={styles.errorBox} role="alert">
-              {t("addPark.submitError")}
-            </div>
-          )}
-        </main>
-      )}
-
-      <div className={styles.footer}>
-        <Button block loading={saving} onClick={onCta}>
-          {cta}
-        </Button>
-      </div>
-
-      <Dialog
-        open={confirmClose}
-        onClose={() => setConfirmClose(false)}
-        title={t("addPark.close.title")}
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => setConfirmClose(false)}>
-              {t("addPark.close.stay")}
-            </Button>
-            <Button onClick={() => navigate("/map")}>{t("addPark.close.leave")}</Button>
+            <section className={styles.section}>
+              <Textarea
+                label={t("addPark.descriptionLabel")}
+                value={draft.description}
+                onChange={(e) => patch({ description: e.target.value })}
+                onFocus={scrollFieldIntoView}
+                placeholder={t("addPark.descriptionPlaceholder")}
+                rows={3}
+              />
+            </section>
           </>
-        }
-      >
-        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)" }}>{t("addPark.close.body")}</p>
-      </Dialog>
-    </div>
+        )}
+
+        {step === 3 && (
+          <>
+            <h2 className={styles.title}>{t("addPark.photosTitle")}</h2>
+            <p className={styles.subtitle}>{t("addPark.photosHint")}</p>
+            <PhotoPicker
+              previews={draft.photos}
+              max={MAX_PHOTOS}
+              onFiles={addFiles}
+              onRemove={removePhoto}
+              canPick={Boolean(userId)}
+              onRequireAuth={() => showToast(t("common.accountRequiredPhotos"))}
+              busy={uploading}
+            />
+          </>
+        )}
+
+        {step === 4 && (
+          <>
+            <h2 className={styles.title}>{t("addPark.verifyTitle")}</h2>
+            <p className={styles.subtitle}>{t("addPark.verifyHint")}</p>
+
+            <SummaryCard title={t("steps.location")} onEdit={() => setStep(0)}>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>
+                {draft.name.trim() || <span className={styles.muted}>{t("addPark.summary.unnamed")}</span>}
+              </div>
+              <div className={styles.muted} style={{ marginTop: 4 }}>
+                {addressLine || t("addPark.locationOnMap")}
+              </div>
+            </SummaryCard>
+
+            <SummaryCard title={t("addPark.summary.gamesAges")} onEdit={() => setStep(1)}>
+              {draft.equipment.size > 0 ? (
+                <div className={styles.tags}>
+                  {Array.from(draft.equipment).map((code) => (
+                    <Tag key={code} tone="primary">
+                      {gameLabel(code)}
+                    </Tag>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.muted}>{t("addPark.summary.noGames")}</div>
+              )}
+              <div className={styles.tags} style={{ marginTop: 8 }}>
+                {ageRange ? <Tag>{f.ageRange(ageRange.min, ageRange.max)}</Tag> : <span className={styles.muted}>{t("addPark.summary.noAge")}</span>}
+              </div>
+            </SummaryCard>
+
+            <SummaryCard title={t("addPark.summary.services")} onEdit={() => setStep(2)}>
+              {answeredServices.length > 0 && (
+                <div className={styles.tags}>
+                  {answeredServices.map((k) => (
+                    <Tag key={k} tone={draft.answers[k] === "yes" ? "primary" : undefined}>
+                      {t(`addPark.service.${k}`)} : {answerText(draft.answers[k]!)}
+                    </Tag>
+                  ))}
+                </div>
+              )}
+              {unansweredServices.length > 0 && (
+                <p className={styles.muted} style={{ margin: answeredServices.length ? "8px 0 0" : 0 }}>
+                  {t("addPark.summary.unknownList", { list: unansweredServices.map((k) => t(`addPark.service.${k}`)).join(", ") })}
+                </p>
+              )}
+            </SummaryCard>
+
+            <SummaryCard title={t("addPark.section.description")} onEdit={() => setStep(2)}>
+              {draft.description.trim() ? (
+                <p className={styles.muted} style={{ margin: 0 }}>{draft.description}</p>
+              ) : (
+                <span className={styles.muted}>{t("addPark.summary.noNote")}</span>
+              )}
+            </SummaryCard>
+
+            <SummaryCard title={t("steps.photos")} onEdit={() => setStep(3)}>
+              {draft.photos.length > 0 ? (
+                <div className={styles.thumbs}>
+                  {draft.photos.map((p, i) => (
+                    <div key={i} className={styles.thumb} style={{ backgroundImage: `url(${p})` }} />
+                  ))}
+                </div>
+              ) : (
+                <span className={styles.muted}>{t("addPark.summary.noPhotos")}</span>
+              )}
+            </SummaryCard>
+
+            <p className={styles.legend}>{t("addPark.summary.moderation")}</p>
+            <div aria-live="polite" role="status">
+              {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
+            </div>
+            {submitError && (
+              <div className={styles.errorBox} role="alert">
+                {t("addPark.submitError")}
+              </div>
+            )}
+          </>
+        )}
+      </FlowShell>
+      {guard.dialog}
+    </>
   );
 }

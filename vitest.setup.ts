@@ -28,3 +28,8 @@ if (typeof navigator !== "undefined") {
   Object.defineProperty(navigator, "languages", { value: ["fr-FR"], configurable: true });
   Object.defineProperty(navigator, "language", { value: "fr-FR", configurable: true });
 }
+
+// jsdom n'implémente pas window.scrollTo (les parcours remontent en haut à chaque étape).
+if (typeof window !== "undefined") {
+  window.scrollTo = (() => {}) as typeof window.scrollTo;
+}

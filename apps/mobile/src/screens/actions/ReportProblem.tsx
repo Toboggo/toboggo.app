@@ -6,16 +6,25 @@ import {
   Select,
   Textarea,
   Icon,
-  IconButton,
   reportReasonIcon,
   usePersistentDraft,
   useAdoptedDraftKey,
 } from "@toboggo/design-system";
-import { buildDraftKey, createReport, getParkDisplayName, uploadPhoto, REPORT_REASON_LABEL, type ReportReason } from "@toboggo/shared";
-import { WizardHeader } from "../../components/WizardHeader";
+import {
+  buildDraftKey,
+  createReport,
+  uploadPhoto,
+  ImageValidationError,
+  REPORT_REASON_LABEL,
+  type Park,
+  type ReportReason,
+} from "@toboggo/shared";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
-import { ParkPicker } from "../../components/ParkPicker";
-import { PhotoTip } from "../../components/PhotoTip";
+import { PhotoPicker } from "../../components/PhotoPicker";
+import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
+import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
+import { SummaryCard } from "../../components/addPark/AddParkParts";
+import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
@@ -30,7 +39,7 @@ interface ReportDraft {
 }
 
 // Brouillon persistant (LOT 3D.D) — socle partagé `usePersistentDraft`.
-const REPORT_DRAFT_VERSION = 1;
+const REPORT_DRAFT_VERSION = 2;
 const REPORT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 
 // Catégories sans pictogramme validé dans le sprite (docs/DESIGN-SYSTEM.md §7) —
@@ -52,19 +61,11 @@ const EQUIPMENT_CHOICES: { value: string; key: string }[] = [
   { value: "Autre", key: "equipment.other" },
 ];
 
-const EMPTY_REPORT_DRAFT: ReportDraft = { reason: null, equipment: EQUIPMENT_CHOICES[0].value, comment: "" };
+// Aucun équipement présélectionné : « Non précisé » (valeur vide) par défaut.
+const EMPTY_REPORT_DRAFT: ReportDraft = { reason: null, equipment: "", comment: "" };
 
-// Stepper nommé, partagé avec les autres wizards de contribution via
-// WizardHeader (voir AddPark / AddPhotos / RatePark). Contrairement à ceux-ci,
-// l'étape "Parc" ne fait PAS partie de la chronologie cible : la sélection /
-// présélection du parc est un préambule (step interne 0) qui n'affiche PAS le
-// stepper — il apparaît seulement à partir du choix du problème. Les trois
-// libellés sont stables quel que soit le point d'entrée.
-//   step interne 0 (ParkPicker) → header minimal, pas de stepper
-//   step interne 1 (choix du problème) → stepper, "Problème" courant  (step-1 = 0)
-//   step interne 2 (détails)           → stepper, "Détails" courant   (step-1 = 1)
-//   done → confirmation autonome, "Confirmation" n'est jamais l'étape courante
-const STEPPER = ["steps.problem", "steps.details", "steps.confirmation"];
+/** Le champ « Équipement concerné » n'a de sens que pour ces catégories. */
+const EQUIPMENT_RELEVANT: ReportReason[] = ["broken_equipment", "safety"];
 
 export default function ReportProblem() {
   const [params] = useSearchParams();
@@ -73,7 +74,9 @@ export default function ReportProblem() {
   const { t: tErr } = useTranslation("errors");
   const { t: tCommon } = useTranslation("common");
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
-  const { data: park } = usePark(parkId ?? undefined);
+  const { data: fetchedPark } = usePark(parkId ?? undefined);
+  const [chosen, setChosen] = useState<Park | null>(null);
+  const park = chosen ?? fetchedPark;
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
   const showToast = useToastStore((s) => s.show);
@@ -103,17 +106,29 @@ export default function ReportProblem() {
     schemaVersion: REPORT_DRAFT_VERSION,
     ttlMs: REPORT_DRAFT_TTL_MS,
     restore: "auto",
+    // v1 : même forme, mais `equipment` valait « Toboggan » par défaut sans choix
+    // de l'utilisateur — on ne le garde que si le brouillon avait une catégorie
+    // qui le justifie.
+    migrate: (data, from) => {
+      if (from !== 1 || !data || typeof data !== "object") return null;
+      const d = data as ReportDraft;
+      return { ...d, equipment: d.reason && EQUIPMENT_RELEVANT.includes(d.reason) ? d.equipment : "" };
+    },
   });
   const { reason, equipment, comment } = report;
 
+  // 0 Choisir le parc · 1 Décrire le problème · 2 Vérifier le signalement.
   const [step, setStep] = useState(parkId ? 1 : 0);
   const [photo, setPhoto] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const submittingRef = useRef(false);
   const autoSubmitted = useRef(false);
 
   // `contribution_started` — une fois par montage, quelle que soit l'étape
-  // interne (même le préambule ParkPicker, step 0, sans stepper visible).
+  // interne (même le choix du parc, step 0).
   const contributionStartedTracked = useRef(false);
   useEffect(() => {
     if (contributionStartedTracked.current) return;
@@ -128,32 +143,44 @@ export default function ReportProblem() {
 
   // The draft key can resolve a render after mount (guest → user handover, or a
   // signed-in user's own draft loading once the key is held-then-settled) —
-  // resume on the details step the first time a reason shows up, without
+  // resume on the describe step the first time a reason shows up, without
   // overriding a step the user already navigated to by hand.
   const resumedStepRef = useRef(false);
   useEffect(() => {
     if (resumedStepRef.current || !parkId || !reason) return;
     resumedStepRef.current = true;
-    setStep((s) => (s < 2 ? 2 : s));
+    setStep((s) => (s < 1 ? 1 : s));
   }, [parkId, reason]);
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function addFiles(files: File[]) {
+    const file = files[0];
     if (!file || !userId) return;
-    setPhoto(await uploadPhoto("reportPhotos", file, userId));
+    setUploading(true);
+    try {
+      setPhoto(await uploadPhoto("reportPhotos", file, userId));
+    } catch (err) {
+      showToast(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.uploadFailed"));
+    } finally {
+      setUploading(false);
+    }
   }
+
+  const needsEquipment = reason !== null && EQUIPMENT_RELEVANT.includes(reason);
+  const equipmentChoice = EQUIPMENT_CHOICES.find((c) => c.value === equipment);
 
   async function doSubmit(uid: string) {
     if (!parkId || !reason) return;
+    submittingRef.current = true;
     setSaving(true);
+    setSubmitError(false);
     try {
       await createReport({
         park_id: parkId,
         user_id: uid,
         reported_by_name: profile?.name || tCommon("anonymousAuthor"),
         reason,
-        equipment,
-        comment: comment || null,
+        equipment: needsEquipment && equipment ? equipment : undefined,
+        comment: comment.trim() || null,
         photo,
       });
       // Sent — drop the draft BEFORE the confirmation screen. clear() also
@@ -170,14 +197,15 @@ export default function ReportProblem() {
       setDone(true);
     } catch {
       // Failed — keep the form and the (autosaved) draft, surface the error.
-      showToast(tErr("generic"));
+      setSubmitError(true);
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
 
   function submit() {
-    if (!parkId || !reason) return;
+    if (submittingRef.current || !parkId || !reason) return;
     const uid = useSession.getState().userId;
     if (uid) {
       void doSubmit(uid);
@@ -206,6 +234,12 @@ export default function ReportProblem() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantsResume, userId, parkId, reason]);
 
+  const offset = preselected ? 1 : 0;
+  const total = 3 - offset;
+  const dirty = reason !== null || comment.trim() !== "" || Boolean(photo);
+  const guard = useLeaveGuard({ dirty, onLeave: () => navigate("/map"), body: t("report.leaveBody") });
+  const back = () => (step === offset ? (dirty ? guard.request() : navigate(-1)) : setStep(step - 1));
+
   if (done) {
     // Contribution terminée : le wizard ne doit plus rester visible ni
     // interactif derrière la confirmation. Même motif que AddPark / RatePark /
@@ -228,116 +262,144 @@ export default function ReportProblem() {
     );
   }
 
+  let footer: React.ReactNode;
+  if (step === 0) {
+    footer = (
+      <Button block disabled={!park} onClick={() => park && (setParkId(park.id), setStep(1))}>
+        {t("common.continue")}
+      </Button>
+    );
+  } else if (step === 1) {
+    footer = (
+      <Button block disabled={!reason || uploading} onClick={() => setStep(2)}>
+        {t("common.continue")}
+      </Button>
+    );
+  } else {
+    footer = (
+      <Button block loading={saving} onClick={submit}>
+        {t("report.submit")}
+      </Button>
+    );
+  }
+
   return (
-    <div className="screen">
-      {step === 0 ? (
-        // Choix du parc = préambule hors chronologie : header minimal (Retour +
-        // Fermer, même gabarit que WizardHeader) et titre, sans stepper. Le
-        // stepper n'apparaît qu'à partir de "Problème".
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "calc(14px + var(--safe-top)) 16px 14px" }}>
-          <IconButton aria-label={tCommon("action.back")} onClick={() => navigate(-1)}>
-            <Icon name="ic-back" size={18} />
-          </IconButton>
-          <h1 style={{ flex: 1, fontSize: 16, margin: 0 }}>{t("menu.report")}</h1>
-          <IconButton aria-label={tCommon("action.close")} onClick={() => navigate("/map")}>
-            <Icon name="ic-close" size={18} />
-          </IconButton>
-        </div>
-      ) : (
-        <WizardHeader
-          step={step - 1}
-          total={STEPPER.length}
-          steps={STEPPER.map((k) => t(k))}
-          onBack={() => (step === 1 && preselected ? navigate(-1) : setStep(step - 1))}
-        />
-      )}
+    <>
+      <FlowShell
+        title={t("menu.report")}
+        step={step - offset}
+        total={total}
+        stepKey={step}
+        onBack={back}
+        onClose={guard.request}
+        footer={footer}
+      >
+        {step === 0 && (
+          <ParkChooser selected={park && chosen ? park : null} onSelect={(p) => setChosen(p)} onNone={() => navigate(-1)} />
+        )}
 
-      {step === 0 && (
-        <ParkPicker
-          onPick={(p) => {
-            setParkId(p.id);
-            setStep(1);
-          }}
-          onNone={() => navigate(-1)}
-        />
-      )}
+        {step === 1 && (
+          <>
+            <h2 className={styles.title}>{t("report.describeTitle")}</h2>
+            <p className={styles.subtitle}>{t("report.problemQuestion")}</p>
+            {park && <div style={{ marginBottom: 16 }}><ParkCardMini park={park} /></div>}
+            <div className={styles.catGrid} role="group" aria-label={t("report.problemQuestion")}>
+              {(Object.keys(REPORT_REASON_LABEL) as ReportReason[]).map((r) => {
+                const ic = reportReasonIcon(r);
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    className={styles.catCard}
+                    aria-pressed={reason === r}
+                    onClick={() => patchReport({ reason: r, ...(EQUIPMENT_RELEVANT.includes(r) ? {} : { equipment: "" }) })}
+                  >
+                    <span aria-hidden="true" style={{ fontSize: 24, minHeight: 24, display: "flex", alignItems: "center" }}>
+                      {ic ? <Icon name={ic} size={24} /> : REASON_EMOJI[r]}
+                    </span>
+                    <span className={styles.catLabel}>{t(`reason.${r}`)}</span>
+                  </button>
+                );
+              })}
+            </div>
 
-      {step === 1 && park && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{getParkDisplayName(park, t)}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>{t("report.problemQuestion")}</p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {(Object.keys(REPORT_REASON_LABEL) as ReportReason[]).map((r) => {
-              const ic = reportReasonIcon(r);
-              return (
-                <button
-                  key={r}
-                  onClick={() => {
-                    patchReport({ reason: r });
-                    setStep(2);
-                  }}
-                  style={{
-                    padding: 16,
-                    borderRadius: 14,
-                    border: reason === r ? "2px solid var(--color-primary)" : "1.5px solid var(--color-border-strong)",
-                    background: "var(--color-surface)",
-                    textAlign: "center",
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{ fontSize: 24, minHeight: 24, display: "flex", justifyContent: "center", alignItems: "center" }}>
-                    {ic ? <Icon name={ic} size={24} /> : REASON_EMOJI[r]}
-                  </div>
-                  <div style={{ fontSize: 12, marginTop: 6 }}>{t(`reason.${r}`)}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+            {needsEquipment && (
+              <div style={{ marginTop: 20 }}>
+                <Select label={t("report.equipmentLabel")} value={equipment} onChange={(e) => patchReport({ equipment: e.target.value })}>
+                  <option value="">{t("report.equipmentUnspecified")}</option>
+                  {EQUIPMENT_CHOICES.map((c) => (
+                    <option key={c.value} value={c.value}>{t(c.key)}</option>
+                  ))}
+                </Select>
+              </div>
+            )}
 
-      {step === 2 && (
-        <div style={{ padding: "0 20px" }}>
-          <Select label={t("report.equipmentLabel")} value={equipment} onChange={(e) => patchReport({ equipment: e.target.value })}>
-            {EQUIPMENT_CHOICES.map((c) => (
-              <option key={c.value} value={c.value}>{t(c.key)}</option>
-            ))}
-          </Select>
-          <Textarea
-            label={t("report.describeLabel")}
-            value={comment}
-            maxLength={200}
-            onChange={(e) => patchReport({ comment: e.target.value })}
-            help={`${comment.length}/200`}
-            style={{ marginTop: 14 }}
-          />
-          {photo ? (
-            <div style={{ width: 90, height: 90, borderRadius: 14, backgroundImage: `url(${photo})`, backgroundSize: "cover", marginTop: 12 }} />
-          ) : (
-            <label
-              style={{
-                display: "inline-flex",
-                width: 90,
-                height: 90,
-                borderRadius: 14,
-                border: "2px dashed var(--color-border-strong)",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 24,
-                cursor: "pointer",
-                marginTop: 12,
-                color: "var(--color-text-faint)",
-              }}
-            >
-              +<input type="file" accept="image/*" hidden onChange={onPickFile} />
-            </label>
-          )}
-          <PhotoTip />
-          <Button block loading={saving} style={{ marginTop: 24 }} onClick={submit}>
-            {t("report.submit")}
-          </Button>
-        </div>
-      )}
-    </div>
+            <div style={{ marginTop: 20 }}>
+              <Textarea
+                label={t("report.describeLabel")}
+                value={comment}
+                maxLength={200}
+                onChange={(e) => patchReport({ comment: e.target.value })}
+                help={`${comment.length}/200`}
+                rows={3}
+              />
+            </div>
+
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>{t("flow.photoOptional")}</h3>
+              <PhotoPicker
+                previews={photo ? [photo] : []}
+                max={1}
+                onFiles={addFiles}
+                onRemove={() => setPhoto(null)}
+                canPick={Boolean(userId)}
+                onRequireAuth={() => showToast(t("common.accountRequiredPhotos"))}
+                busy={uploading}
+                showCounter={false}
+              />
+            </section>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <h2 className={styles.title}>{t("report.verifyTitle")}</h2>
+            <p className={styles.subtitle}>{t("report.verifyHint")}</p>
+            <SummaryCard title={t("steps.park")} onEdit={() => setStep(0)} hideEdit={preselected}>
+              {park && <ParkCardMini park={park} />}
+            </SummaryCard>
+            <SummaryCard title={t("steps.problem")} onEdit={() => setStep(1)}>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15 }}>
+                {reason ? t(`reason.${reason}`) : "—"}
+              </div>
+              {needsEquipment && (
+                <div className={styles.muted} style={{ marginTop: 4 }}>
+                  {t("report.equipmentLabel")} : {equipmentChoice ? t(equipmentChoice.key) : t("report.equipmentUnspecified")}
+                </div>
+              )}
+            </SummaryCard>
+            <SummaryCard title={t("report.descriptionTitle")} onEdit={() => setStep(1)}>
+              {comment.trim() ? <p className={styles.muted} style={{ margin: 0 }}>{comment}</p> : <span className={styles.muted}>{t("report.noDescription")}</span>}
+            </SummaryCard>
+            <SummaryCard title={t("steps.photos")} onEdit={() => setStep(1)}>
+              {photo ? (
+                <div className={styles.thumbs}><div className={styles.thumb} style={{ backgroundImage: `url(${photo})` }} /></div>
+              ) : (
+                <span className={styles.muted}>{t("addPark.summary.noPhotos")}</span>
+              )}
+            </SummaryCard>
+            <div aria-live="polite" role="status">
+              {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
+            </div>
+            {submitError && (
+              <div className={styles.errorBox} role="alert">
+                {t("report.submitError")}
+              </div>
+            )}
+          </>
+        )}
+      </FlowShell>
+      {guard.dialog}
+    </>
   );
 }

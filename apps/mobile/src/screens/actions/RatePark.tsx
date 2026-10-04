@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Button, Chip, Dialog, EmptyState, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
-import { addMedia, buildDraftKey, createReview, getParkDisplayName, getReview, updateMyReview, uploadPhoto, type AgeBand, type Review, type ReviewSubRatings } from "@toboggo/shared";
-import { WizardHeader } from "../../components/WizardHeader";
+import { Button, EmptyState, StarInput, Tag, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
+import { addMedia, buildDraftKey, createReview, getParkDisplayName, getReview, ImageValidationError, listMyReviews, updateMyReview, uploadPhoto, type AgeBand, type Park, type Review, type ReviewSubRatings } from "@toboggo/shared";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
-import { ParkPicker } from "../../components/ParkPicker";
-import { PhotoTip } from "../../components/PhotoTip";
+import { PhotoPicker } from "../../components/PhotoPicker";
+import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
+import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
+import { SummaryCard } from "../../components/addPark/AddParkParts";
+import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
@@ -22,11 +24,6 @@ const CRITERIA: { key: keyof ReviewSubRatings; labelKey: string }[] = [
   { key: "comfort", labelKey: "rate.criteria.comfort" },
 ];
 const FACES = ["😞", "😐", "😄"];
-// Named stepper shared with the other contribution wizards (see AddPark /
-// AddPhotos). The three stages are stable across entry points: arriving with
-// `?park=` just starts on "Avis" with "Parc" already checked — the step is
-// never dropped dynamically. Keys resolved against the `contribute` namespace.
-const STEPPER = ["steps.park", "steps.opinion", "steps.comment"];
 const AGE_BANDS: AgeBand[] = ["under3", "3-6", "6-12"];
 
 /** `?stars=N` (1–5) — note déjà choisie dans le rappel de visite post-itinéraire. */
@@ -36,11 +33,13 @@ function parsePresetStars(raw: string | null): number {
 }
 
 // Brouillon persistant (LOT 3D.E) — socle partagé `usePersistentDraft`.
-const RATE_PARK_DRAFT_VERSION = 1;
+// v2 : étapes 0 Parc · 1 Mon expérience (note, critères, commentaire, photo) · 2 Vérifier.
+// Un brouillon v1 (étape 2 = commentaire) est migré vers l'étape 1.
+const RATE_PARK_DRAFT_VERSION = 2;
 const RATE_PARK_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 
 interface RateParkDraft {
-  /** 0 = ParkPicker (no data of its own) · 1 = notes · 2 = commentaire. */
+  /** 0 = choix du parc (no data of its own) · 1 = mon expérience · 2 = vérification. */
   step: number;
   stars: number;
   subRatings: ReviewSubRatings;
@@ -114,7 +113,9 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
   const { t: tErr } = useTranslation("errors");
   const { t: tCommon } = useTranslation("common");
   const [parkId, setParkId] = useState<string | null>(editing?.park_id ?? params.get("park"));
-  const { data: park } = usePark(parkId ?? undefined);
+  const { data: fetchedPark } = usePark(parkId ?? undefined);
+  const [chosen, setChosen] = useState<Park | null>(null);
+  const park = chosen ?? fetchedPark;
   const userId = useSession((s) => s.userId);
   const profile = useSession((s) => s.profile);
   // Entered with a park already chosen (`?park=`): "Parc" is pre-checked and
@@ -155,7 +156,16 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
           photo: null,
         }
       : { step: parkId ? 1 : 0, stars: presetStars, subRatings: DEFAULT_SUB_RATINGS, ageBand: "3-6", comment: "", photo: null },
-    { schemaVersion: RATE_PARK_DRAFT_VERSION, ttlMs: RATE_PARK_DRAFT_TTL_MS, restore: "auto" },
+    {
+      schemaVersion: RATE_PARK_DRAFT_VERSION,
+      ttlMs: RATE_PARK_DRAFT_TTL_MS,
+      restore: "auto",
+      migrate: (data, from) => {
+        if (from !== 1 || !data || typeof data !== "object") return null;
+        const d = data as RateParkDraft;
+        return { ...d, step: d.step >= 2 ? 1 : d.step };
+      },
+    },
   );
 
   // A restored draft claiming step 2 (commentaire) without stars — the one
@@ -173,7 +183,6 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
       draft.ageBand !== editing.age_band ||
       draft.comment !== (editing.comment ?? "") ||
       !sameSubRatings(draft.subRatings, editing.sub_ratings ?? DEFAULT_SUB_RATINGS));
-  const [leaveOpen, setLeaveOpen] = useState(false);
   const savedRef = useRef(false);
   useEffect(() => {
     if (!dirty) return;
@@ -190,10 +199,6 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
     if ((window.history.state as { idx?: number } | null)?.idx) navigate(-1);
     else navigate(`/park/${parkId}`, { replace: true });
   }
-  function requestLeave() {
-    if (dirty && !savedRef.current) setLeaveOpen(true);
-    else leaveEdit();
-  }
 
   // The rating picked in the visit prompt is the user's latest explicit
   // choice: it wins over a star count restored from an older draft. Applied
@@ -208,6 +213,9 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
 
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  // Verrou synchrone anti double envoi.
+  const submittingRef = useRef(false);
   // Snapshot at submit time — `draft.photo` is gone once the draft is cleared,
   // but the success message still needs to know whether a photo was attached
   // (it enters moderation separately from the review text/stars, see doSubmit).
@@ -241,13 +249,22 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  const [uploading, setUploading] = useState(false);
+  async function addFiles(files: File[]) {
+    const file = files[0];
     if (!file || !userId) return;
-    patch({ photo: await uploadPhoto("parkPhotos", file, userId) });
+    setUploading(true);
+    try {
+      patch({ photo: await uploadPhoto("parkPhotos", file, userId) });
+    } catch (err) {
+      useToastStore.getState().show(err instanceof ImageValidationError ? tErr(`image.${err.code}`) : tErr("image.uploadFailed"));
+    } finally {
+      setUploading(false);
+    }
   }
 
   function submit() {
+    if (submittingRef.current) return;
     if (editing) {
       void doSaveEdit();
       return;
@@ -255,7 +272,6 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
     if (!parkId) return;
     const uid = useSession.getState().userId;
     if (uid) {
-      setSaving(true);
       void doSubmit(uid);
       return;
     }
@@ -268,7 +284,9 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
 
   async function doSaveEdit() {
     if (!editing || !userId) return;
+    submittingRef.current = true;
     setSaving(true);
+    setSubmitError(false);
     try {
       await updateMyReview(editing.id, userId, {
         stars: draft.stars,
@@ -291,14 +309,18 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
       leaveEdit();
     } catch {
       // Form state is untouched: the user keeps everything they typed.
-      useToastStore.getState().show(t("review.edit.error"));
+      setSubmitError(true);
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
 
   async function doSubmit(uid: string) {
     if (!parkId) return;
+    submittingRef.current = true;
+    setSaving(true);
+    setSubmitError(false);
     try {
       await createReview({
         park_id: parkId,
@@ -331,8 +353,9 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
       });
       setDone(true);
     } catch {
-      useToastStore.getState().show(tErr("generic"));
+      setSubmitError(true);
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
@@ -346,6 +369,41 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
     void doSubmit(userId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantsResume, userId, parkId, draft.stars]);
+
+  // Parc fourni (fiche, rappel de visite, édition) : « Choisir le parc » n'est pas
+  // affiché et la progression ne compte que les étapes présentées.
+  const offset = preselected ? 1 : 0;
+  const total = 3 - offset;
+  const rateDirty = draft.stars > 0 || draft.comment.trim() !== "" || Boolean(draft.photo);
+  const guard = useLeaveGuard(
+    editing
+      ? {
+          dirty: dirty && !savedRef.current,
+          onLeave: () => {
+            savedRef.current = true;
+            leaveEdit();
+          },
+          body: t("review.edit.leaveBody"),
+          title: t("review.edit.leaveTitle"),
+          stay: t("review.edit.leaveStay"),
+          leave: t("review.edit.leaveConfirm"),
+        }
+      : { dirty: rateDirty, onLeave: () => navigate("/map"), body: t("rate.leaveBody") },
+  );
+  const back = () => {
+    if (step > offset) return setStep(step - 1);
+    if (editing) return guard.request();
+    if (rateDirty) return guard.request();
+    navigate(-1);
+  };
+
+  // Un avis existe déjà pour ce parc : on propose son édition plutôt qu'un doublon.
+  const { data: myReviews } = useQuery({
+    queryKey: ["my-reviews", userId],
+    queryFn: () => listMyReviews(userId!),
+    enabled: !editing && !!userId && !!parkId,
+  });
+  const existingReview = !editing && parkId ? myReviews?.find((r) => r.park_id === parkId && r.status === "published") : undefined;
 
   if (done && !editing) {
     // Contribution terminée : le wizard ne doit plus rester visible ni
@@ -374,147 +432,185 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
     );
   }
 
+  const starWord = draft.stars > 0 ? t(`rate.starWord.${draft.stars}`) : "";
+  const faceLabel = (v: number) => t(`rate.face.${v}`);
+
+  let footer: React.ReactNode;
+  if (step === 0) {
+    footer = (
+      <Button block disabled={!park} onClick={() => park && (setParkId(park.id), setStep(1))}>
+        {t("common.continue")}
+      </Button>
+    );
+  } else if (step === 1) {
+    footer = existingReview ? (
+      <Button block onClick={() => navigate(`/review/${existingReview.id}/edit`)}>
+        {t("review.edit.menu")}
+      </Button>
+    ) : (
+      <Button block disabled={draft.stars === 0 || uploading} onClick={() => setStep(2)}>
+        {t("common.continue")}
+      </Button>
+    );
+  } else {
+    footer = (
+      <Button block loading={saving} disabled={editing ? !dirty : false} onClick={submit}>
+        {editing ? t("review.edit.save") : t("rate.submit")}
+      </Button>
+    );
+  }
+
+  const noteCriteria = CRITERIA.map((c) => ({ ...c, value: draft.subRatings[c.key] }));
+
   return (
-    <div className="screen">
-      <WizardHeader
-        step={step}
-        total={STEPPER.length}
-        steps={STEPPER.map((k) => t(k))}
-        onBack={() => {
-          if (editing) {
-            if (step === 1) requestLeave();
-            else setStep(1);
-            return;
-          }
-          if (step === 0 || (step === 1 && preselected)) navigate(-1);
-          else setStep(step - 1);
-        }}
-        onClose={editing ? requestLeave : undefined}
-      />
+    <>
+      <FlowShell
+        title={editing ? t("review.edit.title") : t("menu.rate")}
+        step={step - offset}
+        total={total}
+        stepKey={step}
+        onBack={back}
+        onClose={guard.request}
+        footer={footer}
+      >
+        {step === 0 && (
+          <ParkChooser selected={park && chosen ? park : null} onSelect={(p) => setChosen(p)} onNone={() => navigate("/add")} />
+        )}
 
-      {editing && (
-        <h1 style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 20, textAlign: "center", margin: "0 20px 12px" }}>
-          {t("review.edit.title")}
-        </h1>
-      )}
-
-      {step === 0 && (
-        <ParkPicker
-          onPick={(p) => {
-            setParkId(p.id);
-            setStep(1);
-          }}
-          onNone={() => navigate("/action-intro/add")}
-        />
-      )}
-
-      {step === 1 && park && (
-        <div style={{ padding: "0 20px", textAlign: "center" }}>
-          <h2 style={{ fontSize: 16, marginBottom: 4 }}>{getParkDisplayName(park, t)}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 20 }}>{t("rate.visitQuestion")}</p>
-          <StarInput value={draft.stars} onChange={(stars) => patch({ stars })} starLabel={(n) => t("rate.starLabel", { count: n })} />
-
-          <div style={{ marginTop: 28, textAlign: "left" }}>
-            {CRITERIA.map((c) => (
-              <div key={c.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                <span style={{ fontSize: 14 }}>{t(c.labelKey)}</span>
-                <div style={{ display: "flex", gap: 6 }}>
-                  {FACES.map((face, i) => (
-                    <button
-                      key={i}
-                      onClick={() => patch({ subRatings: { ...draft.subRatings, [c.key]: i + 1 } })}
-                      style={{
-                        fontSize: 20,
-                        background: draft.subRatings[c.key] === i + 1 ? "var(--color-primary-tint)" : "none",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: 36,
-                        height: 36,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {face}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 12, textAlign: "left" }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{t("rate.childAge")}</div>
-            <div style={{ display: "flex", gap: 8 }}>
-              {AGE_BANDS.map((b) => (
-                <Chip key={b} active={draft.ageBand === b} onClick={() => patch({ ageBand: b })}>
-                  {tCommon(`age.band.${b}`)}
-                </Chip>
-              ))}
+        {step === 1 && park && (
+          <>
+            <h2 className={styles.title}>{t("rate.experienceTitle")}</h2>
+            <p className={styles.subtitle}>{t("rate.visitQuestion")}</p>
+            <div style={{ marginBottom: 16 }}>
+              <ParkCardMini park={park} />
             </div>
-          </div>
 
-          <Button block style={{ marginTop: 24 }} disabled={draft.stars === 0} onClick={() => setStep(2)}>
-            {t("common.continue")}
-          </Button>
-        </div>
-      )}
+            {existingReview ? (
+              <div className={styles.banner} role="status">
+                <span>{t("rate.alreadyReviewed")}</span>
+              </div>
+            ) : (
+              <>
+                <div className={styles.ratingBlock}>
+                  <StarInput value={draft.stars} onChange={(stars) => patch({ stars })} starLabel={(n) => t("rate.starLabel", { count: n })} />
+                  <p className={styles.ratingWord} aria-live="polite">{starWord}</p>
+                </div>
 
-      {step === 2 && (
-        <div style={{ padding: "0 20px" }}>
-          <Textarea
-            label={t("rate.commentLabel")}
-            value={draft.comment}
-            maxLength={200}
-            onChange={(e) => patch({ comment: e.target.value })}
-            help={`${draft.comment.length}/200`}
-          />
-          {editing ? null : draft.photo ? (
-            <div style={{ width: 90, height: 90, borderRadius: 14, backgroundImage: `url(${draft.photo})`, backgroundSize: "cover", marginTop: 12 }} />
-          ) : (
-            <label
-              style={{
-                display: "inline-flex",
-                width: 90,
-                height: 90,
-                borderRadius: 14,
-                border: "2px dashed var(--color-border-strong)",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 24,
-                cursor: "pointer",
-                marginTop: 12,
-                color: "var(--color-text-faint)",
-              }}
-            >
-              +<input type="file" accept="image/*" hidden onChange={onPickFile} />
-            </label>
-          )}
-          {!editing && <PhotoTip />}
-          <Button block loading={saving} disabled={editing ? !dirty : false} style={{ marginTop: 24 }} onClick={submit}>
-            {editing ? t("review.edit.save") : t("rate.submit")}
-          </Button>
-        </div>
-      )}
+                <section className={styles.section} aria-labelledby="rate-criteria">
+                  <h3 className={styles.sectionTitle} id="rate-criteria">{t("rate.criteriaTitle")}</h3>
+                  <div className={styles.detailsCard}>
+                    {CRITERIA.map((c) => (
+                      <div key={c.key} className={styles.faceRow}>
+                        <span className={styles.triLabel} id={`face-${c.key}`}>{t(c.labelKey)}</span>
+                        <div className={styles.triGroup} role="radiogroup" aria-labelledby={`face-${c.key}`}>
+                          {FACES.map((face, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              role="radio"
+                              aria-checked={draft.subRatings[c.key] === i + 1}
+                              aria-label={faceLabel(i + 1)}
+                              className={styles.faceBtn}
+                              onClick={() => patch({ subRatings: { ...draft.subRatings, [c.key]: i + 1 } })}
+                            >
+                              {face}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
 
-      <Dialog open={leaveOpen} onClose={() => setLeaveOpen(false)} title={t("review.edit.leaveTitle")}>
-        <p style={{ fontSize: 13.5, color: "var(--color-text)", margin: "0 0 4px" }}>{t("review.edit.leaveBody")}</p>
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          <Button type="button" variant="secondary" block onClick={() => setLeaveOpen(false)}>
-            {t("review.edit.leaveStay")}
-          </Button>
-          <Button
-            type="button"
-            variant="danger"
-            block
-            onClick={() => {
-              setLeaveOpen(false);
-              savedRef.current = true;
-              leaveEdit();
-            }}
-          >
-            {t("review.edit.leaveConfirm")}
-          </Button>
-        </div>
-      </Dialog>
-    </div>
+                <section className={styles.section} aria-labelledby="rate-age">
+                  <h3 className={styles.sectionTitle} id="rate-age">{t("rate.childAge")}</h3>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8 }}>
+                    {AGE_BANDS.map((b) => (
+                      <button key={b} type="button" className={styles.pill} aria-pressed={draft.ageBand === b} onClick={() => patch({ ageBand: b })}>
+                        {tCommon(`age.band.${b}`)}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section className={styles.section}>
+                  <Textarea
+                    label={t("rate.commentLabel")}
+                    value={draft.comment}
+                    maxLength={200}
+                    onChange={(e) => patch({ comment: e.target.value })}
+                    help={`${draft.comment.length}/200`}
+                    rows={3}
+                  />
+                </section>
+
+                {!editing && (
+                  <section className={styles.section}>
+                    <h3 className={styles.sectionTitle}>{t("flow.photoOptional")}</h3>
+                    <PhotoPicker
+                      previews={draft.photo ? [draft.photo] : []}
+                      max={1}
+                      onFiles={addFiles}
+                      onRemove={() => patch({ photo: null })}
+                      canPick={Boolean(userId)}
+                      onRequireAuth={() => useToastStore.getState().show(t("common.accountRequiredPhotos"))}
+                      busy={uploading}
+                      showCounter={false}
+                    />
+                  </section>
+                )}
+              </>
+            )}
+          </>
+        )}
+
+        {step === 2 && park && (
+          <>
+            <h2 className={styles.title}>{t("rate.verifyTitle")}</h2>
+            <p className={styles.subtitle}>{t("rate.verifyHint")}</p>
+            <SummaryCard title={t("steps.park")} onEdit={() => setStep(0)} hideEdit={preselected}>
+              <ParkCardMini park={park} />
+            </SummaryCard>
+            <SummaryCard title={t("steps.opinion")} onEdit={() => setStep(1)}>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>
+                {"★".repeat(draft.stars)}
+                <span style={{ color: "var(--color-border)" }}>{"★".repeat(5 - draft.stars)}</span>{" "}
+                <span className={styles.muted}>{starWord}</span>
+              </div>
+              <div className={styles.tags} style={{ marginTop: 8 }}>
+                {noteCriteria.map((c) => (
+                  <Tag key={c.key}>
+                    {t(c.labelKey)} : {faceLabel(c.value)}
+                  </Tag>
+                ))}
+                {draft.ageBand && <Tag>{tCommon(`age.band.${draft.ageBand}`)}</Tag>}
+              </div>
+            </SummaryCard>
+            <SummaryCard title={t("rate.commentTitle")} onEdit={() => setStep(1)}>
+              {draft.comment.trim() ? <p className={styles.muted} style={{ margin: 0 }}>{draft.comment}</p> : <span className={styles.muted}>{t("rate.noComment")}</span>}
+            </SummaryCard>
+            {!editing && (
+              <SummaryCard title={t("steps.photos")} onEdit={() => setStep(1)}>
+                {draft.photo ? (
+                  <div className={styles.thumbs}><div className={styles.thumb} style={{ backgroundImage: `url(${draft.photo})` }} /></div>
+                ) : (
+                  <span className={styles.muted}>{t("addPark.summary.noPhotos")}</span>
+                )}
+              </SummaryCard>
+            )}
+            {!editing && <p className={styles.legend}>{t("rate.verifyNote")}</p>}
+            <div aria-live="polite" role="status">
+              {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
+            </div>
+            {submitError && (
+              <div className={styles.errorBox} role="alert">
+                {editing ? t("review.edit.error") : t("rate.submitError")}
+              </div>
+            )}
+          </>
+        )}
+      </FlowShell>
+      {guard.dialog}
+    </>
   );
 }

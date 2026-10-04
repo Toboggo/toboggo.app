@@ -86,16 +86,14 @@
     "photoPendingNote": "Tu foto aparecerá en la ficha del parque tras la verificación de nuestro equipo."
   },
   "addParkSearch": {
-    "title": "¿Qué parque quieres añadir?",
+    "title": "¿Este parque ya existe?",
     "subtitle": "Comprobemos primero que no esté ya registrado.",
-    "searchLabel": "Buscar un parque o una dirección",
+    "searchLabel": "Buscar un parque existente",
     "searchPlaceholder": "Nombre del parque, calle, ciudad…",
     "noResults": "No se ha encontrado ningún parque para esta búsqueda.",
-    "locationDenied": "Ubicación no autorizada — puedes continuar sin ella o buscar una dirección arriba.",
-    "nearby": "Parques cercanos",
+    "nearby": "Parques ya registrados cerca del marcador",
     "nearbyLoading": "Buscando parques a tu alrededor…",
     "nearbyNone": "No hay parques conocidos cerca.",
-    "none": "Ninguno de estos",
     "seeMore": "Ver más ({{count}})"
   },
   "pin": {
@@ -119,11 +117,11 @@
     "addressLabel": "Dirección (si la conoces)",
     "addressPlaceholder": "Calle Mayor 12, 28013 Madrid",
     "addressResolving": "Buscando la dirección…",
-    "infoTitle": "Información del parque",
-    "infoHint": "Indica solo lo que sepas.",
-    "nameLabel": "Nombre del parque",
+    "infoTitle": "¿Qué hay allí?",
+    "infoHint": "Indica lo que sepas.",
+    "nameLabel": "Nombre del parque (opcional)",
     "namePlaceholder": "Parque del Oeste",
-    "descriptionLabel": "Descripción (opcional)",
+    "descriptionLabel": "¿Alguna precisión útil? (opcional)",
     "serviceGroup": {
       "comfort": "Servicios y confort",
       "characteristics": "Características del parque"
@@ -146,6 +144,69 @@
     "success": {
       "title": "¡Parque añadido!",
       "body": "Gracias por ayudar a los padres a descubrir nuevos lugares."
+    },
+    "headerTitle": "Añadir un parque",
+    "stepOf": "Paso {{current}} de {{total}}",
+    "confirmLocation": "Confirmar ubicación",
+    "games": {
+      "title": "Juegos en el lugar",
+      "seeAll": "Ver todos los juegos",
+      "seeLess": "Ver menos juegos"
+    },
+    "game": {
+      "climbing": "Escalada",
+      "carousel": "Tiovivo"
+    },
+    "ages": {
+      "title": "¿Para qué edades?",
+      "unknown": "No lo sé",
+      "contiguousHint": "Esos tramos no son consecutivos: elige edades seguidas (por ejemplo 0–3 y 3–6 años).",
+      "band": {
+        "0-3": "0–3 años",
+        "3-6": "3–6 años",
+        "6-12": "6–12 años",
+        "12+": "12 años"
+      }
+    },
+    "details": {
+      "title": "Pequeños detalles útiles",
+      "hint": "Esta información ayuda a las familias a preparar su salida.",
+      "services": "Servicios en el lugar",
+      "comfort": "Acceso y comodidad"
+    },
+    "service": {
+      "wc": "Aseos",
+      "benches": "Bancos",
+      "water": "Agua potable",
+      "parking": "Aparcamiento cercano",
+      "shade": "Zonas de sombra",
+      "fenced": "Parque vallado",
+      "pmr": "Entrada accesible en silla de ruedas"
+    },
+    "answer": {
+      "yes": "Sí",
+      "no": "No",
+      "unknown": "?",
+      "unknownAria": "No lo sé",
+      "legend": "? = No lo sé"
+    },
+    "descriptionPlaceholder": "Aseos cerrados en invierno…",
+    "finalTitle": "Fotos y revisión",
+    "finalHint": "Añade fotos si tienes y revisa antes de enviar.",
+    "photosSection": "Fotos (opcional)",
+    "summaryTitle": "Resumen",
+    "summary": {
+      "unnamed": "Sin nombre — se mostrará como «Área de juegos»",
+      "notProvided": "No indicado"
+    },
+    "submitting": "Enviando…",
+    "submitError": "No se pudo enviar. Tus datos se conservan: revisa tu conexión e inténtalo de nuevo.",
+    "photosPartial": "El parque se ha creado, pero no se pudieron añadir algunas fotos. Podrás añadirlas desde su ficha.",
+    "close": {
+      "title": "¿Salir de la creación del parque?",
+      "body": "Tu borrador se guarda 24 h en este dispositivo: podrás retomarlo más tarde.",
+      "stay": "Seguir editando",
+      "leave": "Salir"
     }
   },
   "addPhotos": {

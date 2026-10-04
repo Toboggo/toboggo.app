@@ -1,0 +1,347 @@
+/* Parcours « Ajouter un parc » — fond blanc, vert Toboggo, touches amber.
+   Tout passe par les tokens du design system (aucun hex en dur). */
+
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-surface);
+  /* Réserve la hauteur du bouton fixe + safe-area : le contenu (et un champ
+     focalisé avec le clavier ouvert) n'est jamais masqué par le footer. */
+  padding-bottom: calc(112px + var(--safe-bottom));
+}
+
+/* ── En-tête compact ─────────────────────────────────────────────────── */
+.header {
+  padding: calc(10px + var(--safe-top)) 16px 12px;
+  background: var(--color-surface);
+}
+.headerRow {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+}
+.headerTitle {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--color-text);
+}
+.stepMeta {
+  margin: 6px 0 8px;
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.progress {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-tint);
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  transition: width 0.25s ease;
+}
+
+/* ── Contenu ─────────────────────────────────────────────────────────── */
+.content {
+  padding: 8px 20px 0;
+}
+.title {
+  margin: 0 0 4px;
+  font-size: 22px;
+  color: var(--color-text);
+}
+.subtitle {
+  margin: 0 0 20px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+.section {
+  margin-top: 26px;
+}
+.sectionTitle {
+  margin: 0 0 4px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--color-text);
+}
+.sectionHint {
+  margin: 0 0 12px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.groupTitle {
+  margin: 18px 0 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* ── Grille de jeux ──────────────────────────────────────────────────── */
+.gameGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.gameCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 92px;
+  padding: 12px 6px 10px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.gameCard[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-pressed);
+}
+.gameLabel {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 12.5px;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+.gameCheck {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* ── Âges ────────────────────────────────────────────────────────────── */
+.ageGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pill[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-pressed);
+}
+.pillWide {
+  grid-column: 1 / -1;
+}
+.note {
+  margin: 8px 0 0;
+  font-size: 12.5px;
+  color: var(--color-warning-text);
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+}
+
+/* ── Détails utiles : Oui / Non / ? ──────────────────────────────────── */
+.detailsCard {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.triRow {
+  display: flex;
+  flex-wrap: wrap; /* petits écrans : les boutons passent sous le libellé */
+  align-items: center;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--color-border);
+}
+.triRow:first-child {
+  border-top: 0;
+}
+.triGlyph {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-tint);
+  color: var(--color-text);
+}
+.triLabel {
+  flex: 1 1 120px;
+  min-width: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  line-height: 1.25;
+  color: var(--color-text);
+}
+.triGroup {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.triBtn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.triBtn[aria-checked="true"][data-value="yes"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-pressed);
+}
+.triBtn[aria-checked="true"][data-value="no"] {
+  border-color: var(--color-accent);
+  background: var(--color-accent-tint);
+  color: var(--color-text);
+}
+.triBtn[aria-checked="true"][data-value="unknown"] {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+.legend {
+  margin: 10px 2px 0;
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+}
+
+/* ── Récapitulatif ───────────────────────────────────────────────────── */
+.summaryCard {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  background: var(--color-surface);
+}
+.summaryHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.summaryTitle {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.summaryEdit {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.muted {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-xs);
+  background-size: cover;
+  background-position: center;
+}
+.errorBox {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-error-tint);
+  color: var(--color-text);
+  font-size: 13.5px;
+}
+
+/* ── Bouton principal fixe ───────────────────────────────────────────── */
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, var(--app-shell-width));
+  box-sizing: border-box;
+  padding: 12px 20px calc(12px + var(--safe-bottom));
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  z-index: 20;
+}

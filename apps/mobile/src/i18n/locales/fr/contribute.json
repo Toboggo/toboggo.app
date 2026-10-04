@@ -86,16 +86,14 @@
     "photoPendingNote": "Votre photo sera visible sur la fiche du parc après vérification par notre équipe."
   },
   "addParkSearch": {
-    "title": "Quel parc souhaitez-vous ajouter ?",
+    "title": "Ce parc existe-t-il déjà ?",
     "subtitle": "Vérifions d’abord qu’il n’est pas déjà référencé.",
-    "searchLabel": "Rechercher un parc ou une adresse",
+    "searchLabel": "Rechercher un parc existant",
     "searchPlaceholder": "Nom du parc, rue, ville…",
     "noResults": "Aucun parc trouvé pour cette recherche.",
-    "locationDenied": "Position non autorisée — vous pouvez continuer sans, ou rechercher une adresse ci-dessus.",
-    "nearby": "Parcs à proximité",
+    "nearby": "Parcs déjà référencés près du repère",
     "nearbyLoading": "Recherche des parcs autour de vous…",
     "nearbyNone": "Aucun parc connu à proximité.",
-    "none": "Aucun de ceux-ci",
     "seeMore": "Voir plus ({{count}})"
   },
   "pin": {
@@ -119,11 +117,11 @@
     "addressLabel": "Adresse (si vous la connaissez)",
     "addressPlaceholder": "12 rue des Tilleuls, 69000 Lyon",
     "addressResolving": "Recherche de l’adresse…",
-    "infoTitle": "Informations sur le parc",
-    "infoHint": "Renseignez uniquement ce que vous savez.",
-    "nameLabel": "Nom du parc",
+    "infoTitle": "Qu’y trouve-t-on ?",
+    "infoHint": "Renseignez ce que vous connaissez.",
+    "nameLabel": "Nom du parc (facultatif)",
     "namePlaceholder": "Square Voltaire",
-    "descriptionLabel": "Description (facultatif)",
+    "descriptionLabel": "Une précision utile ? (facultatif)",
     "serviceGroup": {
       "comfort": "Services & confort",
       "characteristics": "Caractéristiques du parc"
@@ -146,6 +144,69 @@
     "success": {
       "title": "Parc ajouté !",
       "body": "Merci d’aider les parents à découvrir de nouveaux endroits."
+    },
+    "headerTitle": "Ajouter un parc",
+    "stepOf": "Étape {{current}} sur {{total}}",
+    "confirmLocation": "Confirmer l’emplacement",
+    "games": {
+      "title": "Les jeux sur place",
+      "seeAll": "Voir tous les jeux",
+      "seeLess": "Voir moins de jeux"
+    },
+    "game": {
+      "climbing": "Escalade",
+      "carousel": "Tourniquet"
+    },
+    "ages": {
+      "title": "Pour quels âges ?",
+      "unknown": "Je ne sais pas",
+      "contiguousHint": "Ces tranches ne se suivent pas : choisissez des âges consécutifs (par exemple 0–3 ans et 3–6 ans).",
+      "band": {
+        "0-3": "0–3 ans",
+        "3-6": "3–6 ans",
+        "6-12": "6–12 ans",
+        "12+": "12 ans"
+      }
+    },
+    "details": {
+      "title": "Les petits détails utiles",
+      "hint": "Ces infos aident les familles à préparer leur sortie.",
+      "services": "Services sur place",
+      "comfort": "Accès et confort"
+    },
+    "service": {
+      "wc": "Toilettes",
+      "benches": "Bancs",
+      "water": "Eau potable",
+      "parking": "Parking à proximité",
+      "shade": "Zones ombragées",
+      "fenced": "Parc clôturé",
+      "pmr": "Entrée accessible en fauteuil"
+    },
+    "answer": {
+      "yes": "Oui",
+      "no": "Non",
+      "unknown": "?",
+      "unknownAria": "Je ne sais pas",
+      "legend": "? = Je ne sais pas"
+    },
+    "descriptionPlaceholder": "Toilettes fermées en hiver…",
+    "finalTitle": "Photos et vérification",
+    "finalHint": "Ajoutez des photos si vous en avez, puis vérifiez avant d’envoyer.",
+    "photosSection": "Photos (facultatif)",
+    "summaryTitle": "Récapitulatif",
+    "summary": {
+      "unnamed": "Nom non renseigné — il s’affichera comme « Aire de jeux »",
+      "notProvided": "Non renseigné"
+    },
+    "submitting": "Envoi en cours…",
+    "submitError": "L’envoi n’a pas abouti. Vos informations sont conservées : vérifiez votre connexion puis réessayez.",
+    "photosPartial": "Le parc est créé, mais certaines photos n’ont pas pu être ajoutées. Vous pourrez les ajouter depuis sa fiche.",
+    "close": {
+      "title": "Quitter l’ajout du parc ?",
+      "body": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard.",
+      "stay": "Continuer la saisie",
+      "leave": "Quitter"
     }
   },
   "addPhotos": {

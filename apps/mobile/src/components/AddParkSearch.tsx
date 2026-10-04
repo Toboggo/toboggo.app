@@ -1,19 +1,19 @@
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Icon, Input } from "@toboggo/design-system";
+import { Input } from "@toboggo/design-system";
 import { fetchNearbyParks, getParkDisplayName, haversineMeters, searchParks, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { useFormat } from "../i18n/useFormat";
 import { useGeo } from "../lib/geo";
 
 /**
- * Dedup-focused radius for "Parcs à proximité" — wide enough to catch the park
+ * Dedup-focused radius (autour du repère) for "Parcs à proximité" — wide enough to catch the park
  * down the street that a parent wouldn't think to search by name, tight enough
  * to stay relevant (`find_duplicate_parks` itself defaults to 200 m for its
  * stricter, name-aware score — see the module doc comment below).
  */
-const NEARBY_RADIUS_M = 2000;
+const NEARBY_RADIUS_M = 1000;
 
 /** Results shown before an explicit "Voir plus" — keeps "Aucun de ceux-ci"
  * within immediate reach instead of pushed below a long list. */
@@ -119,36 +119,28 @@ function ParkResultRow({ park, distanceM, onOpen }: { park: Park; distanceM?: nu
 }
 
 /**
- * "Quel parc souhaitez-vous ajouter ?" — the dedup step of the Add Park wizard.
- * Dedicated to this flow rather than folded into the shared `ParkPicker`
- * (also used by ReportProblem/AddPhotos/RatePark, which have no "nearby"
- * concept): here we additionally surface a "Parcs à proximité" list so a
- * parent recognises an existing park before creating a duplicate.
+ * Détection des doublons de l'étape Localisation du parcours « Ajouter un parc ».
+ * Dédiée à ce flux (et non au `ParkPicker` partagé) : elle montre les parcs déjà
+ * référencés AUTOUR DU REPÈRE choisi + une recherche par nom, pour qu'un parent
+ * reconnaisse un parc existant avant d'en créer un en double.
  *
- * Guest-friendly by construction: `searchParks` and `fetchNearbyParks` are
- * both readable by `anon`. `find_duplicate_parks` (authenticated-only, and
- * scored in part on name similarity) is intentionally NOT called here — at
- * this step the parent hasn't named the park yet (that's the Informations
- * step), so a name-aware score would have nothing meaningful to compare
- * against. Revisit once a candidate name exists earlier in the flow.
+ * Accessible aux invités : `searchParks` et `fetchNearbyParks` sont lisibles par
+ * `anon`. `find_duplicate_parks` (authentifié, scoré en partie sur le nom) n'est
+ * volontairement pas appelé ici : le nom n'est saisi qu'à l'étape suivante.
  */
 export function AddParkSearch({
-  query,
-  onQueryChange,
+  lat,
+  lng,
   onPickExisting,
-  onNone,
-  onUseMyLocation,
-  locating,
 }: {
-  query: string;
-  onQueryChange: (q: string) => void;
+  /** Position actuelle du repère (le voisinage suit le repère, pas le GPS). */
+  lat: number;
+  lng: number;
   onPickExisting: (park: Park) => void;
-  onNone: () => void;
-  onUseMyLocation: () => void;
-  locating: boolean;
 }) {
   const { t } = useTranslation("contribute");
-  const { hasFix, lat, lng, permission } = useGeo();
+  const { hasFix, lat: userLat, lng: userLng } = useGeo();
+  const [query, setQuery] = useState("");
 
   const { data: searchResults = [], isFetching: searching } = useQuery({
     queryKey: ["add-park-search", query],
@@ -156,79 +148,67 @@ export function AddParkSearch({
     enabled: query.trim().length >= 2,
   });
 
+  // Arrondi ~100 m : évite de relancer la requête à chaque micro-déplacement.
+  const nlat = Number(lat.toFixed(3));
+  const nlng = Number(lng.toFixed(3));
   const { data: nearbyParks = [], isFetching: loadingNearby } = useQuery({
-    queryKey: ["add-park-nearby", lat, lng],
-    queryFn: () => fetchNearbyParks({ lat, lng, radiusMeters: NEARBY_RADIUS_M }),
-    enabled: hasFix,
+    queryKey: ["add-park-nearby", nlat, nlng],
+    queryFn: () => fetchNearbyParks({ lat: nlat, lng: nlng, radiusMeters: NEARBY_RADIUS_M }),
   });
 
   return (
-    <div style={{ padding: "0 20px" }}>
-      <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addParkSearch.title")}</h2>
-      <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
+    <section style={{ marginTop: 26 }} aria-labelledby="add-park-dup-title">
+      <h2 id="add-park-dup-title" style={{ fontSize: 16, margin: "0 0 4px" }}>
+        {t("addParkSearch.title")}
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "0 0 12px" }}>
         {t("addParkSearch.subtitle")}
       </p>
 
-      <Input
-        label={t("addParkSearch.searchLabel")}
-        value={query}
-        onChange={(e) => onQueryChange(e.target.value)}
-        placeholder={t("addParkSearch.searchPlaceholder")}
+      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>
+        {t("addParkSearch.nearby")}
+      </div>
+      <div aria-live="polite">
+        {loadingNearby && (
+          <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("addParkSearch.nearbyLoading")}</p>
+        )}
+        {!loadingNearby && nearbyParks.length === 0 && (
+          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>{t("addParkSearch.nearbyNone")}</p>
+        )}
+      </div>
+      <CappedRows
+        items={nearbyParks}
+        cap={NEARBY_VISIBLE_CAP}
+        renderRow={(p) => <ParkResultRow key={p.id} park={p} distanceM={p.distance_m} onOpen={() => onPickExisting(p)} />}
       />
-      {query.trim().length >= 2 && (
-        <div style={{ marginTop: 10 }}>
-          {searching && <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("common.searching")}</p>}
-          {!searching && searchResults.length === 0 && (
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("addParkSearch.noResults")}</p>
-          )}
-          <CappedRows
-            items={searchResults}
-            renderRow={(p) => (
-              <ParkResultRow
-                key={p.id}
-                park={p}
-                distanceM={hasFix ? haversineMeters(lat, lng, p.latitude, p.longitude) : undefined}
-                onOpen={() => onPickExisting(p)}
-              />
+
+      <div style={{ marginTop: 16 }}>
+        <Input
+          label={t("addParkSearch.searchLabel")}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={t("addParkSearch.searchPlaceholder")}
+        />
+        {query.trim().length >= 2 && (
+          <div style={{ marginTop: 10 }}>
+            {searching && <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("common.searching")}</p>}
+            {!searching && searchResults.length === 0 && (
+              <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("addParkSearch.noResults")}</p>
             )}
-          />
-        </div>
-      )}
-
-      <Button variant="secondary" block loading={locating} style={{ marginTop: 20 }} onClick={onUseMyLocation}>
-        <Icon name="ic-explore" size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "-2px" }} />
-        {t("common.useMyLocation")}
-      </Button>
-      {permission === "denied" && (
-        <p style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 8 }}>
-          {t("addParkSearch.locationDenied")}
-        </p>
-      )}
-
-      {hasFix && (
-        <div style={{ marginTop: 24 }}>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>
-            {t("addParkSearch.nearby")}
+            <CappedRows
+              items={searchResults}
+              renderRow={(p) => (
+                <ParkResultRow
+                  key={p.id}
+                  park={p}
+                  distanceM={hasFix ? haversineMeters(userLat, userLng, p.latitude, p.longitude) : undefined}
+                  onOpen={() => onPickExisting(p)}
+                />
+              )}
+            />
           </div>
-          {loadingNearby && (
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{t("addParkSearch.nearbyLoading")}</p>
-          )}
-          {!loadingNearby && nearbyParks.length === 0 && (
-            <p style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>{t("addParkSearch.nearbyNone")}</p>
-          )}
-          <CappedRows
-            items={nearbyParks}
-            cap={NEARBY_VISIBLE_CAP}
-            renderRow={(p) => (
-              <ParkResultRow key={p.id} park={p} distanceM={p.distance_m} onOpen={() => onPickExisting(p)} />
-            )}
-          />
-        </div>
-      )}
-
-      <Button variant="ghost" block style={{ marginTop: 24 }} onClick={onNone}>
-        {t("addParkSearch.none")}
-      </Button>
-    </div>
+        )}
+      </div>
+    </section>
   );
 }

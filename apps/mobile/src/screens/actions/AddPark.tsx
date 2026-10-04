@@ -1,17 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
-  Chip,
-  Icon,
+  Dialog,
   Input,
   Textarea,
-  DualRangeSlider,
   Tag,
-  equipmentIcon,
-  serviceIcon,
   usePersistentDraft,
   useAdoptedDraftKey,
 } from "@toboggo/design-system";
@@ -25,32 +21,44 @@ import {
   ImageValidationError,
   type Park,
 } from "@toboggo/shared";
-import { WizardHeader } from "../../components/WizardHeader";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { AddParkSearch } from "../../components/AddParkSearch";
 import { PinField } from "../../components/PinField";
 import { PhotoPicker } from "../../components/PhotoPicker";
+import { AddParkHeader, AgeButtons, GameGrid, SummaryCard, TriStateRow, type GameOption } from "../../components/addPark/AddParkParts";
+import styles from "../../components/addPark/AddPark.module.css";
 import { useFormat } from "../../i18n/useFormat";
 import { addressToParkInput, applyResolvedAddress, formatLocality, localityFor, type DraftLocality } from "../../lib/addressDraft";
 import { useAddressResolver } from "../../lib/useAddressResolver";
 import { useFeatureLabel } from "../../lib/featureLabel";
-import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "../../lib/geo";
+import { useGeo } from "../../lib/geo";
 import { useSession } from "../../lib/session";
 import { useToastStore } from "../../lib/toast";
 import { setResumeRoute } from "../../lib/resumeRoute";
 import { trackEvent } from "../../lib/analytics";
+import {
+  GENERIC_PARK_NAME,
+  PRIMARY_GAME_CODES,
+  SERVICE_GROUPS,
+  ageRangeFromBands,
+  applyAnswers,
+  setAnswer,
+  toggleAgeBand,
+  type AgeBandId,
+  type Answers,
+  type ServiceKey,
+} from "../../lib/addParkModel";
 
-// Stepper keys resolved against the `contribute` namespace.
 // Plafond client des photos du brouillon (inchangé).
 const MAX_PHOTOS = 4;
 
-const STEPS = ["steps.park", "steps.location", "steps.info", "steps.photos", "steps.verify"];
-const TOTAL_STEPS = STEPS.length;
+// 3 étapes : 0 Localisation · 1 Informations · 2 Photos et vérification.
+const TOTAL_STEPS = 3;
 
 // Brouillon persistant (LOT 3D.E) — socle partagé `usePersistentDraft`.
-// Step 0 (recherche d'un parc existant) n'a pas de données de formulaire propre
-// et n'est jamais persisté ; le brouillon ne couvre que les étapes 1-4.
-const ADD_PARK_DRAFT_VERSION = 1;
+// v2 : parcours à 3 étapes, tranches d'âge, réponses Oui/Non/inconnu (un brouillon
+// v1 — étapes 0-4, plage d'âge continue — est ignoré, jamais mal interprété).
+const ADD_PARK_DRAFT_VERSION = 2;
 const ADD_PARK_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 
 interface AddParkDraft {
@@ -63,12 +71,16 @@ interface AddParkDraft {
   addressEdited?: boolean;
   /** Code postal / ville / régions / pays du repère (reverse geocoding). */
   locality?: DraftLocality | null;
+  /** L'utilisateur a validé l'emplacement (étape 0 franchie). */
+  locationConfirmed: boolean;
   name: string;
-  ageLow: number;
-  ageHigh: number;
-  ageTouched: boolean;
-  services: Set<string>;
   equipment: Set<string>;
+  /** Tranches d'âge choisies (contiguës — voir `toggleAgeBand`). */
+  ageBands: AgeBandId[];
+  /** « Je ne sais pas » choisi explicitement (exclusif des tranches). */
+  ageUnknown: boolean;
+  /** Oui / Non ; une clé absente = inconnu. */
+  answers: Answers;
   description: string;
   /** Already-uploaded photo URLs only — see onPickFile: a guest can never pick
    * a photo here (it requires `userId`), so this never holds a raw File. */
@@ -85,50 +97,10 @@ function reviveSets(_key: string, value: unknown): unknown {
     : value;
 }
 
-/**
- * The 7 amenities `createPark` already knows how to persist (its flat V1-shape
- * input — see `packages/shared/src/api/parks.ts` `splitParkInput`). Mapped to
- * their real catalogue code purely to look up the real French label
- * (`featureLabel`) — no second wording is introduced, this only bridges the
- * legacy key to the catalogue code. The rest of the real `service` /
- * `environment` / `accessibility` catalogue (picnic_tables, lighting,
- * bike_parking, surface_type, stroller_access, accessible_toilets,
- * accessible_parking, inclusive_play) isn't settable at creation today without
- * extending that shared API — left for the existing Correction flow.
- */
-const SERVICE_TO_FEATURE_CODE: Record<string, string> = {
-  wc: "toilets",
-  benches: "benches",
-  water: "drinking_water",
-  parking: "parking",
-  shade: "shade_level",
-  fenced: "fence_status",
-  pmr: "wheelchair_access",
-};
-const SERVICE_GROUPS: { titleKey: string; keys: string[] }[] = [
-  { titleKey: "addPark.serviceGroup.comfort", keys: ["wc", "benches", "water", "parking"] },
-  { titleKey: "addPark.serviceGroup.characteristics", keys: ["shade", "fenced", "pmr"] },
-];
-
-function VerifySection({ title, onEdit, children }: { title: string; onEdit: () => void; children: ReactNode }) {
-  const { t } = useTranslation("contribute");
-  return (
-    <div style={{ background: "var(--color-surface)", borderRadius: 14, padding: 14, marginBottom: 12 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--color-text-muted)" }}>
-          {title}
-        </span>
-        <button
-          type="button"
-          onClick={onEdit}
-          style={{ background: "none", border: "none", color: "var(--color-primary)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 12.5, cursor: "pointer", padding: 0 }}
-        >
-          {t("common.edit")}
-        </button>
-      </div>
-      {children}
-    </div>
-  );
+/** Fait remonter un champ focalisé au-dessus du clavier / du bouton fixe. */
+function scrollFieldIntoView(e: { target: EventTarget }) {
+  const el = e.target as HTMLElement;
+  setTimeout(() => el.scrollIntoView?.({ block: "center", behavior: "smooth" }), 250);
 }
 
 export default function AddPark() {
@@ -137,7 +109,6 @@ export default function AddPark() {
   const wantsResume = params.get("resume") === "1";
   const { t } = useTranslation("contribute");
   const { t: tErr } = useTranslation("errors");
-  const { t: tCommon } = useTranslation("common");
   const f = useFormat();
   const featureLabel = useFeatureLabel();
   const { lat, lng } = useGeo();
@@ -146,6 +117,12 @@ export default function AddPark() {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [showAllGames, setShowAllGames] = useState(false);
+  const [ageRejected, setAgeRejected] = useState(false);
+  // Garde synchrone contre le double envoi (le `saving` React arrive un rendu trop tard).
+  const submittingRef = useRef(false);
 
   // Draft: no parkId (there isn't one yet — this flow creates it), scoped only
   // by principal. Guest → signed-in handover mirrors EditInfo/ReportProblem:
@@ -162,12 +139,12 @@ export default function AddPark() {
       lat,
       lng,
       address: "",
+      locationConfirmed: false,
       name: "",
-      ageLow: 0,
-      ageHigh: 12,
-      ageTouched: false,
-      services: new Set(),
       equipment: new Set(),
+      ageBands: [],
+      ageUnknown: false,
+      answers: {},
       description: "",
       photos: [],
     }),
@@ -204,15 +181,16 @@ export default function AddPark() {
   });
   const pinLocality = localityFor(draft, { lat: draft.lat, lng: draft.lng });
 
-  // A restored draft claiming step 3 (Photos) or 4 (Vérification) without a
-  // name — the one hard precondition step 2 enforces before letting you past
-  // it — falls back to step 2 instead of skipping it. Never mutates storage.
+  // Un brouillon restauré à l'étape 1 ou 2 sans emplacement confirmé (la seule
+  // précondition dure) retombe à l'étape 0 au lieu de la sauter. Ne modifie
+  // jamais le stockage.
   const clampedStep = Math.min(Math.max(draft.step, 0), TOTAL_STEPS - 1);
-  const step = clampedStep >= 3 && !draft.name.trim() ? 2 : clampedStep;
-  const setStep = (next: number) => patch({ step: next });
+  const step = clampedStep >= 1 && !draft.locationConfirmed ? 0 : clampedStep;
+  const setStep = (next: number) => {
+    patch({ step: next });
+    window.scrollTo?.(0, 0);
+  };
 
-  const [parkQuery, setParkQuery] = useState("");
-  const [locating, setLocating] = useState(false);
   const [uploading, setUploading] = useState(false);
   const autoSubmitted = useRef(false);
 
@@ -231,36 +209,46 @@ export default function AddPark() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Jeux : les six premiers sont fixes (libellés du parcours) ; « Voir tous les
+  // jeux » ajoute TOUS les autres équipements `play` du catalogue — aucun ne disparaît.
   const { data: featureCatalogue = [] } = useQuery({ queryKey: ["features"], queryFn: () => listFeatures() });
-  const playFeatures = useMemo(
-    () => featureCatalogue.filter((f) => f.category === "play").sort((a, b) => a.sort_order - b.sort_order),
-    [featureCatalogue],
+  const gameLabel = (code: string) =>
+    t(`addPark.game.${code}`, { defaultValue: featureLabel(code) });
+  const primaryGames: GameOption[] = PRIMARY_GAME_CODES.map((code) => ({ code, label: gameLabel(code) }));
+  const otherGames: GameOption[] = useMemo(
+    () =>
+      featureCatalogue
+        .filter((c) => c.category === "play" && !(PRIMARY_GAME_CODES as readonly string[]).includes(c.code))
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((c) => ({ code: c.code, label: gameLabel(c.code) })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [featureCatalogue, t, featureLabel],
   );
+  // Un jeu restauré d'un brouillon mais absent du catalogue reste visible (jamais perdu).
+  const knownCodes = new Set([...primaryGames, ...otherGames].map((g) => g.code));
+  const orphanGames: GameOption[] = Array.from(draft.equipment)
+    .filter((c) => !knownCodes.has(c))
+    .map((code) => ({ code, label: gameLabel(code) }));
+  const visibleGames = showAllGames ? [...primaryGames, ...otherGames, ...orphanGames] : primaryGames;
+  const hasMoreGames = otherGames.length + orphanGames.length > 0;
 
-  function toggle(field: "services" | "equipment", key: string) {
-    const next = new Set(draft[field]);
-    next.has(key) ? next.delete(key) : next.add(key);
-    patch({ [field]: next } as Partial<AddParkDraft>);
+  function toggleGame(code: string) {
+    setDraft((d) => {
+      const next = new Set(d.equipment);
+      next.has(code) ? next.delete(code) : next.add(code);
+      return { ...d, equipment: next };
+    });
   }
 
-  // Real GPS fix (not just re-reading whatever useGeo already held) — updates
-  // the shared geo store (same convention as MapExplore/Permissions) so a
-  // fix obtained here is also available if the parent later revisits the
-  // map, plus the draft's own coordinates so the Localisation step starts
-  // from it immediately.
-  async function handleUseMyLocation() {
-    setLocating(true);
-    try {
-      const pos = await requestBrowserLocation();
-      useGeo.getState().setLocation(pos.lat, pos.lng, DEFAULT_GEO_LABEL);
-      useGeo.getState().setPermission("granted");
-      patch({ lat: pos.lat, lng: pos.lng });
-      resolveAddress(pos.lat, pos.lng);
-    } catch {
-      useGeo.getState().setPermission("denied");
-    } finally {
-      setLocating(false);
-    }
+  function onToggleBand(id: AgeBandId) {
+    const { rejected } = toggleAgeBand(draft.ageBands, id);
+    setAgeRejected(rejected);
+    if (rejected) return;
+    setDraft((d) => ({ ...d, ageBands: toggleAgeBand(d.ageBands, id).next, ageUnknown: false }));
+  }
+  function onAgeUnknown() {
+    setAgeRejected(false);
+    patch({ ageBands: [], ageUnknown: !draft.ageUnknown });
   }
 
   // Caméra (1 fichier) ou photothèque (plusieurs) : chaque fichier est envoyé
@@ -294,10 +282,38 @@ export default function AddPark() {
     setDraft((d) => ({ ...d, photos: d.photos.filter((_, idx) => idx !== i) }));
   }
 
+  const ageRange = ageRangeFromBands(draft.ageBands);
+
+  // Des données saisies existent-elles ? (même sans, le brouillon est gardé 24 h,
+  // mais on prévient avant de quitter pour ne pas surprendre.)
+  const isDirty =
+    draft.locationConfirmed ||
+    Boolean(draft.addressEdited) ||
+    draft.name.trim() !== "" ||
+    draft.equipment.size > 0 ||
+    draft.ageBands.length > 0 ||
+    draft.ageUnknown ||
+    Object.keys(draft.answers).length > 0 ||
+    draft.description.trim() !== "" ||
+    draft.photos.length > 0;
+
+  function handleBack() {
+    if (step > 0) return setStep(step - 1);
+    if (isDirty) return setConfirmClose(true);
+    navigate(-1);
+  }
+  function handleClose() {
+    if (isDirty) return setConfirmClose(true);
+    navigate("/map");
+  }
+
   function publish() {
+    if (submittingRef.current) return;
     const uid = useSession.getState().userId;
     if (uid) {
+      submittingRef.current = true;
       setSaving(true);
+      setSubmitError(false);
       void doPublish(uid);
       return;
     }
@@ -311,46 +327,56 @@ export default function AddPark() {
 
   async function doPublish(uid: string) {
     try {
-      // Only ever send what the parent actually stated. A chip left
-      // unselected, an untouched age slider, or an empty address must never
-      // be written as a confirmed "false" / a fake value — they simply stay
-      // absent from the payload (`createPark`/`splitParkInput` already skips
-      // any field that isn't provided).
+      // Only ever send what the parent actually stated. A game left
+      // unselected, an unanswered « ? », an unknown age or an empty address
+      // must never be written as a confirmed "false" / a fake value — they
+      // simply stay absent from the payload (`createPark`/`splitParkInput`
+      // already skips any field that isn't provided).
       const input: Partial<Park> = {
-        name: draft.name,
+        name: draft.name.trim() || GENERIC_PARK_NAME,
         lat: draft.lat,
         lng: draft.lng,
         play_equipment: Array.from(draft.equipment),
-        description: draft.description || null,
+        description: draft.description.trim() || null,
         status: "pending",
         created_by: uid,
       };
       Object.assign(input, addressToParkInput(draft, { lat: draft.lat, lng: draft.lng }));
-      if (draft.ageTouched) {
-        input.age_min = draft.ageLow;
-        input.age_max = draft.ageHigh;
+      const range = ageRangeFromBands(draft.ageBands);
+      if (range) {
+        input.age_min = range.min;
+        input.age_max = range.max;
       }
-      if (draft.services.has("wc")) input.wc = true;
-      if (draft.services.has("shade")) input.shade = true;
-      if (draft.services.has("fenced")) input.fenced = true;
-      if (draft.services.has("pmr")) input.pmr = true;
-      if (draft.services.has("benches")) input.benches = true;
-      if (draft.services.has("water")) input.water = true;
-      if (draft.services.has("parking")) input.parking = true;
+      applyAnswers(input, draft.answers);
 
-      const park: Park = await createPark(input);
-      // Created — drop the draft BEFORE the secondary calls below. If photos
-      // or the activity log fail afterwards, the error still surfaces, but
-      // the draft can no longer resurrect a form that would call createPark
-      // again and produce a duplicate park.
+      let park: Park;
+      try {
+        park = await createPark(input);
+      } catch {
+        // Rien n'a été créé : on reste sur le récapitulatif, données intactes.
+        setSubmitError(true);
+        return;
+      }
+      // Created — drop the draft BEFORE the secondary calls below, so the draft
+      // can never resurrect a form that would call createPark again and
+      // produce a duplicate park. Secondary failures (photos, audit log) are
+      // no longer fatal for the same reason: the park exists, retrying would dupe.
       clearAddParkDraft();
       const photos = draft.photos;
       if (photos.length) {
-        await addParkPhotos(park.id, photos, { source: "user", userId: uid });
+        try {
+          await addParkPhotos(park.id, photos, { source: "user", userId: uid });
+        } catch {
+          showToast(t("addPark.photosPartial"));
+        }
       }
       // Back-office audit trail (`activity_log`) — internal, not user-facing UI:
       // kept in French, out of the i18n scope (see i18n audit).
-      await logActivity(park.commune_id, "Vous", `Parc ajouté : ${park.name}`, "primary");
+      try {
+        await logActivity(park.commune_id, "Vous", `Parc ajouté : ${park.name}`, "primary");
+      } catch {
+        /* journal interne : sans incidence pour le parent */
+      }
       trackEvent("contribution_completed", {
         contribution_type: "add_park",
         park_id: park.id,
@@ -359,23 +385,24 @@ export default function AddPark() {
       });
       setCreatedId(park.id);
       setDone(true);
-    } catch {
-      showToast(tErr("generic"));
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
 
   // Back from sign-in with the draft intact (guest draft now adopted under the
-  // user key and restored): send it once. `draft.name` mirrors the same
-  // completeness gate the UI itself enforces before step 3.
+  // user key and restored): send it once. `locationConfirmed` mirrors the same
+  // completeness gate the UI itself enforces before step 1.
   useEffect(() => {
     if (!wantsResume || autoSubmitted.current) return;
-    if (!userId || !draft.name.trim()) return;
+    if (!userId || !draft.locationConfirmed) return;
     autoSubmitted.current = true;
+    submittingRef.current = true;
+    setSaving(true);
     void doPublish(userId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wantsResume, userId, draft.name]);
+  }, [wantsResume, userId, draft.locationConfirmed]);
 
   if (done) {
     // Contribution terminée : le wizard (formulaire, boutons d'étape) ne doit
@@ -400,45 +427,39 @@ export default function AddPark() {
     );
   }
 
+  const cta =
+    step === 0 ? t("addPark.confirmLocation") : step === 1 ? t("common.continue") : t("addPark.submit");
+  const onCta = () => {
+    if (step === 0) {
+      patch({ locationConfirmed: true, step: 1 });
+      window.scrollTo?.(0, 0);
+    } else if (step === 1) setStep(2);
+    else publish();
+  };
+
+  const answerText = (a: "yes" | "no") => t(`addPark.answer.${a}`);
+  const answeredServices = SERVICE_GROUPS.flatMap((g) => g.keys).filter((k) => draft.answers[k]);
+
   return (
-    <div className="screen">
-      <WizardHeader
-        step={step}
-        total={TOTAL_STEPS}
-        steps={STEPS.map((k) => t(k))}
-        onBack={() => (step === 0 ? navigate(-1) : setStep(step - 1))}
-      />
+    <div className={styles.page}>
+      <AddParkHeader step={step} total={TOTAL_STEPS} onBack={handleBack} onClose={handleClose} />
 
       {step === 0 && (
-        <AddParkSearch
-          query={parkQuery}
-          onQueryChange={setParkQuery}
-          onPickExisting={(p) => navigate(`/park/${p.id}`)}
-          onNone={() => setStep(1)}
-          onUseMyLocation={handleUseMyLocation}
-          locating={locating}
-        />
-      )}
-
-      {step === 1 && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.locationTitle")}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            {t("addPark.locationHint")}
-          </p>
+        <main className={styles.content}>
+          <h2 className={styles.title}>{t("addPark.locationTitle")}</h2>
+          <p className={styles.subtitle}>{t("addPark.locationHint")}</p>
           <PinField
             lat={draft.lat}
             lng={draft.lng}
             onChange={(lat, lng) => patch({ lat, lng })}
             onPositionCommitted={resolveAddress}
           />
-          <p style={{ fontSize: 11.5, color: "var(--color-text-faint)", margin: "6px 0 0" }}>
-            {t("addPark.pinHint")}
-          </p>
+          <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: "6px 0 0" }}>{t("addPark.pinHint")}</p>
           <Input
             label={t("addPark.addressLabel")}
             value={draft.address}
             onChange={(e) => patch({ address: e.target.value, addressEdited: e.target.value.trim() !== "" })}
+            onFocus={scrollFieldIntoView}
             placeholder={t("addPark.addressPlaceholder")}
             style={{ marginTop: 16 }}
           />
@@ -447,78 +468,98 @@ export default function AddPark() {
               {resolvingAddress ? t("addPark.addressResolving") : formatLocality(pinLocality)}
             </p>
           )}
-          <Button block style={{ marginTop: 24 }} onClick={() => setStep(2)}>
-            {t("common.continue")}
-          </Button>
-        </div>
+          <AddParkSearch lat={draft.lat} lng={draft.lng} onPickExisting={(p) => navigate(`/park/${p.id}`)} />
+        </main>
+      )}
+
+      {step === 1 && (
+        <main className={styles.content}>
+          <h2 className={styles.title}>{t("addPark.infoTitle")}</h2>
+          <p className={styles.subtitle}>{t("addPark.infoHint")}</p>
+
+          <Input
+            label={t("addPark.nameLabel")}
+            value={draft.name}
+            onChange={(e) => patch({ name: e.target.value })}
+            onFocus={scrollFieldIntoView}
+            placeholder={t("addPark.namePlaceholder")}
+            autoComplete="off"
+          />
+
+          <section className={styles.section} aria-labelledby="add-park-games">
+            <h3 className={styles.sectionTitle} id="add-park-games">
+              {t("addPark.games.title")}
+            </h3>
+            <GameGrid games={visibleGames} selected={draft.equipment} onToggle={toggleGame} />
+            {hasMoreGames && (
+              <button
+                type="button"
+                className={styles.linkButton}
+                aria-expanded={showAllGames}
+                onClick={() => setShowAllGames((v) => !v)}
+              >
+                {showAllGames ? t("addPark.games.seeLess") : t("addPark.games.seeAll")}
+              </button>
+            )}
+          </section>
+
+          <section className={styles.section} aria-labelledby="add-park-ages">
+            <h3 className={styles.sectionTitle} id="add-park-ages">
+              {t("addPark.ages.title")}
+            </h3>
+            <AgeButtons
+              bands={draft.ageBands}
+              unknown={draft.ageUnknown}
+              onToggleBand={onToggleBand}
+              onUnknown={onAgeUnknown}
+              rejected={ageRejected}
+            />
+          </section>
+
+          <section className={styles.section} aria-labelledby="add-park-details">
+            <h3 className={styles.sectionTitle} id="add-park-details">
+              {t("addPark.details.title")}
+            </h3>
+            <p className={styles.sectionHint}>{t("addPark.details.hint")}</p>
+            {SERVICE_GROUPS.map((group) => (
+              <div key={group.titleKey}>
+                <div className={styles.groupTitle}>{t(group.titleKey)}</div>
+                <div className={styles.detailsCard}>
+                  {group.keys.map((key: ServiceKey) => (
+                    <TriStateRow
+                      key={key}
+                      serviceKey={key}
+                      label={t(`addPark.service.${key}`)}
+                      value={draft.answers[key]}
+                      onChange={(v) => setDraft((d) => ({ ...d, answers: setAnswer(d.answers, key, v) }))}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+            <p className={styles.legend}>{t("addPark.answer.legend")}</p>
+          </section>
+
+          <section className={styles.section}>
+            <Textarea
+              label={t("addPark.descriptionLabel")}
+              value={draft.description}
+              onChange={(e) => patch({ description: e.target.value })}
+              onFocus={scrollFieldIntoView}
+              placeholder={t("addPark.descriptionPlaceholder")}
+              rows={3}
+            />
+          </section>
+        </main>
       )}
 
       {step === 2 && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.infoTitle")}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            {t("addPark.infoHint")}
-          </p>
+        <main className={styles.content}>
+          <h2 className={styles.title}>{t("addPark.finalTitle")}</h2>
+          <p className={styles.subtitle}>{t("addPark.finalHint")}</p>
 
-          <Input label={t("addPark.nameLabel")} value={draft.name} onChange={(e) => patch({ name: e.target.value })} placeholder={t("addPark.namePlaceholder")} />
-
-          <div style={{ marginTop: 20, marginBottom: 20 }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>{t("field.ageRange")}</div>
-            <DualRangeSlider
-              min={0}
-              max={12}
-              low={draft.ageLow}
-              high={draft.ageHigh}
-              formatLabel={draft.ageTouched ? (l, h) => f.ageRange(l, h) : () => tCommon("age.notSpecified")}
-              onChange={(l, h) => patch({ ageLow: l, ageHigh: h, ageTouched: true })}
-            />
-          </div>
-
-          {SERVICE_GROUPS.map((group) => (
-            <div key={group.titleKey} style={{ marginBottom: 20 }}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{t(group.titleKey)}</div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {group.keys.map((key) => {
-                  const ic = serviceIcon(key);
-                  return (
-                    <Chip key={key} active={draft.services.has(key)} onClick={() => toggle("services", key)}>
-                      {ic && <Icon name={ic} size={15} style={{ marginRight: 4, display: "inline-block", verticalAlign: "-2px" }} />}
-                      {featureLabel(SERVICE_TO_FEATURE_CODE[key])}
-                    </Chip>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 8 }}>{t("field.playEquipment")}</div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {playFeatures.map((feat) => {
-                const ic = equipmentIcon(feat.code);
-                return (
-                  <Chip key={feat.code} active={draft.equipment.has(feat.code)} onClick={() => toggle("equipment", feat.code)}>
-                    {ic && <Icon name={ic} size={15} style={{ marginRight: 4, display: "inline-block", verticalAlign: "-2px" }} />}
-                    {featureLabel(feat.code)}
-                  </Chip>
-                );
-              })}
-            </div>
-          </div>
-
-          <Textarea label={t("addPark.descriptionLabel")} value={draft.description} onChange={(e) => patch({ description: e.target.value })} rows={3} />
-          <Button block style={{ marginTop: 20 }} disabled={!draft.name} onClick={() => setStep(3)}>
-            {t("common.continue")}
-          </Button>
-        </div>
-      )}
-
-      {step === 3 && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.photosTitle")}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            {t("addPark.photosHint")}
-          </p>
+          <h3 className={styles.sectionTitle}>{t("addPark.photosSection")}</h3>
+          <p className={styles.sectionHint}>{t("addPark.photosHint")}</p>
           <PhotoPicker
             previews={draft.photos}
             max={MAX_PHOTOS}
@@ -528,80 +569,99 @@ export default function AddPark() {
             onRequireAuth={() => showToast(t("common.accountRequiredPhotos"))}
             busy={uploading}
           />
-          <Button block style={{ marginTop: 24 }} onClick={() => setStep(4)}>
-            {draft.photos.length > 0 ? t("common.continue") : t("common.skip")}
-          </Button>
-        </div>
-      )}
 
-      {step === 4 && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("addPark.verifyTitle")}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            {t("addPark.verifyHint")}
-          </p>
+          <h3 className={styles.sectionTitle} style={{ marginTop: 26, marginBottom: 12 }}>
+            {t("addPark.summaryTitle")}
+          </h3>
 
-          <VerifySection title={t("addPark.section.park")} onEdit={() => setStep(2)}>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>{draft.name || "—"}</div>
-          </VerifySection>
-
-          <VerifySection title={t("steps.location")} onEdit={() => setStep(1)}>
-            <div style={{ fontSize: 13, color: "var(--color-text-muted)" }}>
+          <SummaryCard title={t("steps.location")} onEdit={() => setStep(0)}>
+            <div className={styles.muted}>
               {[draft.address.trim(), formatLocality(pinLocality)].filter(Boolean).join(", ") || t("addPark.locationOnMap")}
             </div>
-          </VerifySection>
+          </SummaryCard>
 
-          {draft.ageTouched && (
-            <VerifySection title={t("field.ageRange")} onEdit={() => setStep(2)}>
-              <Tag>{f.ageRange(draft.ageLow, draft.ageHigh)}</Tag>
-            </VerifySection>
-          )}
+          <SummaryCard title={t("addPark.section.park")} onEdit={() => setStep(1)}>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>
+              {draft.name.trim() || <span className={styles.muted}>{t("addPark.summary.unnamed")}</span>}
+            </div>
+          </SummaryCard>
 
-          {draft.equipment.size > 0 && (
-            <VerifySection title={t("field.playEquipment")} onEdit={() => setStep(2)}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+          <SummaryCard title={t("addPark.games.title")} onEdit={() => setStep(1)}>
+            {draft.equipment.size > 0 ? (
+              <div className={styles.tags}>
                 {Array.from(draft.equipment).map((code) => (
                   <Tag key={code} tone="primary">
-                    {featureLabel(code)}
+                    {gameLabel(code)}
                   </Tag>
                 ))}
               </div>
-            </VerifySection>
-          )}
+            ) : (
+              <span className={styles.muted}>{t("addPark.summary.notProvided")}</span>
+            )}
+          </SummaryCard>
 
-          {draft.services.size > 0 && (
-            <VerifySection title={t("addPark.section.services")} onEdit={() => setStep(2)}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                {Array.from(draft.services).map((key) => (
-                  <Tag key={key} tone="primary">
-                    {featureLabel(SERVICE_TO_FEATURE_CODE[key])}
+          <SummaryCard title={t("addPark.ages.title")} onEdit={() => setStep(1)}>
+            {ageRange ? (
+              <Tag>{f.ageRange(ageRange.min, ageRange.max)}</Tag>
+            ) : (
+              <span className={styles.muted}>{t("addPark.summary.notProvided")}</span>
+            )}
+          </SummaryCard>
+
+          <SummaryCard title={t("addPark.details.title")} onEdit={() => setStep(1)}>
+            {answeredServices.length > 0 ? (
+              <div className={styles.tags}>
+                {answeredServices.map((k) => (
+                  <Tag key={k} tone={draft.answers[k] === "yes" ? "primary" : undefined}>
+                    {t(`addPark.service.${k}`)} : {answerText(draft.answers[k]!)}
                   </Tag>
                 ))}
               </div>
-            </VerifySection>
-          )}
+            ) : (
+              <span className={styles.muted}>{t("addPark.summary.notProvided")}</span>
+            )}
+          </SummaryCard>
 
           {draft.description.trim() && (
-            <VerifySection title={t("addPark.section.description")} onEdit={() => setStep(2)}>
-              <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: 0 }}>{draft.description}</p>
-            </VerifySection>
+            <SummaryCard title={t("addPark.section.description")} onEdit={() => setStep(1)}>
+              <p className={styles.muted} style={{ margin: 0 }}>
+                {draft.description}
+              </p>
+            </SummaryCard>
           )}
 
-          {draft.photos.length > 0 && (
-            <VerifySection title={t("steps.photos")} onEdit={() => setStep(3)}>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {draft.photos.map((p, i) => (
-                  <div key={i} style={{ width: 56, height: 56, borderRadius: 10, backgroundImage: `url(${p})`, backgroundSize: "cover" }} />
-                ))}
-              </div>
-            </VerifySection>
+          <div aria-live="polite" role="status">
+            {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
+          </div>
+          {submitError && (
+            <div className={styles.errorBox} role="alert">
+              {t("addPark.submitError")}
+            </div>
           )}
-
-          <Button block loading={saving} style={{ marginTop: 24 }} onClick={publish}>
-            {t("addPark.submit")}
-          </Button>
-        </div>
+        </main>
       )}
+
+      <div className={styles.footer}>
+        <Button block loading={saving} onClick={onCta}>
+          {cta}
+        </Button>
+      </div>
+
+      <Dialog
+        open={confirmClose}
+        onClose={() => setConfirmClose(false)}
+        title={t("addPark.close.title")}
+        actions={
+          <>
+            <Button variant="secondary" onClick={() => setConfirmClose(false)}>
+              {t("addPark.close.stay")}
+            </Button>
+            <Button onClick={() => navigate("/map")}>{t("addPark.close.leave")}</Button>
+          </>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)" }}>{t("addPark.close.body")}</p>
+      </Dialog>
     </div>
   );
 }

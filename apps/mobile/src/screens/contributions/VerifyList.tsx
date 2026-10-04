@@ -7,7 +7,7 @@ import styles from "./Contributions.module.css";
 /** « À vérifier près de chez vous » → « Voir tout » : every real suggestion nearby. */
 export default function VerifyList() {
   const { t } = useTranslation("contribute");
-  const { verify, confirm, edit, busyId } = useVerifyActions();
+  const { verify, confirm, edit, busyId, failedId } = useVerifyActions();
 
   return (
     <div className={styles.subScreen}>
@@ -21,6 +21,7 @@ export default function VerifyList() {
               <VerifyItem
                 item={item}
                 busy={busyId === `${item.park.id}:${item.feature.id}`}
+                failed={failedId === `${item.park.id}:${item.feature.id}`}
                 onConfirm={() => confirm(item)}
                 onEdit={() => edit(item)}
               />

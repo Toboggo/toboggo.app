@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { Button, EmptyState } from "@toboggo/design-system";
@@ -7,7 +7,15 @@ import { listMyContributions } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { ContributionRow } from "../../components/ContributionRow";
 import { FilterSelect, type FilterSelectOption } from "../../components/FilterSelect";
-import { CONTRIBUTION_TYPES, getContributionStatusPresentation, getContributionTypeFilterLabel } from "../../lib/contributionPresentation";
+import {
+  CONTRIBUTION_TYPES,
+  STATUS_LABEL_ORDER,
+  getContributionStatusPresentation,
+  getContributionTypeFilterLabel,
+  isContributionType,
+  statusKeyToParam,
+  statusParamToKey,
+} from "../../lib/contributionPresentation";
 import { useSession } from "../../lib/session";
 import styles from "./ContributionsHistory.module.css";
 
@@ -31,15 +39,6 @@ function withinDateFilter(createdAt: string, filter: DateFilter): boolean {
   return created.getTime() >= now.getTime() - days * 86_400_000;
 }
 
-const STATUS_LABEL_ORDER = [
-  "hub.status.published",
-  "hub.status.pending",
-  "hub.status.inProgress",
-  "hub.status.resolved",
-  "hub.status.rejected",
-  "hub.status.dismissed",
-];
-
 /**
  * Phase 3+4: the full contribution history, filterable and searchable.
  * Filtering/search run entirely client-side over the single
@@ -53,8 +52,20 @@ export default function ContributionsHistory() {
   const { t: tErr } = useTranslation("errors");
   const userId = useSession((s) => s.userId);
 
-  const [type, setType] = useState(ALL);
-  const [status, setStatus] = useState(ALL);
+  // Type and status live in the URL (`?type=park&status=pending`) so a link from
+  // the profile / « Mes stats » opens the right list, and a reload keeps it.
+  const [params, setParams] = useSearchParams();
+  const typeParam = params.get("type");
+  const type = isContributionType(typeParam) ? typeParam : ALL;
+  const status = statusParamToKey(params.get("status")) ?? ALL;
+  function setUrlFilter(name: "type" | "status", value: string) {
+    const next = new URLSearchParams(params);
+    if (value === ALL) next.delete(name);
+    else next.set(name, name === "status" ? statusKeyToParam(value) : value);
+    setParams(next, { replace: true });
+  }
+  const setType = (v: string) => setUrlFilter("type", v);
+  const setStatus = (v: string) => setUrlFilter("status", v);
   const [date, setDate] = useState(ALL);
   const [city, setCity] = useState(ALL);
   const [search, setSearch] = useState("");
@@ -82,7 +93,7 @@ export default function ContributionsHistory() {
   // "Refusé" bucket would just be a dead-end filter choice.
   const statusOptions: FilterSelectOption[] = useMemo(() => {
     const present = new Set((items ?? []).map((i) => getContributionStatusPresentation(i.type, i.status).labelKey));
-    const known = STATUS_LABEL_ORDER.filter((k) => present.has(k));
+    const known = STATUS_LABEL_ORDER.filter((k) => present.has(k) || k === status);
     return [{ value: ALL, label: t("history.filters.status.all") }, ...known.map((k) => ({ value: k, label: t(k) }))];
   }, [items, t]);
 
@@ -120,8 +131,7 @@ export default function ContributionsHistory() {
   }, [items, type, status, city, date, search]);
 
   function resetFilters() {
-    setType(ALL);
-    setStatus(ALL);
+    setParams(new URLSearchParams(), { replace: true });
     setDate(ALL);
     setCity(ALL);
     setSearch("");
@@ -149,7 +159,7 @@ export default function ContributionsHistory() {
 
         {isError && (
           <>
-            <EmptyState icon="⚠️" title={tErr("generic")} />
+            <EmptyState iconName="ic-warning" title={tErr("generic")} />
             <Button variant="secondary" block style={{ marginTop: 12 }} onClick={() => refetch()}>
               {tCommon("action.retry")}
             </Button>
@@ -167,6 +177,21 @@ export default function ContributionsHistory() {
 
         {!isLoading && !isError && hasItems && (
           <>
+            {(type !== ALL || status !== ALL) && (
+              <div className={styles.activeFilter} role="status">
+                <span>
+                  {t("history.activeFilter", {
+                    filter: [type !== ALL ? getContributionTypeFilterLabel(type, t) : null, status !== ALL ? t(status) : null]
+                      .filter(Boolean)
+                      .join(" · "),
+                  })}
+                </span>
+                <button type="button" onClick={resetFilters}>
+                  {t("history.allAdditions")}
+                </button>
+              </div>
+            )}
+
             <div className={styles.filterRow}>
               <FilterSelect value={type} options={typeOptions} onChange={setType} ariaLabel={t("history.filters.type.all")} />
               <FilterSelect value={status} options={statusOptions} onChange={setStatus} ariaLabel={t("history.filters.status.all")} />
@@ -192,7 +217,7 @@ export default function ContributionsHistory() {
 
             {filteredItems.length === 0 && (
               <>
-                <EmptyState icon="🔍" title={t("history.emptyFiltered.title")} />
+                <EmptyState iconName="ic-search" title={t("history.emptyFiltered.title")} />
                 <Button variant="secondary" block style={{ marginTop: 12 }} onClick={resetFilters}>
                   {t("history.emptyFiltered.cta")}
                 </Button>

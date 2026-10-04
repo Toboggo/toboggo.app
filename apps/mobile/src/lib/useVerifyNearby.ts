@@ -73,7 +73,15 @@ export function useVerifyNearby() {
   const confirm = useMutation({
     mutationFn: (v: ParkVerification) =>
       confirmParkFeature({ userId: userId!, parkId: v.park.id, featureId: v.feature.id, status: v.status }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["my-confirmations", userId] }),
+    onSuccess: (_data, v) => {
+      // The confirmed park leaves the list at once (no wait for the refetch);
+      // the server's list then replaces this optimistic entry.
+      qc.setQueryData<Set<string>>(["my-confirmations", userId], (prev) =>
+        new Set(prev ?? []).add(`${v.park.id}:${v.feature.id}`),
+      );
+      void qc.invalidateQueries({ queryKey: ["my-confirmations", userId] });
+      void qc.invalidateQueries({ queryKey: ["my-confirmations-count", userId] });
+    },
   });
 
   let state: VerifyNearbyState;

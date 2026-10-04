@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@toboggo/design-system";
@@ -13,13 +14,20 @@ export function useVerifyActions() {
   const { t } = useTranslation("contribute");
   const showToast = useToastStore((s) => s.show);
   const verify = useVerifyNearby();
+  // Synchronous lock: two quick taps must never send two requests.
+  const inFlight = useRef(false);
 
   function confirm(v: ParkVerification) {
     if (!verify.isSignedIn) {
       navigate("/login");
       return;
     }
+    if (inFlight.current) return;
+    inFlight.current = true;
     verify.confirm.mutate(v, {
+      onSettled: () => {
+        inFlight.current = false;
+      },
       onSuccess: () => {
         showToast(t("hub.verify.thanks"));
       },
@@ -27,8 +35,11 @@ export function useVerifyActions() {
     });
   }
   const edit = (v: ParkVerification) => navigate(`/contribute/edit?park=${v.park.id}`);
+  const failedId = verify.confirm.isError
+    ? `${verify.confirm.variables?.park.id}:${verify.confirm.variables?.feature.id}`
+    : null;
   const busyId = verify.confirm.isPending ? `${verify.confirm.variables?.park.id}:${verify.confirm.variables?.feature.id}` : null;
-  return { verify, confirm, edit, busyId };
+  return { verify, confirm, edit, busyId, failedId };
 }
 
 /** Body states shared by the hub card and the full list. */
@@ -80,13 +91,16 @@ export function NearbyVerifyCard() {
   const navigate = useNavigate();
   const { t } = useTranslation("contribute");
   const { t: tCommon } = useTranslation("common");
-  const { verify, confirm, edit, busyId } = useVerifyActions();
+  const { verify, confirm, edit, busyId, failedId } = useVerifyActions();
   const current = verify.items[0];
 
   return (
     <section className={styles.card} aria-labelledby="verify-nearby-title">
       <div className={styles.header}>
-        <h2 id="verify-nearby-title">{t("hub.verify.title")}</h2>
+        <div className={styles.headings}>
+          <h2 id="verify-nearby-title">{t("hub.verify.title")}</h2>
+          <p>{t("hub.verify.subtitle")}</p>
+        </div>
         {verify.state === "ready" && (
           <button type="button" className={styles.seeAll} onClick={() => navigate("/contributions/verify")}>
             {tCommon("action.seeAll")}
@@ -99,6 +113,7 @@ export function NearbyVerifyCard() {
         <VerifyItem
           item={current}
           busy={busyId === `${current.park.id}:${current.feature.id}`}
+          failed={failedId === `${current.park.id}:${current.feature.id}`}
           onConfirm={() => confirm(current)}
           onEdit={() => edit(current)}
         />

@@ -40,7 +40,7 @@ export function ContributionRow({
 
   // miniature → pictogramme (carré pastel) → titre + parc → badge + date → chevron
   const row = (
-    <button type="button" className={canEdit ? `${styles.row} ${styles.rowGrow}` : styles.row} onClick={onClick}>
+    <button type="button" className={styles.row} onClick={onClick}>
       <span className={styles.thumb} style={photo ? { backgroundImage: `url(${photo})` } : undefined} aria-hidden>
         {!photo && <Icon name="ic-slide" size={20} />}
       </span>
@@ -70,11 +70,14 @@ export function ContributionRow({
     </button>
   );
 
-  if (!canEdit) return row;
+  // Same columns on every row: [miniature | pictogramme | contenu | statut + date | chevron] + a
+  // fixed actions slot, reserved even without « ⋯ », so the status column never shifts.
   return (
     <div className={styles.rowWrap}>
       {row}
-      <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />
+      <span className={styles.actions}>
+        {canEdit && <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />}
+      </span>
     </div>
   );
 }

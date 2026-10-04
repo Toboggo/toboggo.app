@@ -23,7 +23,9 @@ begin
   raise notice 'T1 OK — A insère son avis';
   begin insert into app_feedback (user_id, rating, title, body) values (auth.uid(), 4, 'x', 'y');
     raise exception 'T2 FAIL — 2e avis accepté';
-  exception when unique_violation then raise notice 'T2 OK — 2e avis refusé (unique)'; end;
+  exception when raise_exception then
+    if sqlerrm <> 'app_feedback_too_soon' then raise; end if;
+    raise notice 'T2 OK — 2e avis < 30 j refusé (0044)'; end;
   begin insert into app_feedback (user_id, rating, title, body) values ('f0390000-0000-4000-a000-00000000000b', 5, 'x', 'y');
     raise exception 'T3 FAIL — insert pour autrui accepté';
   exception when insufficient_privilege then raise notice 'T3 OK — insert pour autrui refusé (RLS)'; end;

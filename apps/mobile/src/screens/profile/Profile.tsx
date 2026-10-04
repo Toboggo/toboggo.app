@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { computeChildAge, listMyParks, listMyReviews } from "@toboggo/shared";
+import { computeChildAge, listMyAppFeedback, listMyParks, listMyReviews } from "@toboggo/shared";
 import { useTheme, LogoMark, Icon, type ThemePreference, type IconName } from "@toboggo/design-system";
 import { BottomTabs } from "../../components/BottomTabs";
 import { useSession } from "../../lib/session";
@@ -80,6 +80,7 @@ export default function Profile() {
   const profile = useSession((s) => s.profile);
 
   const { data: myParks = [] } = useQuery({ queryKey: ["my-parks", userId], queryFn: () => listMyParks(userId!), enabled: !!userId });
+  const { data: myFeedback = [] } = useQuery({ queryKey: ["app-feedback", userId], queryFn: () => listMyAppFeedback(userId!), enabled: !!userId });
   const { data: myReviews = [] } = useQuery({ queryKey: ["my-reviews", userId], queryFn: () => listMyReviews(userId!), enabled: !!userId });
   const { data: myChildren = [] } = useChildren();
 
@@ -265,8 +266,8 @@ export default function Profile() {
         <div className={`${styles.group} ${styles.hubCard}`} style={{ marginTop: 20 }}>
           <Row
             icon="ic-star"
-            label={t("feedback.title")}
-            sublabel={t("feedback.hint")}
+            label={t(myFeedback.length > 0 ? "feedback.titleMine" : "feedback.title")}
+            sublabel={t(myFeedback.length > 0 ? "feedback.hintMine" : "feedback.hint")}
             onClick={() => navigate("/profile/feedback")}
           />
         </div>

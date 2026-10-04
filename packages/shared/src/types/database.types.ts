@@ -61,29 +61,32 @@ export type Database = {
       }
       app_feedback: {
         Row: {
-          body: string
+          body: string | null
           created_at: string
+          edited_at: string | null
           id: string
           rating: number
-          title: string
+          title: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          body: string
+          body?: string | null
           created_at?: string
+          edited_at?: string | null
           id?: string
           rating: number
-          title: string
+          title?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          body?: string
+          body?: string | null
           created_at?: string
+          edited_at?: string | null
           id?: string
           rating?: number
-          title?: string
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1899,6 +1902,32 @@ export type Database = {
       }
     }
     Views: {
+      app_feedback_latest: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          edited_at: string | null
+          id: string | null
+          rating: number | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      app_feedback_summary: {
+        Row: {
+          average_rating: number | null
+          count_1: number | null
+          count_2: number | null
+          count_3: number | null
+          count_4: number | null
+          count_5: number | null
+          rating_count: number | null
+          total_submissions: number | null
+        }
+        Relationships: []
+      }
       geography_columns: {
         Row: {
           coord_dimension: number | null

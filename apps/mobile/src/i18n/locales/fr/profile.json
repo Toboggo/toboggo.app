@@ -4,13 +4,12 @@
   "notifications": "Notifications",
   "notifs": {
     "title": "Notifications",
-    "markAllRead": "Tout marquer comme lu",
+    "markAllRead": "Tout lire",
     "filter": {
       "all": "Toutes",
-      "unread": "Non lues",
-      "read": "Lues"
+      "unread": "Non lues"
     },
-    "empty": "Aucune notification ici.",
+    "empty": "Vous êtes à jour !",
     "seePark": "Voir le parc",
     "pref": {
       "reports": "Suivi de mes signalements",
@@ -21,7 +20,14 @@
     },
     "channels": "Canaux",
     "channelPush": "Notifications push",
-    "channelEmail": "E-mail"
+    "channelEmail": "E-mail",
+    "emptyHint": "Les nouvelles de vos parcs et le suivi de vos ajouts apparaîtront ici.",
+    "emptyUnread": "Aucune notification non lue",
+    "unreadDot": "Non lue",
+    "loading": "Chargement…",
+    "error": "Impossible de charger vos notifications.",
+    "retry": "Réessayer",
+    "filterLabel": "Filtrer les notifications"
   },
   "level": "Niv. {{level}}",
   "levelProgress": "{{points}} points · {{remaining}} avant le niveau suivant",

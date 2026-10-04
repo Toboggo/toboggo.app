@@ -26,6 +26,7 @@ export type IconName =
   | "ic-pmr"
   | "ic-light"
   | "ic-check"
+  | "ic-bell"
   | "ic-question"
   | "ic-explore"
   | "ic-heart"

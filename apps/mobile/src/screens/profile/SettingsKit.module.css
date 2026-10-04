@@ -10,6 +10,9 @@
   background: color-mix(in srgb, var(--color-bg) 65%, var(--color-border-neutral));
   padding-bottom: calc(var(--bottom-nav-h, 0px) + 24px);
 }
+.pageWhite {
+  background: var(--color-surface);
+}
 /* TopBar transparent sur le fond de page + retour en petit carré arrondi.
    Sélecteurs doublés pour passer devant TopBar.module.css sans !important. */
 .topBar.topBar {
@@ -147,26 +150,162 @@
   text-align: center;
 }
 
-/* Centre de notifications : filtres + lignes dans des cartes. */
-.filters {
-  margin-bottom: 4px;
+/* Centre de notifications : fond blanc, onglets soulignés, lignes sobres. */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border-neutral);
+  margin: 0 -20px;
+  padding: 0 20px;
+}
+.tab {
+  flex: 1;
+  min-height: 44px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--color-text-muted);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+.tabActive {
+  color: var(--color-text);
+  border-bottom-color: var(--color-primary);
+}
+.notifList {
+  margin: 0 -20px;
 }
 .notif {
   display: flex;
+  align-items: flex-start;
   gap: 12px;
   width: 100%;
-  padding: 14px 16px;
+  min-height: 44px;
+  padding: 14px 20px;
   text-align: left;
   background: none;
   border: none;
   border-bottom: 1px solid var(--color-border-neutral);
   cursor: pointer;
   font-family: var(--font-body);
+  color: var(--color-text);
 }
-.notif:last-child {
-  border-bottom: none;
+.notifIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.notifBody {
+  flex: 1;
+  min-width: 0;
+}
+.notifTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+}
+.notifDesc {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.notifDate {
+  font-size: 11.5px;
+  color: var(--color-text-faint);
+  margin-top: 2px;
+}
+.unreadDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  flex: none;
+  margin-top: 6px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.notifEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 56px 24px 0;
+}
+.bellCircle {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.bellCheck {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-surface);
+  border: 2px solid var(--color-surface);
+  box-sizing: content-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.notifEmptyTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 20px;
+  color: var(--color-text);
+}
+.notifEmptyText {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+  max-width: 280px;
+}
+.notifStatus {
+  padding: 48px 24px 0;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+.retry {
+  margin-top: 12px;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border-neutral);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  cursor: pointer;
 }
 .markAll {
+  min-height: 44px;
   background: none;
   border: none;
   color: var(--color-primary);

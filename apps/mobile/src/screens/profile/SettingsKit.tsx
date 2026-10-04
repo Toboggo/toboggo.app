@@ -8,15 +8,18 @@ export function SettingsPage({
   title,
   onBack,
   right,
+  white,
   children,
 }: {
   title: string;
   onBack?: () => void;
   right?: ReactNode;
+  /** Fond entièrement blanc (au lieu du gris très clair) — même en-tête. */
+  white?: boolean;
   children: ReactNode;
 }) {
   return (
-    <div className={clsx("screen", styles.page)}>
+    <div className={clsx("screen", styles.page, white && styles.pageWhite)}>
       <TopBar title={title} onBack={onBack} right={right} className={styles.topBar} backClassName={styles.backSquare} />
       <div className={styles.content}>{children}</div>
     </div>

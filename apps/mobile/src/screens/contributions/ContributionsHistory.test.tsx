@@ -129,11 +129,11 @@ describe("ContributionsHistory — list", () => {
     const titles = screen.getAllByText(/photo ajoutée|Modification proposée|Avis ajouté|Nouveau parc proposé|Signalement d.un problème/).map((n) => n.textContent);
     expect(titles).toEqual(["1 photo ajoutée", "Modification proposée", "Avis ajouté", "Nouveau parc proposé", "Signalement d’un problème"]);
 
-    const photoRow = screen.getByText("1 photo ajoutée").closest("button")!;
+    const photoRow = screen.getByText("1 photo ajoutée").closest('[class*="rowWrap"]')!;
     const thumb = photoRow.querySelector('[class*="thumb"]') as HTMLElement;
     expect(thumb.style.backgroundImage).toContain("https://x/1.jpg");
 
-    const editRow = screen.getByText("Modification proposée").closest("button")!;
+    const editRow = screen.getByText("Modification proposée").closest('[class*="rowWrap"]')!;
     const editThumb = editRow.querySelector('[class*="thumb"]') as HTMLElement;
     expect(editThumb.style.backgroundImage).toBe(""); // no photo — falls back to the type icon
   });

@@ -85,6 +85,8 @@
 
   --color-warning-bg: #fff3d6;
   --color-warning-text: #8a5a00;
+  /* Pictogramme + compteur du statut « En vérification » (jaune-orange vif). */
+  --color-status-pending: #ffb020;
 
   /* "Succès" n'avait pas de token dédié — le vert de marque en tient lieu.
      Alias explicite pour l'usage sémantique (états OK, confirmations). */
@@ -268,6 +270,7 @@
 
   --color-warning-bg: #3a3016;
   --color-warning-text: #ffcf6b;
+  --color-status-pending: #ffb020;
 
   --color-success: var(--color-primary);
   --color-success-tint: var(--color-primary-tint);

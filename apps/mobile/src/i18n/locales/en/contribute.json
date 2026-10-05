@@ -406,7 +406,8 @@
       "unavailable": "This feature isn’t available yet. Check back soon!",
       "subtitle": "Help us keep information reliable",
       "retry": "Try again"
-    }
+    },
+    "statusAria": "Status: {{status}}"
   },
   "history": {
     "title": "Your contributions",

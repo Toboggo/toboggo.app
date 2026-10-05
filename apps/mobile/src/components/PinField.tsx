@@ -41,6 +41,8 @@ export function PinField({
   lng,
   onChange,
   onPositionCommitted,
+  compact = false,
+  mapHeight = 280,
 }: {
   lat: number;
   lng: number;
@@ -53,6 +55,11 @@ export function PinField({
    * nothing until the user or a recenter moves it). Omit to opt out.
    */
   onPositionCommitted?: (lat: number, lng: number) => void;
+  /** Parcours de contribution : recherche + « Ma position » sur une ligne, carte plus basse,
+   * attribution repliée en pastille (reste accessible via le bouton ⓘ). */
+  compact?: boolean;
+  /** Hauteur de la carte (px). */
+  mapHeight?: number;
 }) {
   const { t } = useTranslation("contribute");
   const styleUrl = mapStyleUrl();
@@ -122,9 +129,23 @@ export function PinField({
       style: styleUrl,
       center: [lng, lat],
       zoom: 16,
+      ...(compact ? { attributionControl: { compact: true } } : {}),
     });
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    if (compact) {
+      // Attribution repliée en pastille ⓘ dès le départ (MapLibre l'ouvre au chargement) :
+      // elle reste accessible d'un tap sans masquer la carte.
+      const collapse = () => {
+        const el = containerRef.current?.querySelector(".maplibregl-ctrl-attrib");
+        el?.classList.remove("maplibregl-compact-show");
+        el?.removeAttribute("open");
+      };
+      collapse();
+      map.once("load", collapse);
+      map.once("idle", collapse);
+      setTimeout(collapse, 800);
+    }
     const emit = () => {
       const c = map.getCenter();
       const nextLat = Number(c.lat.toFixed(6));
@@ -231,16 +252,34 @@ export function PinField({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-      {searchBar}
-      <Button variant="secondary" block loading={locating} onClick={handleUseMyLocation}>
-        <Icon name="ic-explore" size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "-2px" }} />
-        {t("common.useMyLocation")}
-      </Button>
+    <div style={{ display: "flex", flexDirection: "column", gap: compact ? 8 : 12 }}>
+      {compact ? (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <div style={{ flex: 1, minWidth: 0 }}>{searchBar}</div>
+          <Button
+            variant="secondary"
+            loading={locating}
+            onClick={handleUseMyLocation}
+            aria-label={t("pin.useMyLocationAria")}
+            style={{ minHeight: 48, padding: "0 14px", flex: "0 0 auto" }}
+          >
+            <Icon name="ic-explore" size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "-2px" }} />
+            {t("pin.myLocationShort")}
+          </Button>
+        </div>
+      ) : (
+        <>
+          {searchBar}
+          <Button variant="secondary" block loading={locating} onClick={handleUseMyLocation}>
+            <Icon name="ic-explore" size={16} style={{ marginRight: 6, display: "inline-block", verticalAlign: "-2px" }} />
+            {t("common.useMyLocation")}
+          </Button>
+        </>
+      )}
       <div
         style={{
           position: "relative",
-          height: 280,
+          height: mapHeight,
           borderRadius: "var(--radius-md)",
           overflow: "hidden",
           border: "1px solid var(--color-border)",
@@ -264,7 +303,7 @@ export function PinField({
             <circle cx="12" cy="9" r="2.5" fill="var(--color-surface)" stroke="none" />
           </svg>
         </div>
-        <button
+        {!compact && <button
           type="button"
           aria-label={t("pin.useMyLocationAria")}
           onClick={handleUseMyLocation}
@@ -286,7 +325,7 @@ export function PinField({
           }}
         >
           <CrosshairIcon />
-        </button>
+        </button>}
       </div>
       {geoError && <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{geoError}</div>}
     </div>

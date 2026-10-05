@@ -6,6 +6,7 @@ import { getParkDisplayName, haversineMeters, searchParks, type Park } from "@to
 import { ParkPhoto } from "../ParkPhoto";
 import { useFormat } from "../../i18n/useFormat";
 import { useGeo } from "../../lib/geo";
+import { dedupeAddress } from "./Recap";
 import styles from "./Flow.module.css";
 
 /** Carte compacte d'un parc : photo (ou repli de marque), nom, adresse, méta. */
@@ -28,7 +29,7 @@ export function ParkCardMini({
       <ParkPhoto park={park} markSize={20} className={styles.parkThumb} />
       <div className={styles.parkBody}>
         <div className={styles.parkName}>{name}</div>
-        {park.formatted_address && <div className={styles.parkMeta}>{park.formatted_address}</div>}
+        {park.formatted_address && <div className={styles.parkMeta}>{dedupeAddress(park.formatted_address)}</div>}
         {meta && <div className={styles.parkMeta}>{meta}</div>}
       </div>
       {selected && <Icon name="ic-check" size={18} style={{ color: "var(--color-primary)" }} />}

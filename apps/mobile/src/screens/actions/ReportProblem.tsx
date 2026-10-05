@@ -13,6 +13,7 @@ import {
 import {
   buildDraftKey,
   createReport,
+  getParkDisplayName,
   uploadPhoto,
   ImageValidationError,
   REPORT_REASON_LABEL,
@@ -23,7 +24,8 @@ import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
-import { SummaryCard } from "../../components/addPark/AddParkParts";
+import { PhotoThumbs, RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
+import { ParkPhoto } from "../../components/ParkPhoto";
 import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
@@ -365,29 +367,23 @@ export default function ReportProblem() {
           <>
             <h2 className={styles.title}>{t("report.verifyTitle")}</h2>
             <p className={styles.subtitle}>{t("report.verifyHint")}</p>
-            <SummaryCard title={t("steps.park")} onEdit={() => setStep(0)} hideEdit={preselected}>
-              {park && <ParkCardMini park={park} />}
-            </SummaryCard>
-            <SummaryCard title={t("steps.problem")} onEdit={() => setStep(1)}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15 }}>
+            <RecapCard
+              thumb={<ParkPhoto park={park ?? { photos: [] }} className={styles.recapThumb} markSize={24} />}
+              name={park ? getParkDisplayName(park, t) : ""}
+              address={dedupeAddress(park?.formatted_address)}
+            >
+              <RecapRow icon="ic-flag" title={t("steps.problem")} onEdit={() => setStep(1)}>
                 {reason ? t(`reason.${reason}`) : "—"}
-              </div>
-              {needsEquipment && (
-                <div className={styles.muted} style={{ marginTop: 4 }}>
-                  {t("report.equipmentLabel")} : {equipmentChoice ? t(equipmentChoice.key) : t("report.equipmentUnspecified")}
-                </div>
-              )}
-            </SummaryCard>
-            <SummaryCard title={t("report.descriptionTitle")} onEdit={() => setStep(1)}>
-              {comment.trim() ? <p className={styles.muted} style={{ margin: 0 }}>{comment}</p> : <span className={styles.muted}>{t("report.noDescription")}</span>}
-            </SummaryCard>
-            <SummaryCard title={t("steps.photos")} onEdit={() => setStep(1)}>
-              {photo ? (
-                <div className={styles.thumbs}><div className={styles.thumb} style={{ backgroundImage: `url(${photo})` }} /></div>
-              ) : (
-                <span className={styles.muted}>{t("addPark.summary.noPhotos")}</span>
-              )}
-            </SummaryCard>
+                {needsEquipment && `\n${t("report.equipmentLabel")} : ${equipmentChoice ? t(equipmentChoice.key) : t("report.equipmentUnspecified")}`}
+              </RecapRow>
+              <RecapRow icon="ic-pencil" title={t("report.descriptionTitle")} onEdit={() => setStep(1)}>
+                {comment.trim() || t("report.noDescription")}
+              </RecapRow>
+              <RecapRow icon="ic-camera" title={t("steps.photos")} onEdit={() => setStep(1)}>
+                {photo ? t("flow.photoCount", { count: 1 }) : t("addPark.summary.noPhotos")}
+                <PhotoThumbs urls={photo ? [photo] : []} />
+              </RecapRow>
+            </RecapCard>
             <div aria-live="polite" role="status">
               {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
             </div>

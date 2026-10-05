@@ -105,7 +105,10 @@
     "noComment": "No comment",
     "verifyNote": "Your review is published right away; a photo, if any, is checked before it becomes visible.",
     "submitError": "Your review couldn’t be published. Your answers are kept: try again.",
-    "leaveBody": "Your draft is kept for 24 h on this device: you can pick it up later."
+    "leaveBody": "Your draft is kept for 24 h on this device: you can pick it up later.",
+    "criteriaSummaryTitle": "Criteria and age",
+    "editNoChange": "Change your review to enable saving.",
+    "verifyHintEdit": "Read your changes again before saving them."
   },
   "addParkSearch": {
     "title": "Is this park already listed?",
@@ -119,7 +122,7 @@
     "seeMore": "Show more ({{count}})"
   },
   "pin": {
-    "searchPlaceholder": "Search for a city, an address or a place",
+    "searchPlaceholder": "City or address",
     "unavailable": "Map unavailable — adjust the position step by step.",
     "locating": "Locating…",
     "myLocationShort": "My location",
@@ -134,10 +137,10 @@
   },
   "addPark": {
     "locationTitle": "Where is the park?",
-    "locationHint": "Search for a place, use your location, or drop the marker on the map.",
-    "pinHint": "Move the marker to pinpoint the location.",
-    "addressLabel": "Address (if you know it)",
-    "addressPlaceholder": "12 Oak Street, London",
+    "locationHint": "Search for an address or place the pin.",
+    "pinHint": "Move the map to adjust the pin.",
+    "addressLabel": "Address (editable)",
+    "addressPlaceholder": "Street, postcode, city",
     "addressResolving": "Looking up the address…",
     "infoTitle": "What’s there?",
     "infoHint": "Fill in what you know.",
@@ -227,7 +230,14 @@
       "unknownList": "Not provided: {{list}}",
       "noNote": "No extra note",
       "noPhotos": "No photos",
-      "moderation": "Your submission will be checked before it is published."
+      "moderation": "Your submission will be checked before it is published.",
+      "genericName": "Playground",
+      "unnamedNote": "Name not provided",
+      "locationAdjust": "Location confirmed on the map",
+      "locationReview": "Address not provided: check the pin on the map.",
+      "present": "Present: {{list}}",
+      "absent": "Absent: {{list}}",
+      "unknown": "Unknown: {{list}}"
     },
     "submitting": "Sending…",
     "submitError": "Sending failed. Your information is kept: check your connection and try again.",
@@ -248,7 +258,10 @@
       "thisOne": "This is the park",
       "another": "No, it’s a different park",
       "confirmOnly": "Only confirm if it’s a different place.",
-      "error": "Couldn’t check for parks already listed around this pin. Try again — this doesn’t mean there are none."
+      "error": "Couldn’t check for parks already listed around this pin. Try again — this doesn’t mean there are none.",
+      "title": "Is this already that park?",
+      "completeHelp": "Complete its page without creating a duplicate.",
+      "backToMap": "Adjust the pin on the map"
     }
   },
   "addPhotos": {
@@ -525,6 +538,8 @@
     "photos": {
       "uploading": "Uploading photo…"
     },
-    "photoOptional": "Photo (optional)"
+    "photoOptional": "Photo (optional)",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos"
   }
 }

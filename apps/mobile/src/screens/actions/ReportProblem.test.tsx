@@ -269,7 +269,7 @@ describe("ReportProblem — parcours en 3 étapes", () => {
     expect(screen.queryByRole("button", { name: /Envoyer le signalement/ })).toBeNull();
     await toVerify();
     expect(createReport).not.toHaveBeenCalled();
-    expect(screen.getByText("Problème de sécurité")).toBeTruthy();
+    expect(screen.getByText(/Problème de sécurité/)).toBeTruthy();
     expect(screen.getByText("fissure au sol")).toBeTruthy();
     expect(screen.getByText("Aucune photo")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Modifier — Description/ }));

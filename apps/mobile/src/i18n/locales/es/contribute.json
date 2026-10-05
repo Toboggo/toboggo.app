@@ -105,7 +105,10 @@
     "noComment": "Sin comentario",
     "verifyNote": "Tu opinión se publica al instante; la foto, si la hay, se revisa antes de ser visible.",
     "submitError": "No se pudo publicar tu opinión. Tus respuestas se conservan: inténtalo de nuevo.",
-    "leaveBody": "Tu borrador se guarda 24 h en este dispositivo: podrás retomarlo más tarde."
+    "leaveBody": "Tu borrador se guarda 24 h en este dispositivo: podrás retomarlo más tarde.",
+    "criteriaSummaryTitle": "Criterios y edad",
+    "editNoChange": "Modifica tu opinión para activar el guardado.",
+    "verifyHintEdit": "Vuelve a leer tus cambios antes de guardarlos."
   },
   "addParkSearch": {
     "title": "¿Este parque ya existe?",
@@ -119,7 +122,7 @@
     "seeMore": "Ver más ({{count}})"
   },
   "pin": {
-    "searchPlaceholder": "Buscar una ciudad, una dirección o un lugar",
+    "searchPlaceholder": "Ciudad o dirección",
     "unavailable": "Mapa no disponible — ajusta la posición paso a paso.",
     "locating": "Ubicando…",
     "myLocationShort": "Mi ubicación",
@@ -134,10 +137,10 @@
   },
   "addPark": {
     "locationTitle": "¿Dónde está el parque?",
-    "locationHint": "Busca un lugar, usa tu ubicación o coloca el marcador en el mapa.",
-    "pinHint": "Mueve el marcador para precisar la ubicación.",
-    "addressLabel": "Dirección (si la conoces)",
-    "addressPlaceholder": "Calle Mayor 12, 28013 Madrid",
+    "locationHint": "Busca una dirección o coloca el marcador.",
+    "pinHint": "Mueve el mapa para ajustar el marcador.",
+    "addressLabel": "Dirección (editable)",
+    "addressPlaceholder": "Calle, código postal, ciudad",
     "addressResolving": "Buscando la dirección…",
     "infoTitle": "¿Qué hay allí?",
     "infoHint": "Indica lo que sepas.",
@@ -227,7 +230,14 @@
       "unknownList": "No indicado: {{list}}",
       "noNote": "Sin precisiones",
       "noPhotos": "Sin fotos",
-      "moderation": "Tu aportación se revisará antes de publicarse."
+      "moderation": "Tu aportación se revisará antes de publicarse.",
+      "genericName": "Área de juegos",
+      "unnamedNote": "Nombre no indicado",
+      "locationAdjust": "Ubicación confirmada en el mapa",
+      "locationReview": "Dirección no indicada: revisa el marcador en el mapa.",
+      "present": "Presentes: {{list}}",
+      "absent": "Ausentes: {{list}}",
+      "unknown": "Desconocidos: {{list}}"
     },
     "submitting": "Enviando…",
     "submitError": "No se pudo enviar. Tus datos se conservan: revisa tu conexión e inténtalo de nuevo.",
@@ -248,7 +258,10 @@
       "thisOne": "Es este parque",
       "another": "No, es otro parque",
       "confirmOnly": "Confirma solo si se trata de un lugar distinto.",
-      "error": "No se pudo comprobar los parques ya registrados alrededor del marcador. Inténtalo de nuevo: no significa que no haya ninguno."
+      "error": "No se pudo comprobar los parques ya registrados alrededor del marcador. Inténtalo de nuevo: no significa que no haya ninguno.",
+      "title": "¿Ya es este parque?",
+      "completeHelp": "Completa su ficha sin crear un duplicado.",
+      "backToMap": "Corregir el marcador en el mapa"
     }
   },
   "addPhotos": {
@@ -525,6 +538,8 @@
     "photos": {
       "uploading": "Enviando la foto…"
     },
-    "photoOptional": "Foto (opcional)"
+    "photoOptional": "Foto (opcional)",
+    "photoCount_one": "{{count}} foto",
+    "photoCount_other": "{{count}} fotos"
   }
 }

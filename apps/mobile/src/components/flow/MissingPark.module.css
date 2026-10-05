@@ -1,0 +1,121 @@
+/* « Parc introuvable » : carte secondaire + panneau. Fond blanc, gris neutres, vert Toboggo. */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 72px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1.5px solid var(--color-border-neutral);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.cardIcon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.cardBody {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cardTitle {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.cardText {
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+.chev {
+  flex: 0 0 auto;
+  color: var(--color-text-muted);
+}
+
+.sheet {
+  position: relative;
+  padding: 4px 20px calc(16px + var(--safe-bottom));
+  text-align: center;
+}
+.close {
+  position: absolute;
+  top: 0;
+  right: 8px;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.art {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
+}
+.artCircle {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.title {
+  margin: 12px 0 4px;
+  font-size: 21px;
+  line-height: 1.2;
+  color: var(--color-text);
+  text-wrap: balance;
+}
+.lead {
+  margin: 0 0 14px;
+  font-size: 14.5px;
+  color: var(--color-text-muted);
+}
+.note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-neutral);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--color-text);
+}
+.after {
+  margin: 12px 0 16px;
+  font-size: 13.5px;
+  color: var(--color-text-muted);
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}

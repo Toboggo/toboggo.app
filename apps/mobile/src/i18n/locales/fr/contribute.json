@@ -572,17 +572,24 @@
       "selected": "Parc choisi",
       "none": "Je ne trouve pas mon parc",
       "error": "La recherche a échoué.",
-      "addFirstTitle": "Ajoutez d’abord ce parc",
-      "addFirstBody": "Il sera vérifié avant d’apparaître dans Toboggo.",
-      "addPark": "Ajouter un parc",
-      "keepSearching": "Continuer à chercher"
+      "selectToContinue": "Sélectionnez un parc pour continuer"
     },
     "photos": {
       "uploading": "Envoi de la photo…"
     },
     "photoOptional": "Photo (facultatif)",
     "photoCount_one": "{{count}} photo",
-    "photoCount_other": "{{count}} photos"
+    "photoCount_other": "{{count}} photos",
+    "missing": {
+      "cardTitle": "Parc introuvable ?",
+      "cardText": "Vous pouvez proposer son ajout.",
+      "title": "Votre parc n’est pas encore ici ?",
+      "lead": "Ajoutez-le pour aider les autres familles à le retrouver.",
+      "verify": "Le parc sera vérifié avant d’apparaître dans Toboggo.",
+      "after": "Une fois publié, vous pourrez y ajouter un avis, des photos ou un signalement.",
+      "add": "Ajouter ce parc",
+      "keepSearching": "Continuer à chercher"
+    }
   },
   "thanks": {
     "title": "Merci pour votre coup de pouce !",

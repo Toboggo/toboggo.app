@@ -47,6 +47,12 @@ export interface BottomSheetProps {
    * the — always floating, unaffected — bottom nav, see MapExplore).
    */
   floating?: boolean;
+  /**
+   * Opt-in dialog semantics: when set, the sheet is a modal `role="dialog"` named
+   * by this label, takes focus when it opens, closes on Escape, and gives focus
+   * back to whatever opened it. Left unset, behaviour is unchanged.
+   */
+  label?: string;
 }
 
 const GRAB_H = 26; // handle strip — added on top of a `"fit"` content height
@@ -126,6 +132,7 @@ export function BottomSheet({
   dismissible = true,
   onOverswipeUp,
   floating = false,
+  label,
 }: BottomSheetProps) {
   const controlled = snapIndex != null;
   const lastIdx = snapPoints.length - 1;
@@ -183,6 +190,23 @@ export function BottomSheet({
   // `contentH` is the *natural* content height; the reserve below is a sibling
   // spacer, never folded into this measurement.
   const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Opt-in dialog a11y (`label`): focus in on open, Escape closes, focus restored.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  useEffect(() => {
+    if (!label || !open) return;
+    const opener = document.activeElement as HTMLElement | null;
+    sheetRef.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current?.();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      if (opener && document.contains(opener)) opener.focus({ preventScroll: true });
+    };
+  }, [label, open]);
   const contentRef = useRef<HTMLDivElement>(null);
   const [contentH, setContentH] = useState(0);
   useLayoutEffect(() => {
@@ -407,6 +431,10 @@ export function BottomSheet({
       <div
         ref={sheetRef}
         className={styles.sheet}
+        role={label ? "dialog" : undefined}
+        aria-modal={label ? true : undefined}
+        aria-label={label}
+        tabIndex={label ? -1 : undefined}
         data-dragging={dragging ? "1" : undefined}
         data-docked={docked ? "1" : undefined}
         data-floating={floating ? "1" : undefined}

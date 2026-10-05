@@ -572,17 +572,24 @@
       "selected": "Selected park",
       "none": "I can’t find my park",
       "error": "The search failed.",
-      "addFirstTitle": "Add this park first",
-      "addFirstBody": "It will be checked before it appears in Toboggo.",
-      "addPark": "Add a park",
-      "keepSearching": "Keep searching"
+      "selectToContinue": "Select a park to continue"
     },
     "photos": {
       "uploading": "Uploading photo…"
     },
     "photoOptional": "Photo (optional)",
     "photoCount_one": "{{count}} photo",
-    "photoCount_other": "{{count}} photos"
+    "photoCount_other": "{{count}} photos",
+    "missing": {
+      "cardTitle": "Can’t find the park?",
+      "cardText": "You can suggest adding it.",
+      "title": "Your park isn’t here yet?",
+      "lead": "Add it to help other families find it.",
+      "verify": "The park will be checked before it appears in Toboggo.",
+      "after": "Once published, you’ll be able to add a review, photos or a report.",
+      "add": "Add this park",
+      "keepSearching": "Keep searching"
+    }
   },
   "thanks": {
     "title": "Thanks for lending a hand!",

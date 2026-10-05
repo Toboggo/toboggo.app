@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Dialog, Icon, Input } from "@toboggo/design-system";
+import { Icon, Input } from "@toboggo/design-system";
 import { getParkDisplayName, haversineMeters, searchParks, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "../ParkPhoto";
 import { useFormat } from "../../i18n/useFormat";
 import { useGeo } from "../../lib/geo";
 import { dedupeAddress } from "./Recap";
+import { MissingParkCard, MissingParkSheet } from "./MissingPark";
 import styles from "./Flow.module.css";
 
 /** Carte compacte d'un parc : photo (ou repli de marque), nom, adresse, méta. */
@@ -121,32 +122,17 @@ export function ParkChooser({
           />
         ))}
       </div>
-      <button type="button" className={styles.linkButton} onClick={() => setExplain(true)}>
-        {t("flow.chooser.none")}
-      </button>
-      <Dialog
+      {/* Toujours accessible : aussi sans résultat, et même si la recherche a échoué. */}
+      <MissingParkCard onPress={() => setExplain(true)} />
+      {!selected && <p className={styles.chooseHint}>{t("flow.chooser.selectToContinue")}</p>}
+      <MissingParkSheet
         open={explain}
         onClose={() => setExplain(false)}
-        title={t("flow.chooser.addFirstTitle")}
-        actions={
-          <div className={styles.dialogStack}>
-            <Button
-              block
-              onClick={() => {
-                setExplain(false);
-                onAddPark();
-              }}
-            >
-              {t("flow.chooser.addPark")}
-            </Button>
-            <Button block variant="ghost" onClick={() => setExplain(false)}>
-              {t("flow.chooser.keepSearching")}
-            </Button>
-          </div>
-        }
-      >
-        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)" }}>{t("flow.chooser.addFirstBody")}</p>
-      </Dialog>
+        onAddPark={() => {
+          setExplain(false);
+          onAddPark();
+        }}
+      />
     </>
   );
 }

@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Button, EmptyState, Icon, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
 import { addMedia, buildDraftKey, createReview, getParkDisplayName, getReview, ImageValidationError, listMyReviews, updateMyReview, uploadPhoto, type AgeBand, type Park, type Review, type ReviewSubRatings } from "@toboggo/shared";
-import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
+import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
@@ -306,8 +306,8 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
       void queryClient.invalidateQueries({ queryKey: ["my-contributions"] });
       void queryClient.invalidateQueries({ queryKey: ["my-reviews"] });
       void queryClient.invalidateQueries({ queryKey: ["nearby-parks"] });
-      useToastStore.getState().show(t("review.edit.saved"));
-      leaveEdit();
+      // Succès confirmé → page de remerciement partagée (le toast ne sert plus).
+      setDone(true);
     } catch {
       // Form state is untouched: the user keeps everything they typed.
       setSubmitError(true);
@@ -406,30 +406,15 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
   });
   const existingReview = !editing && parkId ? myReviews?.find((r) => r.park_id === parkId && r.status === "published") : undefined;
 
-  if (done && !editing) {
-    // Contribution terminée : le wizard ne doit plus rester visible ni
-    // interactif derrière la confirmation — remplacé par un fond neutre, la
-    // Success Sheet porte tout le contenu et les CTA. "Voir le parc" et
-    // "Retour à la carte" remplacent (jamais n'empilent) l'entrée d'historique
-    // du wizard : Retour ne ramène jamais aux étapes déjà soumises ni à cette
-    // confirmation. Idem AddPark / AddPhotos / EditInfo / ReportProblem.
-    return (
-      <>
-        <div className="screen" />
-        <ContributionSuccessSheet
-          open={done}
-          title={t("common.thanks")}
-          body={
-            <>
-              {t("rate.doneBody", { park: park ? getParkDisplayName(park, t) : "" })}
-              {photoPending && ` ${t("rate.photoPendingNote")}`}
-            </>
-          }
-          primaryCta={{ label: t("common.seePark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
-          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
-          onDismiss={() => navigate("/map", { replace: true })}
-        />
-      </>
+  if (done) {
+    return editing ? (
+      <ThankYou body={t("thanks.body.reviewEdit")} parkId={editing.park_id} />
+    ) : (
+      <ThankYou
+        body={t("thanks.body.review", { park: park ? getParkDisplayName(park, t) : "" })}
+        moderation={photoPending ? t("thanks.moderation.reviewPhoto") : undefined}
+        parkId={parkId}
+      />
     );
   }
 

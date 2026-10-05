@@ -1,25 +1,28 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { BottomSheet, Icon } from "@toboggo/design-system";
-import styles from "./QuickMenu.module.css";
+import { BottomSheet, Icon, type IconName } from "@toboggo/design-system";
+import styles from "./ContributeSheet.module.css";
 
 /**
- * Lightweight "Contribuer" action sheet, opened from a park detail screen.
- *
- * The current park is passed in, so none of the three sub-flows asks the user
- * to pick a park again (`?park=<id>` is forwarded). Auth is **not** requested
- * here — each sub-flow asks for an account only at send time, and its
- * in-progress content is autosaved (the shared draft socle). Reviews are
- * intentionally not offered here.
+ * Menu « Enrichir ce parc », ouvert depuis la fiche parc. Quatre actions ; chacune
+ * ouvre le parcours actuel AVEC le parc déjà choisi (`?park=<id>`) : aucune
+ * nouvelle sélection. Si l'utilisateur a déjà un avis publié sur ce parc, « Donner
+ * mon avis » devient l'édition de cet avis (jamais un doublon). Aucun compte n'est
+ * demandé ici : chaque parcours le demande à l'envoi, brouillon conservé.
  */
 export function ContributeSheet({
   open,
   onClose,
   parkId,
+  parkName,
+  myReviewId,
 }: {
   open: boolean;
   onClose: () => void;
   parkId: string;
+  parkName?: string;
+  /** Avis publié de l'utilisateur sur ce parc, s'il existe. */
+  myReviewId?: string;
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("contribute");
@@ -29,26 +32,36 @@ export function ContributeSheet({
     navigate(to);
   };
 
+  const rows: { icon: IconName; title: string; hint: string; to: string }[] = [
+    { icon: "ic-list", title: t("sheet.complete"), hint: t("sheet.completeHint"), to: `/contribute/edit?park=${parkId}` },
+    { icon: "ic-camera", title: t("sheet.addPhotos"), hint: t("sheet.addPhotosHint"), to: `/photo-add?park=${parkId}` },
+    myReviewId
+      ? { icon: "ic-review", title: t("sheet.editReview"), hint: t("sheet.editReviewHint"), to: `/review/${myReviewId}/edit` }
+      : { icon: "ic-review", title: t("sheet.rate"), hint: t("sheet.rateHint"), to: `/rate?park=${parkId}` },
+    { icon: "ic-warning", title: t("sheet.report"), hint: t("sheet.reportHint"), to: `/report?park=${parkId}` },
+  ];
+
   return (
     <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop>
-      <div className={styles.menu}>
-        <button className={styles.item} onClick={() => go(`/contribute/edit?park=${parkId}`)}>
-          <span className={styles.icon}>
-            <Icon name="ic-report-info" size={18} />
-          </span>
-          {t("sheet.editInfo")}
-        </button>
-        <button className={styles.item} onClick={() => go(`/photo-add?park=${parkId}`)}>
-          {/* Pas de pictogramme "photo" validé dans le sprite (DESIGN-SYSTEM §7) — emoji conservé, comme QuickMenu. */}
-          <span className={styles.icon}>📷</span>
-          {t("sheet.addPhotos")}
-        </button>
-        <button className={styles.item} onClick={() => go(`/report?park=${parkId}`)}>
-          <span className={styles.icon}>
-            <Icon name="ic-flag" size={18} />
-          </span>
-          {t("sheet.report")}
-        </button>
+      <div className={styles.head}>
+        <h2 className={styles.title}>{t("sheet.title")}</h2>
+        {parkName && <p className={styles.sub}>{parkName}</p>}
+      </div>
+      <div className={styles.list}>
+        {rows.map((r) => (
+          <button key={r.to} type="button" className={styles.item} onClick={() => go(r.to)}>
+            <span className={styles.icon} aria-hidden="true">
+              <Icon name={r.icon} size={20} />
+            </span>
+            <span className={styles.body}>
+              <span className={styles.itemTitle}>{r.title}</span>
+              <span className={styles.itemHint} style={{ display: "block" }}>{r.hint}</span>
+            </span>
+            <span className={styles.chev} aria-hidden="true">
+              <Icon name="ic-back" size={16} style={{ transform: "rotate(180deg)" }} />
+            </span>
+          </button>
+        ))}
       </div>
     </BottomSheet>
   );

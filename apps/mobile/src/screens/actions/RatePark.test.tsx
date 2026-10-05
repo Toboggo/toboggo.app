@@ -70,6 +70,7 @@ function renderRate(search = "?park=p1") {
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>CARTE</div>} />
+          <Route path="/contributions" element={<div>MES AJOUTS</div>} />
           <Route path="/action-intro/add" element={<div>ADD</div>} />
         </Routes>
       </MemoryRouter>
@@ -225,7 +226,7 @@ describe("RatePark — persistent draft (LOT 3D.E)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
 
     await waitFor(() => expect(createReview).toHaveBeenCalledTimes(1));
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
     window.dispatchEvent(new Event("pagehide"));
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
@@ -294,45 +295,34 @@ describe("RatePark — success sheet", () => {
     renderRate();
     await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revenir au parc" }));
     await screen.findByText("FICHE PARC");
     expect(loc()).toBe("/park/p1");
   });
 
-  it("secondary CTA \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+  it("secondary link \"Voir mes ajouts\" replaces the wizard entry", async () => {
     renderRate();
     await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
-    await screen.findByText("CARTE");
-    expect(loc()).toBe("/map");
-  });
-
-  it("dismissing the sheet (backdrop) also replaces the wizard entry with the map — never back into the finished wizard", async () => {
-    renderRate();
-    await toVerify();
-    fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
-    await screen.findByText("Merci !");
-
-    const backdrop = document.body.querySelector('[class*="sheetBackdrop"]');
-    expect(backdrop).toBeTruthy();
-    fireEvent.click(backdrop as Element);
-    await screen.findByText("CARTE");
-    expect(loc()).toBe("/map");
+    fireEvent.click(screen.getByRole("button", { name: "Voir mes ajouts" }));
+    await screen.findByText("MES AJOUTS");
+    expect(loc()).toBe("/contributions");
   });
 
   it("no photo attached → the review is published, no photo-moderation mention", async () => {
     renderRate();
     await toVerify();
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
-    const heading = await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
     expect(addMediaMock).not.toHaveBeenCalled();
-    expect(heading.nextElementSibling?.textContent).not.toMatch(/vérification/);
+    // Avis publié tout de suite, aucune photo : aucune mention de vérification.
+    expect(screen.queryByText(/vérifié/)).toBeNull();
+    expect(screen.getByText(/Votre avis est publié/)).toBeTruthy();
   });
 
   it("photo attached → the review is published, but the photo is separately called out as pending review", async () => {
@@ -350,8 +340,8 @@ describe("RatePark — success sheet", () => {
     await waitFor(() =>
       expect(addMediaMock).toHaveBeenCalledWith({ park_id: "p1", url: "https://x/photo.jpg", source: "user", user_id: "u1" }),
     );
-    const heading = await screen.findByText("Merci !");
-    expect(heading.nextElementSibling?.textContent).toContain("vérification par notre équipe");
+    await screen.findByText("Merci pour votre coup de pouce !");
+    expect(screen.getByText("Votre photo sera vérifiée avant d’être visible.")).toBeTruthy();
   });
 });
 
@@ -393,7 +383,7 @@ describe("RatePark — guest → OAuth → authenticated", () => {
     expect(vi.mocked(createReview).mock.calls[0][0]).toMatchObject({ park_id: "p1", stars: 5, comment: "Repris après login" });
     expect(localStorage.getItem(key("p1", "guest"))).toBeNull();
     expect((readDraft(key("p9", "guest"), READ) as { comment?: string })?.comment).toBe("autre parc");
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
 });
@@ -461,7 +451,7 @@ describe("RatePark — parcours en 3 étapes", () => {
     expect(createReview).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole("button", { name: "Publier mon avis" })).toHaveProperty("disabled", false));
     fireEvent.click(screen.getByRole("button", { name: "Publier mon avis" }));
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(createReview).toHaveBeenCalledTimes(2);
   });
 

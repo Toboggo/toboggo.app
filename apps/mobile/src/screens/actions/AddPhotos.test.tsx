@@ -80,6 +80,7 @@ function renderPhotos(search = "?park=p1") {
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>CARTE</div>} />
           <Route path="/action-intro/add" element={<div>ADD</div>} />
+          <Route path="/contributions" element={<div>MES AJOUTS</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -240,7 +241,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
 
     await waitFor(() => expect(uploadPhoto).toHaveBeenCalledWith("parkPhotos", expect.any(File), "u1"));
     await waitFor(() => expect(addParkPhotos).toHaveBeenCalledWith("p1", ["https://x/photo.jpg"], { source: "user", userId: "u1" }));
-    expect(await screen.findByText("Photo envoyée !")).toBeTruthy();
+    expect(await screen.findByText("Merci pour votre coup de pouce !")).toBeTruthy();
   });
 
   it("submit error → toast, stays on the form (not the confirmation screen)", async () => {
@@ -255,7 +256,7 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     // Server error details are never surfaced verbatim — a generic, translated
     // message is shown instead (see AddPhotos.tsx submit()'s catch).
     expect((await screen.findByRole("alert")).textContent).toMatch(/Vos photos sont conservées/);
-    expect(screen.queryByText("Photo envoyée !")).toBeNull();
+    expect(screen.queryByText("Merci pour votre coup de pouce !")).toBeNull();
     expect(screen.getByRole("button", { name: /Envoyer/ })).toHaveProperty("disabled", false);
   });
 
@@ -266,25 +267,25 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     pick(container, makeFile("a.jpg"));
     goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
-    await screen.findByText("Photo envoyée !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revenir au parc" }));
     await screen.findByText("FICHE PARC");
     expect(loc()).toBe("/park/p1");
   });
 
-  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+  it("thank-you page — \"Voir mes ajouts\" replaces the wizard entry", async () => {
     sess.userId = "u1";
     const { container } = renderPhotos();
     await screen.findByText("Square Voltaire");
     pick(container, makeFile("a.jpg"));
     goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
-    await screen.findByText("Photo envoyée !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
-    await screen.findByText("CARTE");
-    expect(loc()).toBe("/map");
+    fireEvent.click(screen.getByRole("button", { name: "Voir mes ajouts" }));
+    await screen.findByText("MES AJOUTS");
+    expect(loc()).toBe("/contributions");
   });
 
   it("success sheet — pluralized body is kept: one photo vs several", async () => {
@@ -296,10 +297,10 @@ describe("AddPhotos — authenticated flow unchanged", () => {
     goToConfirmation();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer/ }));
 
-    const heading = await screen.findByText("Photo envoyée !");
-    expect(heading.nextElementSibling?.textContent).toBe(
-      "Merci ! Vos photos seront visibles sur la fiche du parc après vérification par notre équipe.",
-    );
+    await screen.findByText("Merci pour votre coup de pouce !");
+    expect(screen.getByText("Vos photos ont bien été envoyées.")).toBeTruthy();
+    // En attente de modération → la vérification est mentionnée (et seulement ici).
+    expect(screen.getByText("Elles seront vérifiées avant publication.")).toBeTruthy();
   });
 
   it("no double submission: two rapid clicks only upload once", async () => {
@@ -425,7 +426,7 @@ describe("AddPhotos — take a photo vs choose from the library", () => {
         userId: "u1",
       }),
     );
-    expect(await screen.findByText("Photo envoyée !")).toBeTruthy();
+    expect(await screen.findByText("Merci pour votre coup de pouce !")).toBeTruthy();
   });
 });
 
@@ -615,7 +616,7 @@ describe("AddPhotos — parcours en 3 étapes", () => {
     expect(addParkPhotos).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole("button", { name: "Envoyer les photos" })).toHaveProperty("disabled", false));
     fireEvent.click(screen.getByRole("button", { name: "Envoyer les photos" }));
-    await screen.findByText("Photo envoyée !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(uploadPhoto).toHaveBeenCalledTimes(1); // déjà téléversée : réutilisée
     expect(addParkPhotos).toHaveBeenCalledTimes(2);
   });

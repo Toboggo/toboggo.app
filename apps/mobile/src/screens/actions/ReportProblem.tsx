@@ -20,7 +20,7 @@ import {
   type Park,
   type ReportReason,
 } from "@toboggo/shared";
-import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
+import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
@@ -243,25 +243,7 @@ export default function ReportProblem() {
   const back = () => (step === offset ? (dirty ? guard.request() : navigate(-1)) : setStep(step - 1));
 
   if (done) {
-    // Contribution terminée : le wizard ne doit plus rester visible ni
-    // interactif derrière la confirmation. Même motif que AddPark / RatePark /
-    // AddPhotos / EditInfo : Success Sheet, jamais un nouvel écran plein
-    // format. Message métier conservé (signalement envoyé, pas du contenu
-    // publié). Les CTA remplacent (jamais n'empilent) l'entrée d'historique du
-    // wizard.
-    return (
-      <>
-        <div className="screen" />
-        <ContributionSuccessSheet
-          open={done}
-          title={t("report.doneTitle")}
-          body={t("report.doneBody")}
-          primaryCta={{ label: t("common.backToPark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
-          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
-          onDismiss={() => navigate("/map", { replace: true })}
-        />
-      </>
-    );
+    return <ThankYou body={t("thanks.body.report")} parkId={parkId} />;
   }
 
   let footer: React.ReactNode;

@@ -30,8 +30,8 @@ export function FlowShell({
   onBack: () => void;
   onClose: () => void;
   children: ReactNode;
-  /** Bouton(s) du pied de page fixe. */
-  footer: ReactNode;
+  /** Bouton(s) du pied de page fixe ; `null` = aucune action (étape de simple choix). */
+  footer: ReactNode | null;
   /** Pied de page à deux actions (principale + secondaire) : réserve plus de place. */
   stackedFooter?: boolean;
 }) {
@@ -68,9 +68,11 @@ export function FlowShell({
         </div>
       </header>
       <main className={styles.content}>{children}</main>
-      <div className={styles.footer}>
-        <div className={styles.footerStack}>{footer}</div>
-      </div>
+      {footer !== null && (
+        <div className={styles.footer}>
+          <div className={styles.footerStack}>{footer}</div>
+        </div>
+      )}
     </div>
   );
 }

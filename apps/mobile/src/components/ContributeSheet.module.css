@@ -1,0 +1,67 @@
+/* Menu « Enrichir ce parc » : quatre actions, fond blanc, gris neutres. */
+.head {
+  padding: 4px 16px 10px;
+  border-bottom: 1px solid var(--color-border-neutral);
+}
+.title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+.sub {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 62%, var(--color-surface));
+}
+.list {
+  padding: 0 16px calc(12px + var(--safe-bottom));
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 0;
+  border: 0;
+  border-bottom: 1px solid var(--color-border-neutral);
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.item:last-child {
+  border-bottom: 0;
+}
+.icon {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+.body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.itemTitle {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+}
+.itemHint {
+  margin-top: 1px;
+  font-size: 13px;
+  color: color-mix(in srgb, var(--color-text) 62%, var(--color-surface));
+}
+.chev {
+  flex: 0 0 auto;
+  color: color-mix(in srgb, var(--color-text) 45%, var(--color-surface));
+}

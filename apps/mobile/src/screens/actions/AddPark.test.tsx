@@ -324,7 +324,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     send();
 
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
-    await screen.findByText("Parc ajouté !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
     window.dispatchEvent(new Event("pagehide"));
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
@@ -343,37 +343,13 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(createPark).not.toHaveBeenCalled();
   });
 
-  it("success sheet — \"Voir le parc\" replaces the wizard entry with the park page", async () => {
-    renderAdd();
-    await toFinal("Square Voir");
-    send();
-    await screen.findByText("Parc ajouté !");
-
-    fireEvent.click(screen.getByRole("button", { name: "Voir le parc" }));
-    await screen.findByText("FICHE PARC");
-    expect(loc()).toBe("/park/new-1");
-  });
-
-  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+  it("thank-you page — \"Retour à la carte\" (new park is pending, no public page yet) replaces the wizard entry with the map", async () => {
     renderAdd();
     await toFinal("Square Carte");
     send();
-    await screen.findByText("Parc ajouté !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
     fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
-    await screen.findByText("CARTE");
-    expect(loc()).toBe("/map");
-  });
-
-  it("success sheet — dismissing (backdrop) also replaces the wizard entry with the map", async () => {
-    renderAdd();
-    await toFinal("Square Backdrop");
-    send();
-    await screen.findByText("Parc ajouté !");
-
-    const backdrop = document.body.querySelector('[class*="sheetBackdrop"]');
-    expect(backdrop).toBeTruthy();
-    fireEvent.click(backdrop as Element);
     await screen.findByText("CARTE");
     expect(loc()).toBe("/map");
   });
@@ -398,7 +374,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     // Le bouton est de nouveau actif : un second essai aboutit.
     await waitFor(() => expect(screen.getByRole("button", { name: "Envoyer le parc" }).hasAttribute("disabled")).toBe(false));
     send();
-    await screen.findByText("Parc ajouté !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(createPark).toHaveBeenCalledTimes(2);
   });
 
@@ -413,7 +389,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(createPark).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("status").textContent).toMatch(/Envoi en cours/);
     resolveCreate({ id: "new-1", name: "Square Double", commune_id: null });
-    await screen.findByText("Parc ajouté !");
+    await screen.findByText("Merci pour votre coup de pouce !");
   });
 
   it("photos failing AFTER the park exists is not fatal (no duplicate-inducing retry)", async () => {
@@ -422,7 +398,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     seed({ step: 4, photos: ["https://x/a.jpg"] });
     renderAdd();
     send();
-    await screen.findByText("Parc ajouté !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(toasts.list.join(" ")).toMatch(/certaines photos/);
     expect(createPark).toHaveBeenCalledTimes(1);
   });
@@ -747,7 +723,7 @@ describe("AddPark — guest → OAuth → authenticated", () => {
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     expect(vi.mocked(createPark).mock.calls[0][0]).toMatchObject({ name: "Square Après Login" });
     expect(localStorage.getItem(key("guest"))).toBeNull();
-    await screen.findByText("Parc ajouté !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key({ userId: "u1" }), READ)).toBeNull();
   });
 });
@@ -824,16 +800,61 @@ describe("AddPark — adresse par reverse geocoding", () => {
     expect(vi.mocked(reverseGeocode).mock.calls[0].slice(0, 2)).toEqual([44.5, 3.5]);
   });
 
-  it("erreur API → l'adresse existante est conservée (jamais vidée)", async () => {
-    vi.mocked(reverseGeocode).mockResolvedValueOnce(MILLAU).mockRejectedValueOnce(new Error("boom"));
+  it("erreur API → message + « Réessayer » ; l'adresse automatique de l'ancien repère n'est jamais conservée", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValueOnce(MILLAU).mockRejectedValueOnce(new Error("boom")).mockResolvedValueOnce({ ...MILLAU, address_line: "1 Place du Marché", postal_code: "69000", city: "Lyon" });
     renderAdd();
     await screen.findByText("Où se trouve le parc ?");
     await pickPlace("Jardin A", 44.1, 3.1);
     await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
 
     await pickPlace("Jardin B", 44.2, 3.2);
-    await waitFor(() => expect(reverseGeocode).toHaveBeenCalledTimes(2));
-    expect(addressField().value).toBe("12 Rue de la Capelle");
+    await screen.findByText(/Adresse introuvable pour le moment/);
+    // ancienne adresse automatique retirée : elle ne décrit plus le repère
+    expect(addressField().value).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    await waitFor(() => expect(addressField().value).toBe("1 Place du Marché"));
+    expect(reverseGeocode).toHaveBeenCalledTimes(3);
+    expect(vi.mocked(reverseGeocode).mock.calls[2].slice(0, 2)).toEqual([44.2, 3.2]);
+  });
+
+  it("adresse corrigée à la main + nouveau repère → l'adresse trouvée est PROPOSÉE, jamais imposée", async () => {
+    vi.mocked(reverseGeocode)
+      .mockResolvedValueOnce(MILLAU)
+      .mockResolvedValueOnce({ ...MILLAU, address_line: "1 Place du Marché", postal_code: "69000", city: "Lyon" });
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    await pickPlace("Jardin A", 44.1, 3.1);
+    await waitFor(() => expect(addressField().value).toBe("12 Rue de la Capelle"));
+    fireEvent.change(addressField(), { target: { value: "14 Rue de la Capelle (entrée nord)" } });
+    await pickPlace("Jardin B", 45.7, 4.8);
+    await screen.findByText(/Adresse trouvée pour ce repère : 1 Place du Marché/);
+    expect(addressField().value).toBe("14 Rue de la Capelle (entrée nord)");
+    fireEvent.click(screen.getByRole("button", { name: "Utiliser" }));
+    expect(addressField().value).toBe("1 Place du Marché");
+  });
+
+  it("« Vérifier cet emplacement » sans adresse (repère jamais déplacé) lance la recherche d'adresse", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValue(MILLAU);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    expect(reverseGeocode).not.toHaveBeenCalled();
+    verify();
+    await waitFor(() => expect(reverseGeocode).toHaveBeenCalledTimes(1));
+  });
+
+  it("une réponse d'adresse arrivée pour un ancien repère est ignorée", async () => {
+    let resolveOld!: (v: unknown) => void;
+    vi.mocked(reverseGeocode)
+      .mockReturnValueOnce(new Promise((r) => (resolveOld = r)) as never)
+      .mockResolvedValueOnce({ ...MILLAU, address_line: "1 Place du Marché", postal_code: "69000", city: "Lyon" });
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    await pickPlace("Jardin A", 44.1, 3.1);
+    await pickPlace("Jardin B", 45.7, 4.8);
+    await waitFor(() => expect(addressField().value).toBe("1 Place du Marché"));
+    resolveOld(MILLAU);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(addressField().value).toBe("1 Place du Marché");
   });
 
   it("adresse corrigée à la main → non écrasée par un nouveau déplacement (la localité suit le repère)", async () => {

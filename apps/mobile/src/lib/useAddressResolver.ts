@@ -5,6 +5,8 @@ import { isValidCoordinate, reverseGeocode, type ReverseGeocodedAddress } from "
  * d'une même action (ex. GPS puis `moveend` du flyTo). */
 const positionKey = (lat: number, lng: number) => `${lat.toFixed(5)},${lng.toFixed(5)}`;
 
+export type AddressStatus = "idle" | "loading" | "success" | "empty" | "error";
+
 /**
  * Reverse geocoding (Geoapify, via Edge Function) d'une position CHOISIE par
  * l'utilisateur. N'est jamais appelé tout seul : seul `resolve` déclenche un
@@ -32,35 +34,53 @@ export function useAddressResolver(opts: {
   const controller = useRef<AbortController | null>(null);
   const lastKey = useRef<string | null>(null);
   const [resolving, setResolving] = useState(false);
+  const [status, setStatus] = useState<AddressStatus>("idle");
+  const lastPos = useRef<{ lat: number; lng: number } | null>(null);
 
   const resolve = useCallback((lat: number, lng: number) => {
     if (!isValidCoordinate(lat, lng)) return;
     const key = positionKey(lat, lng);
     if (key === lastKey.current) return;
     lastKey.current = key;
+    lastPos.current = { lat, lng };
 
     controller.current?.abort();
     const ctrl = new AbortController();
     controller.current = ctrl;
     const id = ++seq.current;
     setResolving(true);
+    setStatus("loading");
     optsRef.current.onStart?.();
 
     reverseGeocode(lat, lng, { signal: ctrl.signal })
       .then((address) => {
         if (id !== seq.current) return;
-        if (address) optsRef.current.onResolved(address, { lat, lng });
-        else optsRef.current.onUnresolved?.();
+        if (address) {
+          setStatus("success");
+          optsRef.current.onResolved(address, { lat, lng });
+        } else {
+          setStatus("empty");
+          optsRef.current.onUnresolved?.();
+        }
       })
       .catch(() => {
         if (id !== seq.current) return;
         lastKey.current = null; // permet de retenter la même position
+        setStatus("error");
         optsRef.current.onUnresolved?.();
       })
       .finally(() => {
         if (id === seq.current) setResolving(false);
       });
   }, []);
+
+  /** Relance la dernière position demandée (bouton « Réessayer »). */
+  const retry = useCallback(() => {
+    const p = lastPos.current;
+    if (!p) return;
+    lastKey.current = null;
+    resolve(p.lat, p.lng);
+  }, [resolve]);
 
   useEffect(
     () => () => {
@@ -70,5 +90,5 @@ export function useAddressResolver(opts: {
     [],
   );
 
-  return { resolve, resolving };
+  return { resolve, resolving, status, retry };
 }

@@ -2,9 +2,11 @@ import { getSupabase } from "../supabaseClient";
 import type { Tables } from "../types/database.types";
 
 export type AppFeedback = Tables<"app_feedback">;
+/** A submission of the history: the current review (`is_current`) or an archived one. */
+export type AppFeedbackEntry = Omit<AppFeedback, "updated_at"> & { is_current: boolean };
 export type AppFeedbackSummary = Tables<"app_feedback_summary">;
 
-/** Titre supprimé de l'UI (0044) : les avis existants le conservent, les nouveaux n'en ont pas. */
+/** Titre supprimé de l'UI : les avis existants le conservent, les nouveaux n'en ont pas. */
 export interface AppFeedbackInput {
   rating: number;
   /** Commentaire facultatif — vide ⇒ stocké à null. */
@@ -20,7 +22,7 @@ export function nextAppFeedbackAt(latest: Pick<AppFeedback, "created_at"> | null
   return new Date(new Date(latest.created_at).getTime() + APP_FEEDBACK_COOLDOWN_DAYS * 86_400_000);
 }
 
-/** Refus serveur : un avis a déjà été créé il y a moins de 30 jours. `nextAt` = date autorisée (si fournie par le serveur). */
+/** Refus serveur : l'avis courant a été créé il y a moins de 30 jours. `nextAt` = date autorisée (si fournie par le serveur). */
 export class AppFeedbackTooSoonError extends Error {
   constructor(public readonly nextAt: Date | null) {
     super("app_feedback_too_soon");
@@ -41,25 +43,47 @@ function clean(body: string | undefined): string | null {
   return t ? t : null;
 }
 
-/** The signed-in user's own history, newest first. RLS also enforces ownership. */
-export async function listMyAppFeedback(userId: string): Promise<AppFeedback[]> {
-  const { data, error } = await getSupabase()
-    .from("app_feedback")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
-  if (error) throw error;
-  return data;
+type AppFeedbackAllRow = Tables<"app_feedback_all">;
+
+/** Normalises a row of the `app_feedback_all` view (every column is nullable there). */
+function fromCurrent(r: AppFeedback): AppFeedbackEntry {
+  const { updated_at: _u, ...rest } = r;
+  return { ...rest, is_current: true };
 }
 
-/** Creates a NEW evaluation (history is kept). The server refuses it < 30 days after the previous one, even under concurrency. */
-export async function createAppFeedback(userId: string, input: AppFeedbackInput): Promise<AppFeedback> {
+function fromAll(r: AppFeedbackAllRow): AppFeedbackEntry {
+  return {
+    id: r.id!,
+    user_id: r.user_id!,
+    rating: r.rating!,
+    title: r.title,
+    body: r.body,
+    created_at: r.created_at!,
+    edited_at: r.edited_at,
+    is_current: !!r.is_current,
+  };
+}
+
+/** The signed-in user's own history (current review first, then the archived ones), newest first. RLS also enforces ownership. */
+export async function listMyAppFeedback(userId: string): Promise<AppFeedbackEntry[]> {
   const { data, error } = await getSupabase()
-    .from("app_feedback")
-    .insert({ user_id: userId, rating: input.rating, body: clean(input.body) })
-    .select()
-    .single();
+    .from("app_feedback_all")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data.map(fromAll);
+}
+
+/**
+ * First review, or a NEW review that archives the current one (RPC `give_app_feedback`, transactional, locked per user).
+ * The server refuses it < 30 days after the current review was created, even under concurrency.
+ */
+export async function createAppFeedback(_userId: string, input: AppFeedbackInput): Promise<AppFeedbackEntry> {
+  const { data, error } = await getSupabase().rpc("give_app_feedback", {
+    p_rating: input.rating,
+    p_body: clean(input.body) ?? undefined,
+  });
   if (error) {
     if (error.message === "app_feedback_too_soon") {
       const hint = error.hint ? new Date(error.hint) : null;
@@ -67,11 +91,11 @@ export async function createAppFeedback(userId: string, input: AppFeedbackInput)
     }
     throw error;
   }
-  return data;
+  return fromCurrent(data);
 }
 
-/** Edits an evaluation in place — only the user's latest one is allowed by RLS (0 row otherwise). Keeps `created_at`, sets `edited_at`. */
-export async function updateAppFeedback(userId: string, id: string, input: AppFeedbackInput): Promise<AppFeedback> {
+/** Edits the CURRENT review in place (RLS: the author's row only; archived reviews are not writable). Keeps `created_at`, sets `edited_at`. */
+export async function updateAppFeedback(userId: string, id: string, input: AppFeedbackInput): Promise<AppFeedbackEntry> {
   const { data, error } = await getSupabase()
     .from("app_feedback")
     .update({ rating: input.rating, body: clean(input.body) })
@@ -81,14 +105,14 @@ export async function updateAppFeedback(userId: string, id: string, input: AppFe
     .maybeSingle();
   if (error) throw error;
   if (!data) throw new AppFeedbackNotEditableError();
-  return data;
+  return fromCurrent(data);
 }
 
-/** Admin back-office: every submission, newest first (RLS: Toboggo admins read all). */
-export async function listAppFeedback(): Promise<AppFeedback[]> {
-  const { data, error } = await getSupabase().from("app_feedback").select("*").order("created_at", { ascending: false });
+/** Admin back-office: every submission (current + archived, `is_current`), newest first (RLS: Toboggo admins read all). */
+export async function listAppFeedback(): Promise<AppFeedbackEntry[]> {
+  const { data, error } = await getSupabase().from("app_feedback_all").select("*").order("created_at", { ascending: false });
   if (error) throw error;
-  return data;
+  return data.map(fromAll);
 }
 
 /** Admin back-office: overall rating = each user's LATEST evaluation only (view `app_feedback_summary`). */

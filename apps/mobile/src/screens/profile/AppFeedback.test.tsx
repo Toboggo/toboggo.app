@@ -8,7 +8,7 @@ import {
   createAppFeedback,
   listMyAppFeedback,
   updateAppFeedback,
-  type AppFeedback as Row,
+  type AppFeedbackEntry as Row,
 } from "@toboggo/shared";
 import "../../i18n/testInit";
 import AppFeedback from "./AppFeedback";
@@ -26,7 +26,7 @@ vi.mock("../../lib/session", () => ({
 const DAY = 86_400_000;
 const daysAgo = (n: number) => new Date(Date.now() - n * DAY).toISOString();
 const row = (o: Partial<Row>): Row => ({
-  id: "f1", user_id: "u1", rating: 4, title: null, body: "Très bien", created_at: daysAgo(5), updated_at: daysAgo(5), edited_at: null, ...o,
+  id: "f1", user_id: "u1", rating: 4, title: null, body: "Très bien", created_at: daysAgo(5), edited_at: null, is_current: true, ...o,
 });
 
 function renderScreen(path = "/profile/feedback") {
@@ -150,7 +150,7 @@ describe("Avis sur Toboggo — lecture, modification, nouvel avis", () => {
   });
 
   it("an edit does not restart the delay: it is based on created_at only", async () => {
-    vi.mocked(listMyAppFeedback).mockResolvedValue([row({ created_at: daysAgo(31), updated_at: daysAgo(1), edited_at: daysAgo(1) })]);
+    vi.mocked(listMyAppFeedback).mockResolvedValue([row({ created_at: daysAgo(31), edited_at: daysAgo(1) })]);
     renderScreen();
     expect(await screen.findByRole("button", { name: "Donner un nouvel avis" })).toBeTruthy();
     expect(screen.getByText(/modifié le/)).toBeTruthy();

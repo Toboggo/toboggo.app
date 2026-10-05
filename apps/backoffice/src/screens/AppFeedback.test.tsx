@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { getAppFeedbackSummary, listAppFeedback, type AppFeedback as Row } from "@toboggo/shared";
+import { getAppFeedbackSummary, listAppFeedback, type AppFeedbackEntry as Row } from "@toboggo/shared";
 import AppFeedback from "./AppFeedback";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -29,7 +29,7 @@ function renderScreen() {
 
 const row = (o: Partial<Row>): Row => ({
   id: "1", user_id: "u1xxxxxxxx", rating: 4, title: null, body: null,
-  created_at: "2026-10-02T10:00:00Z", updated_at: "2026-10-02T10:00:00Z", edited_at: null, ...o,
+  created_at: "2026-10-02T10:00:00Z", edited_at: null, is_current: true, ...o,
 });
 
 beforeEach(() => {
@@ -41,16 +41,16 @@ beforeEach(() => {
 });
 
 describe("Évaluations de l'app (admin)", () => {
-  it("lists every submission, marks the latest per user, keeps legacy titles", async () => {
+  it("lists every submission, marks the current review per user, keeps legacy titles", async () => {
     vi.mocked(listAppFeedback).mockResolvedValue([
       row({ id: "3", user_id: "uA", rating: 5, body: "Mieux", created_at: "2026-10-02T10:00:00Z", edited_at: "2026-10-03T10:00:00Z" }),
       row({ id: "2", user_id: "uB", rating: 3, body: "Moyen" }),
-      row({ id: "1", user_id: "uA", rating: 2, title: "Super app", body: "Très pratique", created_at: "2026-07-01T10:00:00Z" }),
+      row({ id: "1", user_id: "uA", rating: 2, title: "Super app", body: "Très pratique", created_at: "2026-07-01T10:00:00Z", is_current: false }),
     ]);
     renderScreen();
     expect(await screen.findByText("Super app")).toBeTruthy();
     expect(screen.getByText("Très pratique")).toBeTruthy();
-    expect(screen.getAllByText("Dernier avis")).toHaveLength(2);
+    expect(screen.getAllByText("Avis courant")).toHaveLength(2);
     expect(screen.getAllByText("Historique")).toHaveLength(1);
     expect(screen.getByText(/modifié le/)).toBeTruthy();
   });

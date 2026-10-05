@@ -9,7 +9,7 @@ import {
   listMyAppFeedback,
   nextAppFeedbackAt,
   updateAppFeedback,
-  type AppFeedback as AppFeedbackRow,
+  type AppFeedbackEntry as AppFeedbackRow,
 } from "@toboggo/shared";
 import { Button, Icon, StarRating, StarInput, Textarea } from "@toboggo/design-system";
 import { SettingsPage } from "./SettingsKit";

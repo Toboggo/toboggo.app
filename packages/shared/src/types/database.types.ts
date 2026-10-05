@@ -92,6 +92,39 @@ export type Database = {
         }
         Relationships: []
       }
+      app_feedback_history: {
+        Row: {
+          archived_at: string
+          body: string | null
+          created_at: string
+          edited_at: string | null
+          id: string
+          rating: number
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string
+          body?: string | null
+          created_at: string
+          edited_at?: string | null
+          id?: string
+          rating: number
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          archived_at?: string
+          body?: string | null
+          created_at?: string
+          edited_at?: string | null
+          id?: string
+          rating?: number
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       audit_log: {
         Row: {
           action: string
@@ -1902,15 +1935,15 @@ export type Database = {
       }
     }
     Views: {
-      app_feedback_latest: {
+      app_feedback_all: {
         Row: {
           body: string | null
           created_at: string | null
           edited_at: string | null
           id: string | null
+          is_current: boolean | null
           rating: number | null
           title: string | null
-          updated_at: string | null
           user_id: string | null
         }
         Relationships: []
@@ -2164,6 +2197,25 @@ export type Database = {
       }
     }
     Functions: {
+      give_app_feedback: {
+        Args: { p_body?: string; p_rating: number }
+        Returns: {
+          body: string | null
+          created_at: string
+          edited_at: string | null
+          id: string
+          rating: number
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "app_feedback"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined

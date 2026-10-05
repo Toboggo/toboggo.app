@@ -1,18 +1,15 @@
-import { useMemo } from "react";
 import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { DataTable, StarRating, StatCard, Tag, type DataTableColumn } from "@toboggo/design-system";
-import { getAppFeedbackSummary, listAppFeedback, type AppFeedback as AppFeedbackRow } from "@toboggo/shared";
+import { getAppFeedbackSummary, listAppFeedback, type AppFeedbackEntry } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { useOrgScope } from "../lib/orgScope";
 
 const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
 const numFmt = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 2 });
 
-interface Row extends AppFeedbackRow {
-  /** Dernier avis de son auteur (seul compté dans la note globale). */
-  isLatest: boolean;
-}
+/** `is_current` : avis courant de son auteur (seul compté dans la note globale). */
+type Row = AppFeedbackEntry;
 
 const COLUMNS: DataTableColumn<Row>[] = [
   { key: "rating", header: "Note", width: "1px", render: (r) => <StarRating value={r.rating} size="sm" showValue={false} /> },
@@ -43,7 +40,7 @@ const COLUMNS: DataTableColumn<Row>[] = [
     key: "status",
     header: "Statut",
     width: "1px",
-    render: (r) => (r.isLatest ? <Tag tone="primary">Dernier avis</Tag> : <Tag>Historique</Tag>),
+    render: (r) => (r.is_current ? <Tag tone="primary">Avis courant</Tag> : <Tag>Historique</Tag>),
   },
 ];
 
@@ -51,7 +48,7 @@ const COLUMNS: DataTableColumn<Row>[] = [
  * Évaluations de l'app Toboggo (table `app_feedback`, 0039 + historique 0044).
  * Réservé aux admins Toboggo : la RLS ne renvoie rien à un membre de
  * collectivité, et la route redirige de toute façon. La note globale ne compte
- * que le DERNIER avis de chaque utilisateur ; l'historique reste consultable.
+ * que l'avis COURANT de chaque utilisateur ; l'historique (avis archivés) reste consultable.
  */
 export default function AppFeedback() {
   const { isAdmin } = useOrgScope();
@@ -65,16 +62,6 @@ export default function AppFeedback() {
     queryFn: getAppFeedbackSummary,
     enabled: isAdmin,
   });
-
-  // `data` is newest-first: the first row seen for a user is their latest.
-  const rows = useMemo<Row[]>(() => {
-    const seen = new Set<string>();
-    return data.map((r) => {
-      const isLatest = !seen.has(r.user_id);
-      seen.add(r.user_id);
-      return { ...r, isLatest };
-    });
-  }, [data]);
 
   if (!isAdmin) return <Navigate to="/" replace />;
 
@@ -90,7 +77,7 @@ export default function AppFeedback() {
           tone="accent"
           value={summary.isError ? "—" : count > 0 && s?.average_rating != null ? numFmt.format(s.average_rating) : "—"}
           label="Note moyenne"
-          hint="Dernier avis de chaque utilisateur"
+          hint="Avis courant de chaque utilisateur"
         />
         <StatCard value={summary.isError ? "—" : count} label="Utilisateurs ayant évalué" />
         <StatCard
@@ -102,7 +89,7 @@ export default function AppFeedback() {
       <DataTable
         caption="Évaluations de l'app Toboggo"
         columns={COLUMNS}
-        rows={rows}
+        rows={data}
         getRowKey={(r) => r.id}
         state={isLoading ? "loading" : isError ? "error" : "ready"}
         empty="Aucune évaluation pour le moment."

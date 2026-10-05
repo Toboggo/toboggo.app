@@ -1,19 +1,24 @@
+.rowWrap {
+  position: relative;
+}
+
+/* Une seule rangée : miniature | picto | titre + parc | statut + date | chevron. */
 .row {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) var(--status-w, 98px) 16px;
   align-items: center;
-  gap: 6px;
+  column-gap: 8px;
+  width: 100%;
   padding: 10px 0;
   text-align: left;
-  width: 100%;
   background: none;
   border: none;
   cursor: pointer;
 }
 
 .thumb {
-  flex: none;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   border-radius: var(--radius-xs);
   background-color: var(--color-primary-tint);
   background-size: cover;
@@ -24,11 +29,10 @@
   color: var(--color-primary);
 }
 
-/* Pictogramme du type d'ajout dans un carré pastel arrondi. */
+/* Pictogramme du type d'ajout dans un petit carré pastel. */
 .typeIcon {
-  flex: none;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
@@ -53,48 +57,52 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  flex: 1;
   min-width: 0;
 }
 
+/* Le titre a la priorité : jusqu'à 2 lignes, puis ellipse. */
 .title {
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13.5px;
   line-height: 1.25;
   color: var(--color-text);
-  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .subtitle {
-  display: block;
   font-size: 12px;
   line-height: 1.3;
   color: var(--color-text-muted);
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Badge de statut + date dessous, alignés à droite. */
+/* Colonne statut + date : largeur commune, badge à sa largeur naturelle, date dessous au même alignement. */
 .trailing {
-  flex: none;
-  width: 110px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 4px;
+  min-width: 0;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
+  max-width: 100%;
   padding: 3px 8px;
   border-radius: var(--radius-pill);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 11.5px;
   line-height: 1.2;
-  text-align: center;
   white-space: nowrap;
   background: var(--color-primary-tint);
   color: var(--color-primary-hover);
@@ -118,42 +126,53 @@
 
 .meta {
   font-size: 11.5px;
+  line-height: 1.2;
   color: var(--color-text-faint);
-  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding-left: 2px;
 }
 
-/* Écrans étroits : même disposition compacte pour TOUTES les lignes — badge + date sous le contenu. */
-@media (max-width: 409px) {
-  .row {
-    flex-wrap: wrap;
-    row-gap: 4px;
-  }
-  .trailing {
-    order: 5;
-    flex: 1 0 100%;
-    width: auto;
-    flex-direction: row;
-    align-items: center;
-    gap: var(--space-2);
-    padding-left: 84px;
-  }
-  .badge,
-  .meta {
-    white-space: nowrap;
-  }
-}
-
-/* Grille commune à toutes les lignes : contenu cliquable + colonne d'actions de largeur fixe. */
-.rowWrap {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 36px;
-  align-items: center;
-  column-gap: var(--space-1);
-}
-
-.actions {
+.chevron {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
+  justify-content: flex-end;
+}
+
+/* « ⋯ » d'un avis modifiable : prend la place du chevron (aucune colonne en plus). */
+.menu {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+}
+.menu button {
+  width: 30px;
+  height: 30px;
+}
+
+/* Écrans étroits : même rangée, éléments plus compacts (le statut ne bouge jamais). */
+@media (max-width: 359px) {
+  .row {
+    --status-w: 86px;
+    column-gap: 6px;
+    grid-template-columns: auto auto minmax(0, 1fr) var(--status-w) 12px;
+  }
+  .thumb {
+    width: 34px;
+    height: 34px;
+  }
+  .typeIcon {
+    width: 26px;
+    height: 26px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 2px 6px;
+  }
+  .meta {
+    font-size: 10.5px;
+  }
 }

@@ -37,47 +37,55 @@ export function ContributionRow({
 
   const place = [item.parkName, item.city].filter(Boolean).join(" · ");
   const rating = item.type === "review" && typeof item.rating === "number" ? `★ ${f.rating(item.rating)}` : null;
+  const subtitle = [place, detail, rating].filter(Boolean).join(" · ");
 
-  // miniature → pictogramme (carré pastel) → titre + parc → badge + date → chevron
-  const row = (
-    <button type="button" className={styles.row} onClick={onClick}>
-      <span className={styles.thumb} style={photo ? { backgroundImage: `url(${photo})` } : undefined} aria-hidden>
-        {!photo && <Icon name="ic-slide" size={20} />}
-      </span>
-      <span className={styles.typeIcon} data-tone={typeIcon.tone} aria-hidden>
-        <Icon name={typeIcon.iconName} size={20} />
-      </span>
-
-      <span className={styles.body}>
-        <span className={styles.title}>{title}</span>
-        {place && <span className={styles.subtitle}>{place}</span>}
-        {detail && <span className={styles.subtitle}>{detail}</span>}
-        {rating && <span className={styles.subtitle}>{rating}</span>}
-      </span>
-
-      <span className={styles.trailing}>
-        <span className={styles.badge} data-tone={status.tone}>
-          {status.tone === "primary" && <Icon name="ic-check" size={12} />}
-          {t(status.labelKey)}
-        </span>
-        <span className={styles.meta}>
-          {f.relativeDate(item.createdAt)}
-          {item.type === "review" && item.editedAt && ` · ${t("review.editedOn", { date: f.date(item.editedAt) })}`}
-        </span>
-      </span>
-
-      <Icon name="ic-back" size={14} style={{ flex: "none", color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
-    </button>
-  );
-
-  // Same columns on every row: [miniature | pictogramme | contenu | statut + date | chevron] + a
-  // fixed actions slot, reserved even without « ⋯ », so the status column never shifts.
+  // One horizontal row, same columns on every entry:
+  // miniature | pictogramme (carré pastel) | titre + parc | statut + date | chevron.
+  // Long texts are cut with an ellipsis (full text in `title`), never pushing the status.
+  // « Modifier mon avis » takes the chevron's slot on editable reviews: no extra column.
   return (
     <div className={styles.rowWrap}>
-      {row}
-      <span className={styles.actions}>
-        {canEdit && <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />}
-      </span>
+      <button type="button" className={styles.row} onClick={onClick}>
+        <span className={styles.thumb} style={photo ? { backgroundImage: `url(${photo})` } : undefined} aria-hidden>
+          {!photo && <Icon name="ic-slide" size={20} />}
+        </span>
+        <span className={styles.typeIcon} data-tone={typeIcon.tone} aria-hidden>
+          <Icon name={typeIcon.iconName} size={18} />
+        </span>
+
+        <span className={styles.body}>
+          <span className={styles.title} title={title}>
+            {title}
+          </span>
+          {subtitle && (
+            <span className={styles.subtitle} title={subtitle}>
+              {subtitle}
+            </span>
+          )}
+        </span>
+
+        <span className={styles.trailing}>
+          <span className={styles.badge} data-tone={status.tone}>
+            {status.tone === "primary" && <Icon name="ic-check" size={11} />}
+            {t(status.labelKey)}
+          </span>
+          <span className={styles.meta}>
+            {f.relativeDate(item.createdAt)}
+            {item.type === "review" && item.editedAt && ` · ${t("review.editedOn", { date: f.date(item.editedAt) })}`}
+          </span>
+        </span>
+
+        <span className={styles.chevron} aria-hidden>
+          {!canEdit && (
+            <Icon name="ic-back" size={14} style={{ color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
+          )}
+        </span>
+      </button>
+      {canEdit && (
+        <span className={styles.menu}>
+          <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />
+        </span>
+      )}
     </div>
   );
 }

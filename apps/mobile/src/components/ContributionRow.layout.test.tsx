@@ -11,8 +11,8 @@ const REVIEW: UserContribution = { ...base, id: "r", sourceId: "r", type: "revie
 const REPORT: UserContribution = { ...base, id: "x", sourceId: "x", type: "report", status: "open" };
 const EDIT: UserContribution = { ...base, id: "e", sourceId: "e", type: "edit", status: "pending" };
 
-describe("ContributionRow — colonnes communes", () => {
-  it("chaque ligne (avec ou sans « ⋯ ») a le même squelette : contenu + colonne d'actions réservée", () => {
+describe("ContributionRow — une seule rangée", () => {
+  it("chaque ligne a les mêmes colonnes ; « ⋯ » remplace le chevron sans colonne en plus", () => {
     const { container } = render(
       <>
         <ContributionRow item={REVIEW} onClick={() => {}} onEditReview={() => {}} />
@@ -23,11 +23,18 @@ describe("ContributionRow — colonnes communes", () => {
     const wraps = container.querySelectorAll('[class*="rowWrap"]');
     expect(wraps).toHaveLength(3);
     for (const w of wraps) {
-      expect(w.querySelectorAll('[class*="actions"]')).toHaveLength(1);
-      expect(w.querySelectorAll('[class*="trailing"]')).toHaveLength(1);
+      for (const col of ["thumb", "typeIcon", "body", "trailing", "chevron"]) {
+        expect(w.querySelectorAll(`[class*="${col}"]`)).toHaveLength(1);
+      }
     }
-    expect(wraps[0]!.querySelectorAll('[class*="actions"] button')).toHaveLength(1); // avis : menu
-    expect(wraps[1]!.querySelectorAll('[class*="actions"] button')).toHaveLength(0);
+    expect(wraps[0]!.querySelectorAll('[class*="menu"] button')).toHaveLength(1); // avis : menu
+    expect(wraps[1]!.querySelectorAll('[class*="menu"]')).toHaveLength(0);
+    expect(wraps[2]!.querySelectorAll('[class*="menu"]')).toHaveLength(0);
+  });
+
+  it("le titre complet reste accessible quand il est tronqué (attribut title)", () => {
+    const { container } = render(<ContributionRow item={{ ...EDIT, parkName: "Un parc au nom vraiment très long" }} onClick={() => {}} />);
+    expect(container.querySelector('[class*="subtitle"]')!.getAttribute("title")).toContain("Un parc au nom vraiment très long");
   });
 });
 

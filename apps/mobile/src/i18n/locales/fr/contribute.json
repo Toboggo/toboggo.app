@@ -105,7 +105,10 @@
     "noComment": "Aucun commentaire",
     "verifyNote": "Votre avis est publié immédiatement ; une photo éventuelle est vérifiée avant d’être visible.",
     "submitError": "Votre avis n’a pas pu être publié. Vos réponses sont conservées : réessayez.",
-    "leaveBody": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard."
+    "leaveBody": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard.",
+    "criteriaSummaryTitle": "Critères et âge",
+    "editNoChange": "Modifiez votre avis pour activer l’enregistrement.",
+    "verifyHintEdit": "Relisez vos modifications avant de les enregistrer."
   },
   "addParkSearch": {
     "title": "Ce parc existe-t-il déjà ?",
@@ -119,7 +122,7 @@
     "seeMore": "Voir plus ({{count}})"
   },
   "pin": {
-    "searchPlaceholder": "Rechercher une ville, une adresse ou un lieu",
+    "searchPlaceholder": "Ville ou adresse",
     "unavailable": "Carte indisponible — ajustez la position pas à pas.",
     "locating": "Localisation…",
     "myLocationShort": "Ma position",
@@ -134,10 +137,10 @@
   },
   "addPark": {
     "locationTitle": "Où se trouve le parc ?",
-    "locationHint": "Recherchez un lieu, utilisez votre position ou placez le repère sur la carte.",
-    "pinHint": "Déplacez le repère pour préciser l’emplacement.",
-    "addressLabel": "Adresse (si vous la connaissez)",
-    "addressPlaceholder": "12 rue des Tilleuls, 69000 Lyon",
+    "locationHint": "Recherchez une adresse ou placez le repère.",
+    "pinHint": "Déplacez la carte pour ajuster le repère.",
+    "addressLabel": "Adresse (modifiable)",
+    "addressPlaceholder": "Rue, code postal, ville",
     "addressResolving": "Recherche de l’adresse…",
     "infoTitle": "Qu’y trouve-t-on ?",
     "infoHint": "Renseignez ce que vous connaissez.",
@@ -227,7 +230,14 @@
       "unknownList": "Non renseigné : {{list}}",
       "noNote": "Aucune précision",
       "noPhotos": "Aucune photo",
-      "moderation": "Votre ajout sera vérifié avant publication."
+      "moderation": "Votre ajout sera vérifié avant publication.",
+      "genericName": "Aire de jeux",
+      "unnamedNote": "Nom non renseigné",
+      "locationAdjust": "Emplacement confirmé sur la carte",
+      "locationReview": "Adresse non renseignée : vérifiez le repère sur la carte.",
+      "present": "Présents : {{list}}",
+      "absent": "Absents : {{list}}",
+      "unknown": "Inconnus : {{list}}"
     },
     "submitting": "Envoi en cours…",
     "submitError": "L’envoi n’a pas abouti. Vos informations sont conservées : vérifiez votre connexion puis réessayez.",
@@ -248,7 +258,10 @@
       "thisOne": "C’est ce parc",
       "another": "Non, c’est un autre parc",
       "confirmOnly": "Confirmez uniquement s’il s’agit d’un lieu différent.",
-      "error": "Impossible de vérifier les parcs déjà référencés autour de ce repère. Réessayez : ce n’est pas la preuve qu’il n’y en a pas."
+      "error": "Impossible de vérifier les parcs déjà référencés autour de ce repère. Réessayez : ce n’est pas la preuve qu’il n’y en a pas.",
+      "title": "Est-ce déjà ce parc ?",
+      "completeHelp": "Complétez sa fiche sans créer de doublon.",
+      "backToMap": "Corriger le repère sur la carte"
     }
   },
   "addPhotos": {
@@ -525,6 +538,8 @@
     "photos": {
       "uploading": "Envoi de la photo…"
     },
-    "photoOptional": "Photo (facultatif)"
+    "photoOptional": "Photo (facultatif)",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos"
   }
 }

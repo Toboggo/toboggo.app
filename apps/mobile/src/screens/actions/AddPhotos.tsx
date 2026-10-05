@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Button } from "@toboggo/design-system";
+import { Button, Icon } from "@toboggo/design-system";
 import {
   addParkPhotos,
   canDecodeImage,
+  getParkDisplayName,
   type Park,
   ImageValidationError,
   looksLikeHeic,
@@ -15,7 +16,8 @@ import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
-import { SummaryCard } from "../../components/addPark/AddParkParts";
+import { PhotoThumbs, RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
+import { ParkPhoto } from "../../components/ParkPhoto";
 import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { requireAccount, useSession } from "../../lib/session";
@@ -310,17 +312,17 @@ export default function AddPhotos() {
           <>
             <h2 className={styles.title}>{t("addPhotos.verifyTitle")}</h2>
             <p className={styles.subtitle}>{t("addPhotos.readyCount", { count: picks.length })}</p>
-            <SummaryCard title={t("steps.park")} onEdit={() => setStep(0)} hideEdit={preselected}>
-              {park && <ParkCardMini park={park} />}
-            </SummaryCard>
-            <SummaryCard title={t("steps.photos")} onEdit={() => setStep(1)}>
-              <div className={styles.thumbs}>
-                {picks.map((pick, i) => (
-                  <div key={i} className={styles.thumb} style={{ backgroundImage: `url(${pick.preview})` }} />
-                ))}
-              </div>
-            </SummaryCard>
-            <p className={styles.legend}>{t("addPhotos.moderation")}</p>
+            <RecapCard
+              thumb={<ParkPhoto park={park ?? { photos: [] }} className={styles.recapThumb} markSize={24} />}
+              name={park ? getParkDisplayName(park, t) : ""}
+              address={dedupeAddress(park?.formatted_address)}
+            >
+              <RecapRow icon="ic-camera" title={t("steps.photos")} onEdit={() => setStep(1)}>
+                {t("flow.photoCount", { count: picks.length })}
+                <PhotoThumbs urls={picks.map((p) => p.preview)} />
+              </RecapRow>
+            </RecapCard>
+            <p className={styles.recapNote}><Icon name="ic-shield" size={16} />{t("addPhotos.moderation")}</p>
             <div aria-live="polite" role="status">
               {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
             </div>

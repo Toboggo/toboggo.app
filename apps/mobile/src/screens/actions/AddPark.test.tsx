@@ -23,6 +23,9 @@ vi.mock("maplibre-gl", () => {
       (this.handlers[ev] ||= []).push(cb);
       return this;
     }
+    once() {
+      return this;
+    }
     getCenter() {
       return this.center;
     }
@@ -239,7 +242,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     renderAdd();
     expect(screen.getByText("Tout est bon ?")).toBeTruthy();
     expect(screen.getByText("Ancien v2")).toBeTruthy();
-    expect(screen.getByText("Toilettes : Oui")).toBeTruthy();
+    expect(screen.getByText(/Présents : Toilettes/)).toBeTruthy();
   });
 
   it("an old (v1) draft is ignored, never misread", () => {
@@ -390,7 +393,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     expect(kept.name).toBe("Square Échec");
     expect(kept.answers).toEqual({ wc: "yes" });
     expect(kept.ageBands).toEqual(["3-6"]);
-    expect(screen.getByText("Toilettes : Oui")).toBeTruthy();
+    expect(screen.getByText(/Présents : Toilettes/)).toBeTruthy();
 
     // Le bouton est de nouveau actif : un second essai aboutit.
     await waitFor(() => expect(screen.getByRole("button", { name: "Envoyer le parc" }).hasAttribute("disabled")).toBe(false));
@@ -491,7 +494,7 @@ describe("AddPark — vérification des doublons (étape 1)", () => {
     expect(fetchNearbyParks).toHaveBeenCalledTimes(2);
   });
 
-  it("déplacer le repère après une vérification invalide le choix et relance la vérification", async () => {
+  it("revenir à la carte, déplacer le repère puis revérifier : l'ancien choix est invalidé", async () => {
     vi.mocked(fetchNearbyParks)
       .mockResolvedValueOnce([park("a1", "Square des Tilleuls", 35)])
       .mockResolvedValueOnce([park("b2", "Jardin Neuf", 80)]);
@@ -499,11 +502,27 @@ describe("AddPark — vérification des doublons (étape 1)", () => {
     await screen.findByText("Où se trouve le parc ?");
     verify();
     await screen.findByText("Square des Tilleuls");
+    // Vue B : la carte n'est pas affichée ; on y revient pour corriger le repère.
+    fireEvent.click(screen.getByRole("button", { name: "Corriger le repère sur la carte" }));
+    await screen.findByText("Où se trouve le parc ?");
+    expect(screen.queryByText("Square des Tilleuls")).toBeNull();
     await pickPlace("Ailleurs", 45.7, 4.8);
+    verify();
     await screen.findByText("Jardin Neuf");
     expect(screen.queryByText("Square des Tilleuls")).toBeNull();
     expect(fetchNearbyParks).toHaveBeenCalledTimes(2);
     expect(vi.mocked(fetchNearbyParks).mock.calls[1][0]).toMatchObject({ lat: 45.7, lng: 4.8 });
+  });
+
+  it("vue B : le retour d'en-tête revient à la carte (vue A)", async () => {
+    vi.mocked(fetchNearbyParks).mockResolvedValue([park("a1", "Square des Tilleuls", 35)]);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    verify();
+    await screen.findByText("Est-ce déjà ce parc ?");
+    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+    await screen.findByText("Où se trouve le parc ?");
+    expect(screen.getByRole("button", { name: "Vérifier cet emplacement" })).toBeTruthy();
   });
 
   it("une réponse obsolète (ancien repère) ne s'affiche jamais pour le nouveau", async () => {
@@ -584,7 +603,7 @@ describe("AddPark — parcours (maquette)", () => {
     await screen.findByText("Une photo du parc ?");
     next();
     await screen.findByText("Tout est bon ?");
-    expect(screen.getByText(/Non renseigné : Toilettes, Bancs/)).toBeTruthy();
+    expect(screen.getByText(/Inconnus : Toilettes, Bancs/)).toBeTruthy();
     send();
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(createPark).mock.calls[0][0];
@@ -611,9 +630,9 @@ describe("AddPark — parcours (maquette)", () => {
     await screen.findByText("Une photo du parc ?");
     next();
     await screen.findByText("Tout est bon ?");
-    expect(screen.getByText("Toilettes : Oui")).toBeTruthy();
-    expect(screen.getByText("Bancs : Non")).toBeTruthy();
-    expect(screen.getByText(/Non renseigné : Eau potable, Parking à proximité, Zones ombragées, Entrée accessible en fauteuil/)).toBeTruthy();
+    expect(screen.getByText(/Présents : Toilettes/)).toBeTruthy();
+    expect(screen.getByText(/Absents : Bancs, Parc clôturé/)).toBeTruthy();
+    expect(screen.getByText(/Inconnus : Eau potable, Parking à proximité, Zones ombragées, Entrée accessible en fauteuil/)).toBeTruthy();
     send();
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(createPark).mock.calls[0][0];
@@ -743,14 +762,14 @@ const MILLAU: ReverseGeocodedAddress = {
   country_code: "FR",
   formatted: "12 Rue de la Capelle, 12100 Millau, France",
 };
-const addressField = () => screen.getByLabelText("Adresse (si vous la connaissez)") as HTMLInputElement;
+const addressField = () => screen.getByLabelText("Adresse (modifiable)") as HTMLInputElement;
 
 /** Choisit un lieu dans la recherche : le fly-to du FakeMap émet `moveend`,
  * exactement comme un déplacement réel de la carte. */
 async function pickPlace(name: string, lat: number, lng: number) {
   const { searchPlaces } = await import("@toboggo/shared");
   vi.mocked(searchPlaces).mockResolvedValue([{ id: `poi.${name}`, name, label: `${name}, France`, lat, lng }]);
-  fireEvent.change(screen.getByPlaceholderText("Rechercher une ville, une adresse ou un lieu"), { target: { value: name } });
+  fireEvent.change(screen.getByPlaceholderText("Ville ou adresse"), { target: { value: name } });
   fireEvent.click(await screen.findByText(name));
 }
 

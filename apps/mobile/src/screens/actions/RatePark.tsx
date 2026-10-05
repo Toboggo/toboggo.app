@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { Button, EmptyState, StarInput, Tag, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
+import { Button, EmptyState, Icon, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
 import { addMedia, buildDraftKey, createReview, getParkDisplayName, getReview, ImageValidationError, listMyReviews, updateMyReview, uploadPhoto, type AgeBand, type Park, type Review, type ReviewSubRatings } from "@toboggo/shared";
 import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
-import { SummaryCard } from "../../components/addPark/AddParkParts";
+import { RecapCard, RecapRow, PhotoThumbs, dedupeAddress } from "../../components/flow/Recap";
+import { ParkPhoto } from "../../components/ParkPhoto";
 import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
@@ -567,38 +568,32 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
         {step === 2 && park && (
           <>
             <h2 className={styles.title}>{t("rate.verifyTitle")}</h2>
-            <p className={styles.subtitle}>{t("rate.verifyHint")}</p>
-            <SummaryCard title={t("steps.park")} onEdit={() => setStep(0)} hideEdit={preselected}>
-              <ParkCardMini park={park} />
-            </SummaryCard>
-            <SummaryCard title={t("steps.opinion")} onEdit={() => setStep(1)}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 16 }}>
-                {"★".repeat(draft.stars)}
-                <span style={{ color: "var(--color-border)" }}>{"★".repeat(5 - draft.stars)}</span>{" "}
-                <span className={styles.muted}>{starWord}</span>
-              </div>
-              <div className={styles.tags} style={{ marginTop: 8 }}>
-                {noteCriteria.map((c) => (
-                  <Tag key={c.key}>
-                    {t(c.labelKey)} : {faceLabel(c.value)}
-                  </Tag>
-                ))}
-                {draft.ageBand && <Tag>{tCommon(`age.band.${draft.ageBand}`)}</Tag>}
-              </div>
-            </SummaryCard>
-            <SummaryCard title={t("rate.commentTitle")} onEdit={() => setStep(1)}>
-              {draft.comment.trim() ? <p className={styles.muted} style={{ margin: 0 }}>{draft.comment}</p> : <span className={styles.muted}>{t("rate.noComment")}</span>}
-            </SummaryCard>
-            {!editing && (
-              <SummaryCard title={t("steps.photos")} onEdit={() => setStep(1)}>
-                {draft.photo ? (
-                  <div className={styles.thumbs}><div className={styles.thumb} style={{ backgroundImage: `url(${draft.photo})` }} /></div>
-                ) : (
-                  <span className={styles.muted}>{t("addPark.summary.noPhotos")}</span>
-                )}
-              </SummaryCard>
-            )}
-            {!editing && <p className={styles.legend}>{t("rate.verifyNote")}</p>}
+            <p className={styles.subtitle}>{editing ? t("rate.verifyHintEdit") : t("rate.verifyHint")}</p>
+            <RecapCard
+              thumb={<ParkPhoto park={park} className={styles.recapThumb} markSize={24} />}
+              name={getParkDisplayName(park, t)}
+              address={dedupeAddress(park.formatted_address)}
+            >
+              <RecapRow icon="ic-star" title={t("steps.opinion")} onEdit={() => setStep(1)}>
+                <span style={{ color: "var(--color-accent)", fontSize: 16 }}>{"★".repeat(draft.stars)}</span>
+                <span style={{ color: "var(--color-border)", fontSize: 16 }}>{"★".repeat(5 - draft.stars)}</span> {starWord}
+              </RecapRow>
+              <RecapRow icon="ic-list" title={t("rate.criteriaSummaryTitle")} onEdit={() => setStep(1)}>
+                {noteCriteria.map((c) => `${t(c.labelKey)} : ${faceLabel(c.value)}`).join(" · ")}
+                {draft.ageBand && `\n${t("rate.childAge")} : ${tCommon(`age.band.${draft.ageBand}`)}`}
+              </RecapRow>
+              <RecapRow icon="ic-review" title={t("rate.commentTitle")} onEdit={() => setStep(1)}>
+                {draft.comment.trim() || t("rate.noComment")}
+              </RecapRow>
+              {!editing && (
+                <RecapRow icon="ic-camera" title={t("steps.photos")} onEdit={() => setStep(1)}>
+                  {draft.photo ? t("flow.photoCount", { count: 1 }) : t("addPark.summary.noPhotos")}
+                  <PhotoThumbs urls={draft.photo ? [draft.photo] : []} />
+                </RecapRow>
+              )}
+            </RecapCard>
+            {!editing && <p className={styles.recapNote}><Icon name="ic-shield" size={16} />{t("rate.verifyNote")}</p>}
+            {editing && !dirty && <p className={styles.legend}>{t("rate.editNoChange")}</p>}
             <div aria-live="polite" role="status">
               {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
             </div>

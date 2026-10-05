@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { Dialog } from "@toboggo/design-system";
+import { Icon } from "@toboggo/design-system";
+import { ParkGlyph } from "../../components/addPark/ParkGlyph";
 import { useFilters, type AmenityFilters } from "../../lib/filters";
 import { trackEvent } from "../../lib/analytics";
 import styles from "./FiltersSheet.module.css";
@@ -53,48 +55,113 @@ export function FiltersSheet({ open, onClose }: { open: boolean; onClose: () => 
     trackEvent("filter_applied", { filter_type: "amenity", filter_value: key });
   }
 
-  return (
-    <Dialog open={open} onClose={onClose} title={t("filters.title")}>
-      <div className={styles.body}>
-        <h6 className={styles.kicker}>{t("filters.ageRange")}</h6>
-        <div className={styles.ageLabel}>{ageValue}</div>
-        <div className={styles.slider}>
-          <div className={styles.trackBg} />
-          <div className={styles.trackFill} style={{ left: `${pct(ageLow)}%`, right: `${100 - pct(ageHigh)}%` }} />
-          <input type="range" min={0} max={12} step={1} value={ageLow} onChange={(e) => handleAgeChange(Math.min(Number(e.target.value), ageHigh), ageHigh)} aria-label={t("filters.ageMin")} />
-          <input type="range" min={0} max={12} step={1} value={ageHigh} onChange={(e) => handleAgeChange(ageLow, Math.max(Number(e.target.value), ageLow))} aria-label={t("filters.ageMax")} />
-        </div>
+  // Échap ferme le panneau (comme un Dialog) ; le fond de page ne défile pas.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
-        <h6 className={styles.kicker} style={{ marginTop: 26 }}>
-          {t("filters.availability")}
-        </h6>
-        <div className={styles.toggleRow}>
-          <span>{t("filters.openNow")}</span>
-          <button type="button" className={styles.switch} data-on={openNow ? "1" : undefined} onClick={() => setOpenNow(!openNow)} aria-pressed={openNow}>
-            <span className={styles.knob} />
+  if (!open) return null;
+
+  return createPortal(
+    <div className={styles.backdrop} onClick={onClose}>
+      <div
+        className={styles.sheet}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="filters-title"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className={styles.header}>
+          <Icon name="ic-settings" size={20} />
+          <h2 className={styles.title} id="filters-title">
+            {t("filters.title")}
+          </h2>
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t("filters.close")}>
+            <Icon name="ic-close" size={20} />
           </button>
+        </header>
+
+        <div className={styles.body}>
+          <section className={styles.section} aria-labelledby="filters-age">
+            <h3 className={styles.sectionTitle} id="filters-age">
+              {t("filters.ageRange")}
+            </h3>
+            <div className={styles.ageLabel} aria-live="polite">
+              {ageValue}
+            </div>
+            <div className={styles.slider}>
+              <div className={styles.trackBg} />
+              <div className={styles.trackFill} style={{ left: `${pct(ageLow)}%`, right: `${100 - pct(ageHigh)}%` }} />
+              <input type="range" min={0} max={12} step={1} value={ageLow} onChange={(e) => handleAgeChange(Math.min(Number(e.target.value), ageHigh), ageHigh)} aria-label={t("filters.ageMin")} />
+              <input type="range" min={0} max={12} step={1} value={ageHigh} onChange={(e) => handleAgeChange(ageLow, Math.max(Number(e.target.value), ageLow))} aria-label={t("filters.ageMax")} />
+            </div>
+          </section>
+
+          <section className={styles.section} aria-labelledby="filters-availability">
+            <h3 className={styles.sectionTitle} id="filters-availability">
+              {t("filters.availability")}
+            </h3>
+            <div className={styles.toggleRow}>
+              <span className={styles.toggleGlyph} aria-hidden="true">
+                <Icon name="ic-clock" size={18} />
+              </span>
+              <span className={styles.toggleLabel} id="filters-open-now">
+                {t("filters.openNow")}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={openNow}
+                aria-labelledby="filters-open-now"
+                className={styles.switch}
+                data-on={openNow ? "1" : undefined}
+                onClick={() => setOpenNow(!openNow)}
+              >
+                <span className={styles.knob} />
+              </button>
+            </div>
+          </section>
+
+          <section className={styles.section} aria-labelledby="filters-equipment">
+            <h3 className={styles.sectionTitle} id="filters-equipment">
+              {t("filters.equipmentAccess")}
+            </h3>
+            <div className={styles.grid}>
+              {AMENITY_KEYS.map((key) => {
+                const on = amenities[key];
+                return (
+                  <button key={key} type="button" className={styles.crit} aria-pressed={on} onClick={() => handleToggleAmenity(key)}>
+                    <span className={styles.critGlyph} aria-hidden="true">
+                      <ParkGlyph code={key} size={22} />
+                    </span>
+                    <span className={styles.critLabel}>{t(`filters.amenity.${key}`)}</span>
+                    {on && (
+                      <span className={styles.critCheck} aria-hidden="true">
+                        <Icon name="ic-check" size={12} />
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </section>
         </div>
 
-        <h6 className={styles.kicker} style={{ marginTop: 26 }}>
-          {t("filters.equipmentAccess")}
-        </h6>
-        <div className={styles.grid}>
-          {AMENITY_KEYS.map((key) => (
-            <button key={key} type="button" className={styles.crit} data-on={amenities[key] ? "1" : undefined} onClick={() => handleToggleAmenity(key)}>
-              {t(`filters.amenity.${key}`)}
-            </button>
-          ))}
-        </div>
+        <footer className={styles.footer}>
+          <button type="button" className={styles.reset} onClick={reset}>
+            {t("filters.reset")}
+          </button>
+          <button type="button" className={styles.apply} onClick={onClose}>
+            {t("filters.apply")}
+          </button>
+        </footer>
       </div>
-
-      <div className={styles.footer}>
-        <button type="button" className={styles.reset} onClick={reset}>
-          {t("filters.reset")}
-        </button>
-        <button type="button" className={styles.apply} onClick={onClose}>
-          {t("filters.apply")}
-        </button>
-      </div>
-    </Dialog>
+    </div>,
+    document.body,
   );
 }

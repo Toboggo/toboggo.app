@@ -13,7 +13,7 @@ avant, pendant et après la migration. Pour lui, enregistrer = créer ou **modif
 `app_feedback_history` (aucun droit d'écriture dessus) : il ne peut donc détruire aucun historique.
 Le nouveau front utilise la RPC `give_app_feedback` pour « Donner un nouvel avis » (archive l'avis
 courant dans `app_feedback_history` puis crée le nouveau, transaction + verrou par utilisateur,
-délai de 30 j depuis la **création** du courant).
+délai de 30 j depuis la **création** du courant). La RPC verrouille la ligne courante (`SELECT … FOR UPDATE`) : une modification concurrente d'un ancien client (UPDATE / upsert) n'est jamais perdue entre la lecture, l'archivage et le remplacement (test : `supabase/tests/app_feedback_concurrency.sh`, local/Staging).
 
 → **Ordre : 0044 d'abord, merge/déploiement du front ensuite.** Aucune seconde migration.
 
@@ -38,21 +38,17 @@ select count(*) as avis, count(distinct user_id) as auteurs,
   from public.app_feedback;
 ```
 
-## 2. Appliquer
-Copier-coller **l'intégralité** de `supabase/migrations/0044_app_feedback_history.sql` dans le SQL Editor → *Run*.
-(Sans erreur ; rejouable sans effet.)
+## 2. Appliquer ET enregistrer — un seul bloc, en transaction
+Coller **l'intégralité** de `supabase/manual/0044_apply_in_transaction.sql` dans le SQL Editor → *Run*.
+Ce fichier (généré à partir de la migration) fait, dans **un seul `BEGIN … COMMIT`** : garde-fous de prérequis
+(0039 présente, `UNIQUE(user_id)`, `is_toboggo_admin`) → migration 0044 → insertion de `('0044','app_feedback_history')`
+dans `supabase_migrations.schema_migrations`. Si une instruction échoue : **rien n'est appliqué et rien n'est
+enregistré** (testé : échec simulé, mauvais projet simulé). Rejouable sans effet (idempotent).
+L'enregistrement évite la réapplication par le CLI. Pas de `supabase migration repair` (interdit sur la prod).
 
-## 3. Enregistrer la migration dans le suivi Supabase (évite sa réapplication par le CLI)
-Le SQL Editor n'écrit pas dans l'historique : à faire explicitement, une seule fois.
-```sql
-insert into supabase_migrations.schema_migrations (version, name)
-values ('0044', 'app_feedback_history')
-on conflict (version) do nothing;
-```
-Vérification : `select version, name from supabase_migrations.schema_migrations where version >= '0043' order by 1;`
-→ `0043` puis `0044 | app_feedback_history`. Ensuite, côté poste de dev, la commande **lecture seule**
+Contrôle immédiat : `select version, name from supabase_migrations.schema_migrations where version >= '0043' order by 1;`
+→ `0043` puis `0044 | app_feedback_history`. Ensuite, en lecture seule depuis un poste de dev :
 `supabase migration list --linked` doit montrer 0044 présente en local ET à distance.
-(Ne pas utiliser `supabase migration repair` sur la prod : interdit par `CLAUDE.md`.)
 
 ## 4. Contrôles APRÈS (lecture seule)
 ```sql

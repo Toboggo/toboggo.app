@@ -1,4 +1,28 @@
 -- ════════════════════════════════════════════════════════════════════════════
+-- APPLICATION MANUELLE DE 0044 — à coller EN UNE FOIS dans le SQL Editor Supabase.
+-- Projet cible attendu : PRODUCTION (Reference ID dans docs/architecture/database-migration.md).
+-- Tout est dans UNE transaction : si une instruction échoue, rien n'est appliqué
+-- ET rien n'est enregistré dans supabase_migrations.schema_migrations.
+-- Fichier généré : migration = supabase/migrations/0044_app_feedback_history.sql.
+-- ════════════════════════════════════════════════════════════════════════════
+begin;
+
+-- Garde-fous (prérequis 0039) : échec ⇒ transaction annulée.
+do $$
+begin
+  if to_regclass('public.app_feedback') is null then
+    raise exception 'Prérequis manquant : table public.app_feedback (0039) absente — mauvais projet ?';
+  end if;
+  if not exists (select 1 from pg_constraint where conrelid = 'public.app_feedback'::regclass and conname = 'app_feedback_user_id_key') then
+    raise exception 'Prérequis manquant : UNIQUE(user_id) d''app_feedback (0039) absente';
+  end if;
+  if not exists (select 1 from pg_proc where proname = 'is_toboggo_admin') then
+    raise exception 'Prérequis manquant : fonction is_toboggo_admin';
+  end if;
+end $$;
+
+-- ───────────────────────── MIGRATION 0044 ─────────────────────────
+-- ════════════════════════════════════════════════════════════════════════════
 -- 0044 — Historique des avis sur l'app Toboggo (`app_feedback_history`)
 -- ────────────────────────────────────────────────────────────────────────────
 -- MIGRATION UNIQUE, NON DESTRUCTIVE, IDEMPOTENTE, RÉTROCOMPATIBLE.
@@ -156,3 +180,12 @@ comment on table public.app_feedback is
   'Avis COURANT sur l''app Toboggo (1 / utilisateur, UNIQUE(user_id) conservé pour les anciens clients). Privé : auteur + admins.';
 comment on table public.app_feedback_history is
   'Avis précédents archivés par give_app_feedback(). Lecture auteur + admins ; écriture réservée à la RPC.';
+
+-- ───────────────────── FIN MIGRATION 0044 ─────────────────────
+
+-- Enregistrement dans le suivi Supabase (dans la même transaction).
+insert into supabase_migrations.schema_migrations (version, name)
+values ('0044', 'app_feedback_history')
+on conflict (version) do nothing;
+
+commit;

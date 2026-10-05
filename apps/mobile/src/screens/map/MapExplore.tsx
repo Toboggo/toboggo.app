@@ -78,7 +78,7 @@ export default function MapExplore() {
   const navigate = useNavigate();
   const { t } = useTranslation("map");
   const { lat, lng, label, permission, hasFix } = useGeo();
-  const { ageLow, ageHigh, amenities, activeCount, reset } = useFilters();
+  const { ageLow, ageHigh, amenities, games, activeCount, reset } = useFilters();
   const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quickMenuOpen, setQuickMenuOpen] = useState(false);
@@ -117,7 +117,7 @@ export default function MapExplore() {
     isLoading,
     isError,
     refetch,
-  } = useNearbyParks({ lat, lng, ageMin: ageLow, ageMax: ageHigh, amenities });
+  } = useNearbyParks({ lat, lng, ageMin: ageLow, ageMax: ageHigh, amenities, games });
   const { data: weather } = useWeather(lat, lng);
 
   const selectedPark = parks.find((p) => p.id === selectedId) ?? null;

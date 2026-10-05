@@ -30,12 +30,46 @@ export interface NearbyParksParams {
   ageMin?: number;
   ageMax?: number;
   amenities?: Partial<Record<"wc" | "shade" | "fenced" | "pmr" | "benches" | "water" | "parking", boolean>>;
+  /** Codes de jeux (catalogue `features`, catégorie `play`) — TOUS requis (ET). Vide/absent = pas de restriction. */
+  games?: readonly string[];
 }
 
 /** One row of the PostGIS `nearby_parks` RPC — a flat projection, narrower than `Park`. */
 type NearbyParkRow = Database["public"]["Functions"]["nearby_parks"]["Returns"][number];
 
 const AMENITY_KEYS = ["wc", "shade", "fenced", "pmr", "benches", "water", "parking"] as const;
+
+/** Codes V1 de `park.play_equipment` → code catalogue V2 (lecture seule). */
+const LEGACY_PLAY_ALIASES: Record<string, string> = {
+  toboggan: "slide",
+  springs: "springer",
+  waterplay: "water_play",
+  motorcourse: "motor_course",
+};
+
+/**
+ * Le parc a-t-il ce jeu ? Présence POSITIVE uniquement : `features[code].status
+ * === "available"` ou code (V1 normalisé) dans `play_equipment`. Une donnée
+ * absente / `unknown` / `unavailable` n'est jamais comptée comme présente.
+ */
+export function parkHasGame(p: Pick<Park, "features" | "play_equipment">, code: string): boolean {
+  if (p.features?.[code]?.status === "available") return true;
+  return (p.play_equipment ?? []).some((c) => (LEGACY_PLAY_ALIASES[c] ?? c) === code);
+}
+
+/** Filtre client des parcs déjà ramenés par `nearby_parks` (âge ∩ services ∩ jeux, tous en ET). */
+export function filterNearbyParks<T extends Park>(rows: T[], params: NearbyParksParams): T[] {
+  let out = rows;
+  if (params.ageMin != null) out = out.filter((p) => (p.age_max ?? p.max_age ?? 99) >= params.ageMin!);
+  if (params.ageMax != null) out = out.filter((p) => (p.age_min ?? p.min_age ?? 0) <= params.ageMax!);
+  if (params.amenities) {
+    for (const key of AMENITY_KEYS) {
+      if (params.amenities[key]) out = out.filter((p) => p[key] === true);
+    }
+  }
+  for (const code of params.games ?? []) out = out.filter((p) => parkHasGame(p, code));
+  return out;
+}
 
 /** The RPC/view `features` column is `jsonb`; read it entry-by-entry into the
  * typed `ParkFeatureView` shape (no blanket cast — every field is validated). */
@@ -88,15 +122,7 @@ export async function fetchNearbyParks(params: NearbyParksParams): Promise<(Park
     p_radius_m: params.radiusMeters ?? 20000,
   });
   if (error) throw error;
-  let rows = (data ?? []).map(nearbyRowToPark);
-  if (params.ageMin != null) rows = rows.filter((p) => (p.age_max ?? p.max_age ?? 99) >= params.ageMin!);
-  if (params.ageMax != null) rows = rows.filter((p) => (p.age_min ?? p.min_age ?? 0) <= params.ageMax!);
-  if (params.amenities) {
-    for (const key of AMENITY_KEYS) {
-      if (params.amenities[key]) rows = rows.filter((p) => p[key]);
-    }
-  }
-  return rows;
+  return filterNearbyParks((data ?? []).map(nearbyRowToPark), params);
 }
 
 export async function searchParks(query: string): Promise<Park[]> {

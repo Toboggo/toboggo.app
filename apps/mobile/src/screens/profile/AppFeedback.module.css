@@ -1,6 +1,6 @@
 /* Écran « Évaluer Toboggo » — styles limités à cet écran. */
 .wrap {
-  padding: 0 20px 32px;
+  padding: 0 0 32px; /* marges latérales : SettingsPage */
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -69,4 +69,100 @@
 .ratingBlock svg path[fill="var(--color-border-strong)"] {
   fill: var(--color-text-faint);
   opacity: 0.45;
+}
+
+/* Lecture de l'avis + historique */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.sectionTitle {
+  margin: 0 0 8px;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--color-text);
+}
+.card .sectionTitle {
+  margin-bottom: 2px;
+}
+.cardHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stars {
+  display: inline-flex;
+}
+.rating {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+}
+.date {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+.legacyTitle {
+  margin: 4px 0 0;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+}
+.body {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.noComment {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--color-text-muted);
+}
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.cooldown {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-border-neutral);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+.history {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.historyItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.white.white {
+  background: var(--color-surface);
 }

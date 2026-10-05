@@ -10,7 +10,7 @@
   background: color-mix(in srgb, var(--color-bg) 65%, var(--color-border-neutral));
   padding-bottom: calc(var(--bottom-nav-h, 0px) + 24px);
 }
-.pageWhite {
+.pageWhite.pageWhite {
   background: var(--color-surface);
 }
 /* TopBar transparent sur le fond de page + retour en petit carré arrondi.

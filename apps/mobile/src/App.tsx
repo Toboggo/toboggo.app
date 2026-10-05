@@ -191,7 +191,7 @@ export default function App() {
       <Route path="/profile/children/new" element={<ChildForm />} />
       <Route path="/profile/children/:childId" element={<ChildForm />} />
       <Route path="/profile/account" element={<Account />} />
-      <Route path="/profile/feedback" element={<AppFeedback />} />
+      <Route path="/profile/feedback/*" element={<AppFeedback />} />
       <Route path="/notifications" element={<NotificationPrefs />} />
       <Route path="/notifications/center" element={<NotifCenter />} />
       <Route path="/notifications/resolved/:notifId" element={<NotifResolved />} />

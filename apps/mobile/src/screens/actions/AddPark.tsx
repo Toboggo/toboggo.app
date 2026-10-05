@@ -30,6 +30,8 @@ import { PhotoThumbs, RecapCard, RecapRow, dedupeAddress } from "../../component
 import { ParkPhoto } from "../../components/ParkPhoto";
 import { FlowShell, FooterSecondary, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini } from "../../components/flow/ParkChooser";
+import { DraftPrompt } from "../../components/flow/DraftPrompt";
+import { safeFromRoute } from "../../lib/addParkEntry";
 import styles from "../../components/flow/Flow.module.css";
 import { useFormat } from "../../i18n/useFormat";
 import { addressToParkInput, applyResolvedAddress, formatLocality, localityFor, type DraftLocality } from "../../lib/addressDraft";
@@ -104,6 +106,22 @@ interface AddParkDraft {
   photos: string[];
 }
 
+/** Des données saisies (ou une étape franchie) valent-elles d'être gardées ? */
+function hasInput(d: AddParkDraft): boolean {
+  return (
+    d.step > 0 ||
+    d.locationConfirmed ||
+    Boolean(d.addressEdited) ||
+    d.name.trim() !== "" ||
+    d.equipment.size > 0 ||
+    d.ageBands.length > 0 ||
+    d.ageUnknown ||
+    Object.keys(d.answers).length > 0 ||
+    d.description.trim() !== "" ||
+    d.photos.length > 0
+  );
+}
+
 /** `Set` isn't JSON-native — round-trip it as a tagged array. */
 function replaceSets(_key: string, value: unknown): unknown {
   return value instanceof Set ? { __set: [...value] } : value;
@@ -124,6 +142,11 @@ export default function AddPark() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const wantsResume = params.get("resume") === "1";
+  // Arrivée depuis « Je ne trouve pas mon parc » d'un autre parcours (avis, photos,
+  // signalement) : `from` = route d'origine, où « Annuler » ramène.
+  const newEntry = params.get("new") === "1";
+  const fromRoute = safeFromRoute(params.get("from"));
+  const exitRoute = fromRoute ?? "/map";
   const { t } = useTranslation("contribute");
   const { t: tErr } = useTranslation("errors");
   const f = useFormat();
@@ -176,10 +199,14 @@ export default function AddPark() {
     patch,
     clear: clearAddParkDraft,
     flush: flushAddParkDraft,
+    pendingDraft,
+    restore: restoreDraft,
+    discardPending,
   } = usePersistentDraft<AddParkDraft>(draftKey, initialDraft, {
     schemaVersion: ADD_PARK_DRAFT_VERSION,
     ttlMs: ADD_PARK_DRAFT_TTL_MS,
-    restore: "auto",
+    // « manual » : un brouillon existant n'est JAMAIS repris en silence — voir DraftPrompt.
+    restore: "manual",
     migrate: migrateDraft,
     serialize: replaceSets,
     deserialize: reviveSets,
@@ -360,22 +387,30 @@ export default function AddPark() {
 
   // Des données saisies existent-elles ? (même sans, le brouillon est gardé 24 h,
   // mais on prévient avant de quitter pour ne pas surprendre.)
-  const isDirty =
-    draft.locationConfirmed ||
-    Boolean(draft.addressEdited) ||
-    draft.name.trim() !== "" ||
-    draft.equipment.size > 0 ||
-    draft.ageBands.length > 0 ||
-    draft.ageUnknown ||
-    Object.keys(draft.answers).length > 0 ||
-    draft.description.trim() !== "" ||
-    draft.photos.length > 0;
+  const isDirty = hasInput(draft);
 
-  const guard = useLeaveGuard({ dirty: isDirty, onLeave: () => navigate("/map"), body: t("addPark.close.body") });
+  // Fermer ≠ supprimer. « Enregistrer et quitter » écrit le brouillon tout de suite
+  // (le debounce serait sinon perdu au démontage) ; « Supprimer et quitter » l'efface
+  // réellement (stockage + état) : rien ne reviendra, même après un rechargement.
+  const guard = useLeaveGuard({
+    dirty: isDirty,
+    onLeave: () => {
+      flushAddParkDraft();
+      navigate(exitRoute);
+    },
+    onDiscard: () => {
+      clearAddParkDraft();
+      navigate(exitRoute);
+    },
+    title: t("addPark.close.title"),
+    body: t("addPark.close.body"),
+  });
   function handleBack() {
     if (step === 0 && showCandidates) return setCheckPos(null);
     if (step > 0) return setStep(step - 1);
     if (isDirty) return guard.request();
+    // Entré depuis un autre parcours : retour à ce parcours (sa saisie n'a pas bougé).
+    if (fromRoute) return navigate(fromRoute);
     navigate(-1);
   }
 
@@ -476,11 +511,37 @@ export default function AddPark() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantsResume, userId, draft.locationConfirmed]);
 
+  // Brouillon déjà stocké : repris seulement par choix (« Reprendre mon ajout ») —
+  // sauf au retour de connexion (`?resume=1`), où l'envoi en attente reprend tel quel.
+  // Un brouillon vide (rien saisi, étape 0) n'a rien à reprendre : écarté sans bruit.
+  useEffect(() => {
+    if (!pendingDraft) return;
+    if (wantsResume) restoreDraft();
+    else if (!hasInput(pendingDraft)) discardPending();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDraft, wantsResume]);
+  const promptDraft = pendingDraft !== null && !wantsResume && hasInput(pendingDraft);
+
   if (done) {
     // Succès confirmé : le wizard est démonté, page de remerciement partagée. Le
     // parc est créé en attente de modération → retour carte (sa fiche n'est pas
     // encore publique) et mention de vérification.
     return <ThankYou body={t("thanks.body.addPark")} moderation={t("thanks.moderation.addPark")} parkId={null} />;
+  }
+
+  if (promptDraft) {
+    // Rien d'autre n'est monté derrière : la carte ne peut pas toucher au brouillon
+    // stocké avant que le parent ait choisi.
+    return (
+      <div className="screen">
+        <DraftPrompt
+          mode={newEntry ? "replace" : "resume"}
+          onResume={restoreDraft}
+          onNew={discardPending}
+          onCancel={newEntry && fromRoute ? () => navigate(fromRoute) : undefined}
+        />
+      </div>
+    );
   }
 
   // Adresse affichée UNE fois (l'adresse saisie contient souvent déjà code postal + ville).

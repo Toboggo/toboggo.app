@@ -48,6 +48,6 @@ describe("EditInfoPickPark", () => {
   it("'none of these' routes to the add-park flow instead of duplicating the picker", () => {
     renderScreen();
     fireEvent.click(screen.getByText("Aucun de ceux-ci — ajouter un nouveau parc"));
-    expect(loc()).toBe("/action-intro/add");
+    expect(loc()).toBe("/add?new=1&from=%2Fcontribute%2Fedit%2Fpick-park");
   });
 });

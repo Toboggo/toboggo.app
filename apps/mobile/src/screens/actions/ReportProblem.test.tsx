@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { buildDraftKey, createReport, readDraft, writeDraft, type DraftPrincipal } from "@toboggo/shared";
@@ -55,6 +55,7 @@ function renderReport(search = "?park=p1") {
         <Routes>
           <Route path="/report" element={<ReportProblem />} />
           <Route path="/login" element={<div>LOGIN</div>} />
+          <Route path="/add" element={<div>ADD NOUVEL AJOUT</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>MAP</div>} />
           <Route path="/contributions" element={<div>MES AJOUTS</div>} />
@@ -283,7 +284,9 @@ describe("ReportProblem — parcours en 3 étapes", () => {
     await fillStep2("x");
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Rester" }));
+    expect(screen.getByRole("button", { name: "Enregistrer et quitter" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Supprimer et quitter" })).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Continuer" }));
     await toVerify();
     const send = screen.getByRole("button", { name: /Envoyer le signalement/ });
     fireEvent.click(send);
@@ -302,5 +305,36 @@ describe("ReportProblem — parcours en 3 étapes", () => {
     await waitFor(() => expect(commentField().value).toBe("sale"));
     fireEvent.click(screen.getByRole("button", { name: "Jeu cassé / dangereux" }));
     expect(equipmentField().value).toBe("");
+  });
+
+  it("« Je ne trouve pas mon parc » : explique, puis ouvre un NOUVEL ajout (sans rien envoyer)", async () => {
+    renderReport("");
+    fireEvent.click(await screen.findByRole("button", { name: "Je ne trouve pas mon parc" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Ajoutez d’abord ce parc")).toBeTruthy();
+    expect(within(dialog).getByText("Il sera vérifié avant d’apparaître dans Toboggo.")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Continuer à chercher" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Je ne trouve pas mon parc" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Ajouter un parc" }));
+    expect(await screen.findByText("ADD NOUVEL AJOUT")).toBeTruthy();
+  });
+
+  it("fermer : « Enregistrer et quitter » garde le brouillon, « Supprimer et quitter » l'efface vraiment", async () => {
+    const view = renderReport();
+    await fillStep2("À garder");
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer et quitter" }));
+    await screen.findByText("MAP");
+    expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string } | null)?.comment).toBe("À garder");
+    view.unmount();
+
+    renderReport();
+    await waitFor(() => expect(commentField().value).toBe("À garder"));
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer et quitter" }));
+    await screen.findByText("MAP");
+    window.dispatchEvent(new Event("pagehide"));
+    expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
 });

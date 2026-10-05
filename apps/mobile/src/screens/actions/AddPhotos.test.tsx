@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { addParkPhotos, searchParks, uploadPhoto } from "@toboggo/shared";
@@ -79,7 +79,7 @@ function renderPhotos(search = "?park=p1") {
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>CARTE</div>} />
-          <Route path="/action-intro/add" element={<div>ADD</div>} />
+          <Route path="/add" element={<div>ADD NOUVEL AJOUT</div>} />
           <Route path="/contributions" element={<div>MES AJOUTS</div>} />
         </Routes>
       </MemoryRouter>
@@ -629,5 +629,18 @@ describe("AddPhotos — parcours en 3 étapes", () => {
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
     expect(screen.getByText(/seront perdues/)).toBeTruthy();
+  });
+
+  it("« Je ne trouve pas mon parc » : explique, puis ouvre un NOUVEL ajout (sans rien envoyer)", async () => {
+    renderPhotos("");
+    fireEvent.click(await screen.findByRole("button", { name: "Je ne trouve pas mon parc" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Ajoutez d’abord ce parc")).toBeTruthy();
+    expect(within(dialog).getByText("Il sera vérifié avant d’apparaître dans Toboggo.")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Continuer à chercher" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Je ne trouve pas mon parc" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Ajouter un parc" }));
+    expect(await screen.findByText("ADD NOUVEL AJOUT")).toBeTruthy();
   });
 });

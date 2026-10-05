@@ -68,6 +68,7 @@ function renderRate(search = "?park=p1") {
         <Routes>
           <Route path="/rate" element={<RatePark />} />
           <Route path="/login" element={<div>LOGIN</div>} />
+          <Route path="/add" element={<div>ADD NOUVEL AJOUT</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>CARTE</div>} />
           <Route path="/contributions" element={<div>MES AJOUTS</div>} />
@@ -464,5 +465,18 @@ describe("RatePark — parcours en 3 étapes", () => {
     renderRate();
     expect(commentField().value).toBe("v1");
     expect(screen.getByText("Étape 1 sur 2")).toBeTruthy();
+  });
+
+  it("« Je ne trouve pas mon parc » : explique, puis ouvre un NOUVEL ajout (sans rien envoyer)", async () => {
+    renderRate("");
+    fireEvent.click(await screen.findByRole("button", { name: "Je ne trouve pas mon parc" }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("Ajoutez d’abord ce parc")).toBeTruthy();
+    expect(within(dialog).getByText("Il sera vérifié avant d’apparaître dans Toboggo.")).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Continuer à chercher" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Je ne trouve pas mon parc" }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Ajouter un parc" }));
+    expect(await screen.findByText("ADD NOUVEL AJOUT")).toBeTruthy();
   });
 });

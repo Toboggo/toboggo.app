@@ -255,7 +255,7 @@
     "photosPartial": "The park was created, but some photos could not be added. You can add them from its page.",
     "close": {
       "title": "Leave adding this park?",
-      "body": "Your draft is kept for 24 h on this device: you can pick it up later.",
+      "body": "Save your entries to pick them up later (24 h on this device), or delete them.",
       "stay": "Keep editing",
       "leave": "Leave"
     },
@@ -278,7 +278,17 @@
     "addressEmpty": "No address found here. You can type it.",
     "addressError": "Couldn’t find the address right now.",
     "addressSuggestion": "Address found for this pin: {{address}}",
-    "addressUseSuggestion": "Use it"
+    "addressUseSuggestion": "Use it",
+    "draft": {
+      "title": "A park is being added",
+      "body": "You started adding a park. Pick it up again or start from scratch?",
+      "resume": "Resume my addition",
+      "new": "Start a new addition",
+      "replaceTitle": "Replace your addition in progress?",
+      "replaceBody": "An unfinished park addition already exists on this device. Starting a new one will delete it.",
+      "resumeOld": "Resume the previous addition",
+      "cancel": "Cancel"
+    }
   },
   "addPhotos": {
     "subtitle": "Add photos to share this place with the community.",
@@ -550,7 +560,10 @@
     "leave": {
       "title": "Leave this contribution?",
       "stay": "Stay",
-      "leave": "Leave"
+      "leave": "Leave",
+      "save": "Save and leave",
+      "discard": "Delete and leave",
+      "keepGoing": "Keep going"
     },
     "chooser": {
       "title": "Which park?",
@@ -558,7 +571,11 @@
       "searchLabel": "Search for a park",
       "selected": "Selected park",
       "none": "I can’t find my park",
-      "error": "The search failed."
+      "error": "The search failed.",
+      "addFirstTitle": "Add this park first",
+      "addFirstBody": "It will be checked before it appears in Toboggo.",
+      "addPark": "Add a park",
+      "keepSearching": "Keep searching"
     },
     "photos": {
       "uploading": "Uploading photo…"

@@ -93,10 +93,15 @@ export function FooterSecondary({ children, onClick, outlined = false }: { child
 /**
  * Garde de sortie : `request()` quitte tout de suite si rien n'est à perdre,
  * sinon ouvre la confirmation. `dialog` est à rendre dans l'écran.
+ *
+ * Sans `onDiscard` : deux choix (rester / quitter). Avec `onDiscard` (parcours à
+ * brouillon) : trois choix — « Enregistrer et quitter » (`onLeave`, le brouillon
+ * reste), « Supprimer et quitter » (`onDiscard`, il est effacé) et « Continuer ».
  */
 export function useLeaveGuard({
   dirty,
   onLeave,
+  onDiscard,
   body,
   title,
   stay,
@@ -104,6 +109,8 @@ export function useLeaveGuard({
 }: {
   dirty: boolean;
   onLeave: () => void;
+  /** Quitte en supprimant réellement le brouillon. Active le dialogue à trois choix. */
+  onDiscard?: () => void;
   /** Libellés propres à un parcours (ex. édition d'un avis) ; défauts génériques sinon. */
   title?: string;
   stay?: string;
@@ -113,25 +120,53 @@ export function useLeaveGuard({
 }) {
   const { t } = useTranslation("contribute");
   const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
   const dialog = (
     <Dialog
       open={open}
-      onClose={() => setOpen(false)}
+      onClose={close}
       title={title ?? t("flow.leave.title")}
       actions={
-        <>
-          <Button variant="secondary" onClick={() => setOpen(false)}>
-            {stay ?? t("flow.leave.stay")}
-          </Button>
-          <Button
-            onClick={() => {
-              setOpen(false);
-              onLeave();
-            }}
-          >
-            {leave ?? t("flow.leave.leave")}
-          </Button>
-        </>
+        onDiscard ? (
+          <div className={styles.dialogStack}>
+            <Button
+              block
+              onClick={() => {
+                close();
+                onLeave();
+              }}
+            >
+              {leave ?? t("flow.leave.save")}
+            </Button>
+            <Button
+              block
+              variant="secondary"
+              onClick={() => {
+                close();
+                onDiscard();
+              }}
+            >
+              {t("flow.leave.discard")}
+            </Button>
+            <Button block variant="ghost" onClick={close}>
+              {stay ?? t("flow.leave.keepGoing")}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={close}>
+              {stay ?? t("flow.leave.stay")}
+            </Button>
+            <Button
+              onClick={() => {
+                close();
+                onLeave();
+              }}
+            >
+              {leave ?? t("flow.leave.leave")}
+            </Button>
+          </>
+        )
       }
     >
       <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)" }}>{body}</p>
@@ -139,6 +174,3 @@ export function useLeaveGuard({
   );
   return { request: () => (dirty ? setOpen(true) : onLeave()), dialog };
 }
-
-
-

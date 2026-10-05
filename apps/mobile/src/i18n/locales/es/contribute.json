@@ -8,9 +8,20 @@
     "ask": "Hacer una pregunta"
   },
   "sheet": {
-    "editInfo": "Corregir una información",
     "addPhotos": "Añadir fotos",
-    "report": "Informar de un problema"
+    "report": "Informar de un problema",
+    "title": "Enriquecer este parque",
+    "complete": "Completar la información",
+    "completeHint": "Juegos, edades y pequeños detalles",
+    "addPhotosHint": "Muestra el parque a las familias",
+    "rate": "Dar mi opinión",
+    "rateHint": "Comparte tu experiencia",
+    "editReview": "Editar mi opinión",
+    "editReviewHint": "Actualiza tu experiencia",
+    "reportHint": "Ayuda a mantener el parque agradable",
+    "cardTitle": "¿Conoces este parque?",
+    "cardBody": "Tu información ayuda a otros padres.",
+    "enrich": "Enriquecer este parque"
   },
   "common": {
     "continue": "Continuar",
@@ -262,7 +273,12 @@
       "title": "¿Ya es este parque?",
       "completeHelp": "Completa su ficha sin crear un duplicado.",
       "backToMap": "Corregir el marcador en el mapa"
-    }
+    },
+    "addressFound": "Dirección encontrada automáticamente",
+    "addressEmpty": "No se ha encontrado dirección aquí. Puedes escribirla.",
+    "addressError": "No se pudo obtener la dirección ahora.",
+    "addressSuggestion": "Dirección encontrada para este marcador: {{address}}",
+    "addressUseSuggestion": "Usarla"
   },
   "addPhotos": {
     "subtitle": "Añade fotos para compartir este lugar con la comunidad.",
@@ -468,7 +484,15 @@
     "needOneChange": "Modifica al menos un valor para continuar.",
     "verifyTitle": "Revisa tu corrección",
     "notePrefix": "Detalle: {{value}}",
-    "submit": "Proponer la modificación"
+    "submit": "Proponer la modificación",
+    "step0Title": "¿Qué quieres completar?",
+    "chooseFirst": "Elige un dato",
+    "verifyHint": "Vuelve a leer tus cambios antes de enviarlos.",
+    "moderationNote": "Tu propuesta se revisará antes de aplicarse.",
+    "submitError": "No se pudo enviar. Tus cambios se conservan: inténtalo de nuevo.",
+    "leaveBody": "Los cambios no enviados se eliminarán.",
+    "step0Hint": "Elige el dato que completar o corregir.",
+    "headerTitle": "Completar este parque"
   },
   "review": {
     "menuLabel": "Acciones de tu opinión",
@@ -542,5 +566,26 @@
     "photoOptional": "Foto (opcional)",
     "photoCount_one": "{{count}} foto",
     "photoCount_other": "{{count}} fotos"
+  },
+  "thanks": {
+    "title": "¡Gracias por tu ayuda!",
+    "backToPark": "Volver al parque",
+    "seeMyContributions": "Ver mis aportaciones",
+    "body": {
+      "addPark": "Tu parque se ha enviado.",
+      "complete": "Tu propuesta para {{park}} se ha enviado.",
+      "photos_one": "Tu foto se ha enviado.",
+      "photos_other": "Tus fotos se han enviado.",
+      "review": "Tu opinión está publicada. Gracias por ayudar a otros padres a elegir {{park}}.",
+      "reviewEdit": "Tu opinión se ha actualizado.",
+      "report": "Tu aviso se ha enviado. Nuestro equipo lo revisará."
+    },
+    "moderation": {
+      "addPark": "Se revisará antes de publicarse.",
+      "complete": "Se revisará antes de aplicarse a la ficha.",
+      "photos_one": "Se revisará antes de publicarse.",
+      "photos_other": "Se revisarán antes de publicarse.",
+      "reviewPhoto": "Tu foto se revisará antes de ser visible."
+    }
   }
 }

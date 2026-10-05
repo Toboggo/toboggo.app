@@ -12,7 +12,7 @@ import {
   uploadPhoto,
   validateImageFile,
 } from "@toboggo/shared";
-import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
+import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
@@ -231,23 +231,12 @@ export default function AddPhotos() {
   const back = () => (step === offset ? (picks.length ? guard.request() : navigate(-1)) : setStep(step - 1));
 
   if (done) {
-    // Contribution terminée : le wizard ne doit plus rester visible ni
-    // interactif derrière la confirmation. Même motif que AddPark / RatePark /
-    // EditInfo / ReportProblem : Success Sheet, jamais un nouvel écran plein
-    // format. "Voir le parc" / "Retour à la carte" remplacent (jamais
-    // n'empilent) l'entrée d'historique du wizard.
     return (
-      <>
-        <div className="screen" />
-        <ContributionSuccessSheet
-          open={done}
-          title={t("addPhotos.doneTitle")}
-          body={t("addPhotos.doneBody", { count: picks.length })}
-          primaryCta={{ label: t("common.seePark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
-          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
-          onDismiss={() => navigate("/map", { replace: true })}
-        />
-      </>
+      <ThankYou
+        body={t("thanks.body.photos", { count: picks.length })}
+        moderation={t("thanks.moderation.photos", { count: picks.length })}
+        parkId={parkId}
+      />
     );
   }
 

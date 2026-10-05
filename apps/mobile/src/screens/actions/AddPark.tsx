@@ -22,7 +22,7 @@ import {
   ImageValidationError,
   type Park,
 } from "@toboggo/shared";
-import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
+import { ThankYou } from "../../components/flow/ThankYou";
 import { PinField } from "../../components/PinField";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { AgeButtons, GameGrid, TriStateRow, type GameOption } from "../../components/addPark/AddParkParts";
@@ -190,12 +190,41 @@ export default function AddPark() {
   // Dès qu'une nouvelle résolution démarre (ou échoue), la localité de l'ancien
   // repère est retirée : elle ne peut ni s'afficher ni partir avec les nouvelles
   // coordonnées. Le texte de l'adresse, lui, est conservé (jamais vidé par un échec).
-  const dropLocality = () => setDraft((d) => (d.locality ? { ...d, locality: null } : d));
-  const { resolve: resolveAddress, resolving: resolvingAddress } = useAddressResolver({
-    onStart: dropLocality,
-    onResolved: (a, pos) => setDraft((d) => ({ ...d, ...applyResolvedAddress(d, a, pos) })),
-    onUnresolved: dropLocality,
+  //
+  // Nouveau repère → tout ce qui décrivait l'ancien disparaît : la localité ET
+  // l'adresse automatique (jamais présentée comme celle du nouveau repère). Une
+  // adresse saisie à la main, elle, n'est JAMAIS effacée ni écrasée en silence :
+  // l'adresse trouvée est alors PROPOSÉE (`suggestion`).
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const dropStale = () => {
+    setSuggestion(null);
+    setDraft((d) => {
+      const keepManual = !!d.addressEdited && d.address.trim() !== "";
+      if (!d.locality && (keepManual || d.address === "")) return d;
+      return { ...d, locality: null, address: keepManual ? d.address : "" };
+    });
+  };
+  const {
+    resolve: resolveAddress,
+    resolving: resolvingAddress,
+    status: addressStatus,
+    retry: retryAddress,
+  } = useAddressResolver({
+    onStart: dropStale,
+    onResolved: (a, pos) => {
+      setDraft((d) => {
+        const keepManual = !!d.addressEdited && d.address.trim() !== "";
+        setSuggestion(keepManual && a.address_line && a.address_line.trim() !== d.address.trim() ? a.address_line : null);
+        return { ...d, ...applyResolvedAddress(d, a, pos) };
+      });
+    },
+    onUnresolved: dropStale,
   });
+  function useSuggestedAddress() {
+    if (!suggestion) return;
+    patch({ address: suggestion, addressEdited: false });
+    setSuggestion(null);
+  }
   const pinLocality = localityFor(draft, { lat: draft.lat, lng: draft.lng });
 
   // Un brouillon restauré à l'étape 1 ou 2 sans emplacement confirmé (la seule
@@ -448,26 +477,10 @@ export default function AddPark() {
   }, [wantsResume, userId, draft.locationConfirmed]);
 
   if (done) {
-    // Contribution terminée : le wizard (formulaire, boutons d'étape) ne doit
-    // plus rester visible ni interactif derrière la confirmation — remplacé
-    // par un fond neutre, la Success Sheet porte tout le contenu et les CTA.
-    // "Voir le parc" et "Retour à la carte" remplacent (jamais n'empilent)
-    // l'entrée d'historique du wizard : Retour ne ramène jamais aux étapes
-    // déjà soumises ni à cette confirmation. Voir aussi RatePark / AddPhotos /
-    // ReportProblem / EditInfo (même pattern, non touché par ce prototype).
-    return (
-      <>
-        <div className="screen" />
-        <ContributionSuccessSheet
-          open={done}
-          title={t("addPark.success.title")}
-          body={t("addPark.success.body")}
-          primaryCta={{ label: t("common.seePark"), onPress: () => navigate(`/park/${createdId}`, { replace: true }) }}
-          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
-          onDismiss={() => navigate("/map", { replace: true })}
-        />
-      </>
-    );
+    // Succès confirmé : le wizard est démonté, page de remerciement partagée. Le
+    // parc est créé en attente de modération → retour carte (sa fiche n'est pas
+    // encore publique) et mention de vérification.
+    return <ThankYou body={t("thanks.body.addPark")} moderation={t("thanks.moderation.addPark")} parkId={null} />;
   }
 
   // Adresse affichée UNE fois (l'adresse saisie contient souvent déjà code postal + ville).
@@ -503,7 +516,15 @@ export default function AddPark() {
       );
     } else {
       footer = (
-        <Button block onClick={() => setCheckPos({ lat: draft.lat, lng: draft.lng })}>
+        <Button
+          block
+          onClick={() => {
+            // Aucune adresse pour ce repère (ex. position initiale jamais déplacée) :
+            // action utilisateur explicite → on la cherche maintenant.
+            if (!draft.address.trim() && !pinLocality && addressStatus !== "loading") resolveAddress(draft.lat, draft.lng);
+            setCheckPos({ lat: draft.lat, lng: draft.lng });
+          }}
+        >
           {t("addPark.dup.verify")}
         </Button>
       );
@@ -550,10 +571,36 @@ export default function AddPark() {
                 autoComplete="street-address"
               />
             </div>
-            {(resolvingAddress || formatLocality(pinLocality)) && (
-              <p className={styles.muted} style={{ margin: "6px 0 0" }} aria-live="polite">
-                {resolvingAddress ? t("addPark.addressResolving") : formatLocality(pinLocality)}
-              </p>
+            <div aria-live="polite" role="status" className={styles.muted} style={{ margin: "6px 0 0", display: "grid", gap: 4 }}>
+              {resolvingAddress && <span>{t("addPark.addressResolving")}</span>}
+              {!resolvingAddress && addressStatus === "success" && !draft.addressEdited && draft.address.trim() && (
+                <span style={{ color: "var(--color-primary-pressed)", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Icon name="ic-check" size={14} />
+                  {t("addPark.addressFound")}
+                </span>
+              )}
+              {!resolvingAddress && addressStatus === "empty" && <span>{t("addPark.addressEmpty")}</span>}
+              {!resolvingAddress && addressStatus === "error" && (
+                <span>
+                  {t("addPark.addressError")}{" "}
+                  <button type="button" className={styles.linkButton} style={{ minHeight: 44 }} onClick={retryAddress}>
+                    {t("flow.retry")}
+                  </button>
+                </span>
+              )}
+              {!resolvingAddress && formatLocality(pinLocality) && !draft.address.includes(formatLocality(pinLocality)) && (
+                <span>{formatLocality(pinLocality)}</span>
+              )}
+            </div>
+            {suggestion && !resolvingAddress && (
+              <div className={styles.banner} style={{ marginTop: 8, marginBottom: 0 }} role="status">
+                <span style={{ flex: 1 }}>
+                  {t("addPark.addressSuggestion", { address: suggestion })}
+                </span>
+                <button type="button" className={styles.linkButton} style={{ minHeight: 44 }} onClick={useSuggestedAddress}>
+                  {t("addPark.addressUseSuggestion")}
+                </button>
+              </div>
             )}
             <div aria-live="polite">
               {checkPos && dup.isFetching && <p className={styles.muted} style={{ marginTop: 10 }}>{t("addPark.dup.checking")}</p>}

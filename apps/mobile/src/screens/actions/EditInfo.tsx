@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Trans, useTranslation } from "react-i18next";
+import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import {
   Button,
@@ -22,8 +22,11 @@ import {
   type FeatureStatus,
   type Json,
 } from "@toboggo/shared";
-import { WizardHeader } from "../../components/WizardHeader";
-import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
+import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
+import { RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
+import { ParkPhoto } from "../../components/ParkPhoto";
+import styles from "../../components/flow/Flow.module.css";
+import { ThankYou } from "../../components/flow/ThankYou";
 import { DiffRow } from "../../components/DiffRow";
 import { PinField } from "../../components/PinField";
 import { useFormat } from "../../i18n/useFormat";
@@ -162,6 +165,9 @@ export default function EditInfo() {
 
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
+  // Verrou synchrone anti double envoi.
+  const submittingRef = useRef(false);
   const autoSubmitted = useRef(false);
 
   // `contribution_started` — une fois par montage. `parkId` est toujours
@@ -285,6 +291,9 @@ export default function EditInfo() {
 
   async function doSubmit(uid: string) {
     if (!park || !parkId || !d.target || !items.length) return;
+    submittingRef.current = true;
+    setSaving(true);
+    setSubmitError(false);
     const changes = {
       kind: "correction",
       target: d.target,
@@ -305,20 +314,21 @@ export default function EditInfo() {
       setDone(true);
     } catch {
       // Failed — keep the form and the (autosaved) draft, surface the error.
-      showToast(tErr("generic"));
+      setSubmitError(true);
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   }
 
   function submit() {
+    if (submittingRef.current) return;
     if (!items.length) {
       showToast(t("edit.noChanges"));
       return;
     }
     const uid = useSession.getState().userId;
     if (uid) {
-      setSaving(true);
       void doSubmit(uid);
       return;
     }
@@ -341,7 +351,6 @@ export default function EditInfo() {
     if (!wantsResume || autoSubmitted.current) return;
     if (!userId || !park || !d.target || !restored || !items.length) return;
     autoSubmitted.current = true;
-    setSaving(true);
     void doSubmit(userId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wantsResume, userId, park, d.target, restored, items.length]);
@@ -367,6 +376,12 @@ export default function EditInfo() {
     navigate(parkId ? `/park/${parkId}` : "/map");
   }
 
+  const guard = useLeaveGuard({
+    dirty: items.length > 0 || d.note.trim() !== "",
+    onLeave: closeAndDiscard,
+    body: t("edit.leaveBody"),
+  });
+
   // ── Render ──────────────────────────────────────────────────────────────
   if (!parkId || isError) {
     return (
@@ -387,77 +402,59 @@ export default function EditInfo() {
   }
 
   if (done) {
-    // Contribution terminée : le wizard ne doit plus rester visible ni
-    // interactif derrière la confirmation. Même motif que AddPark / RatePark /
-    // AddPhotos / ReportProblem : Success Sheet, jamais un nouvel écran plein
-    // format. Les CTA remplacent (jamais n'empilent) l'entrée d'historique du
-    // wizard. (Ne concerne que l'après-succès : le stepper interne n'est pas
-    // touché.)
-    return (
-      <>
-        <div className="screen" />
-        <ContributionSuccessSheet
-          open={done}
-          title={t("common.thanks")}
-          body={<Trans t={t} i18nKey="edit.doneBody" values={{ park: park.name }} components={{ strong: <strong /> }} />}
-          primaryCta={{ label: t("common.backToPark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
-          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
-          onDismiss={() => navigate("/map", { replace: true })}
-        />
-      </>
-    );
+    return <ThankYou body={t("thanks.body.complete", { park: park.name })} moderation={t("thanks.moderation.complete")} parkId={parkId} />;
   }
 
+  const targetIcon = TARGETS.find((x) => x.value === d.target)?.icon ?? "ic-list";
+  let footer: React.ReactNode;
+  if (d.step === 0) footer = null;
+  else if (d.step === 1)
+    footer = (
+      <>
+        <Button block disabled={!items.length} onClick={() => patch({ step: 2 })}>
+          {t("common.verify")}
+        </Button>
+      </>
+    );
+  else
+    footer = (
+      <Button block loading={saving} onClick={submit}>
+        {t("edit.submit")}
+      </Button>
+    );
+
   return (
-    <div className="screen">
-      <WizardHeader
+    <>
+      <FlowShell
+        title={t("edit.headerTitle")}
         step={d.step}
         total={STEPPER.length}
-        steps={STEPPER.map((k) => t(k))}
+        stepKey={d.step}
         onBack={() => (d.step === 0 ? navigate(-1) : patch({ step: d.step - 1 }))}
-        onClose={closeAndDiscard}
-      />
+        onClose={guard.request}
+        footer={footer}
+      >
+        {restored && d.step > 0 && <p className={styles.muted} style={{ margin: "0 0 8px" }}>{t("edit.draftResumed")}</p>}
 
-      {restored && d.step > 0 && (
-        <p style={{ fontSize: 12, color: "var(--color-text-muted)", padding: "0 20px", marginTop: -4 }}>
-          {t("edit.draftResumed")}
-        </p>
-      )}
+        {d.step === 0 && (
+          <>
+            <h2 className={styles.title}>{t("edit.step0Title")}</h2>
+            <p className={styles.subtitle}>{t("edit.step0Hint")}</p>
+            <div className={styles.catGrid}>
+              {TARGETS.map((tgt) => (
+                <button key={tgt.value} type="button" className={styles.catCard} onClick={() => seedFromPark(tgt.value)}>
+                  <Icon name={tgt.icon} size={22} />
+                  <span className={styles.catLabel}>{t(`edit.target.${tgt.value}`)}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
-      {d.step === 0 && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{park.name}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 16 }}>
-            {t("edit.step0Question")}
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {TARGETS.map((tgt) => (
-              <button
-                key={tgt.value}
-                onClick={() => seedFromPark(tgt.value)}
-                style={{
-                  padding: 16,
-                  borderRadius: 14,
-                  border: "1.5px solid var(--color-border-strong)",
-                  background: "var(--color-surface)",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <Icon name={tgt.icon} size={22} />
-                <span style={{ fontSize: 12.5 }}>{t(`edit.target.${tgt.value}`)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {d.step === 1 && (
-        <div style={{ padding: "0 20px" }}>
+        {d.step === 1 && (
+          <>
+            <h2 className={styles.title}>{t(`edit.target.${d.target ?? "general"}`)}</h2>
+            <p className={styles.subtitle}>{park.name}</p>
           {d.target === "general" && (
             <>
               <Input label={t("edit.diff.name")} value={d.name} onChange={(e) => patch({ name: e.target.value })} />
@@ -603,48 +600,45 @@ export default function EditInfo() {
             help={`${d.note.length}/200`}
           />
 
-          <Button block style={{ marginTop: 20 }} disabled={!items.length} onClick={() => patch({ step: 2 })}>
-            {t("common.verify")}
-          </Button>
-          {!items.length && (
-            <p style={{ fontSize: 12, color: "var(--color-text-muted)", textAlign: "center", marginTop: 8 }}>
-              {t("edit.needOneChange")}
-            </p>
-          )}
-        </div>
-      )}
+            {!items.length && <p className={styles.legend} style={{ textAlign: "center" }}>{t("edit.needOneChange")}</p>}
+          </>
+        )}
 
-      {d.step === 2 && (
-        <div style={{ padding: "0 20px" }}>
-          <h2 style={{ fontSize: 18, marginBottom: 4 }}>{t("edit.verifyTitle")}</h2>
-          <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginBottom: 12 }}>
-            {park.name}
-          </p>
-          <div style={{ background: "var(--color-surface)", borderRadius: 16, padding: "4px 16px 12px" }}>
-            {items.map((i) => (
-              <DiffRow key={i.field} label={i.label} current={i.currentText} proposed={i.proposedText} />
-            ))}
-          </div>
-          {d.note.trim() && (
-            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginTop: 12 }}>
-              {t("edit.notePrefix", { value: d.note.trim() })}
+        {d.step === 2 && (
+          <>
+            <h2 className={styles.title}>{t("edit.verifyTitle")}</h2>
+            <p className={styles.subtitle}>{t("edit.verifyHint")}</p>
+            <RecapCard
+              thumb={<ParkPhoto park={park} className={styles.recapThumb} markSize={24} />}
+              name={park.name ?? ""}
+              address={dedupeAddress(park.formatted_address)}
+            >
+              {items.map((i) => (
+                <RecapRow key={i.field} icon={targetIcon} title={i.label} onEdit={() => patch({ step: 1 })}>
+                  {`${i.currentText} → ${i.proposedText}`}
+                </RecapRow>
+              ))}
+              {d.note.trim() && (
+                <RecapRow icon="ic-pencil" title={t("edit.noteSection")} onEdit={() => patch({ step: 1 })}>
+                  {d.note.trim()}
+                </RecapRow>
+              )}
+            </RecapCard>
+            <p className={styles.recapNote}>
+              <Icon name="ic-shield" size={16} />
+              {t("edit.moderationNote")}
             </p>
-          )}
-          {!userId && (
-            <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 12 }}>
-              {t("common.accountRequiredDraft")}
-            </p>
-          )}
-          <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-            <Button variant="secondary" block onClick={() => patch({ step: 1 })}>
-              {t("common.edit")}
-            </Button>
-            <Button block loading={saving} onClick={submit}>
-              {t("edit.submit")}
-            </Button>
-          </div>
-        </div>
-      )}
-    </div>
+            {!userId && <p className={styles.legend}>{t("common.accountRequiredDraft")}</p>}
+            <div aria-live="polite" role="status">{saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}</div>
+            {submitError && (
+              <div className={styles.errorBox} role="alert">
+                {t("edit.submitError")}
+              </div>
+            )}
+          </>
+        )}
+      </FlowShell>
+      {guard.dialog}
+    </>
   );
 }

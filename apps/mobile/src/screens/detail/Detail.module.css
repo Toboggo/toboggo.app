@@ -381,19 +381,6 @@
   background: var(--color-border) center / cover no-repeat;
 }
 
-.reportLink {
-  margin-top: 20px;
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--color-text-muted);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
-}
 
 .hr {
   height: 2px;
@@ -505,4 +492,53 @@
   margin-top: 8px;
   font-size: 12px;
   color: var(--color-text-faint);
+}
+
+/* ── Carte « Vous connaissez ce parc ? » ─────────────────────────────── */
+.contribCard {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1.5px solid var(--color-primary);
+  border-radius: 14px;
+  background: var(--color-surface);
+}
+.contribHead {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.contribIcon {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-accent-tint);
+  color: var(--color-accent);
+}
+.contribTitle {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--color-text);
+}
+.contribSub {
+  margin-top: 2px;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 62%, var(--color-surface));
+}
+.contribBtn {
+  margin-top: 12px;
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
 }

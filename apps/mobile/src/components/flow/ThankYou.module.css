@@ -1,0 +1,116 @@
+.page {
+  --color-border: var(--color-border-neutral);
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(28px + var(--safe-top)) 16px calc(20px + var(--safe-bottom));
+  background: var(--color-surface);
+  text-align: center;
+}
+.logo {
+  margin-bottom: 8px;
+}
+.art {
+  width: min(260px, 72vw);
+  height: auto;
+  margin: 8px 0 4px;
+}
+.text {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.title {
+  margin: 10px 0 0;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--color-text);
+}
+.body {
+  margin: 10px 0 0;
+  max-width: 340px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--color-text) 62%, var(--color-surface));
+}
+.note {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  max-width: 340px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  text-align: left;
+  font-size: 13.5px;
+  color: color-mix(in srgb, var(--color-text) 62%, var(--color-surface));
+}
+.actions {
+  width: 100%;
+  max-width: 420px;
+  margin-top: auto;
+  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.actions button:first-child {
+  min-height: 50px;
+}
+.link {
+  min-height: 44px;
+  border: 0;
+  background: none;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+/* Animation courte (≈1,6 s), jouée UNE fois, uniquement si l'utilisateur ne
+   demande pas de réduire les animations. Sans mouvement : illustration complète. */
+@media (prefers-reduced-motion: no-preference) {
+  .sun {
+    transform-origin: 50% 50%;
+    animation: pop 0.55s 0.15s ease-out both;
+  }
+  .tower {
+    animation: rise 0.6s 0.05s ease-out both;
+  }
+  .slide {
+    stroke-dasharray: 140;
+    animation: draw 0.7s 0.45s ease-out both;
+  }
+  .spark {
+    transform-origin: 50% 50%;
+    animation: pop 0.4s ease-out both;
+  }
+  .spark:nth-of-type(1) { animation-delay: 0.9s; }
+  .spark:nth-of-type(2) { animation-delay: 1.05s; }
+  .spark:nth-of-type(3) { animation-delay: 1.2s; }
+  .text {
+    animation: fade 0.5s 0.8s ease-out both;
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.4); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes draw {
+    from { stroke-dashoffset: 140; opacity: 0.2; }
+    to { stroke-dashoffset: 0; opacity: 1; }
+  }
+  @keyframes fade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

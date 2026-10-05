@@ -3,20 +3,19 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Icon, type IconName } from "@toboggo/design-system";
-import { useToastStore } from "../lib/toast";
 import styles from "./QuickMenuPopover.module.css";
 
-type QuickItem = { iconName: IconName; labelKey: string; to?: string };
+type QuickItem = { iconName: IconName; labelKey: string; to: string };
 
 // « Plus d'actions » (/more-actions) ne contenait que « Ajouter une photo » et
 // « Poser une question », déjà listées ici : l'entrée est retirée sans perte.
-// « Poser une question » n'a pas encore de destination (toast « bientôt »).
+// « Poser une question » ouvre « Nous contacter » (/contact), accessible sans connexion.
 const ITEMS: QuickItem[] = [
   { iconName: "ic-plus", labelKey: "menu.addPark", to: "/action-intro/add" },
   { iconName: "ic-camera", labelKey: "menu.addPhoto", to: "/photo-add" },
   { iconName: "ic-review", labelKey: "menu.rate", to: "/rate" },
   { iconName: "ic-flag", labelKey: "menu.report", to: "/report" },
-  { iconName: "ic-question", labelKey: "menu.ask" },
+  { iconName: "ic-question", labelKey: "menu.ask", to: "/contact" },
 ];
 
 const MARGIN = 16;
@@ -54,7 +53,6 @@ export function QuickMenu({
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("contribute");
-  const showToast = useToastStore((s) => s.show);
   const menuRef = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
 
@@ -146,13 +144,9 @@ export function QuickMenu({
             className={styles.item}
             onClick={() => {
               close(false);
-              if (item.to) {
-                // No auth gate here: a contribution can be started signed out and
-                // asks for an account only at send time.
-                navigate(item.to);
-              } else {
-                showToast(t("comingSoon", { ns: "common" }));
-              }
+              // No auth gate here: a contribution can be started signed out and
+              // asks for an account only at send time.
+              navigate(item.to);
             }}
           >
             <Icon name={item.iconName} size={22} />

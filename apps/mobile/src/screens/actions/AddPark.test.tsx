@@ -103,10 +103,18 @@ function renderAdd(search = "") {
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>CARTE</div>} />
+          <Route path="/rate" element={<div>AVIS</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
+}
+
+/** Un brouillon existant n'est jamais repris en silence : le parent choisit « Reprendre mon ajout ». */
+async function renderResumed(search = "") {
+  const view = renderAdd(search);
+  fireEvent.click(await screen.findByRole("button", { name: "Reprendre mon ajout" }));
+  return view;
 }
 
 const loc = () => screen.getByTestId("loc").textContent;
@@ -211,35 +219,35 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     );
   });
 
-  it("restores a stored draft automatically, at the step it was saved at", () => {
+  it("restores a stored draft automatically, at the step it was saved at", async () => {
     seed({ step: 1, name: "Square Repris" });
-    renderAdd();
+    await renderResumed();
     expect(nameField().value).toBe("Square Repris");
     expect(screen.getByText("Étape 2 sur 5")).toBeTruthy();
   });
 
-  it("summary step restored when the location was confirmed — name is optional", () => {
+  it("summary step restored when the location was confirmed — name is optional", async () => {
     seed({ step: 4 });
-    renderAdd();
+    await renderResumed();
     expect(screen.getByText("Tout est bon ?")).toBeTruthy();
     expect(screen.getByText(/Nom non renseigné/)).toBeTruthy();
     expect(screen.getByText("Votre ajout sera vérifié avant publication.")).toBeTruthy();
   });
 
-  it("a restored step ≥ 1 WITHOUT a confirmed location falls back to the location step, no crash", () => {
+  it("a restored step ≥ 1 WITHOUT a confirmed location falls back to the location step, no crash", async () => {
     seed({ step: 4, locationConfirmed: false });
-    renderAdd();
+    await renderResumed();
     expect(screen.getByText("Où se trouve le parc ?")).toBeTruthy();
     expect(screen.queryByText("Tout est bon ?")).toBeNull();
   });
 
-  it("a v2 (3-step) draft is migrated: same data, step remapped (info → 1, summary → 4)", () => {
+  it("a v2 (3-step) draft is migrated: same data, step remapped (info → 1, summary → 4)", async () => {
     writeDraft(
       key({ userId: "u1" }),
       draftV2({ step: 2, name: "Ancien v2", answers: { wc: "yes" } }),
       { schemaVersion: 2 },
     );
-    renderAdd();
+    await renderResumed();
     expect(screen.getByText("Tout est bon ?")).toBeTruthy();
     expect(screen.getByText("Ancien v2")).toBeTruthy();
     expect(screen.getByText(/Présents : Toilettes/)).toBeTruthy();
@@ -357,7 +365,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
   it("createPark failure → clear inline error, stays on the summary, draft conserved, retry possible", async () => {
     vi.mocked(createPark).mockRejectedValueOnce(new Error("RLS denied"));
     seed({ step: 4, name: "Square Échec", answers: { wc: "yes" }, ageBands: ["3-6"] });
-    renderAdd();
+    await renderResumed();
     send();
 
     const alert = await screen.findByRole("alert");
@@ -396,7 +404,7 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     const { addParkPhotos } = await import("@toboggo/shared");
     vi.mocked(addParkPhotos).mockRejectedValueOnce(new Error("storage"));
     seed({ step: 4, photos: ["https://x/a.jpg"] });
-    renderAdd();
+    await renderResumed();
     send();
     await screen.findByText("Merci pour votre coup de pouce !");
     expect(toasts.list.join(" ")).toMatch(/certaines photos/);
@@ -653,7 +661,7 @@ describe("AddPark — parcours (maquette)", () => {
 
   it("back from the summary → answers, games, ages, location and photos are all preserved", async () => {
     seed({ step: 4, name: "Square Retour", equipment: { __set: ["slide"] }, ageBands: ["3-6"], answers: { wc: "yes", pmr: "no" }, description: "Fermé l’hiver", photos: ["https://x/a.jpg"] });
-    renderAdd();
+    await renderResumed();
     fireEvent.click(screen.getByRole("button", { name: /Modifier — Jeux et âges/ }));
     await screen.findByText("Les jeux et les âges");
     expect(nameField().value).toBe("Square Retour");
@@ -681,21 +689,148 @@ describe("AddPark — parcours (maquette)", () => {
     expect(window.scrollTo).toHaveBeenCalledWith(0, 0);
   });
 
-  it("closing with entered data asks for confirmation; « Rester » stays, « Quitter » leaves", async () => {
+  it("closing with entered data offers 3 choices; « Continuer » stays", async () => {
     seed({ step: 1, name: "Square Quitter" });
-    renderAdd();
+    await renderResumed();
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
     expect(screen.getByRole("dialog")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Rester" }));
+    expect(screen.getByRole("button", { name: "Enregistrer et quitter" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Supprimer et quitter" })).toBeTruthy();
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Continuer" }));
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(loc()).toBe("/add");
-    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    fireEvent.click(screen.getByRole("button", { name: "Quitter" }));
-    await screen.findByText("CARTE");
   });
 
   it("closing a pristine form leaves without any dialog", async () => {
     renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    await screen.findByText("CARTE");
+  });
+});
+
+describe("AddPark — brouillon : fermer ≠ supprimer, reprise explicite", () => {
+  const stored = () => readDraft(key({ userId: "u1" }), READ) as { name?: string; step?: number } | null;
+
+  it("« Enregistrer et quitter » : le brouillon (même la dernière frappe) est conservé", async () => {
+    seed({ step: 1, name: "Avant" });
+    await renderResumed();
+    fireEvent.change(nameField(), { target: { value: "Dernière frappe" } });
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer et quitter" }));
+    await screen.findByText("CARTE");
+    expect(stored()?.name).toBe("Dernière frappe");
+  });
+
+  it("« Supprimer et quitter » efface réellement le brouillon : rien à la réouverture ni après rechargement", async () => {
+    seed({ step: 1, name: "À supprimer" });
+    const first = await renderResumed();
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer et quitter" }));
+    await screen.findByText("CARTE");
+    expect(stored()).toBeNull();
+    // Une écriture tardive (pagehide) ne ressuscite rien.
+    window.dispatchEvent(new Event("pagehide"));
+    expect(stored()).toBeNull();
+    first.unmount();
+    // Réouverture / rechargement : pas de choix à faire, étape 1 vierge.
+    renderAdd();
+    expect(await screen.findByText("Où se trouve le parc ?")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Reprendre mon ajout" })).toBeNull();
+    expect(screen.getByText("Étape 1 sur 5")).toBeTruthy();
+  });
+
+  it("ouverture normale avec un brouillon : choix explicite, jamais de reprise silencieuse", async () => {
+    seed({ step: 1, name: "Square Repris" });
+    renderAdd();
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reprendre mon ajout" })).toBeTruthy();
+    expect(screen.queryByLabelText("Nom du parc (facultatif)")).toBeNull();
+    // Le brouillon stocké n'a pas bougé pendant que le parent hésite.
+    expect(stored()?.name).toBe("Square Repris");
+    fireEvent.click(screen.getByRole("button", { name: "Reprendre mon ajout" }));
+    expect(nameField().value).toBe("Square Repris");
+    expect(screen.getByText("Étape 2 sur 5")).toBeTruthy();
+  });
+
+  it("« Commencer un nouvel ajout » repart de l'étape 1 et supprime l'ancien brouillon", async () => {
+    seed({ step: 1, name: "Ancien" });
+    renderAdd();
+    fireEvent.click(await screen.findByRole("button", { name: "Commencer un nouvel ajout" }));
+    expect(await screen.findByText("Où se trouve le parc ?")).toBeTruthy();
+    expect(screen.getByText("Étape 1 sur 5")).toBeTruthy();
+    expect(stored()).toBeNull();
+  });
+
+  it("un brouillon vide (rien saisi) n'est pas proposé à la reprise", async () => {
+    seed({ step: 0, locationConfirmed: false });
+    renderAdd();
+    expect(await screen.findByText("Où se trouve le parc ?")).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("brouillon invité : même choix explicite (clé invité)", async () => {
+    sess.userId = null;
+    seed({ step: 1, name: "Invité" }, "guest");
+    renderAdd();
+    expect(await screen.findByRole("button", { name: "Reprendre mon ajout" })).toBeTruthy();
+  });
+});
+
+describe("AddPark — entrée depuis un autre parcours (« Je ne trouve pas mon parc »)", () => {
+  const FROM = "?new=1&from=%2Frate%3Fpark%3Dp1";
+  const stored = () => readDraft(key({ userId: "u1" }), READ) as { name?: string } | null;
+
+  it("sans ancien brouillon : nouvel ajout directement, sans dialogue", async () => {
+    renderAdd(FROM);
+    expect(await screen.findByText("Où se trouve le parc ?")).toBeTruthy();
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("avec un ancien brouillon : prévient avant de le remplacer, ne le reprend ni ne le supprime en silence", async () => {
+    seed({ step: 1, name: "Ancien sans rapport" });
+    renderAdd(FROM);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText("Remplacer votre ajout en cours ?")).toBeTruthy();
+    expect(screen.queryByLabelText("Nom du parc (facultatif)")).toBeNull();
+    expect(stored()?.name).toBe("Ancien sans rapport");
+  });
+
+  it("« Commencer un nouvel ajout » remplace l'ancien brouillon", async () => {
+    seed({ step: 1, name: "Ancien sans rapport" });
+    renderAdd(FROM);
+    fireEvent.click(await screen.findByRole("button", { name: "Commencer un nouvel ajout" }));
+    expect(await screen.findByText("Où se trouve le parc ?")).toBeTruthy();
+    expect(stored()).toBeNull();
+  });
+
+  it("« Annuler » revient au parcours d'origine, ancien brouillon intact", async () => {
+    seed({ step: 1, name: "Ancien sans rapport" });
+    renderAdd(FROM);
+    fireEvent.click(await screen.findByRole("button", { name: "Annuler" }));
+    await screen.findByText("AVIS");
+    expect(stored()?.name).toBe("Ancien sans rapport");
+  });
+
+  it("retour d'en-tête à l'étape 1 → revient au parcours d'origine", async () => {
+    renderAdd(FROM);
+    await screen.findByText("Où se trouve le parc ?");
+    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+    await screen.findByText("AVIS");
+  });
+
+  it("fermer avec saisie → « Enregistrer et quitter » ramène au parcours d'origine", async () => {
+    renderAdd(FROM);
+    await toInfo();
+    fireEvent.change(nameField(), { target: { value: "Nouveau parc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Enregistrer et quitter" }));
+    await screen.findByText("AVIS");
+    expect(stored()?.name).toBe("Nouveau parc");
+  });
+
+  it("une destination `from` externe est ignorée (repli carte)", async () => {
+    renderAdd("?new=1&from=%2F%2Fevil.example");
     await screen.findByText("Où se trouve le parc ?");
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
     await screen.findByText("CARTE");
@@ -769,8 +904,8 @@ describe("AddPark — adresse par reverse geocoding", () => {
   });
 
   it("restaurer un brouillon ne déclenche aucun reverse geocoding", async () => {
-    seed({ step: 0, lat: 44.123456, lng: 3.123456, address: "Ma saisie", locationConfirmed: false });
-    renderAdd();
+    seed({ step: 0, lat: 44.123456, lng: 3.123456, address: "Ma saisie", addressEdited: true, locationConfirmed: false });
+    await renderResumed();
     await screen.findByText("Où se trouve le parc ?");
     expect(reverseGeocode).not.toHaveBeenCalled();
     expect(addressField().value).toBe("Ma saisie");

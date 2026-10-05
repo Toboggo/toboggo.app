@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Button,
@@ -22,6 +22,7 @@ import {
 } from "@toboggo/shared";
 import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
+import { addParkFromHref } from "../../lib/addParkEntry";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
 import { PhotoThumbs, RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
@@ -72,6 +73,7 @@ const EQUIPMENT_RELEVANT: ReportReason[] = ["broken_equipment", "safety"];
 export default function ReportProblem() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation("contribute");
   const { t: tErr } = useTranslation("errors");
   const { t: tCommon } = useTranslation("common");
@@ -239,7 +241,20 @@ export default function ReportProblem() {
   const offset = preselected ? 1 : 0;
   const total = 3 - offset;
   const dirty = reason !== null || comment.trim() !== "" || Boolean(photo);
-  const guard = useLeaveGuard({ dirty, onLeave: () => navigate("/map"), body: t("report.leaveBody") });
+  const guard = useLeaveGuard({
+    dirty,
+    // Fermer ≠ supprimer : « Enregistrer et quitter » écrit le brouillon tout de suite
+    // (le debounce serait sinon perdu au démontage), « Supprimer » l'efface vraiment.
+    onLeave: () => {
+      flushReportDraft();
+      navigate("/map");
+    },
+    onDiscard: () => {
+      clearReportDraft();
+      navigate("/map");
+    },
+    body: t("report.leaveBody"),
+  });
   const back = () => (step === offset ? (dirty ? guard.request() : navigate(-1)) : setStep(step - 1));
 
   if (done) {
@@ -279,7 +294,7 @@ export default function ReportProblem() {
         footer={footer}
       >
         {step === 0 && (
-          <ParkChooser selected={park && chosen ? park : null} onSelect={(p) => setChosen(p)} onNone={() => navigate(-1)} />
+          <ParkChooser selected={park && chosen ? park : null} onSelect={(p) => setChosen(p)} onAddPark={() => navigate(addParkFromHref(location.pathname + location.search))} />
         )}
 
         {step === 1 && (

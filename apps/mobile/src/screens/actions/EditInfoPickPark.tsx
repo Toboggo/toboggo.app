@@ -1,7 +1,8 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { DetailHeader } from "../../components/DetailHeader";
 import { ParkPicker } from "../../components/ParkPicker";
+import { addParkFromHref } from "../../lib/addParkEntry";
 
 /**
  * `EditInfo` requires a `?park=` in context (it has no picker step of its
@@ -12,6 +13,7 @@ import { ParkPicker } from "../../components/ParkPicker";
  */
 export default function EditInfoPickPark() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation("contribute");
 
   return (
@@ -19,7 +21,7 @@ export default function EditInfoPickPark() {
       <DetailHeader title={t("edit.pickParkTitle")} onBack={() => navigate("/contributions")} />
       <ParkPicker
         onPick={(park) => navigate(`/contribute/edit?park=${park.id}`, { replace: true })}
-        onNone={() => navigate("/action-intro/add")}
+        onNone={() => navigate(addParkFromHref(location.pathname + location.search))}
       />
     </div>
   );

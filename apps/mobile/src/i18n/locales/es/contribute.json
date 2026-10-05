@@ -255,7 +255,7 @@
     "photosPartial": "El parque se ha creado, pero no se pudieron añadir algunas fotos. Podrás añadirlas desde su ficha.",
     "close": {
       "title": "¿Salir de la creación del parque?",
-      "body": "Tu borrador se guarda 24 h en este dispositivo: podrás retomarlo más tarde.",
+      "body": "Guarda lo escrito para retomarlo más tarde (24 h en este dispositivo) o elimínalo.",
       "stay": "Seguir editando",
       "leave": "Salir"
     },
@@ -278,7 +278,17 @@
     "addressEmpty": "No se ha encontrado dirección aquí. Puedes escribirla.",
     "addressError": "No se pudo obtener la dirección ahora.",
     "addressSuggestion": "Dirección encontrada para este marcador: {{address}}",
-    "addressUseSuggestion": "Usarla"
+    "addressUseSuggestion": "Usarla",
+    "draft": {
+      "title": "Hay un parque a medio añadir",
+      "body": "Empezaste a añadir un parque. ¿Quieres retomarlo o empezar de cero?",
+      "resume": "Retomar mi alta",
+      "new": "Empezar un alta nueva",
+      "replaceTitle": "¿Reemplazar tu alta en curso?",
+      "replaceBody": "Ya hay un alta de parque sin terminar en este dispositivo. Empezar una nueva la eliminará.",
+      "resumeOld": "Retomar el alta anterior",
+      "cancel": "Cancelar"
+    }
   },
   "addPhotos": {
     "subtitle": "Añade fotos para compartir este lugar con la comunidad.",
@@ -550,7 +560,10 @@
     "leave": {
       "title": "¿Salir de esta contribución?",
       "stay": "Quedarme",
-      "leave": "Salir"
+      "leave": "Salir",
+      "save": "Guardar y salir",
+      "discard": "Eliminar y salir",
+      "keepGoing": "Continuar"
     },
     "chooser": {
       "title": "¿Qué parque?",
@@ -558,7 +571,11 @@
       "searchLabel": "Buscar un parque",
       "selected": "Parque elegido",
       "none": "No encuentro mi parque",
-      "error": "La búsqueda ha fallado."
+      "error": "La búsqueda ha fallado.",
+      "addFirstTitle": "Añade primero este parque",
+      "addFirstBody": "Se revisará antes de aparecer en Toboggo.",
+      "addPark": "Añadir un parque",
+      "keepSearching": "Seguir buscando"
     },
     "photos": {
       "uploading": "Enviando la foto…"

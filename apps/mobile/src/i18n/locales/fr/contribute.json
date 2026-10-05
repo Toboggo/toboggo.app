@@ -255,7 +255,7 @@
     "photosPartial": "Le parc est créé, mais certaines photos n’ont pas pu être ajoutées. Vous pourrez les ajouter depuis sa fiche.",
     "close": {
       "title": "Quitter l’ajout du parc ?",
-      "body": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard.",
+      "body": "Enregistrez votre saisie pour la reprendre plus tard (24 h sur cet appareil), ou supprimez-la.",
       "stay": "Continuer la saisie",
       "leave": "Quitter"
     },
@@ -278,7 +278,17 @@
     "addressEmpty": "Aucune adresse trouvée ici. Vous pouvez la saisir.",
     "addressError": "Adresse introuvable pour le moment.",
     "addressSuggestion": "Adresse trouvée pour ce repère : {{address}}",
-    "addressUseSuggestion": "Utiliser"
+    "addressUseSuggestion": "Utiliser",
+    "draft": {
+      "title": "Un ajout de parc est en cours",
+      "body": "Vous avez commencé à ajouter un parc. Voulez-vous le reprendre ou repartir de zéro ?",
+      "resume": "Reprendre mon ajout",
+      "new": "Commencer un nouvel ajout",
+      "replaceTitle": "Remplacer votre ajout en cours ?",
+      "replaceBody": "Un ajout de parc non terminé existe déjà sur cet appareil. Commencer un nouvel ajout le supprimera.",
+      "resumeOld": "Reprendre l’ancien ajout",
+      "cancel": "Annuler"
+    }
   },
   "addPhotos": {
     "subtitle": "Ajoutez des photos pour partager ce lieu avec la communauté.",
@@ -550,7 +560,10 @@
     "leave": {
       "title": "Quitter cette contribution ?",
       "stay": "Rester",
-      "leave": "Quitter"
+      "leave": "Quitter",
+      "save": "Enregistrer et quitter",
+      "discard": "Supprimer et quitter",
+      "keepGoing": "Continuer"
     },
     "chooser": {
       "title": "Quel parc ?",
@@ -558,7 +571,11 @@
       "searchLabel": "Rechercher un parc",
       "selected": "Parc choisi",
       "none": "Je ne trouve pas mon parc",
-      "error": "La recherche a échoué."
+      "error": "La recherche a échoué.",
+      "addFirstTitle": "Ajoutez d’abord ce parc",
+      "addFirstBody": "Il sera vérifié avant d’apparaître dans Toboggo.",
+      "addPark": "Ajouter un parc",
+      "keepSearching": "Continuer à chercher"
     },
     "photos": {
       "uploading": "Envoi de la photo…"

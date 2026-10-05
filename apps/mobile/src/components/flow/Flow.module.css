@@ -661,3 +661,11 @@
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* Boutons empilés d'un dialogue à trois choix (largeur pleine, 44 px mini). */
+.dialogStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+}

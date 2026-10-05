@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Button, Icon } from "@toboggo/design-system";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@toboggo/shared";
 import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
+import { addParkFromHref } from "../../lib/addParkEntry";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
 import { PhotoThumbs, RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
@@ -66,6 +67,7 @@ const MAX_PHOTOS = 5;
 export default function AddPhotos() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useTranslation("contribute");
   const { t: tErr } = useTranslation("errors");
   const [parkId, setParkId] = useState<string | null>(params.get("park"));
@@ -276,7 +278,7 @@ export default function AddPhotos() {
           <ParkChooser
             selected={park && chosen ? park : null}
             onSelect={(p) => setChosen(p)}
-            onNone={() => navigate("/add")}
+            onAddPark={() => navigate(addParkFromHref(location.pathname + location.search))}
           />
         )}
 

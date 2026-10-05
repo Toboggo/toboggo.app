@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Icon, Input } from "@toboggo/design-system";
+import { Button, Dialog, Icon, Input } from "@toboggo/design-system";
 import { getParkDisplayName, haversineMeters, searchParks, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "../ParkPhoto";
 import { useFormat } from "../../i18n/useFormat";
@@ -53,17 +53,21 @@ export function ParkCardMini({
 export function ParkChooser({
   selected,
   onSelect,
-  onNone,
+  onAddPark,
 }: {
   selected: Park | null;
   onSelect: (park: Park) => void;
-  /** « Je ne trouve pas mon parc ». */
-  onNone: () => void;
+  /**
+   * « Je ne trouve pas mon parc » → explication « Ajoutez d'abord ce parc »,
+   * puis « Ajouter un parc » appelle ceci (l'écran ouvre un nouvel ajout).
+   */
+  onAddPark: () => void;
 }) {
   const { t } = useTranslation("contribute");
   const f = useFormat();
   const { hasFix, lat, lng } = useGeo();
   const [query, setQuery] = useState("");
+  const [explain, setExplain] = useState(false);
   const enabled = query.trim().length >= 2;
   const { data: results = [], isFetching, isError, refetch } = useQuery({
     queryKey: ["park-chooser", query.trim()],
@@ -117,9 +121,32 @@ export function ParkChooser({
           />
         ))}
       </div>
-      <button type="button" className={styles.linkButton} onClick={onNone}>
+      <button type="button" className={styles.linkButton} onClick={() => setExplain(true)}>
         {t("flow.chooser.none")}
       </button>
+      <Dialog
+        open={explain}
+        onClose={() => setExplain(false)}
+        title={t("flow.chooser.addFirstTitle")}
+        actions={
+          <div className={styles.dialogStack}>
+            <Button
+              block
+              onClick={() => {
+                setExplain(false);
+                onAddPark();
+              }}
+            >
+              {t("flow.chooser.addPark")}
+            </Button>
+            <Button block variant="ghost" onClick={() => setExplain(false)}>
+              {t("flow.chooser.keepSearching")}
+            </Button>
+          </div>
+        }
+      >
+        <p style={{ margin: 0, fontSize: 14, color: "var(--color-text-muted)" }}>{t("flow.chooser.addFirstBody")}</p>
+      </Dialog>
     </>
   );
 }

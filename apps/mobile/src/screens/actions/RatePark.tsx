@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { Button, EmptyState, Icon, StarInput, Textarea, usePersistentDraft, useAdoptedDraftKey } from "@toboggo/design-system";
 import { addMedia, buildDraftKey, createReview, getParkDisplayName, getReview, ImageValidationError, listMyReviews, updateMyReview, uploadPhoto, type AgeBand, type Park, type Review, type ReviewSubRatings } from "@toboggo/shared";
 import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
+import { addParkFromHref } from "../../lib/addParkEntry";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
 import { RecapCard, RecapRow, PhotoThumbs, dedupeAddress } from "../../components/flow/Recap";
@@ -106,6 +107,7 @@ function sameSubRatings(a: ReviewSubRatings, b: ReviewSubRatings): boolean {
 export default function RatePark({ editing }: { editing?: Review } = {}) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const wantsResume = params.get("resume") === "1";
   // Navigation origin, explicit and independent from `?stars=` (which only
   // preselects the rating). Any other/invalid value is ignored.
@@ -389,7 +391,18 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
           stay: t("review.edit.leaveStay"),
           leave: t("review.edit.leaveConfirm"),
         }
-      : { dirty: rateDirty, onLeave: () => navigate("/map"), body: t("rate.leaveBody") },
+      : {
+          dirty: rateDirty,
+          onLeave: () => {
+            flushRateDraft();
+            navigate("/map");
+          },
+          onDiscard: () => {
+            clearRateDraft();
+            navigate("/map");
+          },
+          body: t("rate.leaveBody"),
+        },
   );
   const back = () => {
     if (step > offset) return setStep(step - 1);
@@ -460,7 +473,7 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
         footer={footer}
       >
         {step === 0 && (
-          <ParkChooser selected={park && chosen ? park : null} onSelect={(p) => setChosen(p)} onNone={() => navigate("/add")} />
+          <ParkChooser selected={park && chosen ? park : null} onSelect={(p) => setChosen(p)} onAddPark={() => navigate(addParkFromHref(location.pathname + location.search))} />
         )}
 
         {step === 1 && park && (

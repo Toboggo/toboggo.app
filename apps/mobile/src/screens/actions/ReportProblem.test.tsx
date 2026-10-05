@@ -57,6 +57,7 @@ function renderReport(search = "?park=p1") {
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>MAP</div>} />
+          <Route path="/contributions" element={<div>MES AJOUTS</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -116,7 +117,7 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
     await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
     await waitFor(() => expect(createReport).toHaveBeenCalledTimes(1));
-    await screen.findByText("Signalement envoyé !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
     window.dispatchEvent(new Event("pagehide"));
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
@@ -127,21 +128,21 @@ describe("ReportProblem — persistent draft (LOT 3D.D)", () => {
     await fillStep2("à voir");
     await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
-    await screen.findByText("Signalement envoyé !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Retour au parc" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revenir au parc" }));
     await screen.findByText("FICHE PARC");
   });
 
-  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+  it("thank-you page — \"Voir mes ajouts\" replaces the wizard entry", async () => {
     renderReport();
     await fillStep2("à la carte");
     await toVerify();
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
-    await screen.findByText("Signalement envoyé !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
-    await screen.findByText("MAP");
+    fireEvent.click(screen.getByRole("button", { name: "Voir mes ajouts" }));
+    await screen.findByText("MES AJOUTS");
   });
 
   it("submit failure → the form and the draft are kept", async () => {
@@ -216,7 +217,7 @@ describe("ReportProblem — guest → OAuth → authenticated", () => {
     expect(localStorage.getItem(key("p1", "guest"))).toBeNull();
     expect((readDraft(key("p9", "guest"), READ) as { comment?: string })?.comment).toBe("autre parc");
     // after a successful auto-send the user draft is cleared too
-    await screen.findByText("Signalement envoyé !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
 
@@ -269,7 +270,7 @@ describe("ReportProblem — parcours en 3 étapes", () => {
     expect(screen.queryByRole("button", { name: /Envoyer le signalement/ })).toBeNull();
     await toVerify();
     expect(createReport).not.toHaveBeenCalled();
-    expect(screen.getByText("Problème de sécurité")).toBeTruthy();
+    expect(screen.getByText(/Problème de sécurité/)).toBeTruthy();
     expect(screen.getByText("fissure au sol")).toBeTruthy();
     expect(screen.getByText("Aucune photo")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: /Modifier — Description/ }));
@@ -291,7 +292,7 @@ describe("ReportProblem — parcours en 3 étapes", () => {
     expect(createReport).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(screen.getByRole("button", { name: /Envoyer le signalement/ })).toHaveProperty("disabled", false));
     fireEvent.click(screen.getByRole("button", { name: /Envoyer le signalement/ }));
-    await screen.findByText("Signalement envoyé !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(createReport).toHaveBeenCalledTimes(2);
   });
 

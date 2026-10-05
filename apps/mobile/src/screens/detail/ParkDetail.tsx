@@ -234,6 +234,21 @@ export default function ParkDetail() {
 
         {park.description && <p className={styles.desc}>{park.description}</p>}
 
+        <section className={styles.contribCard} aria-labelledby="contrib-card-title">
+          <div className={styles.contribHead}>
+            <span className={styles.contribIcon} aria-hidden="true">
+              <Icon name="ic-heart" size={22} />
+            </span>
+            <div>
+              <div className={styles.contribTitle} id="contrib-card-title">{tContribute("sheet.cardTitle")}</div>
+              <div className={styles.contribSub}>{tContribute("sheet.cardBody")}</div>
+            </div>
+          </div>
+          <button type="button" className={styles.contribBtn} onClick={() => setContribOpen(true)}>
+            {tContribute("sheet.enrich")}
+          </button>
+        </section>
+
         <div className={styles.section}>
           <div className={styles.kickerRow}>
             <span className={styles.kicker}>{t("equipment.title")}</span>
@@ -276,9 +291,6 @@ export default function ParkDetail() {
             <span className={styles.kicker}>{t("communityPhotos")}</span>
             {hasPhotos && (
               <div className={styles.kickerActions}>
-                <button type="button" className={styles.seeAll} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
-                  {t("action.add", { ns: "common" })}
-                </button>
                 <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/photos`)}>
                   {t("action.seeAll", { ns: "common" })}
                 </button>
@@ -308,13 +320,6 @@ export default function ParkDetail() {
             </div>
           )}
         </div>
-
-        <button type="button" className={styles.reportLink} onClick={() => setContribOpen(true)}>
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <path d="M4 21V4h14l-3 4 3 4H4" />
-          </svg>
-          {t("contribute")}
-        </button>
 
         <div className={styles.hr} />
 
@@ -373,7 +378,13 @@ export default function ParkDetail() {
       </div>
 
       <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} park={park} />
-      <ContributeSheet open={contribOpen} onClose={() => setContribOpen(false)} parkId={park.id} />
+      <ContributeSheet
+        open={contribOpen}
+        onClose={() => setContribOpen(false)}
+        parkId={park.id}
+        parkName={getParkDisplayName(park, t)}
+        myReviewId={myReview?.status === "published" ? myReview.id : undefined}
+      />
       <DirectionsSheet {...directionsSheetProps} />
     </div>
   );

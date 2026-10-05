@@ -138,3 +138,24 @@ export function countByStatus(items: UserContribution[]): { labelKey: string; co
 export function isContributionType(value: string | null): value is UserContributionType {
   return !!value && (CONTRIBUTION_TYPES as string[]).includes(value);
 }
+
+export type StatusVisualTone = "green" | "amber" | "blue" | "red" | "neutral";
+export interface StatusVisual {
+  icon: IconName;
+  tone: StatusVisualTone;
+}
+
+/** Explicit pictogram + tone of every status bucket (the user-facing labels of
+ * `getContributionStatusPresentation`). Sprite icons only. */
+export const STATUS_VISUAL: Record<(typeof STATUS_LABEL_ORDER)[number], StatusVisual> = {
+  "hub.status.published": { icon: "ic-check", tone: "green" },
+  "hub.status.resolved": { icon: "ic-check", tone: "green" },
+  "hub.status.pending": { icon: "ic-clock", tone: "amber" },
+  "hub.status.inProgress": { icon: "ic-clock", tone: "blue" },
+  "hub.status.rejected": { icon: "ic-close", tone: "red" },
+  "hub.status.dismissed": { icon: "ic-close", tone: "neutral" },
+};
+
+export function getStatusVisual(labelKey: string): StatusVisual {
+  return STATUS_VISUAL[labelKey as keyof typeof STATUS_VISUAL] ?? { icon: "ic-clock", tone: "neutral" };
+}

@@ -13,17 +13,19 @@ import {
 import {
   buildDraftKey,
   createReport,
+  getParkDisplayName,
   uploadPhoto,
   ImageValidationError,
   REPORT_REASON_LABEL,
   type Park,
   type ReportReason,
 } from "@toboggo/shared";
-import { ContributionSuccessSheet } from "./ContributionSuccessSheet";
+import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
-import { SummaryCard } from "../../components/addPark/AddParkParts";
+import { PhotoThumbs, RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
+import { ParkPhoto } from "../../components/ParkPhoto";
 import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
@@ -241,25 +243,7 @@ export default function ReportProblem() {
   const back = () => (step === offset ? (dirty ? guard.request() : navigate(-1)) : setStep(step - 1));
 
   if (done) {
-    // Contribution terminée : le wizard ne doit plus rester visible ni
-    // interactif derrière la confirmation. Même motif que AddPark / RatePark /
-    // AddPhotos / EditInfo : Success Sheet, jamais un nouvel écran plein
-    // format. Message métier conservé (signalement envoyé, pas du contenu
-    // publié). Les CTA remplacent (jamais n'empilent) l'entrée d'historique du
-    // wizard.
-    return (
-      <>
-        <div className="screen" />
-        <ContributionSuccessSheet
-          open={done}
-          title={t("report.doneTitle")}
-          body={t("report.doneBody")}
-          primaryCta={{ label: t("common.backToPark"), onPress: () => navigate(`/park/${parkId}`, { replace: true }) }}
-          secondaryCta={{ label: t("common.backToMap"), onPress: () => navigate("/map", { replace: true }) }}
-          onDismiss={() => navigate("/map", { replace: true })}
-        />
-      </>
-    );
+    return <ThankYou body={t("thanks.body.report")} parkId={parkId} />;
   }
 
   let footer: React.ReactNode;
@@ -365,29 +349,23 @@ export default function ReportProblem() {
           <>
             <h2 className={styles.title}>{t("report.verifyTitle")}</h2>
             <p className={styles.subtitle}>{t("report.verifyHint")}</p>
-            <SummaryCard title={t("steps.park")} onEdit={() => setStep(0)} hideEdit={preselected}>
-              {park && <ParkCardMini park={park} />}
-            </SummaryCard>
-            <SummaryCard title={t("steps.problem")} onEdit={() => setStep(1)}>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 15 }}>
+            <RecapCard
+              thumb={<ParkPhoto park={park ?? { photos: [] }} className={styles.recapThumb} markSize={24} />}
+              name={park ? getParkDisplayName(park, t) : ""}
+              address={dedupeAddress(park?.formatted_address)}
+            >
+              <RecapRow icon="ic-flag" title={t("steps.problem")} onEdit={() => setStep(1)}>
                 {reason ? t(`reason.${reason}`) : "—"}
-              </div>
-              {needsEquipment && (
-                <div className={styles.muted} style={{ marginTop: 4 }}>
-                  {t("report.equipmentLabel")} : {equipmentChoice ? t(equipmentChoice.key) : t("report.equipmentUnspecified")}
-                </div>
-              )}
-            </SummaryCard>
-            <SummaryCard title={t("report.descriptionTitle")} onEdit={() => setStep(1)}>
-              {comment.trim() ? <p className={styles.muted} style={{ margin: 0 }}>{comment}</p> : <span className={styles.muted}>{t("report.noDescription")}</span>}
-            </SummaryCard>
-            <SummaryCard title={t("steps.photos")} onEdit={() => setStep(1)}>
-              {photo ? (
-                <div className={styles.thumbs}><div className={styles.thumb} style={{ backgroundImage: `url(${photo})` }} /></div>
-              ) : (
-                <span className={styles.muted}>{t("addPark.summary.noPhotos")}</span>
-              )}
-            </SummaryCard>
+                {needsEquipment && `\n${t("report.equipmentLabel")} : ${equipmentChoice ? t(equipmentChoice.key) : t("report.equipmentUnspecified")}`}
+              </RecapRow>
+              <RecapRow icon="ic-pencil" title={t("report.descriptionTitle")} onEdit={() => setStep(1)}>
+                {comment.trim() || t("report.noDescription")}
+              </RecapRow>
+              <RecapRow icon="ic-camera" title={t("steps.photos")} onEdit={() => setStep(1)}>
+                {photo ? t("flow.photoCount", { count: 1 }) : t("addPark.summary.noPhotos")}
+                <PhotoThumbs urls={photo ? [photo] : []} />
+              </RecapRow>
+            </RecapCard>
             <div aria-live="polite" role="status">
               {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
             </div>

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Icon } from "@toboggo/design-system";
 import type { UserContribution } from "@toboggo/shared";
 import {
+  getStatusVisual,
   getContributionDetail,
   getContributionStatusPresentation,
   getContributionTitle,
@@ -9,6 +10,7 @@ import {
 } from "../lib/contributionPresentation";
 import { useFormat } from "../i18n/useFormat";
 import { ReviewMenu } from "./ReviewMenu";
+import { StatusPill } from "./StatusPill";
 import styles from "./ContributionRow.module.css";
 
 /** One row of a parent's contribution history — used both on the hub's "Vos
@@ -35,46 +37,55 @@ export function ContributionRow({
 
   const photo = item.thumbnail ?? item.parkPhoto ?? null;
 
-  const place = [item.parkName, item.city].filter(Boolean).join(" · ");
   const rating = item.type === "review" && typeof item.rating === "number" ? `★ ${f.rating(item.rating)}` : null;
+  // Park name first (bold, never cut), then the kind of addition, smaller.
+  const name = item.parkName || title;
+  const kindTitle = item.parkName ? title : null;
+  const kindRest = [detail, rating, item.city].filter(Boolean).join(" · ");
+  const statusLabel = t(status.labelKey);
 
-  // miniature → pictogramme (carré pastel) → titre + parc → badge + date → chevron
-  const row = (
-    <button type="button" className={canEdit ? `${styles.row} ${styles.rowGrow}` : styles.row} onClick={onClick}>
+  // One horizontal row, same columns on every entry:
+  // miniature | pictogramme (carré pastel) | nom du parc + type | pastille statut + date | chevron.
+  // The row's click target is the text block (stretched over the whole row); the status pill
+  // is a separate control above it. « Modifier mon avis » takes the chevron's slot on editable reviews.
+  return (
+    <div className={styles.rowWrap}>
       <span className={styles.thumb} style={photo ? { backgroundImage: `url(${photo})` } : undefined} aria-hidden>
         {!photo && <Icon name="ic-slide" size={20} />}
       </span>
       <span className={styles.typeIcon} data-tone={typeIcon.tone} aria-hidden>
-        <Icon name={typeIcon.iconName} size={20} />
+        <Icon name={typeIcon.iconName} size={18} />
       </span>
 
-      <span className={styles.body}>
-        <span className={styles.title}>{title}</span>
-        {place && <span className={styles.subtitle}>{place}</span>}
-        {detail && <span className={styles.subtitle}>{detail}</span>}
-        {rating && <span className={styles.subtitle}>{rating}</span>}
-      </span>
+      <button type="button" className={styles.body} onClick={onClick}>
+        <span className={styles.name}>{name}</span>
+        {(kindTitle || kindRest) && (
+          <span className={styles.kind}>
+            {kindTitle && <span>{kindTitle}</span>}
+            {kindTitle && kindRest && " · "}
+            {kindRest}
+          </span>
+        )}
+      </button>
 
       <span className={styles.trailing}>
-        <span className={styles.badge} data-tone={status.tone}>
-          {status.tone === "primary" && <Icon name="ic-check" size={12} />}
-          {t(status.labelKey)}
-        </span>
+        <StatusPill label={statusLabel} visual={getStatusVisual(status.labelKey)} />
         <span className={styles.meta}>
           {f.relativeDate(item.createdAt)}
           {item.type === "review" && item.editedAt && ` · ${t("review.editedOn", { date: f.date(item.editedAt) })}`}
         </span>
       </span>
 
-      <Icon name="ic-back" size={14} style={{ flex: "none", color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
-    </button>
-  );
-
-  if (!canEdit) return row;
-  return (
-    <div className={styles.rowWrap}>
-      {row}
-      <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />
+      <span className={styles.chevron} aria-hidden>
+        {!canEdit && (
+          <Icon name="ic-back" size={14} style={{ color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
+        )}
+      </span>
+      {canEdit && (
+        <span className={styles.menu}>
+          <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />
+        </span>
+      )}
     </div>
   );
 }

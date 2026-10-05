@@ -8,9 +8,20 @@
     "ask": "Poser une question"
   },
   "sheet": {
-    "editInfo": "Corriger une information",
     "addPhotos": "Ajouter des photos",
-    "report": "Signaler un problème"
+    "report": "Signaler un problème",
+    "title": "Enrichir ce parc",
+    "complete": "Compléter les informations",
+    "completeHint": "Jeux, âges et petits détails",
+    "addPhotosHint": "Montrez le parc aux familles",
+    "rate": "Donner mon avis",
+    "rateHint": "Partagez votre expérience",
+    "editReview": "Modifier mon avis",
+    "editReviewHint": "Mettez à jour votre expérience",
+    "reportHint": "Aidez à garder le parc agréable",
+    "cardTitle": "Vous connaissez ce parc ?",
+    "cardBody": "Vos infos aident les autres parents.",
+    "enrich": "Enrichir ce parc"
   },
   "common": {
     "continue": "Continuer",
@@ -105,7 +116,10 @@
     "noComment": "Aucun commentaire",
     "verifyNote": "Votre avis est publié immédiatement ; une photo éventuelle est vérifiée avant d’être visible.",
     "submitError": "Votre avis n’a pas pu être publié. Vos réponses sont conservées : réessayez.",
-    "leaveBody": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard."
+    "leaveBody": "Votre brouillon est conservé 24 h sur cet appareil : vous pourrez le reprendre plus tard.",
+    "criteriaSummaryTitle": "Critères et âge",
+    "editNoChange": "Modifiez votre avis pour activer l’enregistrement.",
+    "verifyHintEdit": "Relisez vos modifications avant de les enregistrer."
   },
   "addParkSearch": {
     "title": "Ce parc existe-t-il déjà ?",
@@ -119,7 +133,7 @@
     "seeMore": "Voir plus ({{count}})"
   },
   "pin": {
-    "searchPlaceholder": "Rechercher une ville, une adresse ou un lieu",
+    "searchPlaceholder": "Ville ou adresse",
     "unavailable": "Carte indisponible — ajustez la position pas à pas.",
     "locating": "Localisation…",
     "myLocationShort": "Ma position",
@@ -134,10 +148,10 @@
   },
   "addPark": {
     "locationTitle": "Où se trouve le parc ?",
-    "locationHint": "Recherchez un lieu, utilisez votre position ou placez le repère sur la carte.",
-    "pinHint": "Déplacez le repère pour préciser l’emplacement.",
-    "addressLabel": "Adresse (si vous la connaissez)",
-    "addressPlaceholder": "12 rue des Tilleuls, 69000 Lyon",
+    "locationHint": "Recherchez une adresse ou placez le repère.",
+    "pinHint": "Déplacez la carte pour ajuster le repère.",
+    "addressLabel": "Adresse (modifiable)",
+    "addressPlaceholder": "Rue, code postal, ville",
     "addressResolving": "Recherche de l’adresse…",
     "infoTitle": "Qu’y trouve-t-on ?",
     "infoHint": "Renseignez ce que vous connaissez.",
@@ -227,7 +241,14 @@
       "unknownList": "Non renseigné : {{list}}",
       "noNote": "Aucune précision",
       "noPhotos": "Aucune photo",
-      "moderation": "Votre ajout sera vérifié avant publication."
+      "moderation": "Votre ajout sera vérifié avant publication.",
+      "genericName": "Aire de jeux",
+      "unnamedNote": "Nom non renseigné",
+      "locationAdjust": "Emplacement confirmé sur la carte",
+      "locationReview": "Adresse non renseignée : vérifiez le repère sur la carte.",
+      "present": "Présents : {{list}}",
+      "absent": "Absents : {{list}}",
+      "unknown": "Inconnus : {{list}}"
     },
     "submitting": "Envoi en cours…",
     "submitError": "L’envoi n’a pas abouti. Vos informations sont conservées : vérifiez votre connexion puis réessayez.",
@@ -248,8 +269,16 @@
       "thisOne": "C’est ce parc",
       "another": "Non, c’est un autre parc",
       "confirmOnly": "Confirmez uniquement s’il s’agit d’un lieu différent.",
-      "error": "Impossible de vérifier les parcs déjà référencés autour de ce repère. Réessayez : ce n’est pas la preuve qu’il n’y en a pas."
-    }
+      "error": "Impossible de vérifier les parcs déjà référencés autour de ce repère. Réessayez : ce n’est pas la preuve qu’il n’y en a pas.",
+      "title": "Est-ce déjà ce parc ?",
+      "completeHelp": "Complétez sa fiche sans créer de doublon.",
+      "backToMap": "Corriger le repère sur la carte"
+    },
+    "addressFound": "Adresse trouvée automatiquement",
+    "addressEmpty": "Aucune adresse trouvée ici. Vous pouvez la saisir.",
+    "addressError": "Adresse introuvable pour le moment.",
+    "addressSuggestion": "Adresse trouvée pour ce repère : {{address}}",
+    "addressUseSuggestion": "Utiliser"
   },
   "addPhotos": {
     "subtitle": "Ajoutez des photos pour partager ce lieu avec la communauté.",
@@ -377,7 +406,8 @@
       "unavailable": "Cette fonctionnalité n’est pas encore disponible. Revenez bientôt !",
       "subtitle": "Aidez-nous à maintenir des informations fiables",
       "retry": "Réessayer"
-    }
+    },
+    "statusAria": "Statut : {{status}}"
   },
   "history": {
     "title": "Vos contributions",
@@ -454,7 +484,15 @@
     "needOneChange": "Modifiez au moins une valeur pour continuer.",
     "verifyTitle": "Vérifiez votre correction",
     "notePrefix": "Précision : {{value}}",
-    "submit": "Proposer la modification"
+    "submit": "Proposer la modification",
+    "step0Title": "Que souhaitez-vous compléter ?",
+    "chooseFirst": "Choisissez une information",
+    "verifyHint": "Relisez vos modifications avant de les envoyer.",
+    "moderationNote": "Votre proposition sera vérifiée avant d’être appliquée.",
+    "submitError": "L’envoi n’a pas abouti. Vos modifications sont conservées : réessayez.",
+    "leaveBody": "Vos modifications non envoyées seront supprimées.",
+    "step0Hint": "Choisissez l’information à compléter ou à corriger.",
+    "headerTitle": "Compléter ce parc"
   },
   "review": {
     "menuLabel": "Actions sur votre avis",
@@ -525,6 +563,29 @@
     "photos": {
       "uploading": "Envoi de la photo…"
     },
-    "photoOptional": "Photo (facultatif)"
+    "photoOptional": "Photo (facultatif)",
+    "photoCount_one": "{{count}} photo",
+    "photoCount_other": "{{count}} photos"
+  },
+  "thanks": {
+    "title": "Merci pour votre coup de pouce !",
+    "backToPark": "Revenir au parc",
+    "seeMyContributions": "Voir mes ajouts",
+    "body": {
+      "addPark": "Votre parc a bien été envoyé.",
+      "complete": "Votre proposition pour {{park}} a bien été envoyée.",
+      "photos_one": "Votre photo a bien été envoyée.",
+      "photos_other": "Vos photos ont bien été envoyées.",
+      "review": "Votre avis est publié. Merci d’aider d’autres parents à choisir {{park}}.",
+      "reviewEdit": "Votre avis a bien été mis à jour.",
+      "report": "Votre signalement a bien été envoyé. Notre équipe va l’examiner."
+    },
+    "moderation": {
+      "addPark": "Il sera vérifié avant publication.",
+      "complete": "Elle sera vérifiée avant d’être appliquée à la fiche.",
+      "photos_one": "Elle sera vérifiée avant publication.",
+      "photos_other": "Elles seront vérifiées avant publication.",
+      "reviewPhoto": "Votre photo sera vérifiée avant d’être visible."
+    }
   }
 }

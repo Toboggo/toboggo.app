@@ -117,7 +117,9 @@ describe("RatePark — edit mode (Modifier mon avis)", () => {
       age_band: "3-6",
       comment: "Vraiment super",
     });
-    await waitFor(() => expect(toasts.list).toContain("Votre avis a été mis à jour"));
+    await screen.findByText("Merci pour votre coup de pouce !");
+    expect(screen.getByText("Votre avis a bien été mis à jour.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Revenir au parc" }));
     await waitFor(() => expect(screen.getByTestId("loc").textContent).toBe("/park/p1"));
     expect(createReview).not.toHaveBeenCalled();
   });

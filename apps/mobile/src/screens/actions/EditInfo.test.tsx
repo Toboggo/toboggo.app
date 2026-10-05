@@ -73,6 +73,7 @@ function renderEdit(search = "?park=p1") {
           <Route path="/login" element={<div>LOGIN</div>} />
           <Route path="/park/:id" element={<div>FICHE PARC</div>} />
           <Route path="/map" element={<div>MAP</div>} />
+          <Route path="/contributions" element={<div>MES AJOUTS</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -96,7 +97,7 @@ afterEach(() => vi.restoreAllMocks());
 describe("EditInfo — persistent draft (LOT 3D.D)", () => {
   it("no stored draft → starts on the 'Type' step", async () => {
     renderEdit();
-    expect(await screen.findByText("Que souhaitez-vous corriger ?")).toBeTruthy();
+    expect(await screen.findByText("Que souhaitez-vous compléter ?")).toBeTruthy();
   });
 
   it("typing autosaves the draft (debounced) under the user key", async () => {
@@ -127,7 +128,7 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
 
     await waitFor(() => expect(submitParkEdit).toHaveBeenCalledTimes(1));
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
     window.dispatchEvent(new Event("pagehide"));
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
@@ -138,35 +139,31 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
     await proposeNewName("Square Voir");
     fireEvent.click(screen.getByRole("button", { name: "Vérifier" }));
     fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Retour au parc" }));
+    fireEvent.click(screen.getByRole("button", { name: "Revenir au parc" }));
     await screen.findByText("FICHE PARC");
   });
 
-  it("success sheet — \"Retour à la carte\" replaces the wizard entry with the map", async () => {
+  it("thank-you page — \"Voir mes ajouts\" replaces the wizard entry", async () => {
     renderEdit();
     await proposeNewName("Square Carte");
     fireEvent.click(screen.getByRole("button", { name: "Vérifier" }));
     fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
 
-    fireEvent.click(screen.getByRole("button", { name: "Retour à la carte" }));
-    await screen.findByText("MAP");
+    fireEvent.click(screen.getByRole("button", { name: "Voir mes ajouts" }));
+    await screen.findByText("MES AJOUTS");
   });
 
-  it("success sheet — <Trans> bold interpolation of the park name is preserved", async () => {
+  it("thank-you page — names the park and mentions the real (pending) status", async () => {
     renderEdit();
     await proposeNewName("Square Trans");
     fireEvent.click(screen.getByRole("button", { name: "Vérifier" }));
     fireEvent.click(await screen.findByRole("button", { name: "Proposer la modification" }));
-    const heading = await screen.findByText("Merci !");
-
-    const strong = heading.nextElementSibling?.querySelector("strong");
-    expect(strong?.textContent).toBe("Square Voltaire");
-    expect(heading.nextElementSibling?.textContent).toBe(
-      "Votre proposition de correction pour Square Voltaire a bien été reçue. Elle sera vérifiée par notre équipe avant d’être appliquée.",
-    );
+    await screen.findByText("Merci pour votre coup de pouce !");
+    expect(screen.getByText("Votre proposition pour Square Voltaire a bien été envoyée.")).toBeTruthy();
+    expect(screen.getByText("Elle sera vérifiée avant d’être appliquée à la fiche.")).toBeTruthy();
   });
 
   it("submit failure → the form and the draft are kept", async () => {
@@ -180,7 +177,7 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
     await waitFor(() => expect(submitParkEdit).toHaveBeenCalled());
     // Server error details are never surfaced verbatim — a generic, translated
     // message is shown instead (see doSubmit's catch).
-    expect(toasts.list).toContain("Une erreur est survenue");
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Vos modifications sont conservées/);
     expect((readDraft(key("p1", { userId: "u1" }), READ) as { name?: string })?.name).toBe("Square Échec");
   });
 
@@ -189,6 +186,12 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
     await proposeNewName("Square Abandonné");
     await waitFor(() => expect(readDraft(key("p1", { userId: "u1" }), READ)).not.toBeNull(), { timeout: 2000 });
     fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    // Confirmation avant de perdre le brouillon : « Rester » ne supprime rien.
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Rester" }));
+    expect(readDraft(key("p1", { userId: "u1" }), READ)).not.toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Quitter" }));
     await screen.findByText("FICHE PARC");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
@@ -197,7 +200,7 @@ describe("EditInfo — persistent draft (LOT 3D.D)", () => {
     writeDraft(key("p1", { userId: "A" }), { step: 1, target: "general", seeded: true, name: "A only", description: "", ageLow: 0, ageHigh: 12, agesTouched: false, featureStatus: {}, lat: null, lng: null, freeText: "", note: "" }, { schemaVersion: 1 });
     sess.userId = "B";
     renderEdit();
-    expect(await screen.findByText("Que souhaitez-vous corriger ?")).toBeTruthy();
+    expect(await screen.findByText("Que souhaitez-vous compléter ?")).toBeTruthy();
     expect(readDraft(key("p1", { userId: "B" }), READ)).toBeNull();
     expect(readDraft(key("p2", { userId: "A" }), READ)).toBeNull();
   });
@@ -234,7 +237,7 @@ describe("EditInfo — guest → OAuth → authenticated", () => {
     expect(changes.items).toContainEqual(expect.objectContaining({ field: "name", proposed: "Square Après Login" }));
     expect(localStorage.getItem(key("p1", "guest"))).toBeNull();
     expect((readDraft(key("p9", "guest"), READ) as { name?: string })?.name).toBe("autre parc");
-    await screen.findByText("Merci !");
+    await screen.findByText("Merci pour votre coup de pouce !");
     expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
 });

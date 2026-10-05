@@ -137,20 +137,3 @@ export function TriStateRow({
   );
 }
 
-/** Carte du récapitulatif avec son bouton « Modifier ». */
-export function SummaryCard({ title, onEdit, hideEdit = false, children }: { title: string; onEdit: () => void; hideEdit?: boolean; children: ReactNode }) {
-  const { t } = useTranslation("contribute");
-  return (
-    <section className={styles.summaryCard}>
-      <div className={styles.summaryHead}>
-        <span className={styles.summaryTitle}>{title}</span>
-        {!hideEdit && (
-          <button type="button" className={styles.summaryEdit} onClick={onEdit} aria-label={`${t("common.edit")} — ${title}`}>
-            {t("common.edit")}
-          </button>
-        )}
-      </div>
-      {children}
-    </section>
-  );
-}

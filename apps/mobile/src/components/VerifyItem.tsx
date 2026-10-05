@@ -26,7 +26,8 @@ export function VerifyItem({
   const f = useFormat();
   const featureLabel = useFeatureLabel();
   const feature = featureLabel(item.feature.code);
-  const place = [f.distance(item.park.distance_m), item.park.city].filter(Boolean).join(" · ");
+  const distance = f.distance(item.park.distance_m);
+  const city = item.park.city?.trim() || null;
 
   return (
     <div className={styles.item}>
@@ -40,7 +41,10 @@ export function VerifyItem({
 
       <div className={styles.content}>
         <span className={styles.parkName}>{item.park.name}</span>
-        <span className={styles.parkMeta}>{place}</span>
+        <span className={styles.parkMeta}>
+          <Icon name="ic-explore" size={13} />
+          <span>{city ? `${distance} · ${city}` : distance}</span>
+        </span>
         <p className={styles.question}>
           {t(item.status === "available" ? "hub.verify.questionAvailable" : "hub.verify.questionUnavailable", {
             feature,
@@ -51,26 +55,29 @@ export function VerifyItem({
             {t("hub.verify.error")}
           </p>
         )}
-        <div className={styles.actions}>
-          <Button
-            size="sm"
-            loading={busy}
-            disabled={busy}
-            onClick={onConfirm}
-            aria-label={t("hub.verify.confirmAria", { feature, park: item.park.name })}
-          >
-            {failed ? t("hub.verify.retry") : t("hub.verify.yes")}
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={onEdit}
-            aria-label={t("hub.verify.editAria", { park: item.park.name })}
-          >
-            {t("hub.verify.edit")}
-          </Button>
-        </div>
+      </div>
+
+      <div className={styles.actions}>
+        <Button
+          size="sm"
+          loading={busy}
+          disabled={busy}
+          onClick={onConfirm}
+          aria-label={t("hub.verify.confirmAria", { feature, park: item.park.name })}
+        >
+          {!busy && <Icon name="ic-check" size={16} />}
+          {failed ? t("hub.verify.retry") : t("hub.verify.yes")}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={busy}
+          onClick={onEdit}
+          aria-label={t("hub.verify.editAria", { park: item.park.name })}
+        >
+          <Icon name="ic-pencil" size={16} />
+          {t("hub.verify.edit")}
+        </Button>
       </div>
     </div>
   );

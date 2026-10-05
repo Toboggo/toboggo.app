@@ -11,7 +11,7 @@ import {
 } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { useFormat } from "../../i18n/useFormat";
-import { countByStatus, getContributionTypeIcon, statusKeyToParam } from "../../lib/contributionPresentation";
+import { countByStatus, getContributionTypeIcon, getStatusVisual, statusKeyToParam } from "../../lib/contributionPresentation";
 import { useSession } from "../../lib/session";
 import styles from "./Contributions.module.css";
 
@@ -141,22 +141,30 @@ export default function ContributionsStats() {
               <>
                 <h2 className={styles.sectionTitle}>{t("stats.statusTitle")}</h2>
                 <ul className={styles.statList}>
-                  {byStatus.map(({ labelKey, count }) => (
+                  {byStatus.map(({ labelKey, count }) => {
+                    const visual = getStatusVisual(labelKey);
+                    return (
                     <li key={labelKey}>
                       <button
                         type="button"
                         className={styles.statRow}
                         onClick={() => navigate(`${HISTORY}?status=${statusKeyToParam(labelKey)}`)}
                       >
+                        <span className={styles.statusIcon} data-tone={visual.tone} aria-hidden>
+                          <Icon name={visual.icon} size={18} />
+                        </span>
                         <span className={styles.statText}>
                           <span className={styles.statLabel}>{t(labelKey)}</span>
                           <span className={styles.statHint}>{t(`stats.statusHint.${statusKeyToParam(labelKey)}`)}</span>
                         </span>
-                        <span className={styles.statValue}>{f.number(count)}</span>
+                        <span className={styles.statValue} data-tone={visual.tone}>
+                          {f.number(count)}
+                        </span>
                         <Icon name="ic-back" size={14} style={{ flex: "none", color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
                       </button>
                     </li>
-                  ))}
+                    );
+                  })}
                 </ul>
               </>
             )}

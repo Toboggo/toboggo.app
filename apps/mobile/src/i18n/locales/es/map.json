@@ -13,7 +13,7 @@
   },
   "filters": {
     "title": "Filtros",
-    "ageRange": "Franja de edad",
+    "ageRange": "Edad de los niños",
     "ageValue": "De {{min}} a {{max}} años",
     "ageValuePlus": "De {{min}} a {{max}}+ años",
     "ageMin": "Edad mínima",
@@ -23,6 +23,7 @@
     "equipmentAccess": "Juegos y accesos",
     "reset": "Restablecer",
     "apply": "Ver resultados",
+    "close": "Cerrar filtros",
     "open": "Filtros",
     "amenity": {
       "wc": "Aseos",

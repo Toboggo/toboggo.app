@@ -390,7 +390,8 @@
       "unavailable": "Esta función aún no está disponible. ¡Vuelve pronto!",
       "subtitle": "Ayúdanos a mantener la información fiable",
       "retry": "Reintentar"
-    }
+    },
+    "statusAria": "Estado: {{status}}"
   },
   "history": {
     "title": "Tus contribuciones",

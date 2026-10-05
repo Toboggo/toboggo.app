@@ -149,8 +149,9 @@ describe("Contributions hub — recent contributions & impact", () => {
     renderHub();
     await screen.findByText("Modification · Jeux & équipements");
     screen.getByText("Nouveau parc proposé");
-    screen.getByText("En vérification");
-    screen.getByText("Publié");
+    // Status is a compact pictogram: its full label is the button's accessible name.
+    screen.getByRole("button", { name: "Statut : En vérification" });
+    screen.getByRole("button", { name: "Statut : Publié" });
   });
 
   it("hides the impact block when nothing has actually been published/approved yet", async () => {

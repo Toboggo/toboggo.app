@@ -1,19 +1,11 @@
+/* Une seule rangée : miniature | picto | nom du parc + type | pastille statut + date | chevron. */
 .rowWrap {
   position: relative;
-}
-
-/* Une seule rangée : miniature | picto | titre + parc | statut + date | chevron. */
-.row {
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) var(--status-w, 98px) 16px;
+  grid-template-columns: auto auto minmax(0, 1fr) var(--status-w, 78px) 16px;
   align-items: center;
   column-gap: 8px;
-  width: 100%;
   padding: 10px 0;
-  text-align: left;
-  background: none;
-  border: none;
-  cursor: pointer;
 }
 
 .thumb {
@@ -53,86 +45,62 @@
   color: var(--color-info);
 }
 
+/* Bloc texte = cible de clic de toute la ligne (lien étiré). Aucun texte coupé. */
 .body {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   min-width: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+.body:focus-visible {
+  outline: none;
+}
+.body:focus-visible::after {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }
 
-/* Le titre a la priorité : jusqu'à 2 lignes, puis ellipse. */
-.title {
+.name {
   font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 13.5px;
+  font-weight: 700;
+  font-size: 14.5px;
   line-height: 1.25;
   color: var(--color-text);
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
-.subtitle {
+.kind {
   font-size: 12px;
   line-height: 1.3;
   color: var(--color-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
-/* Colonne statut + date : largeur commune, badge à sa largeur naturelle, date dessous au même alignement. */
+/* Colonne statut + date : largeur commune, pastille centrée, date dessous. */
 .trailing {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 4px;
   min-width: 0;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  max-width: 100%;
-  padding: 3px 8px;
-  border-radius: var(--radius-pill);
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 11.5px;
-  line-height: 1.2;
-  white-space: nowrap;
-  background: var(--color-primary-tint);
-  color: var(--color-primary-hover);
-}
-.badge[data-tone="warning"] {
-  background: var(--color-warning-bg);
-  color: var(--color-warning-text);
-}
-.badge[data-tone="info"] {
-  background: var(--color-info-tint);
-  color: var(--color-info);
-}
-.badge[data-tone="error"] {
-  background: var(--color-error-tint);
-  color: var(--color-error);
-}
-.badge[data-tone="neutral"] {
-  background: var(--color-bg);
-  color: var(--color-text-muted);
 }
 
 .meta {
   font-size: 11.5px;
   line-height: 1.2;
   color: var(--color-text-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  padding-left: 2px;
+  text-align: center;
 }
 
 .chevron {
@@ -143,6 +111,7 @@
 /* « ⋯ » d'un avis modifiable : prend la place du chevron (aucune colonne en plus). */
 .menu {
   position: absolute;
+  z-index: 2;
   right: -6px;
   top: 50%;
   transform: translateY(-50%);
@@ -153,10 +122,9 @@
   height: 30px;
 }
 
-/* Écrans étroits : même rangée, éléments plus compacts (le statut ne bouge jamais). */
 @media (max-width: 359px) {
-  .row {
-    --status-w: 86px;
+  .rowWrap {
+    --status-w: 72px;
     column-gap: 6px;
     grid-template-columns: auto auto minmax(0, 1fr) var(--status-w) 12px;
   }
@@ -167,10 +135,6 @@
   .typeIcon {
     width: 26px;
     height: 26px;
-  }
-  .badge {
-    font-size: 10.5px;
-    padding: 2px 6px;
   }
   .meta {
     font-size: 10.5px;

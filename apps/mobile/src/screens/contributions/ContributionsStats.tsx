@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Icon, type IconName } from "@toboggo/design-system";
+import { Button, Icon } from "@toboggo/design-system";
 import {
   computeImpactStats,
   computeStatsBreakdown,
@@ -11,21 +11,11 @@ import {
 } from "@toboggo/shared";
 import { DetailHeader } from "../../components/DetailHeader";
 import { useFormat } from "../../i18n/useFormat";
-import { countByStatus, getContributionTypeIcon, statusKeyToParam } from "../../lib/contributionPresentation";
+import { countByStatus, getContributionTypeIcon, getStatusVisual, statusKeyToParam } from "../../lib/contributionPresentation";
 import { useSession } from "../../lib/session";
 import styles from "./Contributions.module.css";
 
 const HISTORY = "/contributions/history";
-
-/** Pictogram + tone of each status bucket (sprite icons only). */
-const STATUS_VISUAL: Record<string, { icon: IconName; tone: "green" | "amber" | "blue" | "red" | "neutral" }> = {
-  "hub.status.published": { icon: "ic-check", tone: "green" },
-  "hub.status.resolved": { icon: "ic-check", tone: "green" },
-  "hub.status.pending": { icon: "ic-clock", tone: "amber" },
-  "hub.status.inProgress": { icon: "ic-clock", tone: "blue" },
-  "hub.status.rejected": { icon: "ic-close", tone: "red" },
-  "hub.status.dismissed": { icon: "ic-close", tone: "neutral" },
-};
 
 /** « Mes stats » — only figures computed from the user's real rows. Every row
  * that shows a chevron opens the matching filtered list (`/contributions/history`). */
@@ -152,7 +142,7 @@ export default function ContributionsStats() {
                 <h2 className={styles.sectionTitle}>{t("stats.statusTitle")}</h2>
                 <ul className={styles.statList}>
                   {byStatus.map(({ labelKey, count }) => {
-                    const visual = STATUS_VISUAL[labelKey] ?? { icon: "ic-clock" as IconName, tone: "neutral" as const };
+                    const visual = getStatusVisual(labelKey);
                     return (
                     <li key={labelKey}>
                       <button

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render } from "@testing-library/react";
+import { fireEvent, render } from "@testing-library/react";
 import type { UserContribution } from "@toboggo/shared";
 import "../i18n/testInit";
 import { ContributionRow } from "./ContributionRow";
@@ -32,9 +32,25 @@ describe("ContributionRow — une seule rangée", () => {
     expect(wraps[2]!.querySelectorAll('[class*="menu"]')).toHaveLength(0);
   });
 
-  it("le titre complet reste accessible quand il est tronqué (attribut title)", () => {
-    const { container } = render(<ContributionRow item={{ ...EDIT, parkName: "Un parc au nom vraiment très long" }} onClick={() => {}} />);
-    expect(container.querySelector('[class*="subtitle"]')!.getAttribute("title")).toContain("Un parc au nom vraiment très long");
+  it("le nom complet du parc est affiché en premier, sans troncature", () => {
+    const longName = "Un parc au nom vraiment très long, avec plusieurs mots, pour le test";
+    const { container } = render(<ContributionRow item={{ ...EDIT, parkName: longName }} onClick={() => {}} />);
+    const name = container.querySelector('[class*="name"]')!;
+    expect(name.textContent).toBe(longName);
+    expect(container.querySelector('[class*="body"]')!.firstElementChild).toBe(name);
+  });
+
+  it("la pastille de statut est un bouton séparé, nommé, qui n'ouvre pas la ligne", () => {
+    let opened = 0;
+    const { getByRole, queryByRole } = render(<ContributionRow item={EDIT} onClick={() => opened++} />);
+    const pill = getByRole("button", { name: "Statut : En vérification" });
+    expect(queryByRole("status")).toBeNull();
+    fireEvent.click(pill);
+    expect(opened).toBe(0);
+    expect(getByRole("status").textContent).toBe("En vérification");
+    expect(pill.getAttribute("aria-expanded")).toBe("true");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(queryByRole("status")).toBeNull();
   });
 });
 

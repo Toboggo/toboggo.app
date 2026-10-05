@@ -47,7 +47,8 @@ describe("ContributionsHistory — filtres dans l'URL", () => {
     renderAt("/contributions/history?type=park");
     await screen.findByText(/Square A/);
     expect(screen.queryByText(/Parc B/)).toBeNull();
-    expect((await screen.findByText(/Square A/)).closest("button")!.textContent).toContain("En vérification");
+    await screen.findByText(/Square A/);
+    expect(screen.getByRole("button", { name: "Statut : En vérification" })).toBeTruthy();
     expect(screen.getByRole("status").textContent).toContain("Nouveaux parcs");
   });
 

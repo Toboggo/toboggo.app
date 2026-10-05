@@ -435,7 +435,7 @@
 }
 .statusIcon[data-tone="amber"] {
   background: var(--color-warning-bg);
-  color: var(--color-warning-text);
+  color: var(--color-status-pending);
 }
 .statusIcon[data-tone="blue"] {
   background: var(--color-info-tint);
@@ -450,7 +450,7 @@
   color: var(--color-text-muted);
 }
 .statValue[data-tone="amber"] {
-  color: var(--color-warning-text);
+  color: var(--color-status-pending);
 }
 .statValue[data-tone="blue"] {
   color: var(--color-info);

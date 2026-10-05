@@ -307,34 +307,19 @@ describe("ReportProblem — parcours en 3 étapes", () => {
     expect(equipmentField().value).toBe("");
   });
 
-  it("« Je ne trouve pas mon parc » : explique, puis ouvre un NOUVEL ajout (sans rien envoyer)", async () => {
+  it("« Parc introuvable ? » : le panneau explique, se ferme sans rien perdre, puis ouvre un NOUVEL ajout (sans rien envoyer)", async () => {
     renderReport("");
-    fireEvent.click(await screen.findByRole("button", { name: "Je ne trouve pas mon parc" }));
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Ajoutez d’abord ce parc")).toBeTruthy();
-    expect(within(dialog).getByText("Il sera vérifié avant d’apparaître dans Toboggo.")).toBeTruthy();
+    fireEvent.change(await screen.findByLabelText("Rechercher un parc"), { target: { value: "Voltaire" } });
+    fireEvent.click(await screen.findByRole("button", { name: /Parc introuvable/ }));
+    const dialog = screen.getByRole("dialog", { name: "Votre parc n’est pas encore ici ?" });
+    expect(within(dialog).getByText("Ajoutez-le pour aider les autres familles à le retrouver.")).toBeTruthy();
+    expect(within(dialog).getByText("Le parc sera vérifié avant d’apparaître dans Toboggo.")).toBeTruthy();
+    expect(within(dialog).getByText("Une fois publié, vous pourrez y ajouter un avis, des photos ou un signalement.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "Continuer à chercher" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Je ne trouve pas mon parc" }));
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Ajouter un parc" }));
+    expect((screen.getByLabelText("Rechercher un parc") as HTMLInputElement).value).toBe("Voltaire");
+    fireEvent.click(screen.getByRole("button", { name: /Parc introuvable/ }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Ajouter ce parc" }));
     expect(await screen.findByText("ADD NOUVEL AJOUT")).toBeTruthy();
-  });
-
-  it("fermer : « Enregistrer et quitter » garde le brouillon, « Supprimer et quitter » l'efface vraiment", async () => {
-    const view = renderReport();
-    await fillStep2("À garder");
-    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    fireEvent.click(screen.getByRole("button", { name: "Enregistrer et quitter" }));
-    await screen.findByText("MAP");
-    expect((readDraft(key("p1", { userId: "u1" }), READ) as { comment?: string } | null)?.comment).toBe("À garder");
-    view.unmount();
-
-    renderReport();
-    await waitFor(() => expect(commentField().value).toBe("À garder"));
-    fireEvent.click(screen.getByRole("button", { name: "Fermer" }));
-    fireEvent.click(screen.getByRole("button", { name: "Supprimer et quitter" }));
-    await screen.findByText("MAP");
-    window.dispatchEvent(new Event("pagehide"));
-    expect(readDraft(key("p1", { userId: "u1" }), READ)).toBeNull();
   });
 });

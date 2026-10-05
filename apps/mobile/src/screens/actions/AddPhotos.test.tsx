@@ -631,16 +631,19 @@ describe("AddPhotos — parcours en 3 étapes", () => {
     expect(screen.getByText(/seront perdues/)).toBeTruthy();
   });
 
-  it("« Je ne trouve pas mon parc » : explique, puis ouvre un NOUVEL ajout (sans rien envoyer)", async () => {
+  it("« Parc introuvable ? » : le panneau explique, se ferme sans rien perdre, puis ouvre un NOUVEL ajout (sans rien envoyer)", async () => {
     renderPhotos("");
-    fireEvent.click(await screen.findByRole("button", { name: "Je ne trouve pas mon parc" }));
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Ajoutez d’abord ce parc")).toBeTruthy();
-    expect(within(dialog).getByText("Il sera vérifié avant d’apparaître dans Toboggo.")).toBeTruthy();
+    fireEvent.change(await screen.findByLabelText("Rechercher un parc"), { target: { value: "Voltaire" } });
+    fireEvent.click(await screen.findByRole("button", { name: /Parc introuvable/ }));
+    const dialog = screen.getByRole("dialog", { name: "Votre parc n’est pas encore ici ?" });
+    expect(within(dialog).getByText("Ajoutez-le pour aider les autres familles à le retrouver.")).toBeTruthy();
+    expect(within(dialog).getByText("Le parc sera vérifié avant d’apparaître dans Toboggo.")).toBeTruthy();
+    expect(within(dialog).getByText("Une fois publié, vous pourrez y ajouter un avis, des photos ou un signalement.")).toBeTruthy();
     fireEvent.click(within(dialog).getByRole("button", { name: "Continuer à chercher" }));
     expect(screen.queryByRole("dialog")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Je ne trouve pas mon parc" }));
-    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Ajouter un parc" }));
+    expect((screen.getByLabelText("Rechercher un parc") as HTMLInputElement).value).toBe("Voltaire");
+    fireEvent.click(screen.getByRole("button", { name: /Parc introuvable/ }));
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Ajouter ce parc" }));
     expect(await screen.findByText("ADD NOUVEL AJOUT")).toBeTruthy();
   });
 });

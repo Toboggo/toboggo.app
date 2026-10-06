@@ -23,11 +23,8 @@
   "ratingWithReviews_one": "{{rating}} ({{count}} review)",
   "ratingWithReviews_other": "{{rating}} ({{count}} reviews)",
   "issueReported": "A problem was reported at this park recently.",
+  "editInfo": "Edit park info",
   "reportAlert": {
-    "title_one": "A problem was reported",
-    "title_other": "{{count}} problems were reported",
-    "view_one": "View the report",
-    "view_other": "View the reports",
     "onSite": "Are you on site?",
     "pickLabel": "Report concerned",
     "stillPresent": "Still there",
@@ -43,7 +40,14 @@
     "stillPresentCount_other": "{{count}} “Still there” confirmations",
     "resolvedCount_one": "{{count}} “Problem fixed” confirmation",
     "resolvedCount_other": "{{count}} “Problem fixed” confirmations",
-    "reportAnother": "Report another problem"
+    "reportAnother": "Report another problem",
+    "banner_one": "Report in progress",
+    "banner_other": "Reports in progress",
+    "yourAnswer": {
+      "still_present": "Your answer: still there",
+      "resolved": "Your answer: problem fixed"
+    },
+    "answeredSummary": "You answered {{answered}} of {{count}} reports"
   },
   "reportCategory": {
     "broken_equipment": "Broken / dangerous equipment",

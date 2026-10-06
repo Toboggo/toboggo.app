@@ -105,4 +105,48 @@ describe("ParkChooser — carte « Parc introuvable ? »", () => {
     expect(onAddPark).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("dialog")).toBeNull();
   });
+
+  it("« Voir plus de parcs » : 5 d'abord, +5 à chaque clic, fin de liste ; ordre inchangé ; carte juste après le bouton", async () => {
+    const many = Array.from({ length: 12 }, (_, i) => ({ ...PARK, id: `p${i + 1}`, name: `Parc ${i + 1}` }));
+    vi.mocked(searchParks).mockResolvedValue(many as never);
+    const { onSelect } = setup();
+    search("Parc");
+    await screen.findByText("Parc 1");
+    const names = () => screen.queryAllByText(/^Parc \d+$/).map((n) => n.textContent);
+    expect(names()).toEqual(["Parc 1", "Parc 2", "Parc 3", "Parc 4", "Parc 5"]);
+    const more = () => screen.queryByRole("button", { name: "Voir plus de parcs" });
+    expect(more()!.nextElementSibling).toBe(card());
+
+    fireEvent.click(screen.getByRole("button", { name: /Parc 3/ }));
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: "p3" }));
+
+    fireEvent.click(more()!);
+    expect(names()).toHaveLength(10);
+    expect(names().slice(0, 5)).toEqual(["Parc 1", "Parc 2", "Parc 3", "Parc 4", "Parc 5"]);
+    expect(more()).toBeTruthy();
+
+    fireEvent.click(more()!);
+    expect(names()).toHaveLength(12);
+    expect(more()).toBeNull(); // fin de liste
+    expect(card()).toBeTruthy();
+
+    // Nouvelle recherche → retour à 5 résultats visibles.
+    search("Parc ");
+    await waitFor(() => expect(names()).toHaveLength(5));
+    expect(more()).toBeTruthy();
+  });
+
+  it("pas de « Voir plus » avec 5 résultats ou moins", async () => {
+    vi.mocked(searchParks).mockResolvedValue([PARK] as never);
+    setup();
+    search("Victoire");
+    await screen.findByText("Parc de la Victoire");
+    expect(screen.queryByRole("button", { name: "Voir plus de parcs" })).toBeNull();
+  });
+
+  it("la poignée grise est propre à ce panneau (variable CSS locale)", async () => {
+    setup();
+    fireEvent.click(card());
+    expect(screen.getByRole("dialog").style.getPropertyValue("--sheet-grabber")).toContain("color-mix");
+  });
 });

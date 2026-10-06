@@ -105,9 +105,9 @@
       "5": "Excelente"
     },
     "face": {
-      "1": "Mal",
+      "1": "Malo",
       "2": "Regular",
-      "3": "Bien"
+      "3": "Bueno"
     },
     "alreadyReviewed": "Ya has opinado sobre este parque. Puedes editar tu opinión en lugar de publicar otra.",
     "verifyTitle": "Revisar mi opinión",
@@ -572,7 +572,8 @@
       "selected": "Parque elegido",
       "none": "No encuentro mi parque",
       "error": "La búsqueda ha fallado.",
-      "selectToContinue": "Selecciona un parque para continuar"
+      "selectToContinue": "Selecciona un parque para continuar",
+      "showMore": "Ver más parques"
     },
     "photos": {
       "uploading": "Enviando la foto…"

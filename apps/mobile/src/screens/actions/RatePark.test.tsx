@@ -412,10 +412,27 @@ describe("RatePark — parcours en 3 étapes", () => {
     renderRate();
     await rate(4);
     const group = screen.getByRole("radiogroup", { name: "Propreté" });
-    fireEvent.click(within(group).getByRole("radio", { name: "Bien" }));
+    fireEvent.click(within(group).getByRole("radio", { name: "Bon" }));
     await waitFor(() =>
       expect((readDraft(key("p1", { userId: "u1" }), READ) as { subRatings?: { clean?: number } })?.subRatings?.clean).toBe(3),
     );
+  });
+
+  it("les 4 critères : défaut 2 (Moyen) ; Mauvais/Moyen/Bon stockent exactement 1/2/3 ; récapitulatif en mots", async () => {
+    renderRate();
+    await rate(4);
+    for (const crit of ["Propreté", "Sécurité", "Équipements", "Confort"]) {
+      const group = screen.getByRole("radiogroup", { name: crit });
+      expect(within(group).getByRole("radio", { name: "Moyen" }).getAttribute("aria-checked")).toBe("true");
+    }
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Propreté" })).getByRole("radio", { name: "Mauvais" }));
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: "Sécurité" })).getByRole("radio", { name: "Bon" }));
+    await waitFor(() => {
+      const d = readDraft(key("p1", { userId: "u1" }), READ) as { subRatings?: Record<string, number> } | null;
+      expect(d?.subRatings).toEqual({ clean: 1, safety: 3, equipment: 2, comfort: 2 });
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    expect(await screen.findByText(/Propreté : Mauvais · Sécurité : Bon · Équipements : Moyen · Confort : Moyen/)).toBeTruthy();
   });
 
   it("no park yet → chooser first (3 steps), explicit selection required, then the experience step", async () => {

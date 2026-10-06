@@ -105,7 +105,7 @@
       "5": "Excellent"
     },
     "face": {
-      "1": "Not good",
+      "1": "Poor",
       "2": "Fair",
       "3": "Good"
     },
@@ -572,7 +572,8 @@
       "selected": "Selected park",
       "none": "I can’t find my park",
       "error": "The search failed.",
-      "selectToContinue": "Select a park to continue"
+      "selectToContinue": "Select a park to continue",
+      "showMore": "Show more parks"
     },
     "photos": {
       "uploading": "Uploading photo…"

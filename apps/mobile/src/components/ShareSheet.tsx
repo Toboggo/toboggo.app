@@ -11,9 +11,17 @@ type ShareChannel = AnalyticsEventProperties["park_shared"]["channel"];
 
 const COPIED_FEEDBACK_MS = 2200;
 
-/** Lien public canonique du parc : origine + `/park/:id`, sans query ni hash. */
-export function getParkShareUrl(parkId: string): string {
-  return new URL(`/park/${encodeURIComponent(parkId)}`, window.location.origin).toString();
+/** Origine publique de production par défaut (alias Vercel du projet toboggo-app). */
+export const DEFAULT_PUBLIC_APP_URL = "https://toboggo-app.vercel.app";
+
+/**
+ * Lien public canonique du parc : origine publique configurée
+ * (`VITE_PUBLIC_APP_URL`, sinon l'alias de production) + `/park/:id`, sans
+ * query ni hash. Jamais l'origine courante : un partage depuis une Preview
+ * Vercel (protégée) ou le localhost doit rester ouvrable par n'importe qui.
+ */
+export function getParkShareUrl(parkId: string, publicOrigin: string = import.meta.env.VITE_PUBLIC_APP_URL || DEFAULT_PUBLIC_APP_URL): string {
+  return new URL(`/park/${encodeURIComponent(parkId)}`, publicOrigin).toString();
 }
 
 async function copyText(text: string): Promise<boolean> {

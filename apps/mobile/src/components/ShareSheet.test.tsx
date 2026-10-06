@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Park } from "@toboggo/shared";
 import "../i18n/testInit";
-import { ShareSheet, getParkShareUrl } from "./ShareSheet";
+import { ShareSheet, getParkShareUrl, DEFAULT_PUBLIC_APP_URL } from "./ShareSheet";
 
 const park = { id: "p-1", name: "Parc des Lilas", city: "Lyon", photos: [] } as unknown as Park;
 const url = getParkShareUrl("p-1");
@@ -28,8 +28,10 @@ describe("ShareSheet", () => {
     Object.defineProperty(navigator, "clipboard", { configurable: true, value: originalClipboard });
   });
 
-  it("canonical link is origin + /park/:id", () => {
-    expect(url).toBe(`${window.location.origin}/park/p-1`);
+  it("canonical link uses the public production origin, never the current one", () => {
+    expect(url).toBe(`${DEFAULT_PUBLIC_APP_URL}/park/p-1`);
+    expect(url.startsWith(window.location.origin)).toBe(false);
+    expect(getParkShareUrl("p-1", "https://example.org/")).toBe("https://example.org/park/p-1");
   });
 
   it("shows title, park name and city; no Instagram", () => {

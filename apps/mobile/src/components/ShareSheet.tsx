@@ -154,7 +154,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
           <Icon name={copied ? "ic-check" : "ic-link"} size={20} />
           <span aria-live="polite">{copied ? t("share.copied") : t("share.copy")}</span>
         </Button>
-        <Button type="button" variant="ghost" block onClick={onClose}>
+        <Button type="button" variant="ghost" block className={styles.close} onClick={onClose}>
           {tc("action.close")}
         </Button>
       </div>

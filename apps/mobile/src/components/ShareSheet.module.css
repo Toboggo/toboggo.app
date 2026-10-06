@@ -6,7 +6,8 @@
   margin: 0 0 var(--space-4);
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
-  font-size: var(--text-lg);
+  font-size: var(--text-xl);
+  line-height: 1.2;
   color: var(--color-text);
 }
 
@@ -104,4 +105,11 @@
 .copy {
   gap: var(--space-2);
   margin-bottom: var(--space-1);
+}
+
+.sheet .close {
+  color: var(--color-text);
+}
+.sheet .close:hover:not(:disabled) {
+  background: var(--color-bg-alt);
 }

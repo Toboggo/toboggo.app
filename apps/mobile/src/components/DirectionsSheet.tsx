@@ -43,7 +43,7 @@ export function DirectionsSheet({
               onClick={() => onChoose(provider)}
             >
               <span className={styles.rowIcon}>
-                <img src={PROVIDER_LOGO[provider]} alt="" width={24} height={24} />
+                <img src={PROVIDER_LOGO[provider]} alt="" width={28} height={28} />
               </span>
               <span className={styles.rowLabel}>{t(`directionsSheet.${provider}`)}</span>
               <svg
@@ -64,7 +64,7 @@ export function DirectionsSheet({
           ))}
         </div>
 
-        <Button type="button" variant="ghost" block onClick={onClose}>
+        <Button type="button" variant="ghost" block className={styles.cancel} onClick={onClose}>
           {t("action.cancel", { ns: "common" })}
         </Button>
       </div>

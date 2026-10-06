@@ -263,6 +263,29 @@ class TestBackfillWriteIdempotency(unittest.TestCase):
             cur.execute("select address_line from parks where id = %s", (self.park_id,))
             self.assertEqual(cur.fetchone()[0], "Adresse Verifiee")
 
+    def test_partial_reverse_geocode_is_not_selected_again(self):
+        """Un résultat Geoapify partiel écrit avec succès ne doit pas être
+        rappelé indéfiniment lors des backfills suivants."""
+        value = {
+            "address_line": "Calle Test",
+            "postal_code": None,
+            "city": None,
+            "admin_area_1": None,
+            "admin_area_2": None,
+        }
+        self._run_write(value)
+
+        sql = self.backfill.SELECT_CANDIDATES_SQL.format(
+            country_filter="and country_code = 'FR'",
+            limit=1000,
+        )
+
+        with self.conn.cursor() as cur:
+            cur.execute(sql)
+            ids = {str(row[0]) for row in cur.fetchall()}
+
+        self.assertNotIn(self.park_id, ids)
+
 
 if __name__ == "__main__":
     unittest.main()

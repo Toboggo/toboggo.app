@@ -142,6 +142,12 @@ where latitude is not null
   and longitude is not null
   and (address_line is null or postal_code is null or city is null)
   and can_source_replace_attribute(id, 'address', 'reverse_geocode')
+  and not exists (
+    select 1
+    from park_sources ps
+    where ps.park_id = parks.id
+      and ps.source_type = 'reverse_geocode'
+  )
   {country_filter}
 order by id
 limit {limit}

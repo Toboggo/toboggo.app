@@ -5,6 +5,8 @@ import { getParkDisplayName, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { useToastStore } from "../lib/toast";
 import { trackEvent, type AnalyticsEventProperties } from "../lib/analytics";
+import { buildShareText } from "../lib/parkShare";
+import { useFormat } from "../i18n/useFormat";
 import styles from "./ShareSheet.module.css";
 
 type ShareChannel = AnalyticsEventProperties["park_shared"]["channel"];
@@ -52,6 +54,7 @@ async function copyText(text: string): Promise<boolean> {
 export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: () => void; park: Park }) {
   const { t } = useTranslation("contribute");
   const { t: tc } = useTranslation("common");
+  const f = useFormat();
   const showToast = useToastStore((s) => s.show);
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<number | undefined>(undefined);
@@ -64,8 +67,20 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   const shareUrl = getParkShareUrl(park.id);
   const displayName = getParkDisplayName(park, t);
   const city = park.city?.trim() || null;
-  const message = t("share.message", { name: displayName });
-  const body = `${message}\n${shareUrl}`;
+  // Texte enrichi (nom, lieu, note) ; l'URL n'y figure qu'une fois, en fin de
+  // texte — elle n'est donc jamais passée en champ `url` séparé au partage natif.
+  const body = buildShareText(
+    {
+      name: displayName,
+      address_line: park.address_line,
+      city: park.city,
+      rating: park.rating,
+      review_count: park.review_count,
+    },
+    shareUrl,
+    t,
+    f.rating,
+  );
 
   const links: { label: string; icon: IconName; href: string; channel: ShareChannel; external?: boolean }[] = [
     {
@@ -102,7 +117,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   async function shareMore() {
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: displayName, text: message, url: shareUrl });
+        await navigator.share({ title: displayName, text: body });
       } catch (err) {
         // Annulation par l'utilisateur : pas une erreur. Tout autre échec →
         // repli sur la copie du lien.

@@ -1,97 +1,154 @@
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { BottomSheet } from "@toboggo/design-system";
+import { BottomSheet, Button, Icon, type IconName } from "@toboggo/design-system";
 import { getParkDisplayName, type Park } from "@toboggo/shared";
 import { ParkPhoto } from "./ParkPhoto";
 import { useToastStore } from "../lib/toast";
 import { trackEvent, type AnalyticsEventProperties } from "../lib/analytics";
+import styles from "./ShareSheet.module.css";
+
+type ShareChannel = AnalyticsEventProperties["park_shared"]["channel"];
+
+const COPIED_FEEDBACK_MS = 2200;
+
+/** Lien public canonique du parc : origine + `/park/:id`, sans query ni hash. */
+export function getParkShareUrl(parkId: string): string {
+  return new URL(`/park/${encodeURIComponent(parkId)}`, window.location.origin).toString();
+}
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // Permission refusée / contexte non sécurisé → repli ci-dessous.
+  }
+  try {
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(area);
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: () => void; park: Park }) {
   const { t } = useTranslation("contribute");
+  const { t: tc } = useTranslation("common");
   const showToast = useToastStore((s) => s.show);
-  const shareUrl = `${window.location.origin}/park/${park.id}`;
-  const displayName = getParkDisplayName(park, t);
+  const [copied, setCopied] = useState(false);
+  const resetTimer = useRef<number | undefined>(undefined);
 
-  type ShareChannel = AnalyticsEventProperties["park_shared"]["channel"];
-  const links: { label: string; icon: string; href: string; channel: ShareChannel }[] = [
-    { label: "WhatsApp", icon: "💬", href: `https://wa.me/?text=${encodeURIComponent(`${displayName} — ${shareUrl}`)}`, channel: "whatsapp" },
-    { label: "SMS", icon: "✉️", href: `sms:?body=${encodeURIComponent(`${displayName} — ${shareUrl}`)}`, channel: "sms" },
-    { label: "Instagram", icon: "📷", href: `https://instagram.com`, channel: "instagram" },
-    { label: t("share.email"), icon: "📧", href: `mailto:?subject=${encodeURIComponent(displayName)}&body=${encodeURIComponent(shareUrl)}`, channel: "email" },
+  useEffect(() => {
+    if (!open) setCopied(false);
+  }, [open]);
+  useEffect(() => () => window.clearTimeout(resetTimer.current), []);
+
+  const shareUrl = getParkShareUrl(park.id);
+  const displayName = getParkDisplayName(park, t);
+  const city = park.city?.trim() || null;
+  const message = t("share.message", { name: displayName });
+  const body = `${message}\n${shareUrl}`;
+
+  const links: { label: string; icon: IconName; href: string; channel: ShareChannel; external?: boolean }[] = [
+    {
+      label: "WhatsApp",
+      icon: "ic-whatsapp",
+      href: `https://wa.me/?text=${encodeURIComponent(body)}`,
+      channel: "whatsapp",
+      external: true,
+    },
+    { label: "SMS", icon: "ic-message", href: `sms:?&body=${encodeURIComponent(body)}`, channel: "sms" },
+    {
+      label: t("share.email"),
+      icon: "ic-mail",
+      href: `mailto:?subject=${encodeURIComponent(displayName)}&body=${encodeURIComponent(body)}`,
+      channel: "email",
+    },
   ];
+
+  async function copyLink() {
+    // `park_shared` (canal `copy_link`) uniquement si l'écriture presse-papiers
+    // a réellement réussi — seul canal où une confirmation technique existe
+    // (voir PRIVACY-RULES.md / TRACKING-PLAN.md §2).
+    const ok = await copyText(shareUrl);
+    if (!ok) {
+      showToast(t("share.copyFailed"));
+      return;
+    }
+    trackEvent("park_shared", { park_id: park.id, channel: "copy_link" });
+    setCopied(true);
+    window.clearTimeout(resetTimer.current);
+    resetTimer.current = window.setTimeout(() => setCopied(false), COPIED_FEEDBACK_MS);
+  }
+
+  async function shareMore() {
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: displayName, text: message, url: shareUrl });
+      } catch (err) {
+        // Annulation par l'utilisateur : pas une erreur. Tout autre échec →
+        // repli sur la copie du lien.
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        await copyLink();
+      }
+      return;
+    }
+    await copyLink();
+  }
 
   return (
     <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop>
-      <div style={{ padding: "8px 20px 28px" }}>
-        <div style={{ display: "flex", gap: 12, marginBottom: 16 }}>
-          <ParkPhoto
-            park={park}
-            markSize={20}
-            style={{
-              width: 56,
-              height: 56,
-              borderRadius: 12,
-              backgroundSize: "cover",
-              flexShrink: 0,
-            }}
-          />
-          <div>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600 }}>{displayName}</div>
-            <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>{park.formatted_address}</div>
+      <div className={styles.sheet}>
+        <h2 className={styles.title}>{t("share.title")}</h2>
+
+        <div className={styles.park}>
+          <ParkPhoto park={park} markSize={20} className={styles.thumb} />
+          <div className={styles.parkText}>
+            <div className={styles.parkName}>{displayName}</div>
+            {city && <div className={styles.parkCity}>{city}</div>}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+
+        <div className={styles.actions}>
           {links.map((l) => (
             <a
-              key={l.label}
+              key={l.channel}
+              className={styles.action}
               href={l.href}
-              target="_blank"
-              rel="noreferrer"
+              {...(l.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
               onClick={() => trackEvent("park_shared", { park_id: park.id, channel: l.channel })}
-              style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, fontSize: 11 }}
             >
-              <span
-                style={{
-                  width: 48,
-                  height: 48,
-                  borderRadius: "50%",
-                  background: "var(--color-bg-alt)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: 20,
-                }}
-              >
-                {l.icon}
+              <span className={styles.actionIcon}>
+                <Icon name={l.icon} size={24} />
               </span>
-              {l.label}
+              <span className={styles.actionLabel}>{l.label}</span>
             </a>
           ))}
+          <button type="button" className={styles.action} onClick={() => void shareMore()}>
+            <span className={styles.actionIcon}>
+              <Icon name="ic-more" size={24} />
+            </span>
+            <span className={styles.actionLabel}>{t("share.more")}</span>
+          </button>
         </div>
-        <button
-          onClick={() => {
-            // `park_shared` (canal `copy_link`) uniquement si l'écriture
-            // presse-papiers a réellement réussi — seul canal de partage où
-            // une confirmation technique existe (voir PRIVACY-RULES.md /
-            // TRACKING-PLAN.md §2 sur la limite des autres canaux).
-            void navigator.clipboard?.writeText(shareUrl).then(() => {
-              trackEvent("park_shared", { park_id: park.id, channel: "copy_link" });
-            });
-            showToast(t("share.copied"));
-            onClose();
-          }}
-          style={{
-            width: "100%",
-            padding: 13,
-            borderRadius: 999,
-            border: "1.5px solid var(--color-border-strong)",
-            background: "var(--color-surface)",
-            fontFamily: "var(--font-heading)",
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
-        >
-          {t("share.copy")}
-        </button>
+
+        <Button type="button" block className={styles.copy} onClick={() => void copyLink()}>
+          <Icon name={copied ? "ic-check" : "ic-link"} size={20} />
+          <span aria-live="polite">{copied ? t("share.copied") : t("share.copy")}</span>
+        </Button>
+        <Button type="button" variant="ghost" block onClick={onClose}>
+          {tc("action.close")}
+        </Button>
       </div>
     </BottomSheet>
   );

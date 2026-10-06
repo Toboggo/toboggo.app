@@ -144,7 +144,7 @@ describe("ParkDetail — Itinéraire CTA", () => {
     renderDetail();
     fireEvent.click(screen.getByText("Itinéraire"));
 
-    expect(screen.getByText("Ouvrir l’itinéraire avec")).toBeTruthy();
+    expect(screen.getByText("Choisir l’itinéraire")).toBeTruthy();
     expect(window.location.assign).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Waze"));
@@ -163,14 +163,14 @@ describe("ParkDetail — Itinéraire CTA", () => {
 
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(visits.calls).toEqual([]);
-    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
+    expect(screen.queryByText("Choisir l’itinéraire")).toBeNull();
   });
 
   it("missing coordinates: shows a toast, sheet never opens, navigates nowhere, does not crash", () => {
     renderDetail({ latitude: null as unknown as number, longitude: null as unknown as number });
     expect(() => fireEvent.click(screen.getByText("Itinéraire"))).not.toThrow();
 
-    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
+    expect(screen.queryByText("Choisir l’itinéraire")).toBeNull();
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
   });

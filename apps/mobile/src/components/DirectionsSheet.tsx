@@ -16,10 +16,12 @@ export function DirectionsSheet({
   open,
   onClose,
   onChoose,
+  parkName,
 }: {
   open: boolean;
   onClose: () => void;
   onChoose: (provider: MapProvider) => void;
+  parkName?: string;
 }) {
   const { t } = useTranslation("detail");
   const providers = getAvailableMapProviders();
@@ -29,24 +31,29 @@ export function DirectionsSheet({
       <div className={styles.sheet}>
         <div className={styles.header}>
           <div className={styles.title}>{t("directionsSheet.title")}</div>
-          <div className={styles.subtitle}>{t("directionsSheet.subtitle")}</div>
+          {parkName && <div className={styles.subtitle}>{t("directionsSheet.subtitle", { name: parkName })}</div>}
         </div>
 
         <div className={styles.list}>
           {providers.map((provider) => (
-            <button key={provider} type="button" className={styles.row} onClick={() => onChoose(provider)}>
+            <button
+              key={provider}
+              type="button"
+              className={styles.row}
+              onClick={() => onChoose(provider)}
+            >
               <span className={styles.rowIcon}>
-                <img src={PROVIDER_LOGO[provider]} alt="" width={20} height={20} />
+                <img src={PROVIDER_LOGO[provider]} alt="" width={24} height={24} />
               </span>
               <span className={styles.rowLabel}>{t(`directionsSheet.${provider}`)}</span>
               <svg
                 className={styles.chevron}
-                width="15"
-                height="15"
+                width="16"
+                height="16"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2.4"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 aria-hidden
@@ -57,7 +64,7 @@ export function DirectionsSheet({
           ))}
         </div>
 
-        <Button type="button" variant="secondary" block onClick={onClose}>
+        <Button type="button" variant="ghost" block onClick={onClose}>
           {t("action.cancel", { ns: "common" })}
         </Button>
       </div>

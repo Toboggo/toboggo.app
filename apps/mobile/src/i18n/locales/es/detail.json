@@ -5,8 +5,8 @@
   "directions": "Cómo llegar",
   "directionsUnavailable": "Ruta no disponible: faltan las coordenadas del parque.",
   "directionsSheet": {
-    "title": "Abrir la ruta con",
-    "subtitle": "Elige tu aplicación de navegación",
+    "title": "Elegir la ruta",
+    "subtitle": "Hacia {{name}}",
     "apple": "Mapas",
     "google": "Google Maps",
     "waze": "Waze"

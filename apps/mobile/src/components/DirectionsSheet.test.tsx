@@ -80,3 +80,11 @@ describe("DirectionsSheet", () => {
     expect(screen.queryByText("Waze")).toBeNull();
   });
 });
+
+describe("DirectionsSheet — header", () => {
+  it("shows the park name in the subtitle", () => {
+    render(<DirectionsSheet open onClose={() => {}} onChoose={() => {}} parkName="Parc des Lilas" />);
+    expect(screen.getByText("Choisir l’itinéraire")).toBeTruthy();
+    expect(screen.getByText("Vers Parc des Lilas")).toBeTruthy();
+  });
+});

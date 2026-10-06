@@ -76,8 +76,12 @@
   },
   "share": {
     "email": "Email",
-    "copied": "Link copied to clipboard",
-    "copy": "Copy link"
+    "copied": "Link copied",
+    "copy": "Copy link",
+    "title": "Share this park",
+    "more": "More options",
+    "message": "Check out {{name}} on Toboggo",
+    "copyFailed": "Couldn’t copy the link"
   },
   "rate": {
     "criteria": {

@@ -629,6 +629,17 @@
   background: var(--color-primary-tint);
   color: var(--color-primary-pressed);
 }
+.catIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--color-text);
+}
+.catCard[aria-pressed="true"] .catIcon {
+  color: var(--color-primary);
+}
 .catLabel {
   font-family: var(--font-heading);
   font-weight: 600;

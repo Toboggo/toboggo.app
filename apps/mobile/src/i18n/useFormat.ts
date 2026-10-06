@@ -10,7 +10,7 @@
  *   f.ageRange(3, 6)      → "3–6 ans" / "3–6 años" / "3–6 yrs"
  *   f.ageRangeOrNull(...) → même chose, mais null quand l'âge est inconnu
  *   f.ageClause(3, 6)     → "de 3 à 6 ans" (fragment) | null
- *   f.ageBand(0, 12)      → "Tout âge" | null
+ *   f.ageBand(0, 12)      → "Tout âge" ; f.ageBand(2, 9) → "2–9 ans" ; null si une borne manque
  *
  * S'appuie sur les helpers `Intl` de `@toboggo/shared` (locale active) et sur le
  * namespace `common` pour les âges (pluriels an/ans gérés par i18next).
@@ -29,8 +29,6 @@ import {
 } from "@toboggo/shared";
 import { useLocale } from "./useLocale";
 import { useDistanceUnit } from "../lib/distanceUnit";
-
-type AgeBandKey = "all" | "under3" | "3-6" | "6-12";
 
 function ageBound(value: number | null | undefined): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
@@ -109,12 +107,8 @@ export function useFormat() {
         const lo = ageBound(min);
         const hi = ageBound(max);
         if (lo === null || hi === null) return null;
-        let key: AgeBandKey;
-        if (lo === 0 && hi >= 12) key = "all";
-        else if (hi <= 3) key = "under3";
-        else if (lo >= 6) key = "6-12";
-        else key = "3-6";
-        return t(`age.band.${key}`);
+        if (lo === 0 && hi >= 12) return t("age.band.all");
+        return ageRangeInner(lo, hi);
       },
     };
   }, [intlLocale, t, unit]);

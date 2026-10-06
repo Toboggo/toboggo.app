@@ -1,0 +1,110 @@
+---
+/**
+ * Grille des sujets de guides (Home + /guides/) — une seule implémentation
+ * pour que les deux pages restent alignées.
+ *
+ * - Vraie grille CSS : 1 colonne < 640px, 3 colonnes ≥ 640px. Aucun scroll
+ *   horizontal, aucune largeur fixe.
+ * - Les cartes d'une même rangée ont la même hauteur (stretch + carte en
+ *   colonne) quelle que soit la longueur du titre : plus de `min-height`
+ *   magique sur les titres.
+ * - Le CTA n'est PAS ici : chaque page le place dans un `.guides-footer`
+ *   séparé, après la grille, dans le flux normal (jamais en absolute).
+ *
+ * Aucun article n'existe : badge « À venir », cartes non cliquables, ni date
+ * ni catégorie (voir data/demoGuides.ts).
+ */
+import PhotoPlaceholder from "./PhotoPlaceholder.astro";
+import { DEMO_GUIDES } from "../data/demoGuides";
+---
+
+<ul class="guide-grid">
+  {
+    DEMO_GUIDES.map((guide) => (
+      <li class="guide-card">
+        <div class="guide-media">
+          <PhotoPlaceholder alt={guide.imageAlt ?? guide.title} ratio="3 / 2" src={guide.image} />
+        </div>
+        <div class="guide-body">
+          <span class="guide-soon">À venir</span>
+          <h3 class="guide-title">{guide.title}</h3>
+        </div>
+      </li>
+    ))
+  }
+</ul>
+
+<style>
+  .guide-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: stretch;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .guide-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--color-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .guide-media {
+    flex: none;
+    aspect-ratio: 3 / 2;
+    overflow: hidden;
+  }
+
+  .guide-media :global(.photo-slot) {
+    border-radius: 0;
+  }
+
+  .guide-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-4) var(--space-5);
+  }
+
+  .guide-soon {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    padding: 5px 9px;
+    border-radius: var(--radius-pill, 999px);
+    background: var(--color-primary-tint);
+    color: var(--color-primary-hover);
+  }
+
+  .guide-title {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: 600;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  @media (min-width: 640px) {
+    .guide-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-4);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .guide-grid {
+      gap: var(--space-5);
+    }
+  }
+</style>

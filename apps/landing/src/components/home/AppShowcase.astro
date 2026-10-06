@@ -163,6 +163,35 @@ const SCREENS = ["park-detail", "explorer", "filters", "favorites"]
     }
   }
 
+  /* Tablette : les 4 téléphones tiennent sur une ligne, sans défilement. Largeurs
+     proportionnelles à l'écran (fiche principale = 1,3 × un secondaire) ; les légendes
+     peuvent passer à la ligne pour ne jamais se toucher. */
+  @media (min-width: 700px) and (max-width: 1023px) {
+    .phones-track {
+      --phone-w: min(188px, calc((100vw - 108px) / 4.3));
+      justify-content: center;
+      align-items: flex-end;
+      width: auto;
+      gap: 20px;
+    }
+
+    .phone-item {
+      width: var(--phone-w);
+    }
+
+    .phone-item--featured {
+      width: calc(var(--phone-w) * 1.3);
+    }
+
+    .phone-item figcaption {
+      white-space: normal;
+      max-width: 100%;
+      font-size: 12.5px;
+      line-height: 1.3;
+      border-radius: 14px;
+    }
+  }
+
   @media (min-width: 1024px) {
     .phones-scroll {
       overflow: visible;

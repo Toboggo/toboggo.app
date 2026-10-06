@@ -60,6 +60,10 @@ export type IconName =
   | "ic-trash"
   | "ic-pencil"
   | "ic-leaf"
+  | "ic-wheelchair"
+  | "ic-wrench"
+  | "ic-square-pen"
+  | "ic-more"
   | "ic-clock"
   | "ic-warning";
 

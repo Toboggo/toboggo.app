@@ -13,9 +13,7 @@ import type { IconName } from "./Icon";
  * docs/DESIGN-SYSTEM.md §7):
  *   equipment "climbing" → ic-climb, "motorcourse" → ic-motor
  *   service   "wc"       → ic-toilets
- *   report    "wrong_info" → ic-report-info
- * No sprite symbol exists for: equipment "waterplay" / "zipline" / "carousel";
- *   report "vegetation" / "accessibility".
+ * No sprite symbol exists for: equipment "waterplay" / "zipline" / "carousel".
  */
 
 /** Legacy play-equipment codes (`park.play_equipment`). */
@@ -39,10 +37,13 @@ export const SERVICE_ICONS: Readonly<Record<string, IconName>> = {
 
 /** Report category codes (`ReportCategory`). */
 export const REPORT_REASON_ICONS: Readonly<Record<string, IconName>> = {
-  broken_equipment: "ic-report-broken",
-  safety: "ic-report-safety",
-  cleanliness: "ic-report-clean",
-  other: "ic-report-other",
+  broken_equipment: "ic-wrench",
+  safety: "ic-warning",
+  cleanliness: "ic-trash",
+  vegetation: "ic-leaf",
+  accessibility: "ic-wheelchair",
+  wrong_info: "ic-square-pen",
+  other: "ic-more",
 };
 
 export function equipmentIcon(code: string): IconName | undefined {

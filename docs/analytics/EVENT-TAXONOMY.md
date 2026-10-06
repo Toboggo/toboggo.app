@@ -172,14 +172,12 @@ ci-dessous (traçables au code) :
 - **Priorité** : P2.
 
 ### `filter_applied`
-- **Description** : un filtre a changé de valeur (âge, équipement) — **hors `openNow`**, qui n'a
-  aucun effet réel sur les résultats (`ANALYTICS-AUDIT.md` §7) et ne doit pas être instrumenté
-  comme s'il en avait un.
-- **Trigger exact** : changement de valeur dans `FiltersSheet.tsx` (âge : `:28-35` ; équipement :
-  `:50-56`) ou du toggle "Pour mes enfants" / tri dans `ParkList.tsx:55-67`.
+- **Description** : un filtre a changé de valeur (âge, équipement, jeu). Le contrôle « Ouvert
+  maintenant » (`openNow`) a été retiré : aucune donnée d'horaires exploitable (voir `ANALYTICS-AUDIT.md` §7).
+- **Trigger exact** : changement de valeur dans `FiltersSheet.tsx` (âge, équipement, jeu) ou du toggle "Pour mes enfants" / tri dans `ParkList.tsx:55-67`.
 - **Écran/source** : `FiltersSheet.tsx` / `ParkList.tsx`.
-- **Propriétés** : `filter_type` (`age` | `amenity` | `for_children` | `sort`), `filter_value`
-  (ex. code d'équipement `wc`/`shade`/…, ou valeur de tri — faible cardinalité, valeurs
+- **Propriétés** : `filter_type` (`age` | `amenity` | `game` | `for_children` | `sort`), `filter_value`
+  (ex. code d'équipement `wc`/`shade`/…, code de jeu du catalogue `slide`/`swing`/…, ou valeur de tri — faible cardinalité, valeurs
   énumérées).
 - **KPI/funnel** : filtres les plus utilisés, funnel filtre → fiche → intention forte (questions
   produit explicites).

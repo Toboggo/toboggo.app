@@ -140,7 +140,7 @@ export interface AnalyticsEventProperties {
   // --- FILTER ---
   filter_opened: Record<string, never>;
   filter_applied: {
-    filter_type: "age" | "amenity" | "for_children" | "sort";
+    filter_type: "age" | "amenity" | "game" | "for_children" | "sort";
     filter_value: string;
   };
   filter_cleared: {

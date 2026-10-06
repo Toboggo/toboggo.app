@@ -18,9 +18,7 @@
     "ageValuePlus": "De {{min}} a {{max}}+ años",
     "ageMin": "Edad mínima",
     "ageMax": "Edad máxima",
-    "availability": "Disponibilidad",
-    "openNow": "Abierto ahora",
-    "equipmentAccess": "Juegos y accesos",
+    "equipmentAccess": "Equipamientos y servicios",
     "reset": "Restablecer",
     "apply": "Ver resultados",
     "close": "Cerrar filtros",
@@ -33,7 +31,18 @@
       "benches": "Bancos",
       "water": "Fuente",
       "parking": "Aparcamiento"
-    }
+    },
+    "games": "Juegos",
+    "selected_one": "{{count}} seleccionado",
+    "selected_other": "{{count}} seleccionados",
+    "seeAllGames": "Ver todos los juegos",
+    "allGamesTitle": "Todos los juegos",
+    "back": "Volver",
+    "searchGame": "Buscar un juego",
+    "chooseGames": "Elige los juegos que buscas",
+    "noGame": "Ningún juego coincide con «{{query}}»",
+    "validate": "Confirmar mi selección",
+    "remove": "Quitar {{label}}"
   },
   "sheet": {
     "loading": "Buscando parques cerca de ti…",

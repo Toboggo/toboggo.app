@@ -18,9 +18,7 @@
     "ageValuePlus": "Ages {{min}} to {{max}}+",
     "ageMin": "Minimum age",
     "ageMax": "Maximum age",
-    "availability": "Availability",
-    "openNow": "Open now",
-    "equipmentAccess": "Equipment and access",
+    "equipmentAccess": "Facilities and services",
     "reset": "Reset",
     "apply": "Show results",
     "close": "Close filters",
@@ -33,7 +31,18 @@
       "benches": "Benches",
       "water": "Water",
       "parking": "Parking"
-    }
+    },
+    "games": "Play equipment",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "seeAllGames": "See all equipment",
+    "allGamesTitle": "All equipment",
+    "back": "Back",
+    "searchGame": "Search equipment",
+    "chooseGames": "Choose the equipment you’re looking for",
+    "noGame": "Nothing matches “{{query}}”",
+    "validate": "Confirm my choices",
+    "remove": "Remove {{label}}"
   },
   "sheet": {
     "loading": "Looking for parks around you…",

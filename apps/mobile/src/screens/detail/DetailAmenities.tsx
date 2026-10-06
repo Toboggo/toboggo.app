@@ -1,13 +1,14 @@
 import { useParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Icon, equipmentIcon, serviceIcon, type IconName } from "@toboggo/design-system";
+import { Icon } from "@toboggo/design-system";
 import { DetailHeader } from "../../components/DetailHeader";
 import { usePark } from "../../lib/parksQuery";
-import { EQUIPMENT_ICON, SERVICE_ICON } from "../../lib/equipmentIcons";
+import { presentPlayCodes } from "../../lib/parkEquipment";
+import { ParkGlyph } from "../../components/addPark/ParkGlyph";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import styles from "./DetailAmenities.module.css";
 
-const SERVICE_KEYS = Object.keys(SERVICE_ICON);
+const SERVICE_KEYS = ["wc", "shade", "fenced", "pmr", "benches", "water", "parking"];
 
 export default function DetailAmenities() {
   const { id } = useParams();
@@ -16,19 +17,11 @@ export default function DetailAmenities() {
   const { data: park } = usePark(id);
   if (!park) return null;
 
-  const equipment = park.play_equipment ?? [];
-
-  const rows: { label: string; iconName?: IconName; emoji?: string; on: boolean }[] = [
-    ...equipment.map((eq) => ({
-      label: featureLabel(eq),
-      iconName: equipmentIcon(eq),
-      emoji: EQUIPMENT_ICON[eq] ?? "🧩",
-      on: true,
-    })),
+  const rows: { code: string; label: string; on: boolean }[] = [
+    ...presentPlayCodes(park).map((code) => ({ code, label: featureLabel(code), on: true })),
     ...SERVICE_KEYS.map((k) => ({
+      code: k,
       label: featureLabel(k),
-      iconName: serviceIcon(k),
-      emoji: SERVICE_ICON[k],
       on: Boolean((park as unknown as Record<string, unknown>)[k]),
     })),
   ];
@@ -46,7 +39,7 @@ export default function DetailAmenities() {
           <div key={r.label} className={styles.row}>
             <span className={styles.left}>
               <span className={styles.icon}>
-                {r.iconName ? <Icon name={r.iconName} size={18} /> : r.emoji}
+                <ParkGlyph code={r.code} size={20} />
               </span>
               {r.label}
             </span>

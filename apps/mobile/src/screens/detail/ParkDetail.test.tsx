@@ -112,6 +112,7 @@ function renderDetail(overrides: Partial<Park> = {}) {
         <Routes>
           <Route path="/park/:id" element={<ParkDetail />} />
           <Route path="/park/:id/directions" element={<div>ANCIEN ÉCRAN FACTICE</div>} />
+          <Route path="/park/:id/photos" element={<div>GALERIE</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -186,5 +187,75 @@ describe("ParkDetail — adresse persistée", () => {
     expect(searchPlaces).not.toHaveBeenCalled();
     expect(fetchSpy).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+});
+
+describe("ParkDetail — photos (swipe)", () => {
+  // jsdom n'implémente pas PointerEvent : sans lui, clientX/clientY seraient perdus.
+  beforeEach(() => {
+    vi.stubGlobal("PointerEvent", class extends MouseEvent {});
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  const photos = { photos: ["a.jpg", "b.jpg", "c.jpg"] };
+  const hero = () => screen.getByRole("button", { name: "Ouvrir la galerie de photos" });
+  const swipe = (dx: number, dy = 0) => {
+    fireEvent.pointerDown(hero(), { clientX: 200, clientY: 100 });
+    fireEvent.pointerUp(hero(), { clientX: 200 + dx, clientY: 100 + dy });
+    fireEvent.click(hero());
+  };
+
+  it("un swipe horizontal change de photo sans ouvrir la galerie", () => {
+    renderDetail(photos);
+    expect(screen.getByText("1/3")).toBeTruthy();
+    swipe(-80);
+    expect(screen.getByText("2/3")).toBeTruthy();
+    swipe(80);
+    expect(screen.getByText("1/3")).toBeTruthy();
+    expect(screen.queryByText("GALERIE")).toBeNull();
+  });
+
+  it("un geste surtout vertical ou trop court ne change pas de photo", () => {
+    renderDetail(photos);
+    fireEvent.pointerDown(hero(), { clientX: 200, clientY: 100 });
+    fireEvent.pointerUp(hero(), { clientX: 150, clientY: 220 });
+    fireEvent.pointerDown(hero(), { clientX: 200, clientY: 100 });
+    fireEvent.pointerUp(hero(), { clientX: 180, clientY: 100 });
+    expect(screen.getByText("1/3")).toBeTruthy();
+  });
+
+  it("un tap ouvre la galerie", () => {
+    renderDetail(photos);
+    fireEvent.click(hero());
+    expect(screen.getByText("GALERIE")).toBeTruthy();
+  });
+});
+
+describe("ParkDetail — jeux et signalements", () => {
+  it("n'affiche que les jeux présents dans les données, avec les libellés du référentiel", () => {
+    renderDetail({
+      play_equipment: ["toboggan", "springs"],
+      features: {
+        slide: { status: "available", value: null, quantity: null, category: "play", verified_at: null },
+        zipline: { status: "unavailable", value: null, quantity: null, category: "play", verified_at: null },
+      },
+    });
+    expect(screen.getByText("Toboggan")).toBeTruthy();
+    expect(screen.getByText("Jeux à ressort")).toBeTruthy();
+    expect(screen.queryByText("Tyrolienne")).toBeNull();
+  });
+
+  it("sans signalement actif : aucune mention « aucun problème », « Signaler un problème » reste accessible", () => {
+    renderDetail();
+    expect(screen.queryByText(/Aucun problème/)).toBeNull();
+    expect(screen.queryByText("Un problème a été signalé sur ce parc récemment.")).toBeNull();
+    expect(screen.getByText("Signaler un problème")).toBeTruthy();
+  });
+
+  it("avec signalement actif : l'alerte s'affiche", () => {
+    renderDetail({ has_open_report: true });
+    expect(screen.getByText("Un problème a été signalé sur ce parc récemment.")).toBeTruthy();
+    expect(screen.getByText("Signaler un problème")).toBeTruthy();
   });
 });

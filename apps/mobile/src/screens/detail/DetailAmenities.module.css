@@ -27,7 +27,7 @@
   font-weight: 600;
 }
 .icon {
-  font-size: 18px;
+  color: var(--color-primary);
   width: 22px;
   text-align: center;
   display: inline-flex;

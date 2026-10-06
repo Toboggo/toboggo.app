@@ -23,11 +23,8 @@
   "ratingWithReviews_one": "{{rating}} ({{count}} avis)",
   "ratingWithReviews_other": "{{rating}} ({{count}} avis)",
   "issueReported": "Un problème a été signalé sur ce parc récemment.",
+  "editInfo": "Modifier les infos du parc",
   "reportAlert": {
-    "title_one": "Un problème a été signalé",
-    "title_other": "{{count}} problèmes ont été signalés",
-    "view_one": "Voir le signalement",
-    "view_other": "Voir les signalements",
     "onSite": "Vous êtes sur place ?",
     "pickLabel": "Signalement concerné",
     "stillPresent": "Toujours présent",
@@ -43,7 +40,14 @@
     "stillPresentCount_other": "{{count}} confirmations « Toujours présent »",
     "resolvedCount_one": "{{count}} confirmation « Problème résolu »",
     "resolvedCount_other": "{{count}} confirmations « Problème résolu »",
-    "reportAnother": "Signaler un autre problème"
+    "reportAnother": "Signaler un autre problème",
+    "banner_one": "Signalement en cours",
+    "banner_other": "Signalements en cours",
+    "yourAnswer": {
+      "still_present": "Votre réponse : toujours présent",
+      "resolved": "Votre réponse : problème résolu"
+    },
+    "answeredSummary": "Vous avez répondu à {{answered}} sur {{count}} signalements"
   },
   "reportCategory": {
     "broken_equipment": "Jeu cassé / dangereux",

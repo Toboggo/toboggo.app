@@ -279,7 +279,7 @@ function activeReport(over: Partial<ActiveReport> = {}): ActiveReport {
   };
 }
 
-describe("ParkDetail — confirmation communautaire des signalements", () => {
+describe("ParkDetail — bannière compacte et réponse dans le sheet", () => {
   beforeEach(() => {
     sess.userId = "u1";
     sess.requireAccount.mockReset();
@@ -288,59 +288,96 @@ describe("ParkDetail — confirmation communautaire des signalements", () => {
     toasts.list = [];
   });
 
-  it("remplace l'alerte et le lien par un encart unique avec les deux réponses", async () => {
+  /** Serveur simulé : la réponse enregistrée est relue au rechargement. */
+  function statefulServer(initial: ActiveReport[]) {
+    const rows = initial.map((r) => ({ ...r }));
+    vi.mocked(listActiveReports).mockImplementation(async () => rows.map((r) => ({ ...r })));
+    vi.mocked(respondToReport).mockImplementation(async (id, response) => {
+      const row = rows.find((r) => r.id === id)!;
+      row.my_response = response;
+    });
+  }
+
+  async function openSheet() {
+    fireEvent.click(await screen.findByText("Signalement en cours"));
+    return screen.findByRole("button", { name: "Toujours présent" });
+  }
+
+  it("bannière compacte : plus d'encart, de boutons ni de lien « Signaler un problème » sur la fiche", async () => {
     vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
     renderDetail({ has_open_report: true });
-    expect(await screen.findByText("Vous êtes sur place ?")).toBeTruthy();
-    expect(screen.getByText("Un problème a été signalé")).toBeTruthy();
+    expect(await screen.findByText("Signalement en cours")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Toujours présent" })).toBeNull();
+    expect(screen.queryByText("Vous êtes sur place ?")).toBeNull();
     expect(screen.queryByText("Signaler un problème")).toBeNull();
-    expect(screen.queryByText("Un problème a été signalé sur ce parc récemment.")).toBeNull();
   });
 
-  it("« Toujours présent » puis changement vers « Problème résolu » : réponses envoyées pour ce signalement", async () => {
-    vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
+  it("répondre depuis le sheet : enregistré, puis « Votre réponse » dans la bannière ; réponse modifiable", async () => {
+    statefulServer([activeReport()]);
     renderDetail({ has_open_report: true });
-    fireEvent.click(await screen.findByRole("button", { name: "Toujours présent" }));
+    fireEvent.click(await openSheet());
     await waitFor(() => expect(respondToReport).toHaveBeenLastCalledWith("r1", "still_present"));
+    expect(await screen.findByText("Votre réponse : toujours présent")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Problème résolu" }));
     await waitFor(() => expect(respondToReport).toHaveBeenLastCalledWith("r1", "resolved"));
+    expect(await screen.findByText("Votre réponse : problème résolu")).toBeTruthy();
   });
 
-  it("plusieurs signalements actifs : la réponse cible celui qui est choisi", async () => {
-    vi.mocked(listActiveReports).mockResolvedValue([
+  it("après rechargement : ma réponse serveur est affichée dans la bannière", async () => {
+    vi.mocked(listActiveReports).mockResolvedValue([activeReport({ my_response: "resolved" })]);
+    renderDetail({ has_open_report: true });
+    expect(await screen.findByText("Votre réponse : problème résolu")).toBeTruthy();
+  });
+
+  it("plusieurs signalements : pluriel, résumé, la réponse cible celui qui est choisi", async () => {
+    statefulServer([
       activeReport(),
       activeReport({ id: "r2", category: "cleanliness", description: "Verre brisé" }),
     ]);
     renderDetail({ has_open_report: true });
-    const select = await screen.findByRole("combobox");
-    fireEvent.change(select, { target: { value: "r2" } });
+    fireEvent.click(await screen.findByText("Signalements en cours"));
+    fireEvent.change(await screen.findByRole("combobox"), { target: { value: "r2" } });
     fireEvent.click(screen.getByRole("button", { name: "Problème résolu" }));
     await waitFor(() => expect(respondToReport).toHaveBeenCalledWith("r2", "resolved"));
+    expect(await screen.findByText("Vous avez répondu à 1 sur 2 signalements")).toBeTruthy();
   });
 
   it("visiteur : connexion demandée au clic, aucune réponse envoyée avant", async () => {
     sess.userId = null;
     vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
     renderDetail({ has_open_report: true });
-    fireEvent.click(await screen.findByRole("button", { name: "Toujours présent" }));
+    fireEvent.click(await openSheet());
     expect(sess.requireAccount).toHaveBeenCalledTimes(1);
     expect(respondToReport).not.toHaveBeenCalled();
   });
 
-  it("échec serveur : message d'erreur affiché", async () => {
+  it("échec serveur : message d'erreur, pas de « Votre réponse »", async () => {
     vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
     vi.mocked(respondToReport).mockRejectedValue(new Error("boom"));
     renderDetail({ has_open_report: true });
-    fireEvent.click(await screen.findByRole("button", { name: "Problème résolu" }));
+    fireEvent.click(await openSheet());
     expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.queryByText(/Votre réponse/)).toBeNull();
+  });
+});
+
+describe("ParkDetail — allègement de la fiche", () => {
+  beforeEach(() => {
+    sess.userId = "u1";
+    vi.mocked(listActiveReports).mockReset().mockResolvedValue([]);
   });
 
-  it("« Voir le signalement » ouvre le détail public et l'accès « Signaler un autre problème »", async () => {
-    vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
-    renderDetail({ has_open_report: true });
-    fireEvent.click(await screen.findByText("Voir le signalement"));
-    expect(await screen.findByText("Toboggan fissuré")).toBeTruthy();
-    expect(screen.getByText("2 confirmations « Toujours présent »")).toBeTruthy();
-    expect(screen.getByText("Signaler un autre problème")).toBeTruthy();
+  it("plus de grande carte « Enrichir ce parc » ; ligne discrète « Modifier les infos du parc » ouvre le parcours existant", async () => {
+    renderDetail();
+    expect(screen.queryByText("Enrichir ce parc")).toBeNull();
+    expect(screen.queryByText("Vous connaissez ce parc ?")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Modifier les infos du parc/ }));
+    expect(await screen.findByText("Enrichir ce parc")).toBeTruthy();
+  });
+
+  it("un seul cœur (header) ; « Itinéraire » reste le seul bouton du footer", () => {
+    renderDetail();
+    expect(screen.getAllByRole("button", { name: /favori/i })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /Itinéraire/ })).toBeTruthy();
   });
 });

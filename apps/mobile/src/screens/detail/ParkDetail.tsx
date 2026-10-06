@@ -18,7 +18,7 @@ import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
 import { DirectionsSheet } from "../../components/DirectionsSheet";
 import { ReviewMenu } from "../../components/ReviewMenu";
-import { ReportAlertCard } from "../../components/ReportAlertCard";
+import { ReportAlertBanner } from "../../components/ReportAlertBanner";
 import { ReportDetailsSheet } from "../../components/ReportDetailsSheet";
 import { trackEvent, distanceBucket } from "../../lib/analytics";
 import styles from "./Detail.module.css";
@@ -290,13 +290,7 @@ export default function ParkDetail() {
         )}
 
         {activeReports.length > 0 ? (
-          <ReportAlertCard
-            reports={activeReports}
-            pending={respond.isPending}
-            error={respond.isError}
-            onOpenDetails={() => setReportSheetOpen(true)}
-            onRespond={onRespondToReport}
-          />
+          <ReportAlertBanner reports={activeReports} onOpen={() => setReportSheetOpen(true)} />
         ) : park.has_open_report && reportsLoading ? null : (
           <>
             {park.has_open_report && (
@@ -316,21 +310,6 @@ export default function ParkDetail() {
         )}
 
         {park.description && <p className={styles.desc}>{park.description}</p>}
-
-        <section className={styles.contribCard} aria-labelledby="contrib-card-title">
-          <div className={styles.contribHead}>
-            <span className={styles.contribIcon} aria-hidden="true">
-              <Icon name="ic-heart" size={22} />
-            </span>
-            <div>
-              <div className={styles.contribTitle} id="contrib-card-title">{tContribute("sheet.cardTitle")}</div>
-              <div className={styles.contribSub}>{tContribute("sheet.cardBody")}</div>
-            </div>
-          </div>
-          <button type="button" className={styles.contribBtn} onClick={() => setContribOpen(true)}>
-            {tContribute("sheet.enrich")}
-          </button>
-        </section>
 
         <div className={styles.section}>
           <div className={styles.kickerRow}>
@@ -365,6 +344,14 @@ export default function ParkDetail() {
             </div>
           )}
         </div>
+
+        <button type="button" className={styles.editInfo} onClick={() => setContribOpen(true)}>
+          <Icon name="ic-pencil" size={16} />
+          <span>{t("editInfo")}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
 
         <div className={styles.section}>
           <div className={styles.kickerRow}>
@@ -444,11 +431,6 @@ export default function ParkDetail() {
       </div>
 
       <div className={styles.footer}>
-        <button type="button" className={styles.footFav} data-on={isFav ? "1" : undefined} onClick={toggleFavorite} aria-label={t("a11y.favorite")}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill={isFav ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" style={{ color: isFav ? "var(--color-error)" : "var(--color-text-faint)" }} aria-hidden>
-            <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />
-          </svg>
-        </button>
         <button type="button" className={styles.footGo} onClick={() => openDirections(park, getParkDisplayName(park, t))}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" style={{ color: "var(--color-on-primary)" }} aria-hidden>
             <path d="M5 12h14M13 6l6 6-6 6" />
@@ -462,6 +444,9 @@ export default function ParkDetail() {
         open={reportSheetOpen && activeReports.length > 0}
         onClose={() => setReportSheetOpen(false)}
         reports={activeReports}
+        pending={respond.isPending}
+        error={respond.isError}
+        onRespond={onRespondToReport}
         onReportAnother={() => {
           setReportSheetOpen(false);
           navigate(`/report?park=${park.id}`);

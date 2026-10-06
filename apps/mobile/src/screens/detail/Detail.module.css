@@ -3,7 +3,7 @@
 .wrap {
   min-height: 100vh;
   background: var(--color-bg);
-  padding-bottom: 100px;
+  padding-bottom: calc(100px + var(--safe-bottom));
 }
 
 .hero {
@@ -429,20 +429,6 @@
   gap: 10px;
   z-index: 30;
 }
-.footFav {
-  width: 52px;
-  flex: none;
-  border-radius: 999px;
-  border: 1.5px solid var(--color-border);
-  background: var(--color-surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.footFav[data-on="1"] {
-  background: var(--color-error-tint);
-}
 .footGo {
   flex: 1;
   height: 52px;
@@ -485,51 +471,29 @@
   color: var(--color-text-faint);
 }
 
-/* ── Carte « Vous connaissez ce parc ? » ─────────────────────────────── */
-.contribCard {
-  margin-top: 16px;
-  padding: 14px;
-  border: 1.5px solid var(--color-primary);
-  border-radius: 14px;
-  background: var(--color-surface);
-}
-.contribHead {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-.contribIcon {
-  flex: 0 0 auto;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+/* Ligne discrète « Modifier les infos du parc › » (ouvre le parcours d'enrichissement). */
+.editInfo {
   display: flex;
   align-items: center;
-  justify-content: center;
-  background: var(--color-accent-tint);
-  color: var(--color-accent);
-}
-.contribTitle {
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--color-text);
-}
-.contribSub {
-  margin-top: 2px;
-  font-size: 13.5px;
-  color: color-mix(in srgb, var(--color-text) 62%, var(--color-surface));
-}
-.contribBtn {
-  margin-top: 12px;
+  gap: 8px;
   width: 100%;
-  min-height: 48px;
+  min-height: 44px;
+  margin-top: 8px;
+  padding: 0;
+  background: none;
   border: 0;
-  border-radius: 999px;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 15px;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
   cursor: pointer;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+.editInfo span {
+  flex: 1;
+}
+.editInfo:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
 }

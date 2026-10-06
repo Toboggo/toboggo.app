@@ -5,12 +5,16 @@
 simulés ; aucune clé API n'est nécessaire pour ces tests (le constructeur
 n'est jamais instancié ici).
 """
+import io
+import json
+import socket
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from geoapify import GeoapifyClient
+from geoapify import GeoapifyClient, GeoapifyError
 
 
 class TestExtractConfidence(unittest.TestCase):
@@ -85,3 +89,61 @@ class TestExtractAddressFields(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class _FakeResp(io.BytesIO):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _ok_resp():
+    return _FakeResp(json.dumps({"results": [{"city": "Lyon", "postcode": "69001"}]}).encode())
+
+
+class TestRetryOnTransientErrors(unittest.TestCase):
+    """Timeouts / erreurs réseau : retry puis GeoapifyError propre (le backfill
+    compte le parc en erreur et continue). Aucun réseau, aucun sleep réel."""
+
+    def setUp(self):
+        self.client = GeoapifyClient(api_key="test", min_interval_s=0, max_retries=2)
+        p = mock.patch("geoapify.time.sleep")
+        p.start()
+        self.addCleanup(p.stop)
+
+    def _run(self, side_effect):
+        with mock.patch("geoapify.urllib.request.urlopen", side_effect=side_effect) as m:
+            try:
+                return self.client.reverse_geocode(45.7, 4.8), m
+            finally:
+                self.calls = m.call_count
+
+    def test_socket_timeout_then_success(self):
+        result, _ = self._run([socket.timeout("The read operation timed out"), _ok_resp()])
+        self.assertEqual(result["city"], "Lyon")
+        self.assertEqual(self.calls, 2)
+
+    def test_timeout_error_then_success(self):
+        result, _ = self._run([TimeoutError("timed out"), _ok_resp()])
+        self.assertEqual(result["city"], "Lyon")
+        self.assertEqual(self.calls, 2)
+
+    def test_connection_reset_then_success(self):
+        result, _ = self._run([ConnectionResetError("reset"), _ok_resp()])
+        self.assertEqual(result["city"], "Lyon")
+
+    def test_timeouts_until_retries_exhausted_raise_geoapify_error(self):
+        with self.assertRaises(GeoapifyError):
+            self._run(socket.timeout("The read operation timed out"))
+        # 1 tentative initiale + max_retries (2) = 3
+        self.assertEqual(self.calls, 3)
+
+    def test_non_retryable_http_error_not_retried(self):
+        import urllib.error
+
+        err = urllib.error.HTTPError("u", 401, "Unauthorized", {}, None)
+        with self.assertRaises(GeoapifyError):
+            self._run(err)
+        self.assertEqual(self.calls, 1)

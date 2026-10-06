@@ -13,6 +13,7 @@ environnement et le repo n'a pas de requirements.txt pour les scripts OSM.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import time
@@ -65,7 +66,7 @@ class GeoapifyClient:
         aucun résultat exploitable (aucun des 3 champs adresse principaux).
 
         Lève `GeoapifyError` après épuisement des retries sur une erreur
-        transitoire (429 / 5xx / réseau), ou immédiatement sur une erreur
+        transitoire (429 / 5xx / timeout / réseau), ou immédiatement sur une erreur
         HTTP non réessayable (ex. 401 clé invalide, 400 requête malformée).
         """
         params = urllib.parse.urlencode(
@@ -103,7 +104,18 @@ class GeoapifyClient:
                     f"Geoapify HTTP {e.code} non réessayable "
                     f"(lat={lat}, lon={lon}): {e.reason}"
                 ) from e
-            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+            # Erreurs transitoires réseau. `OSError` couvre `socket.timeout`
+            # (alias de `TimeoutError` seulement depuis Python 3.10 — sur 3.9
+            # c'est une sous-classe distincte d'OSError, levée par
+            # `resp.read()` hors du `URLError` d'urlopen), `TimeoutError`,
+            # `ConnectionError` (reset/refused) et `URLError`. `HTTPException`
+            # couvre les coupures mid-réponse (IncompleteRead, RemoteDisconnected).
+            except (
+                urllib.error.URLError,
+                OSError,
+                http.client.HTTPException,
+                json.JSONDecodeError,
+            ) as e:
                 if attempt > self.max_retries:
                     raise GeoapifyError(
                         f"Geoapify injoignable après {attempt} tentatives "

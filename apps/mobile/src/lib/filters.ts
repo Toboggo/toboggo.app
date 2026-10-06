@@ -18,13 +18,11 @@ interface FilterState {
   amenities: AmenityFilters;
   /** Codes de jeux requis (ET). Vide = aucune restriction. */
   games: string[];
-  openNow: boolean;
   sort: SortMode;
   setAge: (low: number, high: number) => void;
   toggleAmenity: (key: keyof AmenityFilters) => void;
   toggleGame: (code: string) => void;
   setGames: (codes: string[]) => void;
-  setOpenNow: (v: boolean) => void;
   setSort: (s: SortMode) => void;
   reset: () => void;
   activeCount: () => number;
@@ -45,21 +43,18 @@ export const useFilters = create<FilterState>((set, get) => ({
   ageHigh: 12,
   amenities: DEFAULT_AMENITIES,
   games: [],
-  openNow: false,
   sort: "distance",
   setAge: (ageLow, ageHigh) => set({ ageLow, ageHigh }),
   toggleAmenity: (key) => set((s) => ({ amenities: { ...s.amenities, [key]: !s.amenities[key] } })),
   toggleGame: (code) =>
     set((s) => ({ games: s.games.includes(code) ? s.games.filter((c) => c !== code) : [...s.games, code] })),
   setGames: (games) => set({ games: [...new Set(games)] }),
-  setOpenNow: (openNow) => set({ openNow }),
   setSort: (sort) => set({ sort }),
-  reset: () => set({ ageLow: 0, ageHigh: 12, amenities: DEFAULT_AMENITIES, games: [], openNow: false }),
+  reset: () => set({ ageLow: 0, ageHigh: 12, amenities: DEFAULT_AMENITIES, games: [] }),
   activeCount: () => {
     const s = get();
     let n = Object.values(s.amenities).filter(Boolean).length;
     n += s.games.length;
-    if (s.openNow) n += 1;
     if (s.ageLow !== 0 || s.ageHigh !== 12) n += 1;
     return n;
   },

@@ -55,7 +55,7 @@ export function FiltersSheet({ open, onClose }: { open: boolean; onClose: () => 
   const { t } = useTranslation("map");
   const { t: tc } = useTranslation("contribute");
   const featureLabel = useFeatureLabel();
-  const { ageLow, ageHigh, setAge, amenities, toggleAmenity, games, setGames, toggleGame, openNow, setOpenNow, reset } =
+  const { ageLow, ageHigh, setAge, amenities, toggleAmenity, games, setGames, toggleGame, reset } =
     useFilters();
 
   const [view, setView] = useState<"main" | "games">("main");
@@ -106,15 +106,14 @@ export function FiltersSheet({ open, onClose }: { open: boolean; onClose: () => 
     }, AGE_FILTER_TRACK_DEBOUNCE_MS);
   }
 
-  // "Ouvert maintenant" n'a aucun effet réel sur les résultats
-  // (ANALYTICS-AUDIT.md §7) — volontairement PAS instrumenté comme un vrai
-  // filtre appliqué, pour ne pas faire croire qu'il change quoi que ce soit.
   function handleToggleAmenity(key: keyof AmenityFilters) {
     toggleAmenity(key);
     trackEvent("filter_applied", { filter_type: "amenity", filter_value: key });
   }
-  // Pas d'événement analytics pour les jeux : la taxonomie `filter_type` est figée.
-  const handleToggleGame = toggleGame;
+  function handleToggleGame(code: string) {
+    toggleGame(code);
+    trackEvent("filter_applied", { filter_type: "game", filter_value: code });
+  }
 
   function openGames() {
     setDraftGames(games);
@@ -279,31 +278,6 @@ export function FiltersSheet({ open, onClose }: { open: boolean; onClose: () => 
                   <span>{t("filters.seeAllGames")}</span>
                   <Icon name="ic-back" size={16} style={{ transform: "rotate(180deg)" }} />
                 </button>
-              </section>
-
-              <section className={styles.section} aria-labelledby="filters-availability">
-                <h3 className={styles.sectionTitle} id="filters-availability">
-                  {t("filters.availability")}
-                </h3>
-                <div className={styles.toggleRow}>
-                  <span className={styles.toggleGlyph} aria-hidden="true">
-                    <Icon name="ic-clock" size={18} />
-                  </span>
-                  <span className={styles.toggleLabel} id="filters-open-now">
-                    {t("filters.openNow")}
-                  </span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={openNow}
-                    aria-labelledby="filters-open-now"
-                    className={styles.switch}
-                    data-on={openNow ? "1" : undefined}
-                    onClick={() => setOpenNow(!openNow)}
-                  >
-                    <span className={styles.knob} />
-                  </button>
-                </div>
               </section>
 
               <section className={styles.section} aria-labelledby="filters-equipment">

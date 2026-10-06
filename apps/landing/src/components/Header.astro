@@ -1,6 +1,7 @@
 ---
 import Logo from "./Logo.astro";
 import { getDictionary, getLangFromUrl } from "../i18n/utils";
+import { APP_URL } from "../config/site";
 
 const dict = getDictionary(getLangFromUrl(Astro.url));
 
@@ -23,7 +24,7 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 
     <nav class="nav-links" id="primary-nav" aria-label="Navigation principale">
       {LINKS.map((link) => <a href={link.href} aria-current={isCurrent(link.href) ? "page" : undefined}>{link.label}</a>)}
-      <a class="btn btn-primary" href="/#comment-ca-marche">{dict.cta.decouvrir}</a>
+      <a class="btn btn-primary" href={APP_URL}>{dict.cta.openApp}</a>
     </nav>
 
     <button

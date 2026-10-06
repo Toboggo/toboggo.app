@@ -10,6 +10,7 @@ export const fr: Dictionary = {
     aPropos: "À propos",
   },
   cta: {
+    openApp: "Ouvrir l'app",
     decouvrir: "Découvrir Toboggo",
   },
   footer: {

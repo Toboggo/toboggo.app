@@ -1,7 +1,7 @@
 ---
 /**
- * Homepage (Website-2). Ordre des sections validé, ne pas réordonner ni en
- * ajouter — voir le brief Website-2. Chaque section vit dans son propre
+ * Homepage (Website-2). Ordre des sections validé ; seul ajout décidé ensuite :
+ * le rappel final FinalCta (mêmes boutons que le hero). Chaque section vit dans son propre
  * composant sous components/home/, cette page ne fait qu'assembler.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
@@ -12,6 +12,7 @@ import AppShowcase from "../components/home/AppShowcase.astro";
 import AudienceSplit from "../components/home/AudienceSplit.astro";
 import Community from "../components/home/Community.astro";
 import Guides from "../components/home/Guides.astro";
+import FinalCta from "../components/home/FinalCta.astro";
 ---
 
 <BaseLayout
@@ -25,4 +26,5 @@ import Guides from "../components/home/Guides.astro";
   <AudienceSplit />
   <Community />
   <Guides />
+  <FinalCta />
 </BaseLayout>

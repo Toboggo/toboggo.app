@@ -20,3 +20,17 @@ export const DEFAULT_OG_IMAGE = "/icon-512.png";
 export const DEFAULT_OG_IMAGE_ALT = "Logo Toboggo";
 
 export const CONTACT_EMAIL = "contact@toboggo.app";
+
+/** App parents en production (PWA) : cible du CTA principal « Ouvrir l'app Toboggo ». */
+export const APP_URL = "https://toboggo-app.vercel.app";
+
+/**
+ * URLs RÉELLES des fiches de l'app dans les stores. `null` tant que l'app n'y est
+ * pas publiée (Apple Developer Program / Google Play Console : décidés, non créés) :
+ * les boutons stores n'apparaissent alors NULLE PART. Le jour de la publication,
+ * il suffit de coller les deux URLs ici — rien d'autre à modifier.
+ */
+export const STORE_LINKS: { appStore: string | null; googlePlay: string | null } = {
+  appStore: null,
+  googlePlay: null,
+};

@@ -3,13 +3,13 @@ import { BottomSheet, Button } from "@toboggo/design-system";
 import { getAvailableMapProviders, type MapProvider } from "@toboggo/shared";
 import styles from "./DirectionsSheet.module.css";
 
-// Vrai logo par provider (voir public/logos/README.md pour la provenance /
-// les droits) — pas d'icône Toboggo générique partagée : c'est justement ce
-// qui distingue les 3 choix pour l'utilisateur.
+// Icône de chaque application (voir public/logos/README.md : provenance et
+// restrictions de marque connues). Couleurs et proportions d'origine : ne pas
+// recolorer ni redessiner.
 const PROVIDER_LOGO: Record<MapProvider, string> = {
-  apple: "/logos/apple.svg",
-  google: "/logos/google.svg",
-  waze: "/logos/waze.svg",
+  apple: "/logos/plans.png",
+  google: "/logos/google-maps.jpg",
+  waze: "/logos/waze.png",
 };
 
 export function DirectionsSheet({

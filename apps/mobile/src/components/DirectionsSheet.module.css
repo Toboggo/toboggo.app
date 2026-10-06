@@ -63,6 +63,8 @@
   width: 28px;
   height: 28px;
   object-fit: contain;
+  /* Les icônes de store sont des carrés pleins : masque d'icône d'app (≈ 22 %). */
+  border-radius: 22.37%;
 }
 
 .rowLabel {

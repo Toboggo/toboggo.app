@@ -69,7 +69,7 @@ describe("DirectionsSheet", () => {
     // BottomSheet renders through a portal, so query the whole document, not
     // just render()'s own container.
     const logos = Array.from(document.querySelectorAll("img")).map((img) => img.getAttribute("src"));
-    expect(logos).toEqual(["/logos/apple.svg", "/logos/google.svg", "/logos/waze.svg"]);
+    expect(logos).toEqual(["/logos/plans.png", "/logos/google-maps.jpg", "/logos/waze.png"]);
     expect(new Set(logos).size).toBe(3); // no two rows share the same icon
   });
 

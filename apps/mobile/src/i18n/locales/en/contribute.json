@@ -443,7 +443,15 @@
         "stroller_access": "stroller access",
         "accessible_toilets": "accessible toilets",
         "accessible_parking": "accessible parking",
-        "inclusive_play": "inclusive play equipment"
+        "inclusive_play": "inclusive play equipment",
+        "play_structure": "a play structure",
+        "seesaw": "a seesaw",
+        "playhouse": "a playhouse",
+        "trampoline": "a trampoline",
+        "balance_beam": "a balance beam",
+        "agility_trail": "an agility trail",
+        "horizontal_bar": "a horizontal bar",
+        "hopscotch": "a hopscotch court"
       },
       "lacks": {
         "slide": "a slide",
@@ -467,7 +475,15 @@
         "stroller_access": "stroller access",
         "accessible_toilets": "accessible toilets",
         "accessible_parking": "accessible parking",
-        "inclusive_play": "inclusive play equipment"
+        "inclusive_play": "inclusive play equipment",
+        "play_structure": "a play structure",
+        "seesaw": "a seesaw",
+        "playhouse": "a playhouse",
+        "trampoline": "a trampoline",
+        "balance_beam": "a balance beam",
+        "agility_trail": "an agility trail",
+        "horizontal_bar": "a horizontal bar",
+        "hopscotch": "a hopscotch court"
       }
     },
     "statusAria": "Status: {{status}}"

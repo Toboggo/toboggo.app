@@ -443,7 +443,15 @@
         "stroller_access": "acceso para carritos",
         "accessible_toilets": "aseos accesibles",
         "accessible_parking": "una plaza de aparcamiento accesible",
-        "inclusive_play": "juegos inclusivos"
+        "inclusive_play": "juegos inclusivos",
+        "play_structure": "una estructura de juegos",
+        "seesaw": "un balancín",
+        "playhouse": "una casita de juegos",
+        "trampoline": "una cama elástica",
+        "balance_beam": "una barra de equilibrio",
+        "agility_trail": "un circuito de agilidad",
+        "horizontal_bar": "una barra fija",
+        "hopscotch": "una rayuela"
       },
       "lacks": {
         "slide": "un tobogán",
@@ -467,7 +475,15 @@
         "stroller_access": "acceso para carritos",
         "accessible_toilets": "aseos accesibles",
         "accessible_parking": "una plaza de aparcamiento accesible",
-        "inclusive_play": "juegos inclusivos"
+        "inclusive_play": "juegos inclusivos",
+        "play_structure": "una estructura de juegos",
+        "seesaw": "un balancín",
+        "playhouse": "una casita de juegos",
+        "trampoline": "una cama elástica",
+        "balance_beam": "una barra de equilibrio",
+        "agility_trail": "un circuito de agilidad",
+        "horizontal_bar": "una barra fija",
+        "hopscotch": "una rayuela"
       }
     },
     "statusAria": "Estado: {{status}}"

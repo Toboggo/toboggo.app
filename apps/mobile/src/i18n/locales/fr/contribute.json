@@ -443,7 +443,15 @@
         "stroller_access": "un accès pour poussette",
         "accessible_toilets": "des toilettes accessibles",
         "accessible_parking": "une place de parking accessible",
-        "inclusive_play": "un jeu inclusif"
+        "inclusive_play": "un jeu inclusif",
+        "play_structure": "une structure de jeux",
+        "seesaw": "une bascule",
+        "playhouse": "une cabane de jeu",
+        "trampoline": "un trampoline",
+        "balance_beam": "une poutre d’équilibre",
+        "agility_trail": "un parcours d’agilité",
+        "horizontal_bar": "une barre fixe",
+        "hopscotch": "une marelle"
       },
       "lacks": {
         "slide": "de toboggan",
@@ -467,7 +475,15 @@
         "stroller_access": "d’accès pour poussette",
         "accessible_toilets": "de toilettes accessibles",
         "accessible_parking": "de place de parking accessible",
-        "inclusive_play": "de jeu inclusif"
+        "inclusive_play": "de jeu inclusif",
+        "play_structure": "de structure de jeux",
+        "seesaw": "de bascule",
+        "playhouse": "de cabane de jeu",
+        "trampoline": "de trampoline",
+        "balance_beam": "de poutre d’équilibre",
+        "agility_trail": "de parcours d’agilité",
+        "horizontal_bar": "de barre fixe",
+        "hopscotch": "de marelle"
       }
     },
     "statusAria": "Statut : {{status}}"

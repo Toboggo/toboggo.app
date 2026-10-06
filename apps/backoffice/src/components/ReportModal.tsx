@@ -9,6 +9,7 @@ import {
   createMaintenance,
   logActivity,
   listAuditLog,
+  listReportConfirmationCounts,
   REPORT_REASON_LABEL,
   type Report,
 } from "@toboggo/shared";
@@ -65,6 +66,36 @@ function ReportHistory({ reportId }: { reportId: string }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Réponses des parents sur place (fiche parc mobile). Indicatif : un vote
+ * « résolu » ne clôture jamais le signalement — la modération décide.
+ * Lecture via RLS (`report_confirmations_select` : staff / gestionnaires).
+ */
+function ReportConfirmations({ reportId }: { reportId: string }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["bo-report-confirmations", reportId],
+    queryFn: () => listReportConfirmationCounts([reportId]),
+  });
+  const counts = data?.[reportId] ?? { still_present: 0, resolved: 0 };
+  return (
+    <div style={{ fontSize: 13 }}>
+      <strong>Confirmations des parents :</strong>{" "}
+      {isLoading ? (
+        "Chargement…"
+      ) : isError ? (
+        "Indisponible."
+      ) : (
+        <>
+          {counts.still_present} « Toujours présent » · {counts.resolved} « Problème résolu »
+          <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>
+            Indicatif : la résolution reste décidée par la modération.
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -210,6 +241,7 @@ export function ReportModal({
               <strong>Détail :</strong> {report.comment}
             </div>
           )}
+          {isAdmin && <ReportConfirmations reportId={report.id} />}
           {report.photo && (
             <div>
               <strong>Photo transmise :</strong>{" "}

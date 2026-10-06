@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button, DataTable, Input, Select, type DataTableColumn } from "@toboggo/design-system";
-import { listReports, toCsv, downloadCsv, REPORT_REASON_LABEL, type ReportCategory, type ReportStatus } from "@toboggo/shared";
+import {
+  listReports,
+  listReportConfirmationCounts,
+  toCsv,
+  downloadCsv,
+  REPORT_REASON_LABEL,
+  type ReportCategory,
+  type ReportStatus,
+} from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ReportStatusTag, ReportSeverityTag } from "../components/StatusTag";
 import { ReportModal, type ReportWithPark } from "../components/ReportModal";
@@ -39,7 +47,7 @@ const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short
 
 export default function Reports() {
   const navigate = useNavigate();
-  const { communeId } = useOrgScope();
+  const { communeId, isAdmin } = useOrgScope();
   const { canResolveReport } = usePermissions();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selected, setSelected] = useState<ReportWithPark | null>(null);
@@ -78,6 +86,15 @@ export default function Reports() {
     queryFn: () => listReports({ communeId }) as Promise<ReportWithPark[]>,
   });
   const reports = data ?? [];
+
+  // Confirmations des parents (« Toujours présent » / « Problème résolu ») :
+  // indicatives, côté Admin uniquement — la résolution reste décidée ici.
+  const reportIds = reports.map((r) => r.id);
+  const { data: confirmations = {} } = useQuery({
+    queryKey: ["bo-report-confirmations", reportIds],
+    queryFn: () => listReportConfirmationCounts(reportIds),
+    enabled: isAdmin && reportIds.length > 0,
+  });
 
   const filtered = reports
     .filter((r) => status === "all" || r.status === status)
@@ -169,6 +186,24 @@ export default function Reports() {
       header: "Signalé par",
       render: (r) => r.reported_by_name,
     },
+    ...(isAdmin
+      ? [
+          {
+            key: "confirmations",
+            header: "Confirmations",
+            render: (r: ReportWithPark) => {
+              const c = confirmations[r.id];
+              if (!c) return <span className={styles.parkMeta}>—</span>;
+              return (
+                <>
+                  <span>{c.still_present} toujours présent</span>
+                  <span className={styles.parkMeta}>{c.resolved} résolu</span>
+                </>
+              );
+            },
+          } satisfies DataTableColumn<ReportWithPark>,
+        ]
+      : []),
     {
       key: "status",
       header: "Statut",

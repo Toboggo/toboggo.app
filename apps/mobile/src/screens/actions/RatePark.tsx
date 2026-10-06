@@ -7,6 +7,7 @@ import { addMedia, buildDraftKey, createReview, getParkDisplayName, getReview, I
 import { ThankYou } from "../../components/flow/ThankYou";
 import { PhotoPicker } from "../../components/PhotoPicker";
 import { addParkFromHref } from "../../lib/addParkEntry";
+import { FaceChoice } from "../../components/flow/FaceChoice";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
 import { RecapCard, RecapRow, PhotoThumbs, dedupeAddress } from "../../components/flow/Recap";
@@ -25,7 +26,6 @@ const CRITERIA: { key: keyof ReviewSubRatings; labelKey: string }[] = [
   { key: "equipment", labelKey: "rate.criteria.equipment" },
   { key: "comfort", labelKey: "rate.criteria.comfort" },
 ];
-const FACES = ["😞", "😐", "😄"];
 const AGE_BANDS: AgeBand[] = ["under3", "3-6", "6-12"];
 
 /** `?stars=N` (1–5) — note déjà choisie dans le rappel de visite post-itinéraire. */
@@ -499,24 +499,13 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
                   <h3 className={styles.sectionTitle} id="rate-criteria">{t("rate.criteriaTitle")}</h3>
                   <div className={styles.detailsCard}>
                     {CRITERIA.map((c) => (
-                      <div key={c.key} className={styles.faceRow}>
-                        <span className={styles.triLabel} id={`face-${c.key}`}>{t(c.labelKey)}</span>
-                        <div className={styles.triGroup} role="radiogroup" aria-labelledby={`face-${c.key}`}>
-                          {FACES.map((face, i) => (
-                            <button
-                              key={i}
-                              type="button"
-                              role="radio"
-                              aria-checked={draft.subRatings[c.key] === i + 1}
-                              aria-label={faceLabel(i + 1)}
-                              className={styles.faceBtn}
-                              onClick={() => patch({ subRatings: { ...draft.subRatings, [c.key]: i + 1 } })}
-                            >
-                              {face}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
+                      <FaceChoice
+                        key={c.key}
+                        id={c.key}
+                        label={t(c.labelKey)}
+                        value={draft.subRatings[c.key]}
+                        onChange={(v) => patch({ subRatings: { ...draft.subRatings, [c.key]: v } })}
+                      />
                     ))}
                   </div>
                 </section>

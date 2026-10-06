@@ -10,6 +10,9 @@ import { dedupeAddress } from "./Recap";
 import { MissingParkCard, MissingParkSheet } from "./MissingPark";
 import styles from "./Flow.module.css";
 
+/** Nombre de résultats montrés par « page ». */
+const PAGE_SIZE = 5;
+
 /** Carte compacte d'un parc : photo (ou repli de marque), nom, adresse, méta. */
 export function ParkCardMini({
   park,
@@ -69,6 +72,8 @@ export function ParkChooser({
   const { hasFix, lat, lng } = useGeo();
   const [query, setQuery] = useState("");
   const [explain, setExplain] = useState(false);
+  // Résultats montrés : 5 d'abord, +5 à chaque « Voir plus » ; retour à 5 à chaque nouvelle recherche.
+  const [shown, setShown] = useState(PAGE_SIZE);
   const enabled = query.trim().length >= 2;
   const { data: results = [], isFetching, isError, refetch } = useQuery({
     queryKey: ["park-chooser", query.trim()],
@@ -94,7 +99,10 @@ export function ParkChooser({
         label={t("flow.chooser.searchLabel")}
         placeholder={t("picker.placeholder")}
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setShown(PAGE_SIZE);
+        }}
         autoComplete="off"
       />
       <div aria-live="polite">
@@ -112,7 +120,7 @@ export function ParkChooser({
         )}
       </div>
       <div className={styles.parkList}>
-        {results.map((p) => (
+        {results.slice(0, shown).map((p) => (
           <ParkCardMini
             key={p.id}
             park={p}
@@ -122,6 +130,11 @@ export function ParkChooser({
           />
         ))}
       </div>
+      {results.length > shown && (
+        <button type="button" className={styles.moreButton} onClick={() => setShown((n) => n + PAGE_SIZE)}>
+          {t("flow.chooser.showMore")}
+        </button>
+      )}
       {/* Toujours accessible : aussi sans résultat, et même si la recherche a échoué. */}
       <MissingParkCard onPress={() => setExplain(true)} />
       {!selected && <p className={styles.chooseHint}>{t("flow.chooser.selectToContinue")}</p>}

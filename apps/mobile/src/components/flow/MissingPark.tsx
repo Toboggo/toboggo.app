@@ -45,7 +45,7 @@ export function MissingParkSheet({ open, onClose, onAddPark }: { open: boolean; 
   const { t } = useTranslation("contribute");
   const { t: tCommon } = useTranslation("common");
   return (
-    <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop label={t("flow.missing.title")}>
+    <BottomSheet open={open} onClose={onClose} snapPoints={["fit"]} initialSnap={0} showBackdrop label={t("flow.missing.title")} handleColor="color-mix(in srgb, var(--color-text) 22%, var(--color-surface))">
       <div className={styles.sheet}>
         <button type="button" className={styles.close} aria-label={tCommon("action.close")} onClick={onClose}>
           <Icon name="ic-close" size={18} />

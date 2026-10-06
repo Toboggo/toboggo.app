@@ -101,7 +101,7 @@
   width: 40px;
   height: 5px;
   border-radius: var(--radius-pill);
-  background: var(--color-border-strong);
+  background: var(--sheet-grabber, var(--color-border-strong));
 }
 .sheetBody {
   flex: 1;

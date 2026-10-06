@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type CSSProperties,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
@@ -53,6 +54,8 @@ export interface BottomSheetProps {
    * back to whatever opened it. Left unset, behaviour is unchanged.
    */
   label?: string;
+  /** Opt-in handle colour for this sheet only (any CSS colour); default keeps the shared look. */
+  handleColor?: string;
 }
 
 const GRAB_H = 26; // handle strip — added on top of a `"fit"` content height
@@ -133,6 +136,7 @@ export function BottomSheet({
   onOverswipeUp,
   floating = false,
   label,
+  handleColor,
 }: BottomSheetProps) {
   const controlled = snapIndex != null;
   const lastIdx = snapPoints.length - 1;
@@ -438,7 +442,11 @@ export function BottomSheet({
         data-dragging={dragging ? "1" : undefined}
         data-docked={docked ? "1" : undefined}
         data-floating={floating ? "1" : undefined}
-        style={{ height: paintedHeight, bottom: floating ? bottomInset : undefined }}
+        style={{
+          height: paintedHeight,
+          bottom: floating ? bottomInset : undefined,
+          ...(handleColor ? ({ "--sheet-grabber": handleColor } as CSSProperties) : null),
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={endDrag}

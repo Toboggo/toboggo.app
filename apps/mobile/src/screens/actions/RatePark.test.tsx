@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { act, render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { buildDraftKey, createReview, listMyReviews, readDraft, searchParks, uploadPhoto, writeDraft, type DraftPrincipal } from "@toboggo/shared";
@@ -427,6 +427,27 @@ describe("RatePark — parcours en 3 étapes", () => {
     }
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Propreté" })).getByRole("radio", { name: "Mauvais" }));
     fireEvent.click(within(screen.getByRole("radiogroup", { name: "Sécurité" })).getByRole("radio", { name: "Bon" }));
+    await waitFor(() => {
+      const d = readDraft(key("p1", { userId: "u1" }), READ) as { subRatings?: Record<string, number> } | null;
+      expect(d?.subRatings).toEqual({ clean: 1, safety: 3, equipment: 2, comfort: 2 });
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continuer" }));
+    expect(await screen.findByText(/Propreté : Mauvais · Sécurité : Bon · Équipements : Moyen · Confort : Moyen/)).toBeTruthy();
+  });
+
+  it("deux changements successifs sur deux critères sont tous deux conservés (formulaire, brouillon, récapitulatif)", async () => {
+    renderRate();
+    await rate(4);
+    const radio = (crit: string, name: string) =>
+      within(screen.getByRole("radiogroup", { name: crit })).getByRole("radio", { name });
+    // Les deux clics partent dans le même `act` : pas de rendu entre eux.
+    act(() => {
+      fireEvent.click(radio("Propreté", "Mauvais"));
+      fireEvent.click(radio("Sécurité", "Bon"));
+    });
+    expect(radio("Propreté", "Mauvais").getAttribute("aria-checked")).toBe("true");
+    expect(radio("Sécurité", "Bon").getAttribute("aria-checked")).toBe("true");
+    expect(radio("Équipements", "Moyen").getAttribute("aria-checked")).toBe("true");
     await waitFor(() => {
       const d = readDraft(key("p1", { userId: "u1" }), READ) as { subRatings?: Record<string, number> } | null;
       expect(d?.subRatings).toEqual({ clean: 1, safety: 3, equipment: 2, comfort: 2 });

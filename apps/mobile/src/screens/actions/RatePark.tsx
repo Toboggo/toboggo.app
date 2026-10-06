@@ -144,6 +144,7 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
 
   const {
     value: draft,
+    setValue: setDraft,
     patch,
     clear: clearRateDraft,
     flush: flushRateDraft,
@@ -504,7 +505,8 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
                         id={c.key}
                         label={t(c.labelKey)}
                         value={draft.subRatings[c.key]}
-                        onChange={(v) => patch({ subRatings: { ...draft.subRatings, [c.key]: v } })}
+                        // Mise à jour fonctionnelle : deux changements rapprochés ne s'écrasent pas.
+                        onChange={(v) => setDraft((d) => ({ ...d, subRatings: { ...d.subRatings, [c.key]: v } }))}
                       />
                     ))}
                   </div>

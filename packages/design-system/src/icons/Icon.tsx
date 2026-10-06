@@ -65,6 +65,10 @@ export type IconName =
   | "ic-square-pen"
   | "ic-more"
   | "ic-clock"
+  | "ic-link"
+  | "ic-mail"
+  | "ic-message"
+  | "ic-whatsapp"
   | "ic-warning";
 
 const SPRITE_URL = "/icons-sprite.svg"; // servi depuis public/ de chaque app

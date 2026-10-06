@@ -5,8 +5,8 @@
   "directions": "Directions",
   "directionsUnavailable": "Directions unavailable: missing park coordinates.",
   "directionsSheet": {
-    "title": "Open directions with",
-    "subtitle": "Choose your navigation app",
+    "title": "Choose directions",
+    "subtitle": "To {{name}}",
     "apple": "Maps",
     "google": "Google Maps",
     "waze": "Waze"

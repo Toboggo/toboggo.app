@@ -125,7 +125,7 @@ describe("ParkPreview — Itinéraire CTA", () => {
     fireEvent.click(screen.getByText("Itinéraire"));
 
     // The sheet opens first — no external navigation before a real choice.
-    expect(screen.getByText("Ouvrir l’itinéraire avec")).toBeTruthy();
+    expect(screen.getByText("Choisir l’itinéraire")).toBeTruthy();
     expect(window.location.assign).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByText("Google Maps"));
@@ -144,14 +144,14 @@ describe("ParkPreview — Itinéraire CTA", () => {
 
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(visits.calls).toEqual([]);
-    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
+    expect(screen.queryByText("Choisir l’itinéraire")).toBeNull();
   });
 
   it("missing coordinates: shows a toast, sheet never opens, navigates nowhere, does not crash", () => {
     renderPreview({ ...PARK, latitude: null as unknown as number, longitude: null as unknown as number });
     expect(() => fireEvent.click(screen.getByText("Itinéraire"))).not.toThrow();
 
-    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
+    expect(screen.queryByText("Choisir l’itinéraire")).toBeNull();
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
     expect(screen.queryByText("ANCIEN ÉCRAN FACTICE")).toBeNull();
@@ -161,7 +161,7 @@ describe("ParkPreview — Itinéraire CTA", () => {
     renderPreview({ ...PARK, latitude: 0, longitude: 0 });
     fireEvent.click(screen.getByText("Itinéraire"));
 
-    expect(screen.queryByText("Ouvrir l’itinéraire avec")).toBeNull();
+    expect(screen.queryByText("Choisir l’itinéraire")).toBeNull();
     expect(window.location.assign).not.toHaveBeenCalled();
     expect(toasts.list).toEqual(["Itinéraire indisponible : coordonnées du parc manquantes."]);
   });

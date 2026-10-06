@@ -9,10 +9,10 @@ Utilisés uniquement dans le bottom sheet "Ouvrir l'itinéraire avec"
   distribue sous licence CC0 — les marques elles-mêmes restent la propriété de
   leurs détenteurs respectifs et ne doivent pas être modifiées (couleur,
   proportions) au-delà d'un redimensionnement uniforme.
-- `apple.svg` : **pictogramme générique** (boussole), pas le logo Apple Plans.
-  Apple ne met à disposition aucune icône "Maps" réutilisable par des tiers
-  (politique de marque). Couleur Toboggo (`--color-primary` #2fa37c), pas une
-  marque déposée.
+- `apple.svg` : **pictogramme générique Toboggo** (carte pliée + repère), pas
+  le logo Apple Plans — à ne jamais présenter comme tel. Apple ne met à
+  disposition aucune icône « Maps » réutilisable par des tiers (politique de
+  marque). Couleur Toboggo (`--color-primary` #2fa37c), pas une marque déposée.
 
 À vérifier par le fondateur avant tout usage élargi (au-delà de ce sélecteur)
 ou toute exposition publique/marketing de ces marques.

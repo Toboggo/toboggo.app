@@ -76,8 +76,12 @@
   },
   "share": {
     "email": "Correo",
-    "copied": "Enlace copiado al portapapeles",
-    "copy": "Copiar el enlace"
+    "copied": "Enlace copiado",
+    "copy": "Copiar el enlace",
+    "title": "Compartir este parque",
+    "more": "Más opciones",
+    "message": "Descubre {{name}} en Toboggo",
+    "copyFailed": "No se pudo copiar el enlace"
   },
   "rate": {
     "criteria": {

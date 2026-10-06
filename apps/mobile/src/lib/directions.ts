@@ -63,6 +63,7 @@ export function useDirections() {
     openDirections,
     directionsSheetProps: {
       open: target !== null,
+      parkName: target?.displayName,
       onChoose: choose,
       onClose: () => setTarget(null),
     },

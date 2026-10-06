@@ -76,8 +76,12 @@
   },
   "share": {
     "email": "Mail",
-    "copied": "Lien copié dans le presse-papiers",
-    "copy": "Copier le lien"
+    "copied": "Lien copié",
+    "copy": "Copier le lien",
+    "title": "Partager ce parc",
+    "more": "Plus d’options",
+    "message": "Découvre {{name}} sur Toboggo",
+    "copyFailed": "Impossible de copier le lien"
   },
   "rate": {
     "criteria": {

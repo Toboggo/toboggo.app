@@ -60,7 +60,7 @@ export async function listMyConfirmationKeys(userId: string): Promise<Set<string
   return new Set((data ?? []).map((r) => `${r.park_id}:${r.feature_id}`));
 }
 
-/** « Oui, c'est bon » — records a confirmation SIGNAL only. It never writes to
+/** « Confirmer » — records a confirmation SIGNAL only. It never writes to
  * `park_features` / `parks`: the server (RLS) also refuses a value that differs
  * from the recorded one. Re-confirming is a no-op. */
 export async function confirmParkFeature(input: {

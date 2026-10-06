@@ -5,17 +5,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Feature } from "@toboggo/shared";
 import "../../i18n/testInit";
 import { useGeo } from "../../lib/geo";
+import { useVerifySkips } from "../../lib/verifySkips";
+import VerifyList from "./VerifyList";
 import Contributions from "./Contributions";
 
 // The "server": confirmations survive a remount, like the real table does.
-const db = vi.hoisted(() => ({ confirmed: new Set<string>(), failNext: false, writes: 0 }));
+const db = vi.hoisted(() => ({ confirmed: new Set<string>(), failNext: false, writes: 0, alphaStatus: "available" }));
 
 const FEATURES: Feature[] = [
   { id: "f1", code: "toilets", category: "service", label_key: "toilets", icon_key: null, value_set: null, sort_order: 1, is_active: true, created_at: "" },
 ];
-const park = (id: string, name: string, distance_m: number) => ({
+const park = (id: string, name: string, distance_m: number, status = "available") => ({
   id, name, city: "Lyon", cover_photo: null, distance_m,
-  features: { toilets: { status: "available", value: null, quantity: null, category: "service", verified_at: null } },
+  features: { toilets: { status, value: null, quantity: null, category: "service", verified_at: null } },
 });
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -23,7 +25,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
   return {
     ...actual,
     listMyContributions: async () => [],
-    fetchNearbyParks: async () => [park("pA", "Parc Alpha", 100), park("pB", "Parc Beta", 300)],
+    fetchNearbyParks: async () => [park("pA", "Parc Alpha", 100, db.alphaStatus), park("pB", "Parc Beta", 300)],
     listFeatures: async () => FEATURES,
     listMyConfirmationKeys: async () => new Set(db.confirmed),
     countMyConfirmations: async () => db.confirmed.size,
@@ -48,13 +50,14 @@ function Probe() {
   const l = useLocation();
   return <div data-testid="url">{l.pathname + l.search}</div>;
 }
-function renderHub() {
+function renderHub(path = "/contributions") {
   return render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter initialEntries={["/contributions"]}>
+      <MemoryRouter initialEntries={[path]}>
         <Probe />
         <Routes>
           <Route path="/contributions" element={<Contributions />} />
+          <Route path="/contributions/verify" element={<VerifyList />} />
           <Route path="*" element={<div>OTHER</div>} />
         </Routes>
       </MemoryRouter>
@@ -66,10 +69,13 @@ beforeEach(() => {
   db.confirmed.clear();
   db.failNext = false;
   db.writes = 0;
+  db.alphaStatus = "available";
+  useVerifySkips.setState({ skipped: new Set() });
   useGeo.setState({ lat: 45.76, lng: 4.83, hasFix: true, permission: "granted" });
 });
 
-const yes = (park: string) => screen.findByRole("button", { name: new RegExp(`pour ${park}$`) });
+const skipBtn = () => screen.findByRole("button", { name: /Je ne sais pas pour/ });
+const yes = (park: string) => screen.findByRole("button", { name: new RegExp(`^Confirmer pour ${park} :`) });
 
 describe("« À vérifier près de chez vous » — confirmation", () => {
   it("retire le parc confirmé et affiche le suivant", async () => {
@@ -105,7 +111,7 @@ describe("« À vérifier près de chez vous » — confirmation", () => {
     fireEvent.click(await yes("Parc Alpha"));
     await screen.findByRole("alert");
     expect(screen.getByText("Parc Alpha")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /pour Parc Alpha$/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Confirmer pour Parc Alpha :/ }));
     await screen.findByText("Parc Beta");
     expect(screen.queryByText("Parc Alpha")).toBeNull();
   });
@@ -114,6 +120,60 @@ describe("« À vérifier près de chez vous » — confirmation", () => {
     renderHub();
     await yes("Parc Alpha");
     fireEvent.click(screen.getByRole("button", { name: /Modifier les informations de Parc Alpha/ }));
+    await waitFor(() => expect(screen.getByTestId("url").textContent).toBe("/contribute/edit?park=pA"));
+  });
+
+  it("formule la question de présence naturellement", async () => {
+    renderHub();
+    await screen.findByText("Y a-t-il des toilettes dans ce parc ?");
+  });
+
+  it("confirmer une absence enregistre la confirmation « unavailable »", async () => {
+    db.alphaStatus = "unavailable";
+    renderHub();
+    await screen.findByText("Ce parc ne dispose pas de toilettes. Est-ce exact ?");
+    fireEvent.click(await yes("Parc Alpha"));
+    await screen.findByText("Parc Beta");
+    expect(db.writes).toBe(1);
+  });
+});
+
+describe("« Je ne sais pas »", () => {
+  it("passe à la vérification suivante sans aucune écriture", async () => {
+    renderHub();
+    await screen.findByText("Parc Alpha");
+    fireEvent.click(await skipBtn());
+    await screen.findByText("Parc Beta");
+    expect(screen.queryByText("Parc Alpha")).toBeNull();
+    expect(db.writes).toBe(0);
+    expect(db.confirmed.size).toBe(0);
+  });
+
+  it("la question passée ne réapparaît ni sur la carte ni dans la liste complète", async () => {
+    const first = renderHub();
+    await screen.findByText("Parc Alpha");
+    fireEvent.click(await skipBtn());
+    await screen.findByText("Parc Beta");
+    first.unmount();
+    renderHub("/contributions/verify");
+    await screen.findByText("Parc Beta");
+    expect(screen.queryByText("Parc Alpha")).toBeNull();
+  });
+
+  it("affiche un état vide quand il n'en reste aucune", async () => {
+    renderHub();
+    await screen.findByText("Parc Alpha");
+    fireEvent.click(await skipBtn());
+    await screen.findByText("Parc Beta");
+    fireEvent.click(await skipBtn());
+    await screen.findByText(/Plus d’autre vérification/);
+    expect(db.writes).toBe(0);
+  });
+
+  it("« Modifier » reste disponible depuis la liste complète", async () => {
+    renderHub("/contributions/verify");
+    await screen.findByText("Parc Alpha");
+    fireEvent.click(screen.getAllByRole("button", { name: /Modifier les informations de Parc Alpha/ })[0]);
     await waitFor(() => expect(screen.getByTestId("url").textContent).toBe("/contribute/edit?park=pA"));
   });
 });

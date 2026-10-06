@@ -45,14 +45,6 @@ interface ReportDraft {
 const REPORT_DRAFT_VERSION = 2;
 const REPORT_DRAFT_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
 
-// Catégories sans pictogramme validé dans le sprite (docs/DESIGN-SYSTEM.md §7) —
-// emoji conservé en attendant. Les autres passent par reportReasonIcon().
-const REASON_EMOJI: Partial<Record<ReportReason, string>> = {
-  vegetation: "🌿",
-  accessibility: "♿",
-  wrong_info: "✏️",
-};
-
 // `value` is the stable string persisted to `reports.equipment` (unchanged
 // across locales, so moderation keeps a single vocabulary); only the visible
 // label is localized via `contribute:equipment.*`.
@@ -313,8 +305,8 @@ export default function ReportProblem() {
                     aria-pressed={reason === r}
                     onClick={() => patchReport({ reason: r, ...(EQUIPMENT_RELEVANT.includes(r) ? {} : { equipment: "" }) })}
                   >
-                    <span aria-hidden="true" style={{ fontSize: 24, minHeight: 24, display: "flex", alignItems: "center" }}>
-                      {ic ? <Icon name={ic} size={24} /> : REASON_EMOJI[r]}
+                    <span aria-hidden="true" className={styles.catIcon}>
+                      {ic && <Icon name={ic} size={24} />}
                     </span>
                     <span className={styles.catLabel}>{t(`reason.${r}`)}</span>
                   </button>

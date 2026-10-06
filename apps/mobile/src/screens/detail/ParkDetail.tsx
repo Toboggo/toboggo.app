@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { getParkDisplayName, haversineMeters, incrementParkViews } from "@toboggo/shared";
+import { getParkDisplayName, haversineMeters, incrementParkViews, respondToReport, type ActiveReport, type ReportResponse } from "@toboggo/shared";
 import { Icon, LogoMark } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { presentPlayCodes } from "../../lib/parkEquipment";
@@ -9,13 +9,17 @@ import { ParkGlyph } from "../../components/addPark/ParkGlyph";
 import { hasRating } from "../../lib/parkDisplay";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { useFormat } from "../../i18n/useFormat";
-import { useSession } from "../../lib/session";
+import { requireAccount, useSession } from "../../lib/session";
+import { invalidateActiveReports, useActiveReports, useRespondToReport } from "../../lib/reportConfirmations";
+import { useToastStore } from "../../lib/toast";
 import { useDirections } from "../../lib/directions";
 import { useGeo } from "../../lib/geo";
 import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
 import { DirectionsSheet } from "../../components/DirectionsSheet";
 import { ReviewMenu } from "../../components/ReviewMenu";
+import { ReportAlertCard } from "../../components/ReportAlertCard";
+import { ReportDetailsSheet } from "../../components/ReportDetailsSheet";
 import { trackEvent, distanceBucket } from "../../lib/analytics";
 import styles from "./Detail.module.css";
 
@@ -65,6 +69,10 @@ export default function ParkDetail() {
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const toggleFavoriteAction = useSession((s) => s.toggleFavorite);
   const { openDirections, directionsSheetProps } = useDirections();
+  const showToast = useToastStore((s) => s.show);
+  const { data: activeReports = [], isLoading: reportsLoading } = useActiveReports(id, !!park?.has_open_report);
+  const respond = useRespondToReport(id ?? "");
+  const [reportSheetOpen, setReportSheetOpen] = useState(false);
 
   useEffect(() => {
     if (id) void incrementParkViews(id);
@@ -126,6 +134,23 @@ export default function ParkDetail() {
     if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     swiped.current = true;
     goPhoto(dx < 0 ? 1 : -1);
+  }
+
+  // Réponse à UN signalement précis. Visiteur : connexion juste-à-temps, puis
+  // la réponse est envoyée au retour (le signal reste côté serveur uniquement).
+  function onRespondToReport(report: ActiveReport, response: ReportResponse) {
+    const parkId = park!.id;
+    if (!userId) {
+      requireAccount(navigate, () => {
+        navigate(`/park/${parkId}`, { replace: true });
+        respondToReport(report.id, response)
+          .then(() => invalidateActiveReports(parkId))
+          .then(() => showToast(t("reportAlert.thanks")))
+          .catch(() => showToast(t("reportAlert.error")));
+      });
+      return;
+    }
+    respond.mutate({ reportId: report.id, response });
   }
 
   function toggleFavorite() {
@@ -264,19 +289,31 @@ export default function ParkDetail() {
           </button>
         )}
 
-        {park.has_open_report && (
-          <div className={styles.issue}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-warning-text)" }} aria-hidden>
-              <path d="M12 9v4M12 17h.01" />
-              <path d="M10.3 3.9 2.5 17a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0z" />
-            </svg>
-            <span>{t("issueReported")}</span>
-          </div>
+        {activeReports.length > 0 ? (
+          <ReportAlertCard
+            reports={activeReports}
+            pending={respond.isPending}
+            error={respond.isError}
+            onOpenDetails={() => setReportSheetOpen(true)}
+            onRespond={onRespondToReport}
+          />
+        ) : park.has_open_report && reportsLoading ? null : (
+          <>
+            {park.has_open_report && (
+              <div className={styles.issue}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-warning-text)" }} aria-hidden>
+                  <path d="M12 9v4M12 17h.01" />
+                  <path d="M10.3 3.9 2.5 17a1.8 1.8 0 0 0 1.5 2.7h16a1.8 1.8 0 0 0 1.5-2.7L13.7 3.9a1.8 1.8 0 0 0-3.4 0z" />
+                </svg>
+                <span>{t("issueReported")}</span>
+              </div>
+            )}
+            <button type="button" className={styles.report} onClick={() => navigate(`/report?park=${park.id}`)}>
+              <Icon name="ic-flag" size={14} />
+              {t("reportProblem")}
+            </button>
+          </>
         )}
-        <button type="button" className={styles.report} onClick={() => navigate(`/report?park=${park.id}`)}>
-          <Icon name="ic-flag" size={14} />
-          {t("reportProblem")}
-        </button>
 
         {park.description && <p className={styles.desc}>{park.description}</p>}
 
@@ -421,6 +458,15 @@ export default function ParkDetail() {
       </div>
 
       <ShareSheet open={shareOpen} onClose={() => setShareOpen(false)} park={park} />
+      <ReportDetailsSheet
+        open={reportSheetOpen && activeReports.length > 0}
+        onClose={() => setReportSheetOpen(false)}
+        reports={activeReports}
+        onReportAnother={() => {
+          setReportSheetOpen(false);
+          navigate(`/report?park=${park.id}`);
+        }}
+      />
       <ContributeSheet
         open={contribOpen}
         onClose={() => setContribOpen(false)}

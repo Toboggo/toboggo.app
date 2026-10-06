@@ -1661,6 +1661,41 @@ export type Database = {
         }
         Relationships: []
       }
+      report_confirmations: {
+        Row: {
+          created_at: string
+          id: string
+          report_id: string
+          response: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          report_id: string
+          response: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          report_id?: string
+          response?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_confirmations_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reports: {
         Row: {
           category: Database["public"]["Enums"]["report_category"]
@@ -2600,6 +2635,20 @@ export type Database = {
         Args: { p_org_id: string; p_uid: string }
         Returns: Database["public"]["Enums"]["team_role"]
       }
+      park_active_reports: {
+        Args: { p_park_id: string }
+        Returns: {
+          category: Database["public"]["Enums"]["report_category"]
+          created_at: string
+          description: string
+          equipment_label: string
+          id: string
+          my_response: string
+          resolved_count: number
+          status: Database["public"]["Enums"]["report_status"]
+          still_present_count: number
+        }[]
+      }
       park_is_visible: { Args: { p_park_id: string }; Returns: boolean }
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
@@ -2642,6 +2691,10 @@ export type Database = {
       postgis_version: { Args: never; Returns: string }
       postgis_wagyu_version: { Args: never; Returns: string }
       recalculate_park_score: { Args: { p_park_id: string }; Returns: string }
+      respond_to_report: {
+        Args: { p_report_id: string; p_response: string }
+        Returns: undefined
+      }
       review_park_edit: {
         Args: { p_decision: string; p_edit_id: string; p_note?: string }
         Returns: Json

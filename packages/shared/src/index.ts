@@ -5,6 +5,7 @@ export * from "./api/auth";
 export * from "./api/parks";
 export * from "./api/reviews";
 export * from "./api/reports";
+export * from "./api/reportConfirmations";
 export * from "./api/profile";
 export * from "./api/children";
 export * from "./api/maintenance";

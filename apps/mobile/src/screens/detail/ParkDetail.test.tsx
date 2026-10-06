@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { reverseGeocode, searchPlaces, type Park } from "@toboggo/shared";
+import { listActiveReports, respondToReport, reverseGeocode, searchPlaces, type ActiveReport, type Park } from "@toboggo/shared";
 import "../../i18n/testInit";
 import ParkDetail from "./ParkDetail";
 
@@ -13,11 +13,14 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     incrementParkViews: vi.fn().mockResolvedValue(undefined),
     reverseGeocode: vi.fn(),
     searchPlaces: vi.fn(),
+    listActiveReports: vi.fn(),
+    respondToReport: vi.fn(),
   };
 });
 
-const sess = vi.hoisted(() => ({ userId: "u1" as string | null, favorites: [] as string[] }));
+const sess = vi.hoisted(() => ({ userId: "u1" as string | null, favorites: [] as string[], requireAccount: vi.fn() }));
 vi.mock("../../lib/session", () => ({
+  requireAccount: sess.requireAccount,
   useSession: (sel?: (s: unknown) => unknown) => {
     const s = { userId: sess.userId, profile: { favorites: sess.favorites }, toggleFavorite: vi.fn() };
     return sel ? sel(s) : s;
@@ -253,9 +256,91 @@ describe("ParkDetail — jeux et signalements", () => {
     expect(screen.getByText("Signaler un problème")).toBeTruthy();
   });
 
-  it("avec signalement actif : l'alerte s'affiche", () => {
+  it("signalement signalé mais détail indisponible : repli sur l'ancienne alerte", async () => {
+    vi.mocked(listActiveReports).mockResolvedValue([]);
     renderDetail({ has_open_report: true });
-    expect(screen.getByText("Un problème a été signalé sur ce parc récemment.")).toBeTruthy();
+    expect(await screen.findByText("Un problème a été signalé sur ce parc récemment.")).toBeTruthy();
     expect(screen.getByText("Signaler un problème")).toBeTruthy();
+  });
+});
+
+function activeReport(over: Partial<ActiveReport> = {}): ActiveReport {
+  return {
+    id: "r1",
+    category: "broken_equipment",
+    description: "Toboggan fissuré",
+    equipment_label: null,
+    status: "open",
+    created_at: "2026-10-01T10:00:00Z",
+    still_present_count: 2,
+    resolved_count: 1,
+    my_response: null,
+    ...over,
+  };
+}
+
+describe("ParkDetail — confirmation communautaire des signalements", () => {
+  beforeEach(() => {
+    sess.userId = "u1";
+    sess.requireAccount.mockReset();
+    vi.mocked(respondToReport).mockReset().mockResolvedValue(undefined);
+    vi.mocked(listActiveReports).mockReset();
+    toasts.list = [];
+  });
+
+  it("remplace l'alerte et le lien par un encart unique avec les deux réponses", async () => {
+    vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
+    renderDetail({ has_open_report: true });
+    expect(await screen.findByText("Vous êtes sur place ?")).toBeTruthy();
+    expect(screen.getByText("Un problème a été signalé")).toBeTruthy();
+    expect(screen.queryByText("Signaler un problème")).toBeNull();
+    expect(screen.queryByText("Un problème a été signalé sur ce parc récemment.")).toBeNull();
+  });
+
+  it("« Toujours présent » puis changement vers « Problème résolu » : réponses envoyées pour ce signalement", async () => {
+    vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
+    renderDetail({ has_open_report: true });
+    fireEvent.click(await screen.findByRole("button", { name: "Toujours présent" }));
+    await waitFor(() => expect(respondToReport).toHaveBeenLastCalledWith("r1", "still_present"));
+    fireEvent.click(screen.getByRole("button", { name: "Problème résolu" }));
+    await waitFor(() => expect(respondToReport).toHaveBeenLastCalledWith("r1", "resolved"));
+  });
+
+  it("plusieurs signalements actifs : la réponse cible celui qui est choisi", async () => {
+    vi.mocked(listActiveReports).mockResolvedValue([
+      activeReport(),
+      activeReport({ id: "r2", category: "cleanliness", description: "Verre brisé" }),
+    ]);
+    renderDetail({ has_open_report: true });
+    const select = await screen.findByRole("combobox");
+    fireEvent.change(select, { target: { value: "r2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Problème résolu" }));
+    await waitFor(() => expect(respondToReport).toHaveBeenCalledWith("r2", "resolved"));
+  });
+
+  it("visiteur : connexion demandée au clic, aucune réponse envoyée avant", async () => {
+    sess.userId = null;
+    vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
+    renderDetail({ has_open_report: true });
+    fireEvent.click(await screen.findByRole("button", { name: "Toujours présent" }));
+    expect(sess.requireAccount).toHaveBeenCalledTimes(1);
+    expect(respondToReport).not.toHaveBeenCalled();
+  });
+
+  it("échec serveur : message d'erreur affiché", async () => {
+    vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
+    vi.mocked(respondToReport).mockRejectedValue(new Error("boom"));
+    renderDetail({ has_open_report: true });
+    fireEvent.click(await screen.findByRole("button", { name: "Problème résolu" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+  });
+
+  it("« Voir le signalement » ouvre le détail public et l'accès « Signaler un autre problème »", async () => {
+    vi.mocked(listActiveReports).mockResolvedValue([activeReport()]);
+    renderDetail({ has_open_report: true });
+    fireEvent.click(await screen.findByText("Voir le signalement"));
+    expect(await screen.findByText("Toboggan fissuré")).toBeTruthy();
+    expect(screen.getByText("2 confirmations « Toujours présent »")).toBeTruthy();
+    expect(screen.getByText("Signaler un autre problème")).toBeTruthy();
   });
 });

@@ -9,6 +9,9 @@ import PhoneMockup from "../PhoneMockup.astro";
 import PhotoPlaceholder from "../PhotoPlaceholder.astro";
 import StoreBadges from "../StoreBadges.astro";
 import { APP_URL } from "../../config/site";
+import { appScreen } from "../../lib/screens";
+
+const mainScreen = appScreen("park-detail");
 ---
 
 <section class="hero">
@@ -37,7 +40,7 @@ import { APP_URL } from "../../config/site";
           class="hero-photo"
         />
         <div class="hero-phone">
-          <PhoneMockup src="/screenshots/explorer.png" alt="Écran Explorer de l'application Toboggo, avec la carte et les parcs à proximité" />
+          {mainScreen && <PhoneMockup src={mainScreen.src} alt={mainScreen.alt} />}
         </div>
         <svg class="hero-doodle" width="42" height="42" viewBox="0 0 46 46" aria-hidden="true">
           <path d="M6 30 Q16 6 40 14" fill="none" stroke="var(--color-accent)" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 9" />

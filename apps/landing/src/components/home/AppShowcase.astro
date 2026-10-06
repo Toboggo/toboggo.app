@@ -4,7 +4,8 @@
  * mises en scène dans un cadre de téléphone (voir PhoneMockup). Sur desktop les téléphones
  * se chevauchent légèrement en éventail sur un fond doux ; sur mobile, défilement horizontal.
  * Les captures montrent les vrais parcs de Millau (sans photo : aucune photo aux droits
- * documentés) ; la fiche « Aire de jeux de Gourg de bade » est mise en avant au centre.
+ * documentés) ; la fiche « Aire de jeux de Gourg de bade » est l'écran principal (grand, en premier) ;
+ * Explorer, Filtres et Favoris sont secondaires. Aucun chevauchement, aucune rotation.
  */
 import Button from "../Button.astro";
 import PhoneMockup from "../PhoneMockup.astro";
@@ -12,7 +13,7 @@ import StoreBadges from "../StoreBadges.astro";
 import { APP_URL } from "../../config/site";
 import { appScreen } from "../../lib/screens";
 
-const SCREENS = ["explorer", "park-detail", "filters", "favorites"]
+const SCREENS = ["park-detail", "explorer", "filters", "favorites"]
   .map((id) => appScreen(id))
   .filter((screen): screen is NonNullable<ReturnType<typeof appScreen>> => screen !== null);
 ---
@@ -121,9 +122,13 @@ const SCREENS = ["explorer", "park-detail", "filters", "favorites"]
 
   .phone-item {
     flex: 0 0 auto;
-    width: 190px;
+    width: 176px;
     margin: 0;
     scroll-snap-align: center;
+  }
+
+  .phone-item--featured {
+    width: 232px;
   }
 
   .phone-item figcaption {
@@ -170,20 +175,23 @@ const SCREENS = ["explorer", "park-detail", "filters", "favorites"]
       max-width: 1080px;
       margin: 0 auto;
       gap: var(--space-5);
-      padding: var(--space-6) var(--space-6) var(--space-6);
+      padding: var(--space-5) var(--space-6) var(--space-5);
     }
 
-    /* Côte à côte, sans chevauchement ni inclinaison : chaque capture reste
-       entièrement visible. La fiche vitrine (Gourg de bade) est simplement plus
-       grande et légèrement surélevée. */
+    /* Hiérarchie : la fiche vitrine (Gourg de bade) est l'écran principal, grande et en
+       premier ; les trois autres sont secondaires, plus petits, alignés sur la même ligne
+       de base. Côte à côte : aucun chevauchement, aucune rotation, captures entières. */
     .phone-item {
-      width: 212px;
+      width: 188px;
       position: relative;
     }
 
     .phone-item--featured {
-      width: 244px;
-      transform: translateY(-20px);
+      width: 300px;
+    }
+
+    .phone-item--featured figcaption {
+      font-size: 15px;
     }
 
     .stage-doodle {

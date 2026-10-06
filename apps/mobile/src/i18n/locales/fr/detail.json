@@ -11,6 +11,7 @@
     "google": "Google Maps",
     "waze": "Waze"
   },
+  "openGallery": "Ouvrir la galerie de photos",
   "photos": "Photos",
   "reportProblem": "Signaler un problème",
   "walkDistance": "{{minutes}} · {{distance}}",
@@ -22,7 +23,6 @@
   "ratingWithReviews_one": "{{rating}} ({{count}} avis)",
   "ratingWithReviews_other": "{{rating}} ({{count}} avis)",
   "issueReported": "Un problème a été signalé sur ce parc récemment.",
-  "noIssue": "Aucun problème signalé récemment",
   "equipment": {
     "title": "Jeux & équipements",
     "unavailable": "Informations sur les jeux indisponibles",

@@ -11,6 +11,7 @@
     "google": "Google Maps",
     "waze": "Waze"
   },
+  "openGallery": "Open the photo gallery",
   "photos": "Photos",
   "reportProblem": "Report a problem",
   "walkDistance": "{{minutes}} · {{distance}}",
@@ -22,7 +23,6 @@
   "ratingWithReviews_one": "{{rating}} ({{count}} review)",
   "ratingWithReviews_other": "{{rating}} ({{count}} reviews)",
   "issueReported": "A problem was reported at this park recently.",
-  "noIssue": "No problems reported recently",
   "equipment": {
     "title": "Play & equipment",
     "unavailable": "Equipment information unavailable",

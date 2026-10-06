@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getParkDisplayName, haversineMeters, incrementParkViews } from "@toboggo/shared";
-import { Icon, LogoMark, equipmentIcon } from "@toboggo/design-system";
+import { Icon, LogoMark } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
-import { EQUIPMENT_ICON } from "../../lib/equipmentIcons";
+import { presentPlayCodes } from "../../lib/parkEquipment";
+import { ParkGlyph } from "../../components/addPark/ParkGlyph";
 import { hasRating } from "../../lib/parkDisplay";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { useFormat } from "../../i18n/useFormat";
@@ -17,6 +18,8 @@ import { DirectionsSheet } from "../../components/DirectionsSheet";
 import { ReviewMenu } from "../../components/ReviewMenu";
 import { trackEvent, distanceBucket } from "../../lib/analytics";
 import styles from "./Detail.module.css";
+
+const SWIPE_MIN_PX = 40;
 
 function Stars({ value, size = 15 }: { value: number; size?: number }) {
   return (
@@ -45,12 +48,15 @@ export default function ParkDetail() {
   const { t: tf } = useTranslation("features");
   const f = useFormat();
   const featureLabel = useFeatureLabel();
+  const gameLabel = (code: string) => tContribute(`addPark.game.${code}`, { defaultValue: featureLabel(code) });
   const [params] = useSearchParams();
   const { data: park, isLoading } = usePark(id);
   const { data: reviews = [], isLoading: reviewsLoading } = useParkReviews(id);
   const { t: tContribute } = useTranslation("contribute");
   const { lat, lng } = useGeo();
   const [photoIndex, setPhotoIndex] = useState(0);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
   const [shareOpen, setShareOpen] = useState(params.get("share") === "1");
   const [contribOpen, setContribOpen] = useState(false);
   const userId = useSession((s) => s.userId);
@@ -98,7 +104,29 @@ export default function ParkDetail() {
   const score = f.rating(park.rating * 2);
   const tierColor =
     park.rating * 2 >= 8 ? "var(--color-success)" : park.rating * 2 >= 6 ? "var(--color-accent)" : "var(--color-error)";
-  const equip = park.play_equipment ?? [];
+  const equip = presentPlayCodes(park);
+
+  function goPhoto(delta: number) {
+    if (photos.length > 1) setPhotoIndex((i) => (i + delta + photos.length) % photos.length);
+  }
+
+  // Swipe horizontal : seuil de distance + dominance de l'axe X. Le scroll
+  // vertical reste natif (`touch-action: pan-y`) ; un swipe réussi neutralise
+  // le clic qui suit (sinon il ouvrirait la galerie).
+  function onSwipeStart(e: PointerEvent) {
+    swipeStart.current = { x: e.clientX, y: e.clientY };
+    swiped.current = false;
+  }
+  function onSwipeEnd(e: PointerEvent) {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start || photos.length < 2) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    swiped.current = true;
+    goPhoto(dx < 0 ? 1 : -1);
+  }
 
   function toggleFavorite() {
     if (!userId) return navigate("/login");
@@ -147,10 +175,31 @@ export default function ParkDetail() {
             </CircleBtn>
           </div>
         </div>
+        {hasPhotos && (
+          <div
+            className={styles.heroSwipe}
+            role="button"
+            tabIndex={0}
+            aria-label={t("openGallery")}
+            onPointerDown={onSwipeStart}
+            onPointerUp={onSwipeEnd}
+            onPointerCancel={() => (swipeStart.current = null)}
+            onClick={() => {
+              if (swiped.current) {
+                swiped.current = false;
+                return;
+              }
+              navigate(`/park/${park.id}/photos`);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") navigate(`/park/${park.id}/photos`);
+              else if (e.key === "ArrowLeft") goPhoto(-1);
+              else if (e.key === "ArrowRight") goPhoto(1);
+            }}
+          />
+        )}
         {photos.length > 1 && (
           <>
-            <div className={styles.heroTapL} onClick={() => setPhotoIndex((i) => (i > 0 ? i - 1 : photos.length - 1))} />
-            <div className={styles.heroTapR} onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)} />
             <div className={styles.dots}>
               {photos.map((_, i) => (
                 <span key={i} className={styles.dot} data-on={i === photoIndex ? "1" : undefined} />
@@ -215,7 +264,7 @@ export default function ParkDetail() {
           </button>
         )}
 
-        {park.has_open_report ? (
+        {park.has_open_report && (
           <div className={styles.issue}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--color-warning-text)" }} aria-hidden>
               <path d="M12 9v4M12 17h.01" />
@@ -223,14 +272,11 @@ export default function ParkDetail() {
             </svg>
             <span>{t("issueReported")}</span>
           </div>
-        ) : (
-          <div className={styles.ok}>
-            <span className={styles.okDot}>
-              <Icon name="ic-check" size={12} style={{ color: "var(--color-on-primary)" }} />
-            </span>
-            {t("noIssue")}
-          </div>
         )}
+        <button type="button" className={styles.report} onClick={() => navigate(`/report?park=${park.id}`)}>
+          <Icon name="ic-flag" size={14} />
+          {t("reportProblem")}
+        </button>
 
         {park.description && <p className={styles.desc}>{park.description}</p>}
 
@@ -265,17 +311,14 @@ export default function ParkDetail() {
             </div>
           ) : (
             <div className={styles.equipRow}>
-              {equip.slice(0, 3).map((eq) => {
-                const ic = equipmentIcon(eq);
-                return (
-                  <div key={eq} className={styles.equip}>
-                    <span className={styles.equipIcon}>
-                      {ic ? <Icon name={ic} size={24} /> : (EQUIPMENT_ICON[eq] ?? "🧩")}
-                    </span>
-                    <span>{featureLabel(eq)}</span>
-                  </div>
-                );
-              })}
+              {equip.slice(0, 3).map((eq) => (
+                <div key={eq} className={styles.equip}>
+                  <span className={styles.equipIcon}>
+                    <ParkGlyph code={eq} size={26} />
+                  </span>
+                  <span>{gameLabel(eq)}</span>
+                </div>
+              ))}
               {equip.length > 3 && (
                 <button type="button" className={styles.equip} onClick={() => navigate(`/park/${park.id}/amenities`)}>
                   <span className={styles.equipMore}>{t("equipment.more", { count: equip.length - 3 })}</span>

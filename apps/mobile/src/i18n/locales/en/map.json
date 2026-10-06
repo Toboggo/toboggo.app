@@ -18,8 +18,6 @@
     "ageValuePlus": "Ages {{min}} to {{max}}+",
     "ageMin": "Minimum age",
     "ageMax": "Maximum age",
-    "availability": "Availability",
-    "openNow": "Open now",
     "equipmentAccess": "Facilities and services",
     "reset": "Reset",
     "apply": "Show results",

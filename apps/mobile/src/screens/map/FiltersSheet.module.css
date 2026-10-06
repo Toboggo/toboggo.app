@@ -112,7 +112,7 @@ section > .sectionTitle {
 
 /* ── Âge ─────────────────────────────────────────────────────────────── */
 .slider {
-  --thumb: 28px;
+  --thumb: 44px; /* zone tactile ≥ 44px ; le dessin visible fait 28px (voir le thumb) */
   position: relative;
   height: 44px;
 }
@@ -146,15 +146,18 @@ section > .sectionTitle {
   pointer-events: none;
   margin: 0;
 }
+/* Poignée : boîte 44×44 (zone tactile) dont seul le disque central de 28px est
+   dessiné — cœur vert 10px, anneau blanc, filet vert, le reste transparent. */
 .slider input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
+  box-sizing: border-box;
   width: var(--thumb);
   height: var(--thumb);
+  border: 0;
   border-radius: 50%;
-  background: var(--color-primary);
-  border: 4px solid var(--color-surface);
-  box-shadow: 0 0 0 1.5px var(--color-primary), 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: radial-gradient(circle, var(--color-primary) 0 10px, var(--color-surface) 10px 13px, var(--color-primary) 13px 14px, transparent 14.5px);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
   cursor: pointer;
 }
 .slider input[type="range"]::-moz-range-thumb {
@@ -162,20 +165,19 @@ section > .sectionTitle {
   box-sizing: border-box;
   width: var(--thumb);
   height: var(--thumb);
+  border: 0;
   border-radius: 50%;
-  background: var(--color-primary);
-  border: 4px solid var(--color-surface);
-  box-shadow: 0 0 0 1.5px var(--color-primary), 0 2px 6px rgba(0, 0, 0, 0.25);
+  background: radial-gradient(circle, var(--color-primary) 0 10px, var(--color-surface) 10px 13px, var(--color-primary) 13px 14px, transparent 14.5px);
   cursor: pointer;
 }
 .slider input[type="range"]:focus-visible::-webkit-slider-thumb {
   outline: 2px solid var(--color-primary-pressed);
-  outline-offset: 3px;
+  outline-offset: -2px;
 }
 .ticks {
   position: relative;
   height: 18px;
-  margin: 0 14px;
+  margin: 0 22px;
   font-size: 12px;
   color: var(--color-text-muted);
 }
@@ -288,71 +290,6 @@ section > .sectionTitle {
 }
 .more span {
   flex: 1;
-}
-
-/* ── Ouvert maintenant ───────────────────────────────────────────────── */
-.toggleRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 52px;
-  padding: 6px 12px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-}
-.toggleGlyph {
-  flex: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-tint);
-  color: var(--color-primary-pressed);
-}
-.toggleLabel {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 14.5px;
-  color: var(--color-text);
-}
-/* Zone tactile 44px autour de l'interrupteur visuel 46×27. */
-.switch {
-  flex: none;
-  position: relative;
-  width: 46px;
-  height: 27px;
-  border: none;
-  border-radius: 999px;
-  background: var(--color-text-faint);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.switch::after {
-  content: "";
-  position: absolute;
-  inset: -9px -4px;
-}
-.switch[data-on="1"] {
-  background: var(--color-primary);
-}
-.knob {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 21px;
-  height: 21px;
-  border-radius: 50%;
-  background: var(--color-surface);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  transition: left 0.15s;
-}
-.switch[data-on="1"] .knob {
-  left: 22px;
 }
 
 /* ── Vue « Tous les jeux » ───────────────────────────────────────────── */

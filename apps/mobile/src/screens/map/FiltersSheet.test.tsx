@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "../../i18n/testInit";
 import { FiltersSheet } from "./FiltersSheet";
 import { useFilters, searchByLabel } from "../../lib/filters";
+import { trackEvent } from "../../lib/analytics";
+
+vi.mock("../../lib/analytics", () => ({ trackEvent: vi.fn() }));
 
 const feat = (code: string, sort_order: number) => ({
   id: code,
@@ -48,7 +51,7 @@ describe("FiltersSheet", () => {
   it("affiche sections, 6 jeux courants et 7 services (aucun « type de parc » inventé)", () => {
     renderSheet();
     expect(screen.getByRole("dialog", { name: "Filtres" })).toBeTruthy();
-    for (const h of ["Âge des enfants", "Jeux", "Disponibilité", "Équipements et services"]) expect(screen.getByText(h)).toBeTruthy();
+    for (const h of ["Âge des enfants", "Jeux", "Équipements et services"]) expect(screen.getByText(h)).toBeTruthy();
     expect(screen.queryByText("Type de parc")).toBeNull();
     for (const l of ["Toboggan", "Balançoire", "Escalade", "Jeux à ressort", "Bac à sable", "Tourniquet"]) {
       expect(screen.getByRole("button", { name: l }).getAttribute("aria-pressed")).toBe("false");
@@ -58,15 +61,24 @@ describe("FiltersSheet", () => {
     }
   });
 
-  it("services, jeux et « Ouvert maintenant » basculent dans le store", () => {
+  it("services et jeux basculent dans le store", () => {
     renderSheet();
     fireEvent.click(screen.getByRole("button", { name: "Toilettes" }));
     expect(useFilters.getState().amenities.wc).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Balançoire" }));
     expect(useFilters.getState().games).toEqual(["swing"]);
-    const sw = screen.getByRole("switch", { name: "Ouvert maintenant" });
-    fireEvent.click(sw);
-    expect(useFilters.getState().openNow).toBe(true);
+    expect(screen.queryByRole("switch")).toBeNull();
+  });
+
+  it("émet filter_applied { game } à chaque bascule d'un jeu (vue principale et puce)", async () => {
+    renderSheet();
+    fireEvent.click(screen.getByRole("button", { name: "Toboggan" }));
+    expect(trackEvent).toHaveBeenLastCalledWith("filter_applied", { filter_type: "game", filter_value: "slide" });
+    fireEvent.click(screen.getByRole("button", { name: "Voir tous les jeux" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Tyrolienne" }));
+    fireEvent.click(screen.getByRole("button", { name: "Valider mes choix" }));
+    fireEvent.click(screen.getByRole("button", { name: "Retirer Tyrolienne" }));
+    expect(trackEvent).toHaveBeenLastCalledWith("filter_applied", { filter_type: "game", filter_value: "zipline" });
   });
 
   it("« Voir tous les jeux » : vue secondaire dans le même dialogue, recherche, validation", async () => {

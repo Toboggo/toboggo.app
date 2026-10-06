@@ -10,6 +10,7 @@ import {
 } from "@toboggo/shared";
 import { DEFAULT_GEO_LABEL, requestBrowserLocation, useGeo } from "./geo";
 import { useSession } from "./session";
+import { useVerifySkips } from "./verifySkips";
 
 const VERIFY_RADIUS_M = 5000;
 
@@ -65,10 +66,14 @@ export function useVerifyNearby() {
     retry: (count, err) => !isConfirmationsUnavailable(err) && count < 3,
   });
 
+  const skipped = useVerifySkips((s) => s.skipped);
   const items = useMemo<ParkVerification[]>(() => {
     if (!nearby.data || !catalogue.data) return [];
-    return listParksToVerify(nearby.data, catalogue.data, confirmed.data ?? new Set());
-  }, [nearby.data, catalogue.data, confirmed.data]);
+    // A skipped question is treated like an answered one: the park's next
+    // question (or the next park) comes up instead.
+    const done = new Set([...(confirmed.data ?? []), ...skipped]);
+    return listParksToVerify(nearby.data, catalogue.data, done);
+  }, [nearby.data, catalogue.data, confirmed.data, skipped]);
 
   const confirm = useMutation({
     mutationFn: (v: ParkVerification) =>
@@ -95,6 +100,7 @@ export function useVerifyNearby() {
     state,
     items,
     confirm,
+    skippedAny: skipped.size > 0,
     retry: () => {
       void nearby.refetch();
       void catalogue.refetch();

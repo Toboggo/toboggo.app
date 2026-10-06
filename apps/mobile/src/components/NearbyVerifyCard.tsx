@@ -5,6 +5,7 @@ import { Button } from "@toboggo/design-system";
 import type { ParkVerification } from "@toboggo/shared";
 import { isConfirmationsUnavailable, useVerifyNearby, type VerifyNearbyState } from "../lib/useVerifyNearby";
 import { useToastStore } from "../lib/toast";
+import { useVerifySkips } from "../lib/verifySkips";
 import { VerifyItem } from "./VerifyItem";
 import styles from "./NearbyVerifyCard.module.css";
 
@@ -35,11 +36,14 @@ export function useVerifyActions() {
     });
   }
   const edit = (v: ParkVerification) => navigate(`/contribute/edit?park=${v.park.id}`);
+  // « Je ne sais pas »: local to the session, no write, no confirmation, no reward.
+  const skipVerification = useVerifySkips((s) => s.skip);
+  const skip = (v: ParkVerification) => skipVerification(`${v.park.id}:${v.feature.id}`);
   const failedId = verify.confirm.isError
     ? `${verify.confirm.variables?.park.id}:${verify.confirm.variables?.feature.id}`
     : null;
   const busyId = verify.confirm.isPending ? `${verify.confirm.variables?.park.id}:${verify.confirm.variables?.feature.id}` : null;
-  return { verify, confirm, edit, busyId, failedId };
+  return { verify, confirm, edit, skip, busyId, failedId };
 }
 
 /** Body states shared by the hub card and the full list. */
@@ -47,10 +51,13 @@ export function VerifyStateMessage({
   state,
   onRetry,
   onLocate,
+  skippedAny = false,
 }: {
   state: Exclude<VerifyNearbyState, "ready">;
   onRetry: () => void;
   onLocate: () => void;
+  /** The list ran out after the user passed on some questions. */
+  skippedAny?: boolean;
 }) {
   const { t } = useTranslation("contribute");
   const { t: tCommon } = useTranslation("common");
@@ -84,14 +91,14 @@ export function VerifyStateMessage({
       </div>
     );
   }
-  return <p className={styles.message}>{t("hub.verify.empty")}</p>;
+  return <p className={styles.message}>{t(skippedAny ? "hub.verify.emptyAfterSkip" : "hub.verify.empty")}</p>;
 }
 
 export function NearbyVerifyCard() {
   const navigate = useNavigate();
   const { t } = useTranslation("contribute");
   const { t: tCommon } = useTranslation("common");
-  const { verify, confirm, edit, busyId, failedId } = useVerifyActions();
+  const { verify, confirm, edit, skip, busyId, failedId } = useVerifyActions();
   const current = verify.items[0];
 
   return (
@@ -108,7 +115,12 @@ export function NearbyVerifyCard() {
         )}
       </div>
       {verify.state !== "ready" ? (
-        <VerifyStateMessage state={verify.state} onRetry={verify.retry} onLocate={verify.locate} />
+        <VerifyStateMessage
+          state={verify.state}
+          onRetry={verify.retry}
+          onLocate={verify.locate}
+          skippedAny={verify.skippedAny}
+        />
       ) : current ? (
         <VerifyItem
           item={current}
@@ -116,6 +128,7 @@ export function NearbyVerifyCard() {
           failed={failedId === `${current.park.id}:${current.feature.id}`}
           onConfirm={() => confirm(current)}
           onEdit={() => edit(current)}
+          onSkip={() => skip(current)}
         />
       ) : null}
     </section>

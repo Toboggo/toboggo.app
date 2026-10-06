@@ -184,7 +184,7 @@ describe("Contributions hub — « À vérifier près de chez vous »", () => {
     renderHub();
     await screen.findByText("À vérifier près de chez vous");
     await screen.findByText(/Activez la localisation/);
-    expect(screen.queryByRole("button", { name: /Oui, c’est bon/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Confirmer/ })).toBeNull();
   });
 });
 

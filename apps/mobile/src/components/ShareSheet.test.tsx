@@ -31,7 +31,9 @@ describe("ShareSheet", () => {
   it("canonical link uses the public production origin, never the current one", () => {
     expect(url).toBe(`${DEFAULT_PUBLIC_APP_URL}/park/p-1`);
     expect(url.startsWith(window.location.origin)).toBe(false);
-    expect(getParkShareUrl("p-1", "https://example.org/")).toBe("https://example.org/park/p-1");
+    expect(getParkShareUrl("p-1", "fr", "https://example.org/")).toBe("https://example.org/park/p-1");
+    expect(getParkShareUrl("p-1", "en", "https://example.org/")).toBe("https://example.org/park/p-1?lang=en");
+    expect(getParkShareUrl("p-1", "es", "https://example.org/")).toBe("https://example.org/park/p-1?lang=es");
   });
 
   it("shows title, park name and city; no Instagram", () => {

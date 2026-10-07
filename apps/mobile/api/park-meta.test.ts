@@ -19,8 +19,8 @@ function mockDb(rows: unknown[] | number) {
     typeof rows === "number" ? new Response("{}", { status: rows }) : new Response(JSON.stringify(rows), { status: 200 }),
   ));
 }
-const call = (id: string, lang = "fr") =>
-  handler.fetch(new Request(`https://app.example/api/park-meta?id=${id}`, { headers: { "accept-language": lang } }));
+const call = (id: string, lang?: string) =>
+  handler.fetch(new Request(`https://app.example/api/park-meta?id=${id}${lang ? `&lang=${lang}` : ""}`, { headers: { "accept-language": "es" } }));
 
 beforeEach(() => {
   vi.stubEnv("VITE_SUPABASE_URL", SB);
@@ -58,9 +58,25 @@ describe("park-meta", () => {
   it("EN / ES : pluriels et formats locaux", async () => {
     const row = { id: "p3", name: "Park", address_line: "1 Main St", city: "Lyon", rating: 4.25, review_count: 1, cover_photo: null, photos: [] };
     mockDb([row]);
-    expect(await (await call("p3", "en-US,en;q=0.9")).text()).toContain("⭐ 4.3/5 · 1 review\"");
+    expect(await (await call("p3", "en")).text()).toContain("⭐ 4.3/5 · 1 review\"");
     mockDb([{ ...row, review_count: 3 }]);
-    expect(await (await call("p3", "es-ES")).text()).toContain("⭐ 4,3/5 · 3 opiniones");
+    expect(await (await call("p3", "es")).text()).toContain("⭐ 4,3/5 · 3 opiniones");
+  });
+
+  it("langue déterministe : paramètre explicite, FR par défaut (Accept-Language ignoré), canonical par langue", async () => {
+    const row = { id: "p7", name: "Park", address_line: null, city: null, rating: 4.25, review_count: 2, cover_photo: null, photos: [] };
+    mockDb([row]);
+    const def = await (await call("p7")).text();
+    expect(def).toContain("⭐ 4,3/5 · 2 avis");
+    expect(def).toContain('<html lang="fr"');
+    expect(def).toContain('rel="canonical" href="https://app.example/park/p7"');
+    mockDb([row]);
+    const bad = await (await call("p7", "xx")).text();
+    expect(bad).toContain("2 avis");
+    mockDb([row]);
+    const en = await (await call("p7", "en")).text();
+    expect(en).toContain('<html lang="en"');
+    expect(en).toContain('rel="canonical" href="https://app.example/park/p7?lang=en"');
   });
 
   it("échappe le HTML du nom", async () => {
@@ -84,9 +100,21 @@ describe("park-meta", () => {
     expect(html).toContain('<div id="root">');
   });
 
-  it("erreur base : 200 sans cache, jamais mis en cache", async () => {
+  it("erreur base : shell + métadonnées génériques, 200, jamais en cache (pas de 404)", async () => {
     mockDb(500);
     const res = await call("p6");
+    expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toBe("no-store");
+    const html = await res.text();
+    expect(html).toContain('<div id="root">');
+    expect(html).toContain("<title>Toboggo</title>");
+    expect(html).not.toContain("noindex");
+  });
+
+  it("réseau en échec (exception) : même repli générique", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("boom"); }));
+    const res = await call("p8");
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('<div id="root">');
   });
 });

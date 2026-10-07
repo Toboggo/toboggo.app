@@ -7,6 +7,7 @@ import { useToastStore } from "../lib/toast";
 import { trackEvent, type AnalyticsEventProperties } from "../lib/analytics";
 import { buildShareText } from "../lib/parkShare";
 import { useFormat } from "../i18n/useFormat";
+import { useLocale } from "../i18n/useLocale";
 import styles from "./ShareSheet.module.css";
 
 type ShareChannel = AnalyticsEventProperties["park_shared"]["channel"];
@@ -18,12 +19,20 @@ export const DEFAULT_PUBLIC_APP_URL = "https://toboggo-app.vercel.app";
 
 /**
  * Lien public canonique du parc : origine publique configurée
- * (`VITE_PUBLIC_APP_URL`, sinon l'alias de production) + `/park/:id`, sans
- * query ni hash. Jamais l'origine courante : un partage depuis une Preview
+ * (`VITE_PUBLIC_APP_URL`, sinon l'alias de production) + `/park/:id` (+ `?lang=`
+ * pour EN/ES), sans hash. Jamais l'origine courante : un partage depuis une Preview
  * Vercel (protégée) ou le localhost doit rester ouvrable par n'importe qui.
  */
-export function getParkShareUrl(parkId: string, publicOrigin: string = import.meta.env.VITE_PUBLIC_APP_URL || DEFAULT_PUBLIC_APP_URL): string {
-  return new URL(`/park/${encodeURIComponent(parkId)}`, publicOrigin).toString();
+export function getParkShareUrl(
+  parkId: string,
+  language: string = "fr",
+  publicOrigin: string = import.meta.env.VITE_PUBLIC_APP_URL || DEFAULT_PUBLIC_APP_URL,
+): string {
+  const url = new URL(`/park/${encodeURIComponent(parkId)}`, publicOrigin);
+  // Langue explicite pour l'aperçu de lien (métadonnées rendues côté serveur) ;
+  // FR = défaut, donc pas de paramètre.
+  if (language === "en" || language === "es") url.searchParams.set("lang", language);
+  return url.toString();
 }
 
 async function copyText(text: string): Promise<boolean> {
@@ -55,6 +64,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   const { t } = useTranslation("contribute");
   const { t: tc } = useTranslation("common");
   const f = useFormat();
+  const { language } = useLocale();
   const showToast = useToastStore((s) => s.show);
   const [copied, setCopied] = useState(false);
   const resetTimer = useRef<number | undefined>(undefined);
@@ -64,7 +74,7 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   }, [open]);
   useEffect(() => () => window.clearTimeout(resetTimer.current), []);
 
-  const shareUrl = getParkShareUrl(park.id);
+  const shareUrl = getParkShareUrl(park.id, language);
   const displayName = getParkDisplayName(park, t);
   const city = park.city?.trim() || null;
   // Texte enrichi (nom, lieu, note) ; l'URL n'y figure qu'une fois, en fin de

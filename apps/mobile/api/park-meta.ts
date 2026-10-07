@@ -10,6 +10,9 @@
  * `anon` (déjà publique, lecture seule) — uniquement les parcs publiés et leurs
  * photos validées (`park_media.status = 'approved'`). Aucun secret.
  * Texte : mêmes règles et mêmes catalogues FR/EN/ES que le partage in-app.
+ * Langue : paramètre explicite `?lang=` du lien (FR par défaut). Le cache CDN
+ * étant indexé sur l'URL complète, une langue n'est jamais servie à la place
+ * d'une autre.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -63,12 +66,10 @@ function makeT(lang: Lang) {
   };
 }
 
-function pickLang(header: string | null): Lang {
-  for (const part of (header ?? "").split(",")) {
-    const code = part.trim().slice(0, 2).toLowerCase();
-    if ((LANGS as readonly string[]).includes(code)) return code as Lang;
-  }
-  return "fr";
+/** Langue explicite du lien partagé (`?lang=en|es`) ; tout le reste → FR. Jamais d'en-tête : le rendu est déterministe par URL. */
+function pickLang(param: string | null): Lang {
+  const code = (param ?? "").trim().toLowerCase();
+  return (LANGS as readonly string[]).includes(code) ? (code as Lang) : "fr";
 }
 
 const esc = (s: string) =>
@@ -133,7 +134,7 @@ async function loadShell(origin: string): Promise<string> {
 
 function injectMeta(
   html: string,
-  m: { lang: Lang; title: string; description: string; url: string; image: string; imageAlt: string; noindex: boolean },
+  m: { lang: Lang; generic?: boolean; title: string; description: string; url: string; image: string; imageAlt: string; noindex: boolean },
 ): string {
   const tags = [
     m.noindex ? `<meta name="robots" content="noindex" />` : null,
@@ -154,23 +155,25 @@ function injectMeta(
   ].filter(Boolean);
   return html
     .replace(/<html lang="[^"]*"/, `<html lang="${m.lang}"`)
-    .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(m.title)} — ${SITE_NAME}</title>`)
+    .replace(/<title>[\s\S]*?<\/title>/, m.generic ? `<title>${SITE_NAME}</title>` : `<title>${esc(m.title)} — ${SITE_NAME}</title>`)
     .replace(/<meta name="description"[^>]*>/, `<meta name="description" content="${esc(m.description)}" />`)
     .replace("</head>", `    ${tags.join("\n    ")}\n  </head>`);
 }
 
-export default {
-  async fetch(request: Request): Promise<Response> {
+async function handle(request: Request, shellRef: { html?: string }): Promise<Response> {
+  {
     const reqUrl = new URL(request.url);
     const rawId = reqUrl.searchParams.get("id") ?? reqUrl.pathname.split("/").filter(Boolean).pop() ?? "";
     const id = ID_RE.test(rawId) ? rawId : "";
-    const lang = pickLang(request.headers.get("accept-language"));
+    const lang = pickLang(reqUrl.searchParams.get("lang"));
     const t = makeT(lang);
 
     // Production : origine publique configurée ; Preview : l'hôte du déploiement,
     // pour que canonical et images restent cohérents et vérifiables.
     const publicOrigin = process.env.VITE_PUBLIC_APP_URL || DEFAULT_PUBLIC_APP_URL;
     const origin = process.env.VERCEL_ENV === "production" ? publicOrigin : reqUrl.origin;
+    const canonicalUrl = new URL(`/park/${encodeURIComponent(id || rawId)}`, origin);
+    if (lang !== "fr") canonicalUrl.searchParams.set("lang", lang);
     const fallbackImage = new URL("/og/park-fallback.png", origin).toString();
 
     const lookupResult = id ? await fetchPark(id) : ({ kind: "missing" } as Lookup);
@@ -182,11 +185,14 @@ export default {
     } catch {
       return new Response("Service indisponible", { status: 502, headers: { "Cache-Control": "no-store" } });
     }
+    shellRef.html = shell;
 
     const supabaseBase = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL;
     const photo = found ? mainPhoto(found, supabaseBase) : null;
     const fmt = new Intl.NumberFormat(INTL[lang], { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     const name = found ? getParkDisplayName({ ...found, name: found.name ?? "" }, t) : SITE_NAME;
+    // Parc non trouvé OU base injoignable : métadonnées génériques, le shell est
+    // toujours servi pour que la fiche reste accessible (le client retente).
     const description = found
       ? buildShareDescription(
           { name, address_line: found.address_line, city: found.city, rating: found.rating ?? 0, review_count: found.review_count ?? 0 },
@@ -198,11 +204,12 @@ export default {
     const html = injectMeta(shell, {
       lang,
       title: name,
+      generic: !found,
       description,
-      url: new URL(`/park/${encodeURIComponent(id || rawId)}`, origin).toString(),
+      url: canonicalUrl.toString(),
       image: photo ?? fallbackImage,
       imageAlt: found && photo ? name : SITE_NAME,
-      noindex: !found,
+      noindex: lookupResult.kind === "missing",
     });
 
     // Parc introuvable : l'app affiche son propre état « introuvable » ; 404 court
@@ -216,7 +223,25 @@ export default {
           : "no-store";
     return new Response(html, {
       status,
-      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": cache, Vary: "Accept-Language" },
+      headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": cache },
     });
+  }
+}
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    const shellRef: { html?: string } = {};
+    try {
+      return await handle(request, shellRef);
+    } catch {
+      // Repli : toute erreur inattendue après lecture du shell → l'app seule
+      // (métadonnées génériques d'index.html), jamais une page d'erreur.
+      if (shellRef.html) {
+        return new Response(shellRef.html, {
+          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" },
+        });
+      }
+      return new Response("Service indisponible", { status: 502, headers: { "Cache-Control": "no-store" } });
+    }
   },
 };

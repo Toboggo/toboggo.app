@@ -64,6 +64,9 @@ def main():
     region_cfg = config["regions"][args.region]
     country_code = region_cfg["country_code"]
     timezone = region_cfg["timezone"]
+    # Libellé technique stocké quand OSM n'a pas de `name` (voir naming.py) ;
+    # absent ⇒ défaut de l'importeur (« Aire de jeux », FR/ES inchangés).
+    placeholder_name = region_cfg.get("placeholder_name")
 
     if args.cmd == "import-local":
         cmd = [
@@ -73,6 +76,7 @@ def main():
             "--country-code", country_code,
             "--timezone", timezone,
         ]
+        if placeholder_name: cmd += ["--placeholder-name", placeholder_name]
         if args.commit: cmd.append("--commit")
         if args.publish: cmd.append("--publish")
         run(cmd)
@@ -88,6 +92,7 @@ def main():
         "--country-code", country_code,
         "--timezone", timezone,
     ]
+    if placeholder_name: cmd += ["--placeholder-name", placeholder_name]
     if args.commit: cmd.append("--commit")
     if args.publish: cmd.append("--publish")
     run(cmd)

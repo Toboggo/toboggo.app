@@ -231,6 +231,19 @@ Alignement des importeurs sur le gate `can_source_replace_attribute` :
 Hors périmètre Phase 1 (réservé Phase 2) : `park_features` (toujours upsertées
 sans gate), `source_records`, pipeline open data, déduplication multi-source.
 
+### Libellé de remplissage par région (`placeholder_name`)
+
+Le libellé technique écrit dans `parks.name` (NOT NULL) quand OSM n'a pas de
+`name` est configurable par région dans `scripts/osm/regions.json`
+(`placeholder_name`, transmis par `osm.py` via `--placeholder-name` ; logique
+dans `scripts/osm/naming.py`). Absent ⇒ « Aire de jeux » (FR/ES inchangés) ;
+`new-york` ⇒ « Playground ». `has_osm_name = false` l'accompagne toujours (jamais
+de provenance `osm`, jamais d'écrasement d'un nom existant). L'app n'affiche
+jamais cette valeur brute : `getParkDisplayName` la reconnaît comme générique et
+rend le libellé localisé (`common:park.generic`). Tout `placeholder_name` doit
+figurer dans `GENERIC_NAMES` (`parkName.ts`) — vérifié par
+`tests/test_naming_equipment.py`.
+
 ### `name` : distinguer un vrai tag OSM du fallback technique `"Aire de jeux"` (chantier `park-display-name`, Phase 2, §H)
 
 `0032` gatait déjà l'écrasement de `name` via `can_source_replace_attribute`,

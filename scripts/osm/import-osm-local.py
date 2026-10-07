@@ -13,6 +13,8 @@ import psycopg
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import address as address_lib  # noqa: E402  (après sys.path bootstrap)
+import naming  # noqa: E402
+import equipment  # noqa: E402
 
 
 DB_DSN = "postgresql://postgres:postgres@127.0.0.1:54322/postgres"
@@ -75,6 +77,17 @@ def parse_args():
         "--timezone",
         required=True,
         help="Fuseau IANA du parc (ex: Europe/Paris, Europe/Madrid).",
+    )
+
+    parser.add_argument(
+        "--placeholder-name",
+        default=naming.DEFAULT_PLACEHOLDER_NAME,
+        help=(
+            "Libellé technique écrit dans parks.name (NOT NULL) quand OSM "
+            "n'a pas de tag `name` — jamais présenté comme un nom OSM "
+            "(has_osm_name=False). Doit être un libellé générique reconnu "
+            "par parkName.ts (ex: « Aire de jeux », « Playground »)."
+        ),
     )
 
     parser.add_argument(
@@ -225,11 +238,9 @@ def map_playground_features(raw, mapping):
 
     decoded = decode_osm_value(str(raw))
 
-    values = [
-        value.strip()
-        for value in decoded.split(";")
-        if value.strip()
-    ]
+    values = equipment.split_playground_values(
+        decoded, mapping
+    )
 
     result = []
 
@@ -650,18 +661,13 @@ def main():
                     ] += 1
                     continue
 
-                name = props.get(
-                    "name"
-                )
-
-                if name:
-                    name = (
-                        decode_osm_value(
-                            str(name)
-                        )
+                name, has_osm_name = (
+                    naming.resolve_park_name(
+                        props.get("name"),
+                        decode_osm_value,
+                        args.placeholder_name,
                     )
-                else:
-                    name = "Aire de jeux"
+                )
 
                 mapped_features = (
                     map_playground_features(
@@ -701,7 +707,7 @@ def main():
                             name,
 
                         "has_osm_name":
-                            bool(props.get("name")),
+                            has_osm_name,
 
                         "latitude":
                             lat,

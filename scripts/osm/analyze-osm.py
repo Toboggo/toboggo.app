@@ -8,6 +8,9 @@ import urllib.parse
 from collections import Counter
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import equipment  # noqa: E402
+
 if len(sys.argv) < 2:
     print("Usage: python3 scripts/osm/analyze-osm.py /chemin/fichier.osm.pbf")
     sys.exit(1)
@@ -84,11 +87,8 @@ for line in lines:
         decoded = decoded.replace("%20", " ")
         decoded = decoded.replace("%", " ")
 
-        for value in decoded.split(";"):
-            value = value.strip()
-
-            if value:
-                playground_values[value] += 1
+        for value in equipment.split_playground_values(decoded, mapping):
+            playground_values[value] += 1
 
 print()
 print("TOBOGGO OSM AUDIT")

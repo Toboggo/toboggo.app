@@ -5,6 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import address as address_lib  # noqa: E402  (après sys.path bootstrap)
+import naming  # noqa: E402
 
 PROJECTS = {
     "staging": {"ref": "hfuaouskwysqxiwpwvqy", "label": "Toboggo Staging"},
@@ -28,7 +29,7 @@ def q(v):
 def n(v):
     return "null" if v is None else str(v)
 
-def build_candidates(pbf, local):
+def build_candidates(pbf, local, placeholder_name=naming.DEFAULT_PLACEHOLDER_NAME):
     mapping = local.load_mapping()
     with tempfile.TemporaryDirectory(prefix="toboggo-osm-remote-") as tmp:
         tmp = Path(tmp)
@@ -77,13 +78,14 @@ def build_candidates(pbf, local):
 
                 lng, lat = point
                 # `has_osm_name` distinguishes a real OSM `name` tag from the
-                # "Aire de jeux" placeholder this importer writes to satisfy
+                # placeholder (`--placeholder-name`, voir naming.py) this importer writes to satisfy
                 # `parks.name NOT NULL` when OSM has none — see `park_sql()`,
                 # which only gates re-imports / records provenance for a
                 # genuine name (park-display-name Phase 2, §H). Mirrors
                 # `import-osm-local.py`'s `has_osm_name` (already correct).
-                has_osm_name = bool(props.get("name"))
-                name = local.decode_osm_value(str(props["name"])) if has_osm_name else "Aire de jeux"
+                name, has_osm_name = naming.resolve_park_name(
+                    props.get("name"), local.decode_osm_value, placeholder_name
+                )
                 equipment = local.map_playground_features(props.get("playground"), mapping)
                 attrs = local.build_attribute_features(props)
                 for a in attrs:
@@ -274,12 +276,13 @@ def main():
     ap.add_argument("--publish", action="store_true")
     ap.add_argument("--country-code", required=True)
     ap.add_argument("--timezone", required=True)
+    ap.add_argument("--placeholder-name", default=naming.DEFAULT_PLACEHOLDER_NAME)
     args = ap.parse_args()
 
     pbf = Path(args.pbf).expanduser().resolve()
     project = PROJECTS[args.environment]
     local = load_local()
-    candidates, skipped, enrich = build_candidates(pbf, local)
+    candidates, skipped, enrich = build_candidates(pbf, local, args.placeholder_name)
 
     print(f"Environment : {args.environment.upper()}")
     print(f"Project ref : {project['ref']}")

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import handler from "./park-meta";
+import handler from "../../api/park-meta";
 
 const SHELL = `<!doctype html><html lang="fr"><head><title>Toboggo — x</title><meta name="description" content="old" /></head><body><div id="root"></div></body></html>`;
 const SB = "https://proj.supabase.co";

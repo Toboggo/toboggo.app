@@ -39,7 +39,6 @@ export default defineConfig({
       "packages/design-system/src/**/*.test.{ts,tsx}",
       "apps/backoffice/src/**/*.test.{ts,tsx}",
       "apps/mobile/src/**/*.test.{ts,tsx}",
-      "apps/mobile/api/**/*.test.ts",
       "apps/landing/src/**/*.test.ts",
       "supabase/functions/**/*.test.ts",
     ],

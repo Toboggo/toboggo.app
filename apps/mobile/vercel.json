@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/park/:id",
+      "destination": "/api/park-meta?id=:id"
+    },
+    {
       "source": "/((?!assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
@@ -33,5 +37,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/park-meta.ts": {
+      "includeFiles": "{dist/index.html,src/i18n/locales/**}"
+    }
+  }
 }

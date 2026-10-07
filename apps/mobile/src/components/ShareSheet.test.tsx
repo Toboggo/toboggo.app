@@ -31,7 +31,9 @@ describe("ShareSheet", () => {
   it("canonical link uses the public production origin, never the current one", () => {
     expect(url).toBe(`${DEFAULT_PUBLIC_APP_URL}/park/p-1`);
     expect(url.startsWith(window.location.origin)).toBe(false);
-    expect(getParkShareUrl("p-1", "https://example.org/")).toBe("https://example.org/park/p-1");
+    expect(getParkShareUrl("p-1", "fr", "https://example.org/")).toBe("https://example.org/park/p-1");
+    expect(getParkShareUrl("p-1", "en", "https://example.org/")).toBe("https://example.org/park/p-1?lang=en");
+    expect(getParkShareUrl("p-1", "es", "https://example.org/")).toBe("https://example.org/park/p-1?lang=es");
   });
 
   it("shows title, park name and city; no Instagram", () => {
@@ -66,7 +68,26 @@ describe("ShareSheet", () => {
     setup();
     fireEvent.click(screen.getByText("Plus d’options"));
     await waitFor(() => expect(share).toHaveBeenCalled());
-    expect(share.mock.calls[0][0].url).toBe(url);
+    const payload = share.mock.calls[0][0];
+    // URL présente une seule fois, dans le texte (pas de champ `url` en double).
+    expect(payload.url).toBeUndefined();
+    expect(payload.text.split(url).length - 1).toBe(1);
+    expect(payload.text.endsWith(url)).toBe(true);
+    expect(payload.text).toContain("Une idée de sortie avec les enfants 🌳");
+    expect(payload.text).toContain("📍 Lyon");
+    expect(payload.text).not.toContain("⭐"); // pas d'avis → pas de note
+  });
+
+  it("texte de partage avec adresse, note et avis réels", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "share", { configurable: true, value: share });
+    const rated = { ...park, address_line: "12 rue des Lilas", rating: 4.25, review_count: 12 } as unknown as Park;
+    render(<ShareSheet open onClose={vi.fn()} park={rated} />);
+    fireEvent.click(screen.getByText("Plus d’options"));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+    expect(share.mock.calls[0][0].text).toBe(
+      ["Une idée de sortie avec les enfants 🌳", "Parc des Lilas", "📍 12 rue des Lilas, Lyon", "⭐ 4,3/5 · 12 avis", "Découvre le parc sur Toboggo :", url].join("\n"),
+    );
   });
 
   it("Plus d’options: cancelling native share shows no error and does not copy", async () => {

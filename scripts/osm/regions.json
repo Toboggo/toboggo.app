@@ -25,6 +25,15 @@
       ],
       "country_code": "ES",
       "timezone": "Europe/Madrid"
+    },
+    "new-york": {
+      "label": "New York (État)",
+      "patterns": [
+        "new-york-[0-9][0-9][0-9][0-9][0-9][0-9].osm.pbf"
+      ],
+      "country_code": "US",
+      "timezone": "America/New_York",
+      "placeholder_name": "Playground"
     }
   }
 }

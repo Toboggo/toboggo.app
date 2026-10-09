@@ -7,6 +7,8 @@
 import Button from "../Button.astro";
 import PhoneMockup from "../PhoneMockup.astro";
 import PhotoPlaceholder from "../PhotoPlaceholder.astro";
+import StoreBadges from "../StoreBadges.astro";
+import { APP_URL } from "../../config/site";
 ---
 
 <section class="hero">
@@ -19,9 +21,10 @@ import PhotoPlaceholder from "../PhotoPlaceholder.astro";
       <h1>Trouvez le terrain de jeu<br />qui leur correspond.</h1>
       <p>Toboggo aide les familles à trouver les aires de jeux adaptées à leurs enfants, simplement et autour d'elles.</p>
       <div class="hero-actions">
-        <Button href="#app-toboggo">Découvrir Toboggo</Button>
+        <Button href={APP_URL}>Ouvrir l'app Toboggo</Button>
         <Button href="#comment-ca-marche" variant="secondary">Voir comment ça marche</Button>
       </div>
+      <StoreBadges />
     </div>
 
     <div class="hero-visual">
@@ -90,6 +93,11 @@ import PhotoPlaceholder from "../PhotoPlaceholder.astro";
     flex-wrap: wrap;
   }
 
+  /* Badges stores (si une URL réelle existe) : centrés sur mobile, alignés à gauche ensuite. */
+  .hero-copy :global(.store-badges) {
+    justify-content: center;
+  }
+
   .hero-visual {
     display: flex;
     justify-content: center;
@@ -144,6 +152,10 @@ import PhotoPlaceholder from "../PhotoPlaceholder.astro";
 
     .hero-copy-doodle {
       margin-left: 0;
+    }
+
+    .hero-copy :global(.store-badges) {
+      justify-content: flex-start;
     }
 
     .hero-actions {

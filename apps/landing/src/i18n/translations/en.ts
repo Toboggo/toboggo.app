@@ -10,6 +10,7 @@ export const en: Dictionary = {
     aPropos: "About",
   },
   cta: {
+    openApp: "Open the app",
     decouvrir: "Discover Toboggo",
   },
   footer: {

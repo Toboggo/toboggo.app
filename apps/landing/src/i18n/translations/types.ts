@@ -9,6 +9,7 @@ export interface Dictionary {
   };
   cta: {
     decouvrir: string;
+    openApp: string;
   };
   footer: {
     tagline: string;

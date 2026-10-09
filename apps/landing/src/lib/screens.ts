@@ -3,11 +3,14 @@
  *
  * Règles (voir aussi scripts/marketing-captures/README.md) :
  * - captures RÉELLES de apps/mobile, 750×1624 PNG, jamais retouchées ;
- * - produites sur la base LOCALE avec un compte de test (le script refuse tout
- *   autre environnement) : aucune donnée personnelle, aucune donnée de prod ;
- * - les captures actuelles montrent les données de test locales (Tarbes,
- *   « Aire de jeux Robespierre ») : PROVISOIRES, à remplacer par une série
- *   complète (voir `available: false` ci-dessous pour les écrans prévus).
+ * - produites sur la base LOCALE (le script refuse tout autre environnement)
+ *   avec un compte de test ; les parcs affichés sont les 6 vrais parcs de Millau
+ *   (données publiques des fiches, lues en lecture seule en production puis
+ *   rejouées en local) ; AUCUNE photo de parc : les fiches montrent l'état
+ *   « Ajouter une photo » de l'app, faute de photo aux droits documentés ;
+ * - la fiche vitrine est « Aire de jeux de Gourg de bade » (adresse affichée
+ *   telle que stockée) ; voir `available: false` ci-dessous pour les écrans
+ *   prévus mais pas encore capturés.
  *
  * Ajouter une capture : déposer le PNG dans public/screenshots/, passer
  * `available` à true. Tant que `available` est false, `appScreen()` renvoie
@@ -24,7 +27,7 @@ export interface AppScreen {
 
 export const APP_SCREENS: readonly AppScreen[] = [
   { id: "explorer", file: "explorer.png", alt: "Carte Explorer de l'application Toboggo", caption: "Explorez autour de vous", available: true },
-  { id: "park-detail", file: "park-detail.png", alt: "Fiche d'un parc dans l'application Toboggo", caption: "Découvrez chaque parc", available: true },
+  { id: "park-detail", file: "park-detail.png", alt: "Fiche du parc « Aire de jeux de Gourg de bade » à Millau dans l'application Toboggo", caption: "Découvrez chaque parc", available: true },
   { id: "filters", file: "filters.png", alt: "Filtres de recherche dans l'application Toboggo", caption: "Trouvez selon vos critères", available: true },
   { id: "favorites", file: "favorites.png", alt: "Écran Favoris de l'application Toboggo", caption: "Gardez vos favoris", available: true },
   // Écrans réellement implémentés dans apps/mobile, pas encore capturés :

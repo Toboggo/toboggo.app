@@ -60,3 +60,10 @@ Licence Pexels vérifiée le 2026-09-30 sur https://www.pexels.com/license/ : ut
 - **Attribution requise** : Oui/Non, et si oui le texte exact à afficher et où.
 - **Date de récupération** : date à laquelle l'image a été ajoutée au repo (pas la date de la photo elle-même).
 - **Remarques** : droit à l'image des personnes reconnaissables, marques visibles, parc réel identifié, usage commercial autorisé ou non, etc.
+
+## Variantes dérivées (optimisation, Lot 2 — 2026-10-09)
+
+`node apps/landing/scripts/optimize-images.mjs` génère, sans retoucher les images :
+
+- **Photos du site** : à côté de chaque original 1200 px, une variante `<nom>-800.webp` (800 px, qualité 82). `PhotoPlaceholder` les sert via `srcset` quand `sizes` est fourni ; l'original reste utilisé sur les grands écrans/haute densité. **Remplacer une photo = remplacer l'original, puis relancer le script** (la variante est régénérée ; elle hérite de la source et de la licence de l'original). Ces fichiers ne s'ajoutent pas au registre ci-dessus.
+- **Captures de l'app** (`public/screenshots/`) : le PNG de capture est converti en WebP **sans perte** (pixels strictement identiques, contrôlés par le script) ; seul le `.webp` est servi.

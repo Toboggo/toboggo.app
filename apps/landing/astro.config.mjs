@@ -27,6 +27,9 @@ export default defineConfig({
   // Une seule URL par page : toujours avec slash final (canonicals, sitemap, liens
   // internes et vercel.json "trailingSlash" vont dans le même sens).
   trailingSlash: "always",
+  // Aucun script inline : les petits <script> de composants sont émis en fichiers /_astro/*.js
+  // (au lieu d'être inlinés sous 4 Ko). Permet une CSP « script-src 'self' » sans 'unsafe-inline'.
+  vite: { build: { assetsInlineLimit: 0 } },
   integrations: [
     sitemap({
       filter: (page) => {

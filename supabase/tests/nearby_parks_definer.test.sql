@@ -257,6 +257,39 @@ begin
   raise notice 'S1 OK : EXECUTE = anon, authenticated, service_role (pas PUBLIC)';
 end $$;
 
+-- ── S3 : aucun élargissement des informations exposées ──────────────────────
+-- Les colonnes renvoyées (contrat 0017) sont une liste FERMÉE, toutes déjà
+-- présentes dans `park_public` (lisible par anon). Une colonne ajoutée plus tard
+-- à `park_public` n'est PAS exposée par ces fonctions tant que la liste n'est
+-- pas modifiée ici ET dans la migration (revue sécurité obligatoire).
+do $$
+declare
+  expected text[] := array['id','name','description','latitude','longitude','lat','lng','country_code','timezone','city',
+    'address_line','formatted_address','commune_id','organization_id','min_age','max_age','age_min','age_max',
+    'moderation_status','operational_status','verification_status','status','rating','review_count','has_open_report',
+    'views','created_by','created_at','updated_at','features','cover_photo','photos','score','surface','play_equipment',
+    'wc','shade','fenced','pmr','benches','water','parking','distance_m'];
+  actual text[]; page_cols text[]; extra text[];
+begin
+  select array_agg(k order by k) into actual from unnest(expected) k;  -- liste attendue triée
+  select array_agg(c order by c) into page_cols from (
+    select jsonb_object_keys(to_jsonb(t)) c from nearby_parks_page(40.7580, -73.9855, 500, 1) t limit 100) z;
+  select array_agg(c order by c) into extra from (
+    select jsonb_object_keys(to_jsonb(t)) c from nearby_parks(40.7580, -73.9855, 500) t limit 100) z;
+  if (select array_agg(distinct c order by c) from unnest(page_cols) c) is distinct from actual then
+    raise exception 'S3 : colonnes de nearby_parks_page ≠ contrat (%)', page_cols;
+  end if;
+  if (select array_agg(distinct c order by c) from unnest(extra) c) is distinct from actual then
+    raise exception 'S3 : colonnes de nearby_parks ≠ contrat 0017';
+  end if;
+  if exists (select 1 from unnest(expected) e where e <> 'distance_m'
+              and not exists (select 1 from information_schema.columns
+                              where table_schema = 'public' and table_name = 'park_public' and column_name = e)) then
+    raise exception 'S3 : une colonne renvoyée n''existe pas dans park_public';
+  end if;
+  raise notice 'S3 OK : 43 colonnes, liste fermée, toutes présentes dans park_public ; rien de plus n''est exposé';
+end $$;
+
 -- ── S2 : la RLS de `parks` reste intacte pour l'accès direct ────────────────
 set local role anon;
 select set_config('request.jwt.claims', '', true);  -- anon : aucune identité résiduelle (sinon auth.uid() = staff)

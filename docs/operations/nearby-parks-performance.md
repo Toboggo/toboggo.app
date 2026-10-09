@@ -51,6 +51,20 @@ staff, sur US / FR / ES, avec parcs pending / draft / rejected / blocked /
 fermé et médias pending / rejected (aucune fuite). Variante « STAGING dérivé » :
 `nearby_parks_definer_staging_baseline.sql`.
 
+## Dépendances sensibles (à relire à chaque évolution)
+- `nearby_parks*` lit `park_public` **sous les droits du propriétaire** (RLS contournée) : seules la liste de colonnes
+  fermée de la fonction et ses filtres (`published`, non `permanently_closed`) bornent l'exposition. Colonnes à
+  surveiller : `created_by` (uuid du créateur), `commune_id` / `organization_id`, `views`, `has_open_report`,
+  `verification_status` — déjà lisibles par `anon` via `park_public`, **donc aucune information nouvelle**.
+- Une colonne ajoutée à `park_public` n'est pas exposée par ces fonctions tant qu'on ne modifie pas leur liste
+  (test S3 : liste fermée de 43 colonnes, toutes présentes dans `park_public`).
+- Sous-objets lus : `park_features`, `features`, `fstatus`/`fvalue`, `park_media` (filtre `approved` dans la vue),
+  `park_names`, `park_scores`, `organization_parks`. Toute nouvelle policy **plus restrictive** sur l'un d'eux serait
+  contournée par ces fonctions : relancer `nearby_parks_definer.test.sql`.
+- Propriétaire : rôle propriétaire de `parks` (`postgres`, `BYPASSRLS`, non superuser sur Supabase) ; la migration
+  vérifie qu'il n'y a pas de `FORCE ROW LEVEL SECURITY` et que le propriétaire de la fonction = propriétaire de `parks`.
+- `PUBLIC` n'a aucun `EXECUTE` (assertion de la migration + test S1).
+
 ## État des environnements (constaté en lecture seule)
 - **PROD** : `nearby_parks` = définition 0017 ; policy unique `parks_public_read` ;
   migrations enregistrées jusqu'à 0045 (trous 0035, 0036, 0040).

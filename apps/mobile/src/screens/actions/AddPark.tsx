@@ -16,8 +16,10 @@ import {
   buildDraftKey,
   createPark,
   fetchNearbyParks,
+  genericParkNameForCountry,
   listFeatures,
   logActivity,
+  resolveParkLocale,
   uploadPhoto,
   ImageValidationError,
   type Park,
@@ -43,7 +45,6 @@ import { useToastStore } from "../../lib/toast";
 import { setResumeRoute } from "../../lib/resumeRoute";
 import { trackEvent } from "../../lib/analytics";
 import {
-  GENERIC_PARK_NAME,
   PRIMARY_GAME_CODES,
   SERVICE_GROUPS,
   ageRangeFromBands,
@@ -158,6 +159,8 @@ export default function AddPark() {
   const [done, setDone] = useState(false);
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState(false);
+  /** Pays / fuseau introuvables pour le repère : rien n'est créé, on reste sur le récapitulatif. */
+  const [localeError, setLocaleError] = useState(false);
   const [showAllGames, setShowAllGames] = useState(false);
   const [ageRejected, setAgeRejected] = useState(false);
   // Garde synchrone contre le double envoi (le `saving` React arrive un rendu trop tard).
@@ -440,7 +443,7 @@ export default function AddPark() {
       // simply stay absent from the payload (`createPark`/`splitParkInput`
       // already skips any field that isn't provided).
       const input: Partial<Park> = {
-        name: draft.name.trim() || GENERIC_PARK_NAME,
+        name: draft.name.trim(),
         lat: draft.lat,
         lng: draft.lng,
         play_equipment: Array.from(draft.equipment),
@@ -455,6 +458,20 @@ export default function AddPark() {
         input.age_max = range.max;
       }
       applyAnswers(input, draft.answers);
+
+      // Pays + fuseau : jamais un défaut « France » — issus de l'adresse
+      // résolue (si présente) puis des coordonnées. Échec explicite sinon.
+      try {
+        const locale = await resolveParkLocale(draft.lat, draft.lng, { country_code: input.country_code });
+        input.country_code = locale.country_code;
+        input.timezone = locale.timezone;
+        if (!input.name) input.name = genericParkNameForCountry(locale.country_code);
+      } catch {
+        setSubmitError(false);
+        setLocaleError(true);
+        return;
+      }
+      setLocaleError(false);
 
       let park: Park;
       try {
@@ -840,6 +857,11 @@ export default function AddPark() {
             <div aria-live="polite" role="status">
               {saving && <p className={styles.muted}>{t("addPark.submitting")}</p>}
             </div>
+            {localeError && (
+              <div className={styles.errorBox} role="alert">
+                {t("addPark.localeError")}
+              </div>
+            )}
             {submitError && (
               <div className={styles.errorBox} role="alert">
                 {t("addPark.submitError")}

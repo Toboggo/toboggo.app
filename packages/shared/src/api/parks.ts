@@ -1,4 +1,5 @@
 import { getSupabase } from "../supabaseClient";
+import { resolveParkLocale } from "../utils/parkLocale";
 import type {
   FeatureCategory,
   FeatureStatus,
@@ -112,17 +113,46 @@ function nearbyRowToPark(row: NearbyParkRow): Park & { distance_m: number } {
   };
 }
 
+/** Taille d'une page de `nearby_parks`. = `max_rows` PostgREST (1 000, défaut
+ * Supabase et `supabase/config.toml`) : au-delà, la réponse est tronquée en
+ * silence — et comme la fonction trie par distance, ce sont les parcs les plus
+ * lointains du rayon qui disparaissent (Manhattan : 1 483 parcs à 20 km, le
+ * 1 000ᵉ est à 13,6 km). */
+export const NEARBY_PAGE_SIZE = 1000;
+/** Garde-fou : 8 pages = 8 000 parcs maximum dans un rayon (très au-delà de la
+ * zone la plus dense observée). */
+export const NEARBY_MAX_PAGES = 8;
+
 /** PostGIS `nearby_parks` RPC — real geospatial "near me". Returns the flat
- * compatibility shape plus the normalised `features` map. */
+ * compatibility shape plus the normalised `features` map.
+ *
+ * Pagine `.range()` sur la fonction (triée par distance) jusqu'à épuisement du
+ * rayon demandé ; le rayon n'est jamais réduit. Dédoublonné par `id` (un parc
+ * ne peut apparaître deux fois si l'ordre bouge entre deux pages). Une page
+ * non pleine signe la dernière : zones peu denses = un seul appel, comme avant. */
 export async function fetchNearbyParks(params: NearbyParksParams): Promise<(Park & { distance_m: number })[]> {
   const supabase = getSupabase();
-  const { data, error } = await supabase.rpc("nearby_parks", {
-    p_lat: params.lat,
-    p_lng: params.lng,
-    p_radius_m: params.radiusMeters ?? 20000,
-  });
-  if (error) throw error;
-  return filterNearbyParks((data ?? []).map(nearbyRowToPark), params);
+  const rows: Parameters<typeof nearbyRowToPark>[0][] = [];
+  const seen = new Set<string>();
+  for (let page = 0; page < NEARBY_MAX_PAGES; page++) {
+    const from = page * NEARBY_PAGE_SIZE;
+    const { data, error } = await supabase
+      .rpc("nearby_parks", {
+        p_lat: params.lat,
+        p_lng: params.lng,
+        p_radius_m: params.radiusMeters ?? 20000,
+      })
+      .range(from, from + NEARBY_PAGE_SIZE - 1);
+    if (error) throw error;
+    const batch = data ?? [];
+    for (const row of batch) {
+      if (seen.has(row.id)) continue;
+      seen.add(row.id);
+      rows.push(row);
+    }
+    if (batch.length < NEARBY_PAGE_SIZE) break;
+  }
+  return filterNearbyParks(rows.map(nearbyRowToPark), params);
 }
 
 export async function searchParks(query: string): Promise<Park[]> {
@@ -817,18 +847,26 @@ async function applyFeatures(parkId: string, rows: { code: string; status: Featu
 export async function createPark(input: Partial<Park>): Promise<Park> {
   const supabase = getSupabase();
   const { parkRow, featureRows, orgId } = splitParkInput(input);
+  const latitude = requireField(parkRow.latitude, "latitude");
+  const longitude = requireField(parkRow.longitude, "longitude");
+  // No placeholder coordinates, ever (bug B1) — see assertValidCoordinates doc comment.
+  assertValidCoordinates(latitude, longitude);
+  // The DB has no column default / trigger for country_code / timezone
+  // (database-migration.md §5). Never a silent "FR / Europe/Paris": resolved
+  // from the coordinates (and the caller's country when known), or
+  // `ParkLocaleError` — the caller must surface it.
+  const locale = await resolveParkLocale(latitude, longitude, {
+    country_code: parkRow.country_code,
+    timezone: parkRow.timezone,
+  });
   const insertRow: ParkInsertRow = {
     ...parkRow,
     name: requireField(parkRow.name, "name"),
-    latitude: requireField(parkRow.latitude, "latitude"),
-    longitude: requireField(parkRow.longitude, "longitude"),
-    // France-only product for now; a worldwide caller must pass these explicitly
-    // — the DB has no column default / trigger for them (database-migration.md §5).
-    country_code: parkRow.country_code ?? "FR",
-    timezone: parkRow.timezone ?? "Europe/Paris",
+    latitude,
+    longitude,
+    country_code: locale.country_code,
+    timezone: locale.timezone,
   };
-  // No placeholder coordinates, ever (bug B1) — see assertValidCoordinates doc comment.
-  assertValidCoordinates(insertRow.latitude, insertRow.longitude);
   const { data, error } = await supabase
     .from("parks")
     // `lat`/`lng`/`formatted_address` are re-derived by parks_v1_compat (see splitParkInput).

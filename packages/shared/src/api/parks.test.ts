@@ -3,6 +3,9 @@ import { getSupabase } from "../supabaseClient";
 import {
   assertValidAgeRange,
   createPark,
+  fetchNearbyParks,
+  NEARBY_MAX_PAGES,
+  NEARBY_PAGE_SIZE,
   getParkCountryDistribution,
   getParkStatusCounts,
   isValidCoordinate,
@@ -932,5 +935,144 @@ describe("isValidCoordinate", () => {
     expect(isValidCoordinate(95, 4.8)).toBe(false);
     expect(isValidCoordinate(45.7, 200)).toBe(false);
     expect(isValidCoordinate(0, 0)).toBe(false);
+  });
+});
+
+
+describe("createPark — pays + fuseau (US P0)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  async function insertedRow(input: Parameters<typeof createPark>[0]) {
+    const { client, queriesByTable } = makeFakeSupabase({
+      parks: { data: { id: "new-park-id" }, error: null },
+      park_public: { data: { id: "new-park-id" }, error: null },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    await createPark(input);
+    const insert = queriesByTable["parks"][0].calls.find((c) => c.method === "insert");
+    return insert!.args[0] as { country_code: string; timezone: string };
+  }
+
+  it("un parc à Manhattan n'est plus FR / Europe/Paris", async () => {
+    const row = await insertedRow({ name: "Playground", latitude: 40.758, longitude: -73.9855 });
+    expect(row.country_code).toBe("US");
+    expect(row.timezone).toBe("America/New_York");
+  });
+
+  it("FR inchangé (Lyon) et ES corrigé (Barcelone n'est plus FR)", async () => {
+    const fr = await insertedRow({ name: "Parc", latitude: 45.764043, longitude: 4.835659 });
+    expect([fr.country_code, fr.timezone]).toEqual(["FR", "Europe/Paris"]);
+    const es = await insertedRow({ name: "Parque", latitude: 41.39, longitude: 2.17 });
+    expect([es.country_code, es.timezone]).toEqual(["ES", "Europe/Madrid"]);
+  });
+
+  it("respecte country_code / timezone fournis", async () => {
+    const row = await insertedRow({
+      name: "Parc",
+      latitude: 40.758,
+      longitude: -73.9855,
+      country_code: "US",
+      timezone: "America/Detroit",
+    });
+    expect([row.country_code, row.timezone]).toEqual(["US", "America/Detroit"]);
+  });
+
+  it("pays introuvable ⇒ rejet explicite, aucun INSERT", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({ parks: { data: { id: "x" }, error: null } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    await expect(createPark({ name: "Park", latitude: 43.65, longitude: -79.38 })).rejects.toMatchObject({
+      reason: "country_unresolved",
+    });
+    expect(queriesByTable["parks"]).toBeUndefined();
+  });
+});
+
+describe("fetchNearbyParks — pagination au-delà de max_rows (Manhattan)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  const MANHATTAN = { lat: 40.758, lng: -73.9855 };
+
+  /** `total` lignes triées par distance croissante, tranchées par `.range()` comme PostgREST. */
+  function paged(total: number, opts: { capPerPage?: number } = {}) {
+    const all = Array.from({ length: total }, (_, i) => ({
+      id: `park-${i}`,
+      name: "Playground",
+      latitude: 40.75,
+      longitude: -73.98,
+      distance_m: 400 + i * 12,
+      features: {},
+    }));
+    const responder = (calls: { method: string; args: unknown[] }[]) => {
+      const range = calls.find((c) => c.method === "range");
+      const [from, to] = (range?.args ?? [0, total - 1]) as [number, number];
+      const end = Math.min(to, from + (opts.capPerPage ?? Infinity) - 1);
+      return { data: all.slice(from, end + 1), error: null };
+    };
+    const { client, rpcCalls } = makeFakeSupabase({ "rpc:nearby_parks": responder });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    return { rpcCalls, all };
+  }
+
+  it("rend les 1 483 parcs de 20 km autour de Times Square, sans doublon, triés", async () => {
+    const { rpcCalls } = paged(1483);
+    const parks = await fetchNearbyParks({ ...MANHATTAN, radiusMeters: 20000 });
+    expect(parks).toHaveLength(1483);
+    expect(new Set(parks.map((p) => p.id)).size).toBe(1483);
+    expect(parks.map((p) => p.distance_m)).toEqual([...parks.map((p) => p.distance_m)].sort((a, b) => a - b));
+    // le dernier parc (le plus loin) n'est plus tronqué
+    expect(parks[parks.length - 1].id).toBe("park-1482");
+    expect(rpcCalls).toHaveLength(2);
+  });
+
+  it("conserve le rayon et le centre sur chaque page", async () => {
+    const { rpcCalls } = paged(1483);
+    await fetchNearbyParks({ ...MANHATTAN, radiusMeters: 20000 });
+    for (const call of rpcCalls) {
+      expect(call.params).toEqual({ p_lat: MANHATTAN.lat, p_lng: MANHATTAN.lng, p_radius_m: 20000 });
+    }
+  });
+
+  it("zone peu dense : un seul appel (comportement historique)", async () => {
+    const { rpcCalls } = paged(12);
+    expect(await fetchNearbyParks({ lat: 45.764, lng: 4.8357 })).toHaveLength(12);
+    expect(rpcCalls).toHaveLength(1);
+  });
+
+  it("exactement une page pleine : une page suivante vide termine proprement", async () => {
+    const { rpcCalls } = paged(NEARBY_PAGE_SIZE);
+    expect(await fetchNearbyParks(MANHATTAN)).toHaveLength(NEARBY_PAGE_SIZE);
+    expect(rpcCalls).toHaveLength(2);
+  });
+
+  it("ignore un parc renvoyé deux fois entre deux pages", async () => {
+    const dup = (id: string) => ({ id, name: "P", latitude: 1, longitude: 1, distance_m: 1, features: {} });
+    const page1 = Array.from({ length: NEARBY_PAGE_SIZE }, (_, i) => dup(`p${i}`));
+    const responder = (calls: { method: string; args: unknown[] }[]) => {
+      const from = (calls.find((c) => c.method === "range")?.args[0] ?? 0) as number;
+      return { data: from === 0 ? page1 : [dup("p999"), dup("extra")], error: null };
+    };
+    const { client } = makeFakeSupabase({ "rpc:nearby_parks": responder });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    const parks = await fetchNearbyParks(MANHATTAN);
+    expect(parks).toHaveLength(NEARBY_PAGE_SIZE + 1);
+  });
+
+  it("garde-fou : jamais plus de NEARBY_MAX_PAGES appels", async () => {
+    const full = Array.from({ length: NEARBY_PAGE_SIZE }, (_, i) => i);
+    const { client, rpcCalls } = makeFakeSupabase({
+      "rpc:nearby_parks": (calls) => {
+        const from = (calls.find((c) => c.method === "range")?.args[0] ?? 0) as number;
+        return { data: full.map((i) => ({ id: `p${from + i}`, name: "P", latitude: 1, longitude: 1, distance_m: 1, features: {} })), error: null };
+      },
+    });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    await fetchNearbyParks(MANHATTAN);
+    expect(rpcCalls).toHaveLength(NEARBY_MAX_PAGES);
+  });
+
+  it("propage l'erreur d'une page", async () => {
+    const { client } = makeFakeSupabase({ "rpc:nearby_parks": { data: null, error: new Error("timeout") } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    await expect(fetchNearbyParks(MANHATTAN)).rejects.toThrow("timeout");
   });
 });

@@ -34,3 +34,4 @@ export * from "./utils/weather";
 export * from "./utils/storage";
 export * from "./utils/image";
 export * from "./utils/username";
+export * from "./utils/parkLocale";

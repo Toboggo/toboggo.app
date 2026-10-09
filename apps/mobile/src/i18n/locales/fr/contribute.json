@@ -259,6 +259,7 @@
       "unknown": "Inconnus : {{list}}"
     },
     "submitting": "Envoi en cours…",
+    "localeError": "Impossible de déterminer le pays de ce repère. Déplacez légèrement le repère ou vérifiez l'adresse, puis réessayez. Vos informations sont conservées.",
     "submitError": "L’envoi n’a pas abouti. Vos informations sont conservées : vérifiez votre connexion puis réessayez.",
     "photosPartial": "Le parc est créé, mais certaines photos n’ont pas pu être ajoutées. Vous pourrez les ajouter depuis sa fiche.",
     "close": {

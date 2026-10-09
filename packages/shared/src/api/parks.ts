@@ -151,6 +151,16 @@ export async function fetchNearbyParks(params: NearbyParksParams): Promise<(Park
       rows.push(row);
     }
     if (batch.length < NEARBY_PAGE_SIZE) break;
+    if (page === NEARBY_MAX_PAGES - 1) {
+      // Plafond atteint avec une page encore pleine : le rayon n'est pas
+      // épuisé. Jamais de troncature silencieuse — on l'écrit, avec la
+      // distance jusqu'à laquelle le résultat est complet (tri par distance).
+      const lastRow = batch[batch.length - 1] as { distance_m?: number };
+      console.warn(
+        `[nearby_parks] plafond de ${NEARBY_MAX_PAGES} pages atteint : résultat complet jusqu'à ` +
+          `${Math.round(lastRow.distance_m ?? 0)} m seulement (rayon demandé : ${params.radiusMeters ?? 20000} m).`,
+      );
+    }
   }
   return filterNearbyParks(rows.map(nearbyRowToPark), params);
 }

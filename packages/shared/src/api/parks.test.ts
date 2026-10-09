@@ -1066,8 +1066,21 @@ describe("fetchNearbyParks — pagination au-delà de max_rows (Manhattan)", () 
       },
     });
     vi.mocked(getSupabase).mockReturnValue(client as never);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await fetchNearbyParks(MANHATTAN);
     expect(rpcCalls).toHaveLength(NEARBY_MAX_PAGES);
+    // jamais silencieux : le plafond est signalé, avec la distance jusqu'où le résultat est complet
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0][0]).toMatch(/plafond de 8 pages/);
+    warn.mockRestore();
+  });
+
+  it("pas d'avertissement tant que le rayon est épuisé avant le plafond", async () => {
+    paged(1483);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await fetchNearbyParks(MANHATTAN);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it("propage l'erreur d'une page", async () => {

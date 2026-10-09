@@ -46,10 +46,25 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
   const toggle = document.getElementById("nav-toggle");
   const nav = document.getElementById("primary-nav");
 
-  toggle?.addEventListener("click", () => {
-    const isOpen = nav?.classList.toggle("open");
-    toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    toggle.setAttribute("aria-label", isOpen ? "Fermer le menu" : "Ouvrir le menu");
+  const setOpen = (isOpen: boolean) => {
+    nav?.classList.toggle("open", isOpen);
+    toggle?.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    toggle?.setAttribute("aria-label", isOpen ? "Fermer le menu" : "Ouvrir le menu");
+  };
+
+  toggle?.addEventListener("click", () => setOpen(!nav?.classList.contains("open")));
+
+  // Échap ferme le menu ; si le focus était dans le menu, il revient au bouton.
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !nav?.classList.contains("open")) return;
+    const focusInside = nav.contains(document.activeElement);
+    setOpen(false);
+    if (focusInside) toggle?.focus();
+  });
+
+  // Passage au bureau : le menu repliable n'existe plus, on remet l'état à zéro.
+  window.matchMedia("(min-width: 801px)").addEventListener("change", (event) => {
+    if (event.matches) setOpen(false);
   });
 </script>
 
@@ -81,6 +96,8 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
     text-decoration: none;
     font-size: 14.5px;
     font-weight: 600;
+    /* zone cliquable ≥ 24px sans changer la hauteur du header (porté par le CTA) */
+    padding-block: 6px;
   }
 
   .nav-links a:not(.btn):hover,
@@ -106,8 +123,10 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
     flex-direction: column;
     justify-content: center;
     gap: 5px;
-    width: 40px;
-    height: 40px;
+    /* 44px = cible confortable ; marge négative : la hauteur du header ne change pas */
+    width: 44px;
+    height: 44px;
+    margin: -2px;
     border: none;
     background: transparent;
     cursor: pointer;
@@ -134,7 +153,7 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
       right: 0;
       flex-direction: column;
       align-items: flex-start;
-      gap: var(--space-4);
+      gap: 0;
       background: var(--color-surface);
       border-bottom: 1px solid var(--color-border);
       padding: var(--space-4) var(--space-6) var(--space-6);
@@ -143,6 +162,19 @@ const isCurrent = (href: string) => (href === "/" ? path === "/" : path.startsWi
 
     .nav-links.open {
       display: flex;
+    }
+
+    /* menu mobile : chaque entrée fait au moins 44px de haut */
+    .nav-links a:not(.btn) {
+      display: flex;
+      align-items: center;
+      align-self: stretch;
+      min-height: 44px;
+      padding-block: 0;
+    }
+
+    .nav-links .btn {
+      margin-top: var(--space-3);
     }
   }
 </style>

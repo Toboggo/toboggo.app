@@ -89,7 +89,9 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
   .footer-col {
     display: flex;
     flex-direction: column;
-    gap: var(--space-3);
+    gap: 0;
+    /* compense le padding bas du dernier lien : hauteur de la colonne inchangée au bureau */
+    margin-bottom: -6px;
   }
 
   .footer-col .footer-title {
@@ -97,13 +99,16 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
     font-size: var(--text-sm);
     font-weight: 700;
     color: var(--color-text);
-    margin: 0;
+    /* 6px + 6px de padding du 1er lien = les 12px d'écart d'origine */
+    margin: 0 0 6px;
   }
 
+  /* gap 12px → padding 6px de chaque côté : même rythme qu'avant, cible de 31px (≥ 24px) */
   .footer-col a {
     color: var(--color-text-muted);
     text-decoration: none;
     font-size: 14px;
+    padding-block: 6px;
   }
 
   .footer-col a:hover {
@@ -132,6 +137,18 @@ const dict = getDictionary(getLangFromUrl(Astro.url));
   @media (max-width: 800px) {
     .footer-inner {
       grid-template-columns: 1fr 1fr;
+    }
+
+    .footer-col {
+      margin-bottom: 0;
+    }
+
+    /* mobile : liens du pied de page à 44px de haut */
+    .footer-col a {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      padding-block: 0;
     }
   }
 

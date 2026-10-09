@@ -16,6 +16,13 @@
  */
 import PhotoPlaceholder from "./PhotoPlaceholder.astro";
 import { DEMO_GUIDES } from "../data/demoGuides";
+
+interface Props {
+  /** Niveau du titre des cartes : h3 sous un H2 de section (Home), h2 directement sous le H1 (/guides/). */
+  headingLevel?: "h2" | "h3";
+}
+
+const { headingLevel: Heading = "h3" } = Astro.props;
 ---
 
 <ul class="guide-grid">
@@ -27,7 +34,7 @@ import { DEMO_GUIDES } from "../data/demoGuides";
         </div>
         <div class="guide-body">
           <span class="guide-soon">À venir</span>
-          <h3 class="guide-title">{guide.title}</h3>
+          <Heading class="guide-title">{guide.title}</Heading>
         </div>
       </li>
     ))

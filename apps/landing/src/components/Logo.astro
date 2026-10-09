@@ -35,6 +35,7 @@ const gradientId = `tg-${crypto.randomUUID().slice(0, 8)}`;
 
 <style>
   .brand {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -43,5 +44,12 @@ const gradientId = `tg-${crypto.randomUUID().slice(0, 8)}`;
     font-size: 20px;
     color: var(--color-text);
     text-decoration: none;
+  }
+
+  /* zone cliquable ≥ 44px de haut, sans changer la mise en page */
+  .brand::after {
+    content: "";
+    position: absolute;
+    inset: -8px -4px;
   }
 </style>

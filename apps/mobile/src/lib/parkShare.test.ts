@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildShareDescription, buildShareText, shortLocation } from "./parkShare";
+import { buildShareDescription, buildShareText, buildShareTitle, shortLocation } from "./parkShare";
 
 const t = (key: string, o: Record<string, unknown> = {}) =>
   ({
     "share.intro": "INTRO",
-    "share.cta": "CTA",
     "share.metaFallback": "FALLBACK",
     "share.ratingLine": `${o.rating}/5 · ${o.count} avis`,
   })[key] ?? key;
@@ -25,7 +24,7 @@ describe("shortLocation", () => {
 describe("buildShareText", () => {
   it("format complet, URL une seule fois en dernière ligne", () => {
     const text = buildShareText(base, "https://x/park/1", t, fmt);
-    expect(text).toBe("INTRO\nParc Blandan\n📍 33 rue Cdt Pegoud, Lyon\n⭐ 4.3/5 · 7 avis\nCTA\nhttps://x/park/1");
+    expect(text).toBe("INTRO\nParc Blandan\n📍 33 rue Cdt Pegoud, Lyon\n⭐ 4.3/5 · 7 avis\nhttps://x/park/1");
     expect(text.split("https://x/park/1")).toHaveLength(2);
   });
   it("masque la note sans avis ou note nulle", () => {
@@ -42,4 +41,11 @@ describe("buildShareDescription", () => {
     expect(buildShareDescription(base, t, fmt)).toBe("33 rue Cdt Pegoud, Lyon · ⭐ 4.3/5 · 7 avis"));
   it("repli sans aucune donnée", () =>
     expect(buildShareDescription({ ...base, address_line: null, city: null, review_count: 0 }, t, fmt)).toBe("FALLBACK"));
+});
+
+describe("buildShareTitle", () => {
+  it("nom · commune", () => expect(buildShareTitle({ name: "Parc Blandan", city: "Lyon" })).toBe("Parc Blandan · Lyon"));
+  it("sans commune → nom seul", () => expect(buildShareTitle({ name: "Parc Blandan", city: null })).toBe("Parc Blandan"));
+  it("commune déjà dans le nom → pas de doublon", () =>
+    expect(buildShareTitle({ name: "Parc de Lyon", city: "lyon" })).toBe("Parc de Lyon"));
 });

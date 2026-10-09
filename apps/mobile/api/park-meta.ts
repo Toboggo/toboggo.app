@@ -17,7 +17,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getParkDisplayName } from "../../../packages/shared/src/utils/parkName.js";
-import { buildShareDescription } from "../src/lib/parkShare.js";
+import { buildShareDescription, buildShareTitle } from "../src/lib/parkShare.js";
 
 const LANGS = ["fr", "en", "es"] as const;
 type Lang = (typeof LANGS)[number];
@@ -134,7 +134,7 @@ async function loadShell(origin: string): Promise<string> {
 
 function injectMeta(
   html: string,
-  m: { lang: Lang; generic?: boolean; title: string; description: string; url: string; image: string; imageAlt: string; noindex: boolean },
+  m: { lang: Lang; generic?: boolean; title: string; shareTitle: string; description: string; url: string; image: string; imageAlt: string; noindex: boolean },
 ): string {
   const tags = [
     m.noindex ? `<meta name="robots" content="noindex" />` : null,
@@ -142,13 +142,13 @@ function injectMeta(
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="${SITE_NAME}" />`,
     `<meta property="og:locale" content="${OG_LOCALE[m.lang]}" />`,
-    `<meta property="og:title" content="${esc(m.title)}" />`,
+    `<meta property="og:title" content="${esc(m.shareTitle)}" />`,
     `<meta property="og:description" content="${esc(m.description)}" />`,
     `<meta property="og:url" content="${esc(m.url)}" />`,
     `<meta property="og:image" content="${esc(m.image)}" />`,
     `<meta property="og:image:alt" content="${esc(m.imageAlt)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${esc(m.title)}" />`,
+    `<meta name="twitter:title" content="${esc(m.shareTitle)}" />`,
     `<meta name="twitter:description" content="${esc(m.description)}" />`,
     `<meta name="twitter:image" content="${esc(m.image)}" />`,
     `<meta name="twitter:image:alt" content="${esc(m.imageAlt)}" />`,
@@ -204,6 +204,7 @@ async function handle(request: Request, shellRef: { html?: string }): Promise<Re
     const html = injectMeta(shell, {
       lang,
       title: name,
+      shareTitle: found ? buildShareTitle({ name, city: found.city }) : name,
       generic: !found,
       description,
       url: canonicalUrl.toString(),

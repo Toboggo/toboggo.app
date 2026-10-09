@@ -51,7 +51,10 @@ export function ratingLine(
   return `⭐ ${t("share.ratingLine", { rating: formatRating(p.rating), count: p.review_count })}`;
 }
 
-/** Texte complet du partage, URL incluse une seule fois (en dernière ligne). */
+/**
+ * Texte complet du partage : intro, nom, lieu, note, puis le lien — une seule
+ * fois, en dernière ligne.
+ */
 export function buildShareText(
   p: ShareParkInput,
   url: string,
@@ -64,7 +67,6 @@ export function buildShareText(
     p.name,
     location ? `📍 ${location}` : null,
     ratingLine(p, t, formatRating),
-    t("share.cta"),
     url,
   ]
     .filter((line): line is string => Boolean(line))
@@ -79,4 +81,16 @@ export function buildShareDescription(
 ): string {
   const parts = [shortLocation(p), ratingLine(p, t, formatRating)].filter((s): s is string => Boolean(s));
   return parts.length ? parts.join(" · ") : t("share.metaFallback");
+}
+
+/**
+ * Titre d'aperçu de lien : « nom · commune ». La commune est omise si absente
+ * ou déjà contenue dans le nom (pas de « Parc de Lyon · Lyon »). Jamais
+ * d'adresse complète ni de note dans le titre.
+ */
+export function buildShareTitle(p: Pick<ShareParkInput, "name" | "city">): string {
+  const name = p.name.trim();
+  const city = p.city?.trim() || "";
+  if (!city || norm(name).includes(norm(city))) return name;
+  return `${name} · ${city}`;
 }

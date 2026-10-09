@@ -39,7 +39,9 @@ describe("park-meta", () => {
     const html = await res.text();
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toContain("s-maxage=300");
-    expect(html).toContain('<meta property="og:title" content="Parc Blandan" />');
+    expect(html).toContain('<meta property="og:title" content="Parc Blandan · Lyon" />');
+    expect(html).toContain('<meta name="twitter:title" content="Parc Blandan · Lyon" />');
+    expect(html).not.toContain('og:title" content="Parc Blandan · 33');
     expect(html).toContain('content="33 rue Cdt Pegoud, Lyon · ⭐ 4,3/5 · 12 avis"');
     expect(html).toContain(`<meta property="og:image" content="${SB}/storage/v1/object/public/park-photos/a.jpg" />`);
     expect(html).toContain('<link rel="canonical" href="https://app.example/park/p1" />');
@@ -52,6 +54,7 @@ describe("park-meta", () => {
     const html = await (await call("p2")).text();
     expect(html).toContain('og:image" content="https://app.example/og/park-fallback.png"');
     expect(html).toContain("équipements, âges et avis des parents");
+    expect(html).toContain('og:title" content="Parc X" />'); // pas de commune → nom seul
     expect(html).not.toContain("⭐");
   });
 

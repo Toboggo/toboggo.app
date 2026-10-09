@@ -127,7 +127,10 @@ export function ShareSheet({ open, onClose, park }: { open: boolean; onClose: ()
   async function shareMore() {
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title: displayName, text: body });
+        // `text` seul : il contient déjà nom + lieu + note + lien. Ni `title` (répète le
+        // nom) ni `url` (répète le lien) — certaines apps (Messages iOS) les
+        // dédoublent ou en privilégient un en écartant le texte.
+        await navigator.share({ text: body });
       } catch (err) {
         // Annulation par l'utilisateur : pas une erreur. Tout autre échec →
         // repli sur la copie du lien.

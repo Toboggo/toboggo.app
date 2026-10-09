@@ -71,6 +71,8 @@ describe("ShareSheet", () => {
     const payload = share.mock.calls[0][0];
     // URL présente une seule fois, dans le texte (pas de champ `url` en double).
     expect(payload.url).toBeUndefined();
+    expect(payload.title).toBeUndefined();
+    expect(Object.keys(payload)).toEqual(["text"]);
     expect(payload.text.split(url).length - 1).toBe(1);
     expect(payload.text.endsWith(url)).toBe(true);
     expect(payload.text).toContain("Une idée de sortie avec les enfants 🌳");
@@ -86,7 +88,7 @@ describe("ShareSheet", () => {
     fireEvent.click(screen.getByText("Plus d’options"));
     await waitFor(() => expect(share).toHaveBeenCalled());
     expect(share.mock.calls[0][0].text).toBe(
-      ["Une idée de sortie avec les enfants 🌳", "Parc des Lilas", "📍 12 rue des Lilas, Lyon", "⭐ 4,3/5 · 12 avis", "Découvre le parc sur Toboggo :", url].join("\n"),
+      ["Une idée de sortie avec les enfants 🌳", "Parc des Lilas", "📍 12 rue des Lilas, Lyon", "⭐ 4,3/5 · 12 avis", url].join("\n"),
     );
   });
 

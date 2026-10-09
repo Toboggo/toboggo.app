@@ -52,8 +52,10 @@ export function ratingLine(
 }
 
 /**
- * Texte complet du partage : intro, nom, lieu, note, puis le lien — une seule
- * fois, en dernière ligne.
+ * Texte du partage, volontairement court pour inciter à ouvrir la fiche :
+ * intro, « nom · commune » (sans adresse ni code postal — ils restent dans la
+ * fiche et les métadonnées d'aperçu), note si avis, appel à l'action, puis le
+ * lien — une seule fois, en dernière ligne.
  */
 export function buildShareText(
   p: ShareParkInput,
@@ -61,12 +63,11 @@ export function buildShareText(
   t: Translate,
   formatRating: (n: number) => string,
 ): string {
-  const location = shortLocation(p);
   return [
     t("share.intro"),
-    p.name,
-    location ? `📍 ${location}` : null,
+    buildShareTitle(p),
     ratingLine(p, t, formatRating),
+    t("share.cta"),
     url,
   ]
     .filter((line): line is string => Boolean(line))

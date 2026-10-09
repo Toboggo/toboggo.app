@@ -84,7 +84,8 @@
     "intro": "Une idée de sortie avec les enfants 🌳",
     "ratingLine_one": "{{rating}}/5 · {{count}} avis",
     "ratingLine_other": "{{rating}}/5 · {{count}} avis",
-    "metaFallback": "Découvre ce parc sur Toboggo : équipements, âges et avis des parents."
+    "metaFallback": "Découvre ce parc sur Toboggo : équipements, âges et avis des parents.",
+    "cta": "Découvre ce parc sur Toboggo 👇"
   },
   "rate": {
     "criteria": {

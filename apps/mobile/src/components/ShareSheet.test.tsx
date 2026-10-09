@@ -76,7 +76,8 @@ describe("ShareSheet", () => {
     expect(payload.text.split(url).length - 1).toBe(1);
     expect(payload.text.endsWith(url)).toBe(true);
     expect(payload.text).toContain("Une idée de sortie avec les enfants 🌳");
-    expect(payload.text).toContain("📍 Lyon");
+    expect(payload.text).toContain("Parc des Lilas · Lyon");
+    expect(payload.text).not.toContain("📍");
     expect(payload.text).not.toContain("⭐"); // pas d'avis → pas de note
   });
 
@@ -88,8 +89,28 @@ describe("ShareSheet", () => {
     fireEvent.click(screen.getByText("Plus d’options"));
     await waitFor(() => expect(share).toHaveBeenCalled());
     expect(share.mock.calls[0][0].text).toBe(
-      ["Une idée de sortie avec les enfants 🌳", "Parc des Lilas", "📍 12 rue des Lilas, Lyon", "⭐ 4,3/5 · 12 avis", url].join("\n"),
+      ["Une idée de sortie avec les enfants 🌳", "Parc des Lilas · Lyon", "⭐ 4,3/5 · 12 avis", "Découvre ce parc sur Toboggo 👇", url].join("\n"),
     );
+  });
+
+  it.each([
+    ["en", "A great idea for a day out with the kids 🌳", "Discover this park on Toboggo 👇", "⭐ 4.3/5 · 1 review", "?lang=en"],
+    ["es", "Una idea de salida con los niños 🌳", "Descubre este parque en Toboggo 👇", "⭐ 4,3/5 · 12 opiniones", "?lang=es"],
+  ])("payload %s : texte localisé, pluriels, lien localisé", async (lng, intro, cta, rating, qs) => {
+    const { default: i18n } = await import("i18next");
+    const contribute = (await import(`../i18n/locales/${lng}/contribute.json`)).default;
+    i18n.addResourceBundle(lng, "contribute", contribute, true, true);
+    await i18n.changeLanguage(lng);
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "share", { configurable: true, value: share });
+    const p = { ...park, rating: 4.25, review_count: lng === "en" ? 1 : 12 } as unknown as Park;
+    render(<ShareSheet open onClose={vi.fn()} park={p} />);
+    fireEvent.click(screen.getByText(lng === "en" ? "More options" : "Más opciones"));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+    const lines = share.mock.calls[0][0].text.split("\n");
+    expect(lines).toEqual([intro, "Parc des Lilas · Lyon", rating, cta, getParkShareUrl("p-1", lng)]);
+    expect(lines[4]).toContain(qs);
+    await i18n.changeLanguage("fr");
   });
 
   it("Plus d’options: cancelling native share shows no error and does not copy", async () => {

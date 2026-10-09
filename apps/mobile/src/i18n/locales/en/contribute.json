@@ -84,7 +84,8 @@
     "intro": "A great idea for a day out with the kids 🌳",
     "ratingLine_one": "{{rating}}/5 · {{count}} review",
     "ratingLine_other": "{{rating}}/5 · {{count}} reviews",
-    "metaFallback": "Discover this park on Toboggo: equipment, ages and parent reviews."
+    "metaFallback": "Discover this park on Toboggo: equipment, ages and parent reviews.",
+    "cta": "Discover this park on Toboggo 👇"
   },
   "rate": {
     "criteria": {

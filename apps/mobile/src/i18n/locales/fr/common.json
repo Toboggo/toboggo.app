@@ -64,7 +64,11 @@
     }
   },
   "a11y": {
-    "noParkPhoto": "Aucune photo pour ce parc"
+    "noParkPhoto": "Aucune photo pour ce parc",
+    "parkIllustration": "Illustration d’un parc de jeux (aucune photo pour ce parc)"
+  },
+  "cover": {
+    "illustration": "Illustration"
   },
   "comingSoon": "Bientôt disponible",
   "visitPrompt": {

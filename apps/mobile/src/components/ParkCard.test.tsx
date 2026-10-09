@@ -62,8 +62,8 @@ describe("ParkCard carousel — non-regression", () => {
     const card = renderCard(full, { favorite: true, distanceM: 350 });
     const q = within(card);
 
-    const photo = card.querySelector('[style*="background-image"]') as HTMLElement;
-    expect(photo.style.backgroundImage).toContain("https://example.test/p.jpg");
+    const photo = card.querySelector("img") as HTMLImageElement;
+    expect(photo.getAttribute("src")).toBe("https://example.test/p.jpg");
     expect(q.getByText("Parc de la Mairie")).toBeTruthy();
     expect(q.getByText("4,8")).toBeTruthy();
     expect(q.getByText("(23)")).toBeTruthy();
@@ -252,8 +252,8 @@ describe("ParkCard row variant", () => {
       onToggleFavorite: vi.fn(),
     });
     const q = within(row);
-    const photo = row.querySelector('[style*="background-image"]') as HTMLElement;
-    expect(photo.style.backgroundImage).toContain("https://example.test/p.jpg");
+    const photo = row.querySelector("img") as HTMLImageElement;
+    expect(photo.getAttribute("src")).toBe("https://example.test/p.jpg");
     expect(q.getByText("4,5")).toBeTruthy();
     expect(q.getByText("(12)")).toBeTruthy();
     expect(q.getByRole("button", { name: "Retirer des favoris" })).toBeTruthy();
@@ -308,8 +308,8 @@ describe("ParkCard favorite variant", () => {
   it("shows photo, name, location + distance on one line, age, equipment, rating and reviews", () => {
     const card = renderFavorite(full, { distanceM: 850, location: "Lyon" });
     const q = within(card);
-    const photo = card.querySelector('[style*="background-image"]') as HTMLElement;
-    expect(photo.style.backgroundImage).toContain("https://example.test/p.jpg");
+    const photo = card.querySelector("img") as HTMLImageElement;
+    expect(photo.getAttribute("src")).toBe("https://example.test/p.jpg");
     expect(q.getByText("Parc Voltaire")).toBeTruthy();
     expect(meta(card)).toBe("Lyon · 850 m");
     expect(chipTexts(card)).toContain("3–6 ans");

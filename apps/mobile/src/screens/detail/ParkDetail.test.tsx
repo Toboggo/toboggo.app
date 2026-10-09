@@ -116,6 +116,7 @@ function renderDetail(overrides: Partial<Park> = {}) {
           <Route path="/park/:id" element={<ParkDetail />} />
           <Route path="/park/:id/directions" element={<div>ANCIEN ÉCRAN FACTICE</div>} />
           <Route path="/park/:id/photos" element={<div>GALERIE</div>} />
+          <Route path="/photo-add" element={<div>AJOUT PHOTO</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -379,5 +380,30 @@ describe("ParkDetail — allègement de la fiche", () => {
     renderDetail();
     expect(screen.getAllByRole("button", { name: /favori/i })).toHaveLength(1);
     expect(screen.getByRole("button", { name: /Itinéraire/ })).toBeTruthy();
+  });
+});
+
+describe("ParkDetail — couverture illustrée & encart première photo", () => {
+  it("sans photo : illustration + encart ; « Ajouter une photo » ouvre le parcours existant", () => {
+    renderDetail({ photos: [] });
+    expect(screen.getByText("Ce parc attend sa première photo")).toBeTruthy();
+    expect(screen.getByText("Aidez les familles à le découvrir")).toBeTruthy();
+    expect(document.querySelector('img[data-cover="illustration"]')).toBeTruthy();
+    const card = screen.getByTestId("first-photo-card");
+    fireEvent.click(card.querySelector("button")!);
+    expect(screen.getByText("AJOUT PHOTO")).toBeTruthy();
+  });
+
+  it("avec photo approuvée : pas d'encart ; photo en couverture", () => {
+    renderDetail({ photos: ["https://x/a.jpg"] });
+    expect(screen.queryByTestId("first-photo-card")).toBeNull();
+    expect(document.querySelector('img[data-cover="illustration"]')).toBeNull();
+  });
+
+  it("photo qui échoue à charger : illustration de secours, mais PAS d'encart", () => {
+    renderDetail({ photos: ["https://x/broken.jpg"] });
+    fireEvent.error(document.querySelector('img[src="https://x/broken.jpg"]')!);
+    expect(document.querySelector('img[data-cover="illustration"]')).toBeTruthy();
+    expect(screen.queryByTestId("first-photo-card")).toBeNull();
   });
 });

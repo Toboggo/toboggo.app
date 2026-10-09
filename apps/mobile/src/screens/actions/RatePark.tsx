@@ -11,7 +11,7 @@ import { FaceChoice } from "../../components/flow/FaceChoice";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
 import { RecapCard, RecapRow, PhotoThumbs, dedupeAddress } from "../../components/flow/Recap";
-import { ParkPhoto } from "../../components/ParkPhoto";
+import { ParkCover } from "../../components/ParkCover";
 import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
 import { useSession } from "../../lib/session";
@@ -559,7 +559,7 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
             <h2 className={styles.title}>{t("rate.verifyTitle")}</h2>
             <p className={styles.subtitle}>{editing ? t("rate.verifyHintEdit") : t("rate.verifyHint")}</p>
             <RecapCard
-              thumb={<ParkPhoto park={park} className={styles.recapThumb} markSize={24} />}
+              thumb={<ParkCover park={park} className={styles.recapThumb} markSize={24} badge={false} />}
               name={getParkDisplayName(park, t)}
               address={dedupeAddress(park.formatted_address)}
             >

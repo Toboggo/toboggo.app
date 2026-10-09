@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Icon } from "@toboggo/design-system";
 import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
-import { ParkPhoto } from "../../components/ParkPhoto";
+import { ParkCover } from "../../components/ParkCover";
 import { useSession } from "../../lib/session";
 import { hasRating } from "../../lib/parkDisplay";
 import { useFormat } from "../../i18n/useFormat";
@@ -65,7 +65,7 @@ export function ParkPreview({
           }
         }}
       >
-        <ParkPhoto park={park} className={styles.photo} markSize={30} />
+        <ParkCover park={park} className={styles.photo} markSize={30} badge={false} />
         <div className={styles.headBody}>
           <div className={styles.titleRow}>
             <div className={styles.name}>{displayName}</div>

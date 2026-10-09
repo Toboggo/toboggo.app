@@ -14,11 +14,16 @@ describe("app screens registry", () => {
   it("every available screen has its file, and every file is declared available", () => {
     for (const s of APP_SCREENS.filter((x) => x.available)) expect(existsSync(dir + s.file), s.file).toBe(true);
     const declared = new Set(APP_SCREENS.filter((s) => s.available).map((s) => s.file));
-    for (const file of readdirSync(dir).filter((f) => f.endsWith(".png"))) expect(declared.has(file), `${file} non déclaré`).toBe(true);
+    for (const file of readdirSync(dir).filter((f) => f.endsWith(".webp"))) expect(declared.has(file), `${file} non déclaré`).toBe(true);
+  });
+
+  it("ne sert que du WebP : aucun PNG brut oublié dans public/screenshots", () => {
+    const raw = readdirSync(dir).filter((f) => f.endsWith(".png"));
+    expect(raw, "convertir avec scripts/optimize-images.mjs puis supprimer les PNG").toEqual([]);
   });
 
   it("never returns a planned (missing) screen", () => {
-    expect(appScreen("explorer")?.src).toBe("/screenshots/explorer.png");
+    expect(appScreen("explorer")?.src).toBe("/screenshots/explorer.webp");
     expect(appScreen("compare")).toBeNull();
     expect(appScreen("inconnu")).toBeNull();
   });

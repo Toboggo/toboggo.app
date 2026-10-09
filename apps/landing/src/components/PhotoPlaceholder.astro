@@ -10,22 +10,42 @@
  * Remplacement futur : passer `src="/images/home/xxx.webp"` suffit, aucun
  * changement de layout nécessaire.
  */
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 interface Props {
   src?: string;
   alt: string;
+  /**
+   * Attribut `sizes` de l'image. S'il est fourni ET que la variante `<nom>-800.webp` existe
+   * (générée par scripts/optimize-images.mjs), l'image est servie en `srcset` 800w / 1200w :
+   * les écrans courants téléchargent la variante légère. Sans `sizes`, rien ne change.
+   */
+  sizes?: string;
   /** Valeur CSS aspect-ratio, ex. "4 / 3". */
   ratio?: string;
   class?: string;
   loading?: "lazy" | "eager";
 }
 
-const { src, alt, ratio = "4 / 3", class: className, loading = "lazy" } = Astro.props;
+const { src, alt, sizes, ratio = "4 / 3", class: className, loading = "lazy" } = Astro.props;
+
+// Largeur de l'original (1200 px, voir IMAGE-SOURCES.md) et de la variante légère.
+const FULL_WIDTH = 1200;
+const VARIANT_WIDTH = 800;
+const variant = src && sizes ? src.replace(/\.webp$/, `-${VARIANT_WIDTH}.webp`) : undefined;
+const srcset =
+  src && variant && variant !== src && existsSync(path.join(process.cwd(), "public", variant))
+    ? `${variant} ${VARIANT_WIDTH}w, ${src} ${FULL_WIDTH}w`
+    : undefined;
 ---
 
 {
   src ? (
     <img
       src={src}
+      srcset={srcset}
+      sizes={srcset ? sizes : undefined}
       alt={alt}
       loading={loading}
       decoding="async"

@@ -65,12 +65,10 @@ const structuredData = [organization, ...jsonLd.map((item) => ({ "@context": "ht
     <meta name="twitter:image:alt" content={ogImageAlt} />
     {structuredData.map((item) => <script type="application/ld+json" set:html={JSON.stringify(item)} />)}
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700&display=swap"
-      rel="stylesheet"
-    />
+    {/* Polices auto-hébergées (public/fonts, déclarées dans styles/global.css) : aucune requête vers un
+        domaine tiers. Volontairement SANS préchargement des fichiers : il retarde le premier rendu (le
+        navigateur attend les polices préchargées). Le décalage au chargement est évité par les polices
+        de repli aux métriques ajustées (global.css), qui n'empêchent pas d'afficher le texte. */}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>

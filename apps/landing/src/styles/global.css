@@ -93,19 +93,21 @@ section {
 
 .faq-item {
   border-bottom: 1px solid var(--color-border);
-  padding: var(--space-4) 0;
 }
 
+/* Le padding est porté par <summary> : toute la ligne est cliquable (≥ 44px). */
 .faq-item summary {
   font-family: var(--font-heading);
   font-weight: 600;
   cursor: pointer;
   font-size: var(--text-base);
+  padding: var(--space-4) 0;
 }
 
 .faq-item p {
   color: var(--color-text-muted);
-  margin: var(--space-2) 0 0;
+  /* -8px : même espace qu'avant entre la question et la réponse */
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
   font-size: 14px;
 }
 
@@ -124,6 +126,22 @@ section {
   padding: var(--space-4) var(--space-5);
   margin-bottom: var(--space-3);
   box-shadow: var(--shadow-sm);
+}
+
+/* Adresses e-mail : zone cliquable étendue par padding + marge négative (mise en page inchangée) */
+.contact-card a,
+.legal-fields a {
+  display: inline-block;
+  padding-block: 6px;
+  margin-block: -6px;
+}
+
+@media (max-width: 800px) {
+  .contact-card a,
+  .legal-fields a {
+    padding-block: 12px;
+    margin-block: -12px;
+  }
 }
 
 .form-field {

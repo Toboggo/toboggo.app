@@ -25,6 +25,11 @@
       "source": "/mentions-legales.html",
       "destination": "/mentions-legales/",
       "permanent": true
+    },
+    {
+      "source": "/404.html",
+      "destination": "/",
+      "permanent": false
     }
   ],
   "trailingSlash": true

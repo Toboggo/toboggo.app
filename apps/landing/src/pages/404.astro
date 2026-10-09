@@ -2,6 +2,7 @@
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Container from "../components/Container.astro";
 import Button from "../components/Button.astro";
+import { APP_URL } from "../config/site";
 ---
 
 <BaseLayout title="Page introuvable" description="Cette page n'existe pas ou a été déplacée." noindex errorPage>
@@ -9,7 +10,12 @@ import Button from "../components/Button.astro";
     <div class="doc-section" style="text-align:center;">
       <h1>Page introuvable</h1>
       <p>La page que vous cherchez n'existe pas ou a été déplacée.</p>
-      <p style="margin-top:32px;"><Button href="/">Retour à l'accueil</Button></p>
+      <div class="page-actions" style="margin-top:32px;">
+        <Button href="/">Retour à l'accueil</Button>
+        <Button href="/aires-de-jeux/" variant="secondary">Explorer les aires de jeux</Button>
+        <Button href={APP_URL} variant="secondary">Ouvrir l'app Toboggo</Button>
+      </div>
+      <p style="margin-top:24px;font-size:var(--text-sm);">Un problème ? <a href="/contact/">Contactez-nous</a>.</p>
     </div>
   </Container>
 </BaseLayout>

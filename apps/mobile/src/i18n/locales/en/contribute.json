@@ -259,6 +259,7 @@
       "unknown": "Unknown: {{list}}"
     },
     "submitting": "Sending…",
+    "localeError": "We couldn’t determine the country for this pin. Move the pin slightly or check the address, then try again. Your information is kept.",
     "submitError": "Sending failed. Your information is kept: check your connection and try again.",
     "photosPartial": "The park was created, but some photos could not be added. You can add them from its page.",
     "close": {

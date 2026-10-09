@@ -259,6 +259,7 @@
       "unknown": "Desconocidos: {{list}}"
     },
     "submitting": "Enviando…",
+    "localeError": "No hemos podido determinar el país de esta ubicación. Mueve ligeramente el marcador o revisa la dirección e inténtalo de nuevo. Tu información se conserva.",
     "submitError": "No se pudo enviar. Tus datos se conservan: revisa tu conexión e inténtalo de nuevo.",
     "photosPartial": "El parque se ha creado, pero no se pudieron añadir algunas fotos. Podrás añadirlas desde su ficha.",
     "close": {

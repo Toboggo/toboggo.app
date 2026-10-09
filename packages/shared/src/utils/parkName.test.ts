@@ -221,3 +221,38 @@ test("getParkDisplayName: no stray whitespace in the assembled title", () => {
   assert.equal(name, "Aire de jeux • Rue du Mandarous");
   assert.equal(name.includes("  "), false);
 });
+
+// ── US P0 : adresses américaines ─────────────────────────────────────────
+
+test("cleanStreetName: US street directions (N/S/E/W) are NOT building letters", () => {
+  assert.equal(cleanStreetName("123 W 42nd St"), "W 42nd St");
+  assert.equal(cleanStreetName("123 E 42nd St"), "E 42nd St");
+  assert.equal(cleanStreetName("5 E Main St"), "E Main St");
+  assert.equal(cleanStreetName("10 N Broadway"), "N Broadway");
+  assert.equal(cleanStreetName("77 Sunset Blvd"), "Sunset Blvd");
+  assert.equal(cleanStreetName("1600 Pennsylvania Ave NW"), "Pennsylvania Ave NW");
+});
+
+test("cleanStreetName: French building letters still stripped (no FR/ES regression)", () => {
+  assert.equal(cleanStreetName("66 G Avenue de Toulouse"), "Avenue de Toulouse");
+  assert.equal(cleanStreetName("12 B Rue Pasteur"), "Rue Pasteur");
+  assert.equal(cleanStreetName("2 bis Avenue Jean Jaurès"), "Avenue Jean Jaurès");
+});
+
+test("getParkDisplayName: US generic park → localized label + street / city, nothing invented", () => {
+  const t = fakeT(EN);
+  assert.equal(
+    getParkDisplayName({ name: "Playground", address_line: "123 W 42nd St", city: "New York" }, t),
+    "Playground • W 42nd St",
+  );
+  assert.equal(getParkDisplayName({ name: "Playground", address_line: null, city: "Brooklyn" }, t), "Playground • Brooklyn");
+  // pas d'adresse : le libellé seul — jamais de quartier fabriqué
+  assert.equal(getParkDisplayName({ name: "Playground", address_line: null, city: null }, t), "Playground");
+});
+
+test("getParkDisplayName: the same stored US park reads in the active language", () => {
+  const park = { name: "Playground", address_line: "5 E Main St", city: "Albany" };
+  assert.equal(getParkDisplayName(park, fakeT(FR)), "Aire de jeux • E Main St");
+  assert.equal(getParkDisplayName(park, fakeT(ES)), "Área de juegos • E Main St");
+  assert.equal(getParkDisplayName(park, fakeT(EN)), "Playground • E Main St");
+});

@@ -10,7 +10,7 @@ import {
   type GeoPlace,
   type Park,
 } from "@toboggo/shared";
-import { CITIES } from "../../lib/geo";
+import { suggestedCities } from "../../lib/geo";
 import { useLocale } from "../../i18n/useLocale";
 import { Icon } from "@toboggo/design-system";
 import { trackEvent } from "../../lib/analytics";
@@ -116,6 +116,7 @@ export function SearchOverlay({
   onSelectPlace: (place: SelectedPlace) => void;
 }) {
   const { t } = useTranslation("map");
+  const cities = useMemo(() => suggestedCities(), []);
   const { language } = useLocale();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
@@ -317,7 +318,7 @@ export function SearchOverlay({
         {!active && (
           <>
             <div className={styles.sectionTitle}>{t("search.nearby")}</div>
-            {CITIES.slice(0, 3).map((c) => (
+            {cities.slice(0, 3).map((c) => (
               <button key={c.name} className={styles.row} onClick={() => selectGeographicLocation(c)}>
                 <span className={styles.rowIcon}><Icon name="ic-explore" size={18} /></span>
                 <span className={styles.rowBody}>
@@ -340,7 +341,7 @@ export function SearchOverlay({
               </>
             )}
             <div className={styles.sectionTitle}>{t("search.suggestedCities")}</div>
-            {CITIES.map((c) => (
+            {cities.map((c) => (
               <button key={c.name} className={styles.row} onClick={() => selectGeographicLocation(c)}>
                 <span className={styles.rowIcon}><Icon name="ic-explore" size={18} /></span>
                 <span className={styles.rowBody}>

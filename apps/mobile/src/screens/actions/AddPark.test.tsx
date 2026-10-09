@@ -394,7 +394,8 @@ describe("AddPark — persistent draft (LOT 3D.E)", () => {
     const btn = screen.getByRole("button", { name: "Envoyer le parc" });
     fireEvent.click(btn);
     fireEvent.click(btn);
-    expect(createPark).toHaveBeenCalledTimes(1);
+    // pays + fuseau sont résolus (asynchrone) avant createPark
+    await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     expect(screen.getByRole("status").textContent).toMatch(/Envoi en cours/);
     resolveCreate({ id: "new-1", name: "Square Double", commune_id: null });
     await screen.findByText("Merci pour votre coup de pouce !");
@@ -1073,7 +1074,71 @@ describe("AddPark — adresse par reverse geocoding", () => {
     await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
     const payload = vi.mocked(createPark).mock.calls[0][0];
     expect(payload).toMatchObject({ lat: 45.7, lng: 4.8 });
-    for (const k of ["postal_code", "city", "admin_area_1", "admin_area_2", "country_code"]) expect(payload).not.toHaveProperty(k);
+    for (const k of ["postal_code", "city", "admin_area_1", "admin_area_2"]) expect(payload).not.toHaveProperty(k);
+    // le pays vient désormais des COORDONNÉES du nouveau repère, jamais de l'ancienne localité
+    expect(payload).toMatchObject({ country_code: "FR", timezone: "Europe/Paris" });
+  });
+
+  it("parc à New York : pays US, fuseau America/New_York, nom générique « Playground » — jamais FR / Europe/Paris", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValue({
+      address_line: "123 W 42nd St",
+      postal_code: "10036",
+      city: "New York",
+      admin_area_1: "New York",
+      admin_area_2: "New York County",
+      country_code: "US",
+      formatted: "123 W 42nd St, New York, NY 10036, United States",
+    });
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    await pickPlace("Midtown", 40.758, -73.9855);
+    await waitFor(() => expect(reverseGeocode).toHaveBeenCalledTimes(1));
+    verify();
+    await screen.findByText("Les jeux et les âges");
+    next(); await screen.findByText("Les petits détails utiles");
+    next(); await screen.findByText("Une photo du parc ?");
+    next(); await screen.findByText("Tout est bon ?");
+    send();
+
+    await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createPark).mock.calls[0][0]).toMatchObject({
+      name: "Playground",
+      country_code: "US",
+      timezone: "America/New_York",
+    });
+  });
+
+  it("géocodage inverse indisponible à New York : pays déduit du fuseau, parc quand même créé en US", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValue(null);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    await pickPlace("Brooklyn", 40.6782, -73.9442);
+    verify();
+    await screen.findByText("Les jeux et les âges");
+    next(); await screen.findByText("Les petits détails utiles");
+    next(); await screen.findByText("Une photo du parc ?");
+    next(); await screen.findByText("Tout est bon ?");
+    send();
+
+    await waitFor(() => expect(createPark).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(createPark).mock.calls[0][0]).toMatchObject({ country_code: "US", timezone: "America/New_York" });
+  });
+
+  it("pays introuvable (hors marchés connus, sans géocodage) : message explicite, rien n'est créé, brouillon conservé", async () => {
+    vi.mocked(reverseGeocode).mockResolvedValue(null);
+    renderAdd();
+    await screen.findByText("Où se trouve le parc ?");
+    await pickPlace("Toronto", 43.65, -79.38);
+    verify();
+    await screen.findByText("Les jeux et les âges");
+    next(); await screen.findByText("Les petits détails utiles");
+    next(); await screen.findByText("Une photo du parc ?");
+    next(); await screen.findByText("Tout est bon ?");
+    send();
+
+    expect((await screen.findByRole("alert")).textContent).toMatch(/déterminer le pays/);
+    expect(createPark).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Envoyer le parc" })).toBeTruthy();
   });
 
   describe("sans carte (contrôles de repli)", () => {

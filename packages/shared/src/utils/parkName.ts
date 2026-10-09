@@ -109,8 +109,13 @@ export function isGenericParkName(name: string | null | undefined): boolean {
  * (`"66 G Avenue de Toulouse"`), either glued to the number (`"4bis"`) or
  * space-separated (`"2 bis"`), always followed by whitespace before the
  * actual street name. Case-insensitive.
+ *
+ * The single-letter suffix excludes `n`, `s`, `e`, `w`: in US addresses those
+ * are street DIRECTIONS (`"123 W 42nd St"`, `"5 E Main St"`), not building
+ * letters — stripping them would turn `W 42nd St` and `E 42nd St` into the
+ * same, misleading `42nd St`.
  */
-const LEADING_HOUSENUMBER = /^\d+\s*(?:bis|ter|quater|[a-z])?\s+/i;
+const LEADING_HOUSENUMBER = /^\d+\s*(?:bis|ter|quater|[a-df-mo-rt-vx-z])?\s+/i;
 
 /**
  * Strip a leading housenumber from a Geoapify/OSM `address_line`

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getParkDisplayName, haversineMeters, incrementParkViews, respondToReport, type ActiveReport, type ReportResponse } from "@toboggo/shared";
-import { Icon, LogoMark } from "@toboggo/design-system";
+import { Icon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { presentPlayCodes } from "../../lib/parkEquipment";
 import { ParkGlyph } from "../../components/addPark/ParkGlyph";
@@ -14,6 +14,7 @@ import { invalidateActiveReports, useActiveReports, useRespondToReport } from ".
 import { useToastStore } from "../../lib/toast";
 import { useDirections } from "../../lib/directions";
 import { useGeo } from "../../lib/geo";
+import { ParkCover } from "../../components/ParkCover";
 import { ShareSheet } from "../../components/ShareSheet";
 import { ContributeSheet } from "../../components/ContributeSheet";
 import { DirectionsSheet } from "../../components/DirectionsSheet";
@@ -169,22 +170,8 @@ export default function ParkDetail() {
 
   return (
     <div className={styles.wrap}>
-      <div
-        className={styles.hero}
-        data-empty={hasPhotos ? undefined : "1"}
-        style={hasPhotos ? { backgroundImage: `url(${photos[photoIndex]})` } : undefined}
-      >
-        {!hasPhotos && (
-          <button
-            type="button"
-            className={styles.heroEmpty}
-            onClick={() => navigate(`/photo-add?park=${park.id}`)}
-            aria-label={t("addPhotoAria")}
-          >
-            <LogoMark size={40} rounded={false} />
-            <span>{t("addPhoto")}</span>
-          </button>
-        )}
+      <div className={styles.hero}>
+        <ParkCover park={park} index={photoIndex} className={styles.heroCover} markSize={40} badgeAt="bottom" eager />
         <div className={styles.heroTop}>
           <CircleBtn label={t("a11y.back")} onClick={() => navigate(-1)}>
             <Icon name="ic-back" size={18} style={{ color: "var(--color-text)" }} />
@@ -379,9 +366,11 @@ export default function ParkDetail() {
               </button>
             </div>
           ) : (
-            <div className={styles.emptyCard}>
-              <span>{t("noPhotos")}</span>
-              <button type="button" onClick={() => navigate(`/photo-add?park=${park.id}`)}>
+            <div className={styles.emptyCard} data-testid="first-photo-card">
+              <strong className={styles.emptyTitle}>{t("firstPhoto.title")}</strong>
+              <span className={styles.emptyHint}>{t("firstPhoto.subtitle")}</span>
+              <button type="button" className={styles.emptyCta} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
+                <Icon name="ic-camera" size={16} />
                 {t("addPhoto")}
               </button>
             </div>

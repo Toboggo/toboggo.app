@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Icon, StarRating, type IconName } from "@toboggo/design-system";
 import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
-import { ParkPhoto } from "./ParkPhoto";
+import { ParkCover } from "./ParkCover";
 import { equipmentChips, hasRating, keyAttributes } from "../lib/parkDisplay";
 import { useFeatureLabel } from "../lib/featureLabel";
 import { useFormat } from "../i18n/useFormat";
@@ -127,7 +127,7 @@ export function ParkCard({
     return (
       <div className={styles.card} {...activate}>
         <div className={styles.media}>
-          <ParkPhoto park={park} className={styles.cardPhoto} markSize={40} />
+          <ParkCover park={park} className={styles.cardPhoto} markSize={40} />
           {ageBand && <span className={styles.ageTag}>{ageBand}</span>}
           {onToggleFavorite && (
             <span className={styles.favFloat}>
@@ -164,7 +164,7 @@ export function ParkCard({
     const chips = [...(ageBand ? [ageBand] : []), ...attrs.map((a) => t(`attr.${a}`))];
     return (
       <div className={styles.listCard} {...activate}>
-        <ParkPhoto park={park} className={styles.listPhoto} markSize={26} />
+        <ParkCover park={park} className={styles.listPhoto} markSize={26} badge={false} />
         <div className={styles.listBody}>
           <div className={styles.listTop}>
             <div className={styles.name}>{displayName}</div>
@@ -195,7 +195,7 @@ export function ParkCard({
     const extraCount = chips.length - shownChips.length;
     return (
       <div className={styles.favCard} {...activate}>
-        <ParkPhoto park={park} className={styles.favPhoto} markSize={32} />
+        <ParkCover park={park} className={styles.favPhoto} markSize={32} badge={false} />
         <div className={styles.favBody}>
           <div className={styles.favTop}>
             <div className={styles.favName}>{displayName}</div>
@@ -229,7 +229,7 @@ export function ParkCard({
 
   return (
     <div className={styles.row} {...activate}>
-      <ParkPhoto park={park} className={styles.thumb} markSize={22} />
+      <ParkCover park={park} className={styles.thumb} markSize={22} badge={false} />
       <div className={styles.body}>
         <div className={styles.name}>{displayName}</div>
         <div className={styles.meta}>{metaLine}</div>

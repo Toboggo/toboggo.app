@@ -11,24 +11,9 @@
   height: 220px;
   background: var(--color-border) center / cover no-repeat;
 }
-.hero[data-empty="1"] {
-  background: var(--color-primary-tint);
-}
-.heroEmpty {
+.heroCover {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--color-primary);
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 13px;
 }
 .heroTop {
   position: absolute;
@@ -296,23 +281,33 @@
   padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 4px;
 }
-.emptyCard span {
+.emptyTitle {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+.emptyHint {
   font-size: 13px;
   color: var(--color-text-muted);
-  font-weight: 600;
 }
-.emptyCard button {
-  align-self: flex-start;
-  background: none;
+.emptyCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  min-height: 40px;
+  padding: 0 16px;
   border: none;
-  color: var(--color-primary);
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
   font-weight: 700;
-  font-size: 12.5px;
-  text-decoration: underline;
+  font-size: 13px;
   cursor: pointer;
-  padding: 0;
 }
 
 .equipRow {

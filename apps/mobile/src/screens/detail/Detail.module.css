@@ -275,31 +275,45 @@
   color: var(--color-text);
 }
 
-.emptyCard {
-  background: var(--color-surface);
+.firstPhoto {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: var(--color-primary-tint);
   border-radius: 14px;
-  padding: 14px 16px;
+}
+.firstPhotoIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-primary);
+}
+.firstPhotoText {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 4px;
+  gap: 2px;
 }
-.emptyTitle {
+.firstPhotoTitle {
   font-family: var(--font-heading);
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
 }
-.emptyHint {
+.firstPhotoHint {
   font-size: 13px;
   color: var(--color-text-muted);
 }
-.emptyCta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  min-height: 40px;
+.firstPhotoCta {
+  margin-top: 8px;
+  min-height: 36px;
   padding: 0 16px;
   border: none;
   border-radius: 999px;

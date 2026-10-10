@@ -1,6 +1,11 @@
 ---
+/**
+ * Distingue le SITE WEB de l'APPLICATION MOBILE. Seuls des faits établis par le dépôt y figurent ;
+ * tout ce qui manque est marqué « À FOURNIR » (jamais inventé).
+ */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Container from "../components/Container.astro";
+const TODO = "À FOURNIR";
 ---
 
 <BaseLayout
@@ -12,13 +17,33 @@ import Container from "../components/Container.astro";
       <h1>Politique de confidentialité</h1>
       <p class="doc-updated">Dernière mise à jour : 24 août 2026</p>
 
-      <h2>Données collectées</h2>
+      <h2>Responsable du traitement</h2>
+      <p>Identité et coordonnées du responsable du traitement : <em class="todo">{TODO}</em> (voir aussi les <a href="/mentions-legales/">mentions légales</a>). Contact pour toute question sur vos données : <a href="mailto:privacy@toboggo.app">privacy@toboggo.app</a>.</p>
+
+      <h2>Ce site web</h2>
+      <p>Le site vitrine ne dépose aucun cookie, n'utilise pas le stockage local de votre navigateur et ne charge aucun service tiers de mesure d'audience ou de publicité. Il ne vous suit pas.</p>
+      <p>Si vous utilisez le <a href="/contact/">formulaire de contact</a>, les informations saisies (nom, e-mail, sujet, message et, pour un partenariat, le nom de votre collectivité) sont enregistrées dans la base de données de Toboggo (Supabase) uniquement pour vous répondre. Durée de conservation de ces messages : <em class="todo">{TODO}</em>.</p>
+
+      <h2>Application mobile</h2>
+
+      <h3>Données collectées</h3>
       <p>Votre position géographique (jamais partagée avec des tiers à des fins publicitaires), votre e-mail et mot de passe, ainsi que les contributions que vous choisissez de publier. Le prénom et l'âge de vos enfants, s'ils sont renseignés, ne sont jamais rendus publics ni partagés.</p>
 
-      <h2>Finalité et base légale</h2>
+      <h3>Finalité et base légale</h3>
       <p>Exécution du contrat de service, et pour la géolocalisation, votre consentement explicite — révocable à tout moment.</p>
 
-      <h2>Conservation</h2>
+      <h3>Mesure d'audience (PostHog)</h3>
+      <p>L'application peut mesurer son usage avec l'outil PostHog. Dans la configuration actuelle de l'application :</p>
+      <ul>
+        <li>aucune donnée n'est écrite dans votre navigateur (ni cookie, ni stockage local) pour cette mesure ;</li>
+        <li>la capture automatique, l'enregistrement de sessions et le suivi des clics sont désactivés ;</li>
+        <li>les adresses de pages sont réduites au domaine et au chemin avant envoi, sans paramètres ;</li>
+        <li>une fois connecté, vous êtes identifié par un identifiant de compte aléatoire (jamais votre e-mail ni votre nom) ;</li>
+        <li>l'e-mail n'est jamais envoyé comme propriété d'un événement.</li>
+      </ul>
+      <p>Base légale et modalités de consentement de cette mesure : <em class="todo">{TODO}</em>. Durée de conservation des données de mesure : <em class="todo">{TODO}</em>. Région d'hébergement des données de mesure : <em class="todo">{TODO}</em>.</p>
+
+      <h3>Conservation</h3>
       <p>Vos données sont supprimées dans un délai de 30 jours après la fermeture de votre compte. Les avis et parcs publiés peuvent rester visibles sous forme anonymisée.</p>
 
       <h2>Vos droits</h2>
@@ -26,7 +51,28 @@ import Container from "../components/Container.astro";
 
       <h2>Partage des données</h2>
       <p>Nous ne vendons aucune donnée. Seuls des prestataires techniques (hébergement, e-mail) y accèdent, sous engagement de confidentialité.</p>
-
     </div>
   </Container>
 </BaseLayout>
+
+<style>
+  .doc-section h3 {
+    margin-top: 24px;
+    font-size: var(--text-base);
+  }
+
+  .doc-section ul {
+    color: var(--color-text-muted);
+    font-size: 14.5px;
+    padding-left: 20px;
+  }
+
+  .todo {
+    font-style: normal;
+    font-weight: 600;
+    color: var(--color-warning-text);
+    background: var(--color-warning-bg);
+    border-radius: var(--radius-xs);
+    padding: 2px 8px;
+  }
+</style>

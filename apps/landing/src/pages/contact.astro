@@ -5,14 +5,13 @@ import { CONTACT_EMAIL } from "../config/site";
 import { LIMITS, SUBJECTS } from "../lib/contact";
 
 /*
-  Formulaire → insertion anonyme dans `contact_messages` (RLS : INSERT public,
-  lecture réservée au staff). Variables PUBLIC_ lues au BUILD (clé anon
-  publique par conception, jamais de secret). Sans elles, aucun formulaire
-  cassé : on affiche le contact de secours par e-mail.
+  Formulaire → POST /api/contact (validation serveur, anti-spam, Resend). Tant que ce service n'est pas
+  configuré, secours : insertion anonyme dans `contact_messages` (RLS : INSERT public, lecture réservée
+  au staff), avec les variables PUBLIC_ lues au BUILD (clé anon publique par conception, jamais de secret).
 */
 const supabaseUrl = (import.meta.env.PUBLIC_SUPABASE_URL ?? "").trim().replace(/\/+$/, "");
 const anonKey = (import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
-const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
+const legacyEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
 
 ---
 
@@ -36,11 +35,10 @@ const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
         </div>
 
         <div>
-          {
-            formEnabled ? (
-              <>
+          <>
                 <div id="form-msg" role="status" aria-live="polite" />
-                <form id="contact-form" data-endpoint={`${supabaseUrl}/rest/v1/contact_messages`} data-key={anonKey} novalidate>
+                <noscript><p class="form-privacy">Le formulaire demande JavaScript : écrivez-nous à <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>.</p></noscript>
+                <form id="contact-form" data-endpoint={legacyEnabled ? `${supabaseUrl}/rest/v1/contact_messages` : undefined} data-key={legacyEnabled ? anonKey : undefined} novalidate>
                   <div class="form-field">
                     <label for="name">Nom</label>
                     <input id="name" name="name" required maxlength={LIMITS.name} autocomplete="name" />
@@ -73,18 +71,7 @@ const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
                   </p>
                   <button class="btn btn-primary" type="submit" id="submit-btn">Envoyer</button>
                 </form>
-              </>
-            ) : (
-              <div class="contact-card contact-fallback">
-                <strong>Écrivez-nous directement</strong>
-                <p>
-                  Le formulaire est momentanément indisponible. Envoyez-nous votre message à{" "}
-                  <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>, en précisant votre sujet
-                  (question, problème technique, partenariat ou presse).
-                </p>
-              </div>
-            )
-          }
+          </>
         </div>
       </div>
     </div>
@@ -96,6 +83,7 @@ const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
     buildPayload,
     looksLikeBot,
     sendContact,
+    sendContactApi,
     subjectFromParam,
     validateContact,
     PARTNERSHIP,
@@ -168,7 +156,12 @@ const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
       btn.disabled = true;
       btn.textContent = "Envoi…";
       try {
-        await sendContact(endpoint, anonKey, buildPayload(input));
+        // 1) endpoint serveur (Resend) ; 2) secours historique si le service n'est pas en place.
+        const outcome = await sendContactApi(input, Date.now() - shownAt);
+        if (outcome === "unavailable") {
+          if (!endpoint || !anonKey) throw new Error("no fallback");
+          await sendContact(endpoint, anonKey, buildPayload(input));
+        }
         show("success", "Message envoyé — notre équipe vous répondra sous peu.");
         form.reset();
         syncOrganization();
@@ -205,9 +198,5 @@ const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
     font-size: var(--text-sm);
     color: var(--color-text-muted);
     margin: 0 0 var(--space-4);
-  }
-
-  .contact-fallback p {
-    margin: var(--space-2) 0 0;
   }
 </style>

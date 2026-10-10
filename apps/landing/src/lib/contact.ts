@@ -1,9 +1,9 @@
 /**
  * Logique du formulaire /contact, hors DOM pour être testée.
- * Écriture : un seul INSERT anonyme dans `contact_messages` (RLS : insertion
- * publique, lecture réservée au staff). Le schéma n'a que
- * name / email / subject / message : la collectivité est donc ajoutée en tête du
- * message, sans changement de schéma.
+ * Envoi : d'abord le endpoint serveur `/api/contact` (validation serveur, anti-spam, Resend — voir
+ * contactServer.ts). Tant qu'il n'est pas disponible/configuré, secours historique : un INSERT anonyme
+ * dans `contact_messages` (RLS : insertion publique, lecture réservée au staff). Le schéma n'a que
+ * name / email / subject / message : la collectivité est donc ajoutée en tête du message.
  */
 
 export const SUBJECTS = ["Question générale", "Problème technique", "Partenariat", "Presse"] as const;
@@ -107,4 +107,31 @@ export async function sendContact(
     body: JSON.stringify(payload),
   });
   if (!res.ok) throw new ContactSendError(res.status);
+}
+
+/** Statuts qui signifient « le endpoint serveur n'est pas en service » (non déployé, non configuré, Resend en panne). */
+const API_UNAVAILABLE = new Set([404, 405, 502, 503]);
+
+/**
+ * Envoi via le endpoint serveur. `"sent"` = accepté ; `"unavailable"` = service absent/non configuré
+ * (l'appelant peut utiliser le secours) ; toute autre réponse d'erreur lève `ContactSendError`.
+ */
+export async function sendContactApi(
+  input: ContactInput,
+  elapsedMs: number,
+  fetchImpl: typeof fetch = fetch,
+): Promise<"sent" | "unavailable"> {
+  let res: Response;
+  try {
+    res = await fetchImpl("/api/contact", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...input, elapsedMs }),
+    });
+  } catch {
+    return "unavailable";
+  }
+  if (res.ok) return "sent";
+  if (API_UNAVAILABLE.has(res.status)) return "unavailable";
+  throw new ContactSendError(res.status);
 }

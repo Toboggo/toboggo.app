@@ -154,13 +154,14 @@
   white-space: nowrap;
 }
 
+/* vert « pressed » du design system : texte blanc ≥ 4,5:1 (le vert de marque #2FA37C ne donne que 3,2:1) */
 .btn-primary {
-  background: var(--color-primary);
+  background: var(--color-primary-pressed);
   color: var(--color-on-primary);
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-hover);
+  background: color-mix(in srgb, var(--color-primary-pressed) 88%, var(--color-text));
 }
 
 .btn-secondary {
@@ -547,7 +548,7 @@ section {
   z-index: calc(var(--z-nav) + 1);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-pill);
-  background: var(--color-primary);
+  background: var(--color-primary-pressed);
   color: var(--color-on-primary);
   font-family: var(--font-heading);
   font-weight: 600;

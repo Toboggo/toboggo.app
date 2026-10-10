@@ -394,6 +394,16 @@ describe("ParkDetail — couverture illustrée & encart première photo", () => 
     expect(screen.getByText("AJOUT PHOTO")).toBeTruthy();
   });
 
+  it("l'encart est unique, sous le hero, avant le nom du parc, avec l'icône appareil photo", () => {
+    renderDetail({ photos: [] });
+    const cards = screen.getAllByTestId("first-photo-card");
+    expect(cards).toHaveLength(1);
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(cards[0]!.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cards[0]!.querySelector("use")?.getAttribute("href")).toContain("ic-camera");
+    expect(screen.queryByText("Photos de la communauté")).toBeNull();
+  });
+
   it("avec photo approuvée : pas d'encart ; photo en couverture", () => {
     renderDetail({ photos: ["https://x/a.jpg"] });
     expect(screen.queryByTestId("first-photo-card")).toBeNull();

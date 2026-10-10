@@ -225,6 +225,20 @@ export default function ParkDetail() {
       </div>
 
       <div className={styles.body}>
+        {!hasPhotos && (
+          <div className={styles.firstPhoto} data-testid="first-photo-card">
+            <span className={styles.firstPhotoIcon} aria-hidden>
+              <Icon name="ic-camera" size={20} />
+            </span>
+            <div className={styles.firstPhotoText}>
+              <strong className={styles.firstPhotoTitle}>{t("firstPhoto.title")}</strong>
+              <span className={styles.firstPhotoHint}>{t("firstPhoto.subtitle")}</span>
+              <button type="button" className={styles.firstPhotoCta} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
+                {t("addPhoto")}
+              </button>
+            </div>
+          </div>
+        )}
         <h1 className={styles.name}>{getParkDisplayName(park, t)}</h1>
         {park.formatted_address && <div className={styles.sub}>{park.formatted_address}</div>}
 
@@ -340,18 +354,16 @@ export default function ParkDetail() {
           </svg>
         </button>
 
-        <div className={styles.section}>
-          <div className={styles.kickerRow}>
-            <span className={styles.kicker}>{t("communityPhotos")}</span>
-            {hasPhotos && (
+        {hasPhotos && (
+          <div className={styles.section}>
+            <div className={styles.kickerRow}>
+              <span className={styles.kicker}>{t("communityPhotos")}</span>
               <div className={styles.kickerActions}>
                 <button type="button" className={styles.seeAll} onClick={() => navigate(`/park/${park.id}/photos`)}>
                   {t("action.seeAll", { ns: "common" })}
                 </button>
               </div>
-            )}
-          </div>
-          {hasPhotos ? (
+            </div>
             <div className={styles.photoStrip}>
               {photos.map((p, i) => (
                 <div key={i} className={styles.photoThumb} style={{ backgroundImage: `url(${p})` }} />
@@ -365,17 +377,8 @@ export default function ParkDetail() {
                 <Icon name="ic-plus" size={24} />
               </button>
             </div>
-          ) : (
-            <div className={styles.emptyCard} data-testid="first-photo-card">
-              <strong className={styles.emptyTitle}>{t("firstPhoto.title")}</strong>
-              <span className={styles.emptyHint}>{t("firstPhoto.subtitle")}</span>
-              <button type="button" className={styles.emptyCta} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
-                <Icon name="ic-camera" size={16} />
-                {t("addPhoto")}
-              </button>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className={styles.hr} />
 

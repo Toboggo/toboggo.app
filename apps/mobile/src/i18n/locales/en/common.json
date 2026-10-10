@@ -67,9 +67,6 @@
     "noParkPhoto": "No photo for this park",
     "parkIllustration": "Illustration of a playground (no photo for this park yet)"
   },
-  "cover": {
-    "illustration": "Illustration"
-  },
   "comingSoon": "Coming soon",
   "visitPrompt": {
     "title": "Have you been to this park?",

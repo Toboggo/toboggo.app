@@ -276,52 +276,68 @@
 }
 
 .firstPhoto {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 4px 10px;
   margin-bottom: 16px;
-  padding: 12px 14px;
-  background: var(--color-primary-tint);
+  padding: 12px;
+  background: color-mix(in srgb, var(--color-primary-tint) 55%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
   border-radius: 14px;
 }
 .firstPhotoIcon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--color-surface);
+  display: inline-flex;
+  margin-top: 1px;
   color: var(--color-primary);
 }
 .firstPhotoText {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   gap: 2px;
 }
 .firstPhotoTitle {
   font-family: var(--font-heading);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--color-text);
 }
 .firstPhotoHint {
   font-size: 13px;
+  line-height: 1.35;
   color: var(--color-text-muted);
 }
 .firstPhotoCta {
+  grid-column: 2;
+  justify-self: start;
   margin-top: 8px;
-  min-height: 36px;
-  padding: 0 16px;
-  border: none;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid var(--color-primary);
   border-radius: 999px;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: transparent;
+  color: var(--color-primary);
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
+}
+.firstPhotoCta:active {
+  background: var(--color-primary-tint);
+}
+/* Assez large : le bouton passe à droite du texte. */
+@container (min-width: 460px) {
+  .firstPhoto {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+  }
+  .firstPhotoCta {
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: 0;
+  }
 }
 
 .equipRow {

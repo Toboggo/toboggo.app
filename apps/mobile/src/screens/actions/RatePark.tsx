@@ -559,7 +559,7 @@ export default function RatePark({ editing }: { editing?: Review } = {}) {
             <h2 className={styles.title}>{t("rate.verifyTitle")}</h2>
             <p className={styles.subtitle}>{editing ? t("rate.verifyHintEdit") : t("rate.verifyHint")}</p>
             <RecapCard
-              thumb={<ParkCover park={park} className={styles.recapThumb} markSize={24} badge={false} />}
+              thumb={<ParkCover park={park} className={styles.recapThumb} markSize={24} />}
               name={getParkDisplayName(park, t)}
               address={dedupeAddress(park.formatted_address)}
             >

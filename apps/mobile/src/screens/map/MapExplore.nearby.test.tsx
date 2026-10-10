@@ -191,8 +191,8 @@ describe("Autour de vous — medium", () => {
     const cards = carouselCards();
     expect(cards).toHaveLength(3);
     expect(cards[0].textContent).toContain("Parc A");
-    const dist = (cards[0].querySelector('[class*="_cardDist_"]')?.textContent ?? "").replace(/\s+/g, " ");
-    expect(dist).toBe("200 m · 3 min"); // distance + walking time kept on the card
+    const dist = (cards[0].querySelector('[class*="_distPill_"]')?.textContent ?? "").replace(/\s+/g, " ");
+    expect(dist).toBe("200 m"); // distance pill kept on the card; walking time dropped
   });
 
   it("offers 'Envie de plus d'options ?' only when parks exist beyond the radius", async () => {

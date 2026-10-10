@@ -36,3 +36,9 @@
   top: auto;
   bottom: var(--space-2);
 }
+.badge[data-at="stacked"] {
+  top: calc(var(--space-2) + 24px + var(--space-1));
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}

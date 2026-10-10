@@ -120,40 +120,31 @@ export function ParkCard({
   };
 
   if (variant === "carousel") {
-    // Photo-first, only real data, in this order: age (on the photo) and
-    // favourite, then name, rating + review count (only when reviews back it),
-    // distance · walking time, then at most two known attributes.
-    const attrs = keyAttributes(park);
+    // Full-bleed photo, only real data: distance (top-left), favourite
+    // (top-right), then over a dark gradient the name, the rating + review
+    // count (only when reviews back it) and the age band. No walking time, no
+    // equipment pictograms here. An illustrated cover keeps its "Illustration"
+    // tag (stacked under the distance pill).
     return (
       <div className={styles.card} {...activate}>
-        <div className={styles.media}>
-          <ParkCover park={park} className={styles.cardPhoto} markSize={40} />
-          {ageBand && <span className={styles.ageTag}>{ageBand}</span>}
-          {onToggleFavorite && (
-            <span className={styles.favFloat}>
-              <FavButton favorite={favorite} onToggle={onToggleFavorite} activeColor="var(--color-primary)" />
-            </span>
-          )}
-        </div>
+        <ParkCover park={park} className={styles.cardPhoto} markSize={44} badgeAt="stacked" />
+        <div className={styles.cardShade} aria-hidden />
+        {distanceM != null && <span className={styles.distPill}>{f.distance(distanceM)}</span>}
+        {onToggleFavorite && (
+          <span className={styles.favFloat}>
+            <FavButton favorite={favorite} onToggle={onToggleFavorite} activeColor="var(--color-primary)" />
+          </span>
+        )}
         <div className={styles.cardBody}>
           <div className={styles.cardName}>{displayName}</div>
-          <CompactRating park={park} />
-          {(walkDistance || attrs.length > 0) && (
-            <div className={styles.cardMeta}>
-              {walkDistance && <span className={styles.cardDist}>{walkDistance}</span>}
-              {/* Known attributes as discreet pictograms on the same line —
-                  keeps the card short enough for the medium snap; the label
-                  stays available to screen readers and on hover. */}
-              {attrs.map((a) => {
-                const label = t(`attr.${a}`);
-                return (
-                  <span key={a} className={styles.fact} role="img" aria-label={label} title={label}>
-                    <Icon name={ATTR_ICON[a]} size={14} />
-                  </span>
-                );
-              })}
-            </div>
+          {hasRating(park) && (
+            <span className={styles.cardRating}>
+              <Icon name="ic-star" size={13} style={{ color: "var(--color-accent)" }} />
+              <strong>{f.rating(park.rating)}</strong>
+              <span>({f.count(park.review_count)})</span>
+            </span>
           )}
+          {ageBand && <span className={styles.ageTag}>{ageBand}</span>}
         </div>
       </div>
     );

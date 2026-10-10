@@ -34,7 +34,8 @@ export function ParkCover({
   markSize?: number;
   /** "Illustration" tag on illustrated covers; turn off on tiny thumbnails. */
   badge?: boolean;
-  badgeAt?: "top" | "bottom";
+  /** "stacked": top-left, just under a 24px pill the caller draws there. */
+  badgeAt?: "top" | "bottom" | "stacked";
   /** Above-the-fold covers skip lazy loading. */
   eager?: boolean;
   children?: ReactNode;

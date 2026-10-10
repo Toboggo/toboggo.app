@@ -83,6 +83,8 @@ export function buildPayload(input: ContactInput): ContactPayload {
   };
 }
 
+// LEGACY-SUPABASE-FALLBACK (1/3) — TEMPORAIRE, à supprimer APRÈS activation de Resend (voir CONTACT.md).
+// Supprimer : `sendContact` ci-dessous (et son test), en gardant `ContactSendError` utilisé par `sendContactApi`.
 export class ContactSendError extends Error {
   constructor(public readonly status: number) {
     super(`contact insert failed: HTTP ${status}`);

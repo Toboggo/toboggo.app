@@ -11,6 +11,8 @@ import { LIMITS, SUBJECTS } from "../lib/contact";
 */
 const supabaseUrl = (import.meta.env.PUBLIC_SUPABASE_URL ?? "").trim().replace(/\/+$/, "");
 const anonKey = (import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? "").trim();
+// LEGACY-SUPABASE-FALLBACK (2/3) — à supprimer après activation de Resend (voir CONTACT.md) : ces 3 constantes,
+// les attributs data-endpoint/data-key du formulaire, et le bloc marqué (3/3) dans le <script>.
 const legacyEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
 
 ---
@@ -158,6 +160,7 @@ const legacyEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
       try {
         // 1) endpoint serveur (Resend) ; 2) secours historique si le service n'est pas en place.
         const outcome = await sendContactApi(input, Date.now() - shownAt);
+        // LEGACY-SUPABASE-FALLBACK (3/3) — à supprimer après activation de Resend ; remplacer par un `throw` :
         if (outcome === "unavailable") {
           if (!endpoint || !anonKey) throw new Error("no fallback");
           await sendContact(endpoint, anonKey, buildPayload(input));

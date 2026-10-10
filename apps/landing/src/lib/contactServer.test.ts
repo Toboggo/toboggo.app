@@ -72,6 +72,18 @@ describe("handleContact", () => {
     expect(sent.subject).not.toMatch(/[\r\n]/);
   });
 
+  it("n'écrit jamais la clé ni les données personnelles dans les logs", async () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const down = vi.fn(async () => new Response("{}", { status: 500 }));
+    await handleContact(req(valid), ENV, down as unknown as typeof fetch);
+    const boom = vi.fn(async () => { throw new Error("test-key camille@example.test"); });
+    await handleContact(req(valid), ENV, boom as unknown as typeof fetch);
+    const logged = JSON.stringify(spy.mock.calls);
+    expect(logged).not.toContain("test-key");
+    expect(logged).not.toContain("camille@example.test");
+    spy.mockRestore();
+  });
+
   it("502 si Resend échoue (HTTP ou réseau)", async () => {
     const down = vi.fn(async () => new Response("{}", { status: 500 }));
     expect((await handleContact(req(valid), ENV, down as unknown as typeof fetch)).status).toBe(502);

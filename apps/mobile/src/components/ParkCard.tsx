@@ -159,7 +159,7 @@ export function ParkCard({
         <div className={styles.listBody}>
           <div className={styles.listTop}>
             <div className={styles.name}>{displayName}</div>
-            {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} />}
+            {onToggleFavorite && <FavButton favorite={favorite} onToggle={onToggleFavorite} activeColor="var(--color-primary)" />}
           </div>
           <CompactRating park={park} />
           <div className={styles.listDist}>{walkDistance}</div>

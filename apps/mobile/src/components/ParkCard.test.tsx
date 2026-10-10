@@ -143,6 +143,16 @@ describe("ParkCard carousel — photo card", () => {
     expect(css).toMatch(/overflow: hidden;/);
   });
 
+  it("list variant: active heart uses the brand green token too", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <ParkCard park={park()} favorite onToggleFavorite={vi.fn()} variant="list" />
+      </MemoryRouter>,
+    );
+    const heart = within(container).getByRole("button", { name: "Retirer des favoris" });
+    expect((heart.querySelector("svg") as SVGElement).style.color).toBe("var(--color-primary)");
+  });
+
   it("is a photo-first card: full-bleed photo, gradient scrim, 44px favourite hit area", () => {
     expect(rule("cardPhoto")).toMatch(/inset: 0;/);
     expect(rule("cardShade")).toMatch(/linear-gradient\(/);

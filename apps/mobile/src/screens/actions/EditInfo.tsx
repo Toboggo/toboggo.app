@@ -24,7 +24,7 @@ import {
 } from "@toboggo/shared";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
-import { ParkPhoto } from "../../components/ParkPhoto";
+import { ParkCover } from "../../components/ParkCover";
 import styles from "../../components/flow/Flow.module.css";
 import { ThankYou } from "../../components/flow/ThankYou";
 import { DiffRow } from "../../components/DiffRow";
@@ -609,7 +609,7 @@ export default function EditInfo() {
             <h2 className={styles.title}>{t("edit.verifyTitle")}</h2>
             <p className={styles.subtitle}>{t("edit.verifyHint")}</p>
             <RecapCard
-              thumb={<ParkPhoto park={park} className={styles.recapThumb} markSize={24} />}
+              thumb={<ParkCover park={park} className={styles.recapThumb} markSize={24} badge={false} />}
               name={park.name ?? ""}
               address={dedupeAddress(park.formatted_address)}
             >

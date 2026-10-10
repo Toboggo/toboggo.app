@@ -18,6 +18,7 @@ import { addParkFromHref } from "../../lib/addParkEntry";
 import { FlowShell, useLeaveGuard } from "../../components/flow/FlowShell";
 import { ParkCardMini, ParkChooser } from "../../components/flow/ParkChooser";
 import { PhotoThumbs, RecapCard, RecapRow, dedupeAddress } from "../../components/flow/Recap";
+import { ParkCover } from "../../components/ParkCover";
 import { ParkPhoto } from "../../components/ParkPhoto";
 import styles from "../../components/flow/Flow.module.css";
 import { usePark } from "../../lib/parksQuery";
@@ -304,7 +305,13 @@ export default function AddPhotos() {
             <h2 className={styles.title}>{t("addPhotos.verifyTitle")}</h2>
             <p className={styles.subtitle}>{t("addPhotos.readyCount", { count: picks.length })}</p>
             <RecapCard
-              thumb={<ParkPhoto park={park ?? { photos: [] }} className={styles.recapThumb} markSize={24} />}
+              thumb={
+                park ? (
+                  <ParkCover park={park} className={styles.recapThumb} markSize={24} badge={false} />
+                ) : (
+                  <ParkPhoto park={{ photos: [] }} className={styles.recapThumb} markSize={24} />
+                )
+              }
               name={park ? getParkDisplayName(park, t) : ""}
               address={dedupeAddress(park?.formatted_address)}
             >

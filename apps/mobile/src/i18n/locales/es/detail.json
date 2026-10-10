@@ -68,6 +68,10 @@
   },
   "communityPhotos": "Fotos de la comunidad",
   "noPhotos": "Todavía no hay fotos. ¡Sé el primero en añadir una!",
+  "firstPhoto": {
+    "title": "Este parque espera su primera foto",
+    "subtitle": "Ayuda a las familias a descubrirlo"
+  },
   "addPhoto": "Añadir una foto",
   "addPhotoAria": "Añadir una foto de este parque",
   "contribute": "Contribuir a este parque",

@@ -7,6 +7,7 @@ import { PageHeader } from "../components/PageHeader";
 import { ParkEditStatusTag, ParkEditItemResultTag } from "../components/StatusTag";
 import { parkEditItems, formatItemValue } from "../lib/parkEditType";
 import { previewParkEditItem } from "../lib/parkEditReviewPreview";
+import { useOrgScope } from "../lib/orgScope";
 import { usePermissions } from "../lib/permissions";
 import { useAsyncAction } from "../lib/useAsyncAction";
 import { queryClient } from "../lib/queryClient";
@@ -32,6 +33,7 @@ export default function ValidationDetail() {
   const toast = useToast();
   const confirm = useConfirm();
   const { canReviewParkEdit } = usePermissions();
+  const { isAdmin } = useOrgScope();
   const [note, setNote] = useState("");
 
   useEffect(() => setNote(""), [editId]);
@@ -115,8 +117,12 @@ export default function ValidationDetail() {
     if (ok) await runReject();
   }
 
+  // `/validation` (liste globale) est réservée au staff : un gestionnaire de
+  // collectivité revient sur la fiche du parc d'où il est venu.
+  const backHref = isAdmin ? "/validation" : parkId ? `/parks/${parkId}` : "/parks";
+
   function goBack() {
-    navigate("/validation");
+    navigate(backHref);
   }
 
   if (isLoading) {
@@ -166,13 +172,13 @@ export default function ValidationDetail() {
     <div>
       <nav className={styles.breadcrumb} aria-label="Fil d'Ariane">
         <a
-          href="/validation"
+          href={backHref}
           onClick={(e) => {
             e.preventDefault();
             goBack();
           }}
         >
-          File de validation
+          {isAdmin ? "File de validation" : "Modifications proposées"}
         </a>
         <span className={styles.crumbSep} aria-hidden="true">
           ›

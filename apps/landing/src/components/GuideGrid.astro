@@ -30,7 +30,7 @@ const { headingLevel: Heading = "h3" } = Astro.props;
     DEMO_GUIDES.map((guide) => (
       <li class="guide-card">
         <div class="guide-media">
-          <PhotoPlaceholder alt={guide.imageAlt ?? guide.title} ratio="3 / 2" src={guide.image} />
+          <PhotoPlaceholder alt={guide.imageAlt ?? guide.title} ratio="3 / 2" src={guide.image} sizes="(min-width: 1024px) 331px, (min-width: 640px) 229px, calc(100vw - 48px)" />
         </div>
         <div class="guide-body">
           <span class="guide-soon">À venir</span>

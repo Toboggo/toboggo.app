@@ -33,6 +33,23 @@ const articles = await getArticles();
 if (articles.length === 0) SHELL_ONLY_PATHS.push("/guides");
 const lastmodByPath = new Map(articles.map((a) => [`/guides/${a.slug}`, a.updatedAt ?? a.publishedAt]));
 
+// @astrojs/vercel 11 : le bundle serveur embarque des constantes de dist/index.js dont les imports « effet de bord »
+// (`import "rolldown"`, `import "@vercel/routing-utils"`) survivent au tree-shaking. rolldown charge alors son binding
+// natif au démarrage de la fonction, absent du paquet déployé (require dynamique non tracé) : 500 sur /api/preview/enable/.
+// Ces paquets ne servent qu'au build (hook de l'adapter, exécuté par Node, pas par Vite) : on les remplace par un module
+// vide dans le bundle de la fonction.
+const stubBuildOnlyPackages = {
+  name: "toboggo:stub-build-only-packages",
+  enforce: "pre",
+  resolveId: (id) => (id === "rolldown" || id === "@vercel/routing-utils" ? `\0stub:${id}` : null),
+  load: (id) => {
+    if (!id.startsWith("\0stub:")) return null;
+    // Exports nommés réellement importés par dist/index.js et dist/serverless/middleware.js de l'adapter.
+    const names = id === "\0stub:rolldown" ? ["rolldown"] : ["getTransformedRoutes", "normalizeRoutes"];
+    return names.map((n) => `export const ${n} = () => { throw new Error("${n}: indisponible à l'exécution"); };`).join("\n");
+  },
+};
+
 export default defineConfig({
   site: SITE_URL,
   output: "static",
@@ -44,7 +61,7 @@ export default defineConfig({
   trailingSlash: "always",
   // Aucun script inline : les petits <script> de composants sont émis en fichiers /_astro/*.js
   // (au lieu d'être inlinés sous 4 Ko). Permet une CSP « script-src 'self' » sans 'unsafe-inline'.
-  vite: { build: { assetsInlineLimit: 0 } },
+  vite: { build: { assetsInlineLimit: 0 }, plugins: [stubBuildOnlyPackages] },
   integrations: [
     sitemap({
       serialize(item) {

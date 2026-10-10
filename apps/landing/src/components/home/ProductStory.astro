@@ -1,0 +1,752 @@
+---
+/**
+ * Storytelling produit (Home) : « Je cherche → je filtre → je découvre → je garde ».
+ * Remplace l'ancienne galerie de 4 téléphones. Les 4 VRAIES captures du registre
+ * (lib/screens.ts, vrais parcs de Millau, jamais retouchées) restent les seuls écrans.
+ *
+ * Deux modes, une seule source de contenu :
+ *
+ * 1. EMPILÉ (par défaut : mobile, tablette, JS désactivé, « réduire les animations »).
+ *    Chaque étape = texte + son téléphone + ses pastilles, en flux normal. Tout est lisible
+ *    sans animation ni interaction. Si les animations sont autorisées, une légère apparition
+ *    (opacité/transform) est ajoutée au défilement.
+ *
+ * 2. SCÈNE STICKY (desktop ≥ 1024 px, animations autorisées, JS actif → classe `is-enhanced`).
+ *    Les textes défilent à gauche ; un seul téléphone reste fixe à droite et fond les 4 captures
+ *    en opacité (jamais de zoom ni de recadrage). Les pastilles graphiques apparaissent AUTOUR du
+ *    téléphone, jamais par-dessus l'écran. L'étape active est donnée par un IntersectionObserver
+ *    (aucun écouteur de scroll) ; tout le reste est CSS (opacity/transform uniquement).
+ *
+ * Pastilles = éléments graphiques de storytelling : elles ne reprennent QUE ce qui est visible
+ * dans les captures (ex. « 6 parcs à moins de 2 km », « 310 m · 4 min », « 0–12 ans », « Clôturé »).
+ * Aucune fausse donnée produit. Ancre #app-toboggo conservée (liens existants).
+ */
+import Button from "../Button.astro";
+import PhoneMockup from "../PhoneMockup.astro";
+import StoreBadges from "../StoreBadges.astro";
+import { APP_URL } from "../../config/site";
+import { appScreen } from "../../lib/screens";
+
+type Chip = { icon: string; label: string; slot: "l1" | "l2" | "r1" | "r2" | "r3"; selected?: boolean };
+interface Step {
+  id: "explorer" | "filters" | "park-detail" | "favorites";
+  title: string;
+  text: string;
+  chips: Chip[];
+}
+
+// Libellés des pastilles : repris tels quels des captures (Explorer, Filtres, fiche Gourg de bade, Favoris).
+const STEPS: Step[] = [
+  {
+    id: "explorer",
+    title: "Trouvez les parcs autour de vous",
+    text: "Ouvrez la carte : les aires de jeux près de vous apparaissent, avec la distance et le temps de marche jusqu'à chacune.",
+    chips: [
+      { icon: "ic-explore", label: "6 parcs à moins de 2 km", slot: "l1" },
+      { icon: "ic-walk", label: "310 m · 4 min", slot: "r2" },
+    ],
+  },
+  {
+    id: "filters",
+    title: "Filtrez selon les besoins de votre famille",
+    text: "Âge des enfants, jeux, toilettes, clôture, ombre, accessibilité, bancs, point d'eau : gardez seulement les parcs qui conviennent.",
+    chips: [
+      { icon: "ic-age", label: "De 0 à 12+ ans", slot: "l1" },
+      { icon: "ic-toilets", label: "Toilettes", slot: "r1", selected: true },
+      { icon: "ic-fence", label: "Clôturé", slot: "r2", selected: true },
+    ],
+  },
+  {
+    id: "park-detail",
+    title: "Découvrez chaque parc en détail",
+    text: "Tranche d'âge, clôture, ombre, toilettes et jeux de l'aire : tout ce qui est déclaré sur le parc, réuni sur une seule fiche.",
+    chips: [
+      { icon: "ic-age", label: "0–12 ans", slot: "l1" },
+      { icon: "ic-fence", label: "Clôturé", slot: "l2" },
+      { icon: "ic-shade", label: "Ombragé", slot: "r1" },
+      { icon: "ic-toilets", label: "WC", slot: "r2" },
+      { icon: "ic-slide", label: "Toboggan, balançoire, tyrolienne", slot: "r3" },
+    ],
+  },
+  {
+    id: "favorites",
+    title: "Gardez vos parcs préférés sous la main",
+    text: "Enregistrez les parcs que vous aimez et retrouvez-les d'un coup d'œil, avec leur tranche d'âge et leurs équipements.",
+    chips: [
+      { icon: "ic-heart", label: "4 parcs enregistrés", slot: "l1" },
+      { icon: "ic-age", label: "Viastels · 2–9 ans", slot: "r2" },
+    ],
+  },
+];
+
+const steps = STEPS.map((step) => ({ ...step, screen: appScreen(step.id) })).filter(
+  (step): step is typeof step & { screen: NonNullable<typeof step.screen> } => step.screen !== null,
+);
+---
+
+<section id="app-toboggo" class="story" data-story aria-labelledby="story-title">
+  <div class="wrap story-head">
+    <span class="eyebrow">L'app Toboggo</span>
+    <h2 id="story-title">Tout pour des sorties réussies en famille.</h2>
+    <p class="story-sub">Carte, filtres, fiches détaillées et favoris : voici l'application.</p>
+  </div>
+
+  <div class="wrap story-body">
+    <ol class="story-steps">
+      {
+        steps.map((step, i) => (
+          <li class="story-step" data-step={i + 1}>
+            <div class="step-copy">
+              <span class="step-num" aria-hidden="true">{i + 1}</span>
+              <h3>{step.title}</h3>
+              <p>{step.text}</p>
+            </div>
+            <div class="step-visual">
+              <div class="step-phone">
+                <PhoneMockup src={step.screen.src} alt={step.screen.alt} />
+              </div>
+              <ul class="step-chips" aria-hidden="true">
+                {step.chips.map((chip) => (
+                  <li class:list={["chip", { "chip--on": chip.selected }]}>
+                    <span class="chip-ico">
+                      <svg width="16" height="16"><use href={`/icons-sprite.svg#${chip.icon}`} /></svg>
+                    </span>
+                    {chip.label}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    <div class="story-stage">
+      <div class="stage-inner">
+        <svg class="stage-map" viewBox="0 0 640 640" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <circle class="ring ring--a" cx="320" cy="320" r="236" />
+          <circle class="ring ring--b" cx="320" cy="320" r="306" />
+          <g class="pins">
+            {
+              [
+                [92, 408],
+                [104, 222],
+                [540, 222],
+                [550, 410],
+                [34, 304],
+                [606, 304],
+              ].map(([x, y], i) => (
+                <g transform={`translate(${x} ${y}) scale(0.8)`}>
+                  <g class:list={["pin", { "pin--near": i === 2 }]} style={`--i:${i}`}>
+                    <path d="M0 0c-9-11-14-18-14-26a14 14 0 0 1 28 0c0 8-5 15-14 26z" />
+                    <circle cy="-26" r="5" />
+                  </g>
+                </g>
+              ))
+            }
+          </g>
+        </svg>
+
+        <div class="stage-phone">
+          <PhoneMockup>
+            <div class="stage-screens">
+              {
+                steps.map((step, i) => (
+                  <img
+                    data-src={step.screen.src}
+                    alt={step.screen.alt}
+                    data-for={i + 1}
+                    width="375"
+                    height="812"
+                    decoding="async"
+                  />
+                ))
+              }
+            </div>
+          </PhoneMockup>
+        </div>
+
+        {
+          steps.map((step, i) =>
+            step.chips.map((chip, j) => (
+              <div class:list={["chip", "chip--float", `slot-${chip.slot}`, { "chip--on": chip.selected }]} data-for={i + 1} style={`--i:${j}`} aria-hidden="true">
+                <span class="chip-ico">
+                  <svg width="16" height="16"><use href={`/icons-sprite.svg#${chip.icon}`} /></svg>
+                </span>
+                {chip.label}
+              </div>
+            )),
+          )
+        }
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap story-cta">
+    <div class="story-cta-buttons">
+      <Button href={APP_URL}>Ouvrir l'app Toboggo</Button>
+      <Button href="/fonctionnalites/" variant="secondary">Découvrir toutes les fonctionnalités</Button>
+    </div>
+    <StoreBadges align="center" />
+  </div>
+</section>
+
+<script>
+  // Amélioration progressive : sans ce script la section reste en mode empilé, entièrement lisible.
+  const root = document.querySelector<HTMLElement>("[data-story]");
+
+  if (root && "IntersectionObserver" in window) {
+    const steps = Array.from(root.querySelectorAll<HTMLElement>(".story-step"));
+    const wide = window.matchMedia("(min-width: 1024px) and (prefers-reduced-motion: no-preference)");
+    const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let activeObserver: IntersectionObserver | null = null;
+    let revealObserver: IntersectionObserver | null = null;
+
+    const stopScene = () => {
+      activeObserver?.disconnect();
+      activeObserver = null;
+      root.classList.remove("is-enhanced");
+      delete root.dataset.active;
+    };
+
+    const stopReveal = () => {
+      revealObserver?.disconnect();
+      revealObserver = null;
+      root.classList.remove("story--reveal");
+      steps.forEach((step) => step.classList.remove("is-visible"));
+    };
+
+    // Les 4 captures de la scène (inutiles hors mode « scène ») ne sont téléchargées qu'à l'approche de
+    // la section : aucune concurrence avec l'image du Hero au chargement. Sans JS, la scène n'existe pas
+    // (mode empilé : chaque étape a sa propre image).
+    let stageLoaded = false;
+    const loadStageImages = () => {
+      if (stageLoaded) return;
+      stageLoaded = true;
+      root.querySelectorAll<HTMLImageElement>(".stage-screens img[data-src]").forEach((img) => {
+        img.src = img.dataset.src ?? "";
+      });
+    };
+
+    const startScene = () => {
+      stopReveal();
+      root.classList.add("is-enhanced");
+      root.dataset.active = "1";
+      const stage = root.querySelector(".story-stage");
+      if (stage) {
+        const nearby = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+              loadStageImages();
+              nearby.disconnect();
+            }
+          },
+          { rootMargin: "900px 0px" },
+        );
+        nearby.observe(stage);
+      }
+      // L'étape qui croise la bande centrale de l'écran devient l'étape active.
+      activeObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) root.dataset.active = (entry.target as HTMLElement).dataset.step ?? "1";
+          }
+        },
+        { rootMargin: "-45% 0px -45% 0px" },
+      );
+      steps.forEach((step) => activeObserver?.observe(step));
+    };
+
+    const startReveal = () => {
+      stopScene();
+      if (calm.matches) return;
+      root.classList.add("story--reveal");
+      revealObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            entry.target.classList.add("is-visible");
+            revealObserver?.unobserve(entry.target);
+          }
+        },
+        { threshold: 0.2 },
+      );
+      steps.forEach((step) => revealObserver?.observe(step));
+    };
+
+    const apply = () => (wide.matches ? startScene() : startReveal());
+    wide.addEventListener("change", apply);
+    calm.addEventListener("change", apply);
+    apply();
+  }
+</script>
+
+<style>
+  .story {
+    padding: var(--space-8) 0 88px;
+    background: var(--color-surface);
+    /* clip (et non hidden) : ne crée pas de conteneur de défilement, `position: sticky` reste actif */
+    overflow-x: clip;
+  }
+
+  .story-head {
+    text-align: center;
+  }
+
+  .story-head h2 {
+    font-size: 30px;
+    margin: var(--space-3) 0 var(--space-2);
+  }
+
+  .story-sub {
+    margin: 0 auto var(--space-8);
+    max-width: 460px;
+    color: var(--color-text-muted);
+  }
+
+  /* ============================================================
+     Mode EMPILÉ (défaut) : mobile, JS désactivé, animations réduites
+     ============================================================ */
+  .story-steps {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 72px;
+  }
+
+  .story-step {
+    display: grid;
+    justify-items: center;
+    gap: var(--space-6);
+    text-align: center;
+  }
+
+  .step-copy {
+    max-width: 460px;
+  }
+
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin-bottom: var(--space-3);
+    border-radius: 50%;
+    background: var(--color-accent-tint);
+    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    font-size: 15px;
+  }
+
+  .step-copy h3 {
+    margin: 0 0 var(--space-2);
+    font-size: 22px;
+    line-height: 1.25;
+  }
+
+  .step-copy p {
+    margin: 0;
+    color: var(--color-text-muted);
+  }
+
+  .step-visual {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-5);
+    min-width: 0;
+  }
+
+  .step-phone {
+    width: 216px;
+  }
+
+  .step-chips {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    max-width: 340px;
+  }
+
+  /* Pastille : fiche flottante légère, reprend un libellé réellement visible dans la capture */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 6px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+    font-family: var(--font-heading);
+    font-weight: 600;
+    font-size: 13px;
+    line-height: 1.25;
+    color: var(--color-text);
+    text-align: left;
+    text-wrap: balance;
+  }
+
+  .chip-ico {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-primary-tint);
+    color: var(--color-primary-hover);
+  }
+
+  .chip--on {
+    border-color: var(--color-primary);
+  }
+
+  .chip--on .chip-ico {
+    background: var(--color-primary);
+    color: var(--color-surface);
+  }
+
+  .story-stage {
+    display: none;
+  }
+
+  .story-cta {
+    text-align: center;
+    margin-top: 72px;
+  }
+
+  .story-cta-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+  }
+
+  /* Apparition légère au défilement (ajoutée par JS, seulement si les animations sont autorisées) */
+  @media (prefers-reduced-motion: no-preference) {
+    .story--reveal .step-copy,
+    .story--reveal .step-phone,
+    .story--reveal .step-chips .chip {
+      opacity: 0;
+      transform: translateY(18px);
+      transition:
+        opacity 600ms var(--ease-emphasized),
+        transform 600ms var(--ease-emphasized);
+    }
+
+    .story--reveal .step-phone {
+      transition-delay: 120ms;
+    }
+
+    .story--reveal .step-chips .chip:nth-child(1) {
+      transition-delay: 320ms;
+    }
+
+    .story--reveal .step-chips .chip:nth-child(2) {
+      transition-delay: 400ms;
+    }
+
+    .story--reveal .step-chips .chip:nth-child(n + 3) {
+      transition-delay: 480ms;
+    }
+
+    .story--reveal .is-visible .step-copy,
+    .story--reveal .is-visible .step-phone,
+    .story--reveal .is-visible .step-chips .chip {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* Tablette : une ligne par étape (texte | téléphone), en alternance */
+  @media (min-width: 700px) {
+    .story-step {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: center;
+      gap: var(--space-8);
+      text-align: left;
+    }
+
+    .story-step:nth-child(even) .step-copy {
+      order: 2;
+    }
+
+    .step-copy {
+      justify-self: center;
+    }
+
+    .step-phone {
+      width: 236px;
+    }
+  }
+
+  /* ============================================================
+     Mode SCÈNE STICKY : desktop, animations autorisées, JS actif
+     ============================================================ */
+  @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
+    .story.is-enhanced .story-body {
+      display: grid;
+      grid-template-columns: minmax(280px, 0.8fr) minmax(0, 1.2fr);
+      gap: var(--space-6);
+      align-items: start;
+    }
+
+    .story.is-enhanced .story-steps {
+      display: block;
+    }
+
+    .story.is-enhanced .story-step {
+      display: flex;
+      align-items: center;
+      min-height: 62vh;
+      text-align: left;
+    }
+
+    /* dernière étape plus haute : le téléphone reste épinglé jusqu'à la fin de l'étape 4 */
+    .story.is-enhanced .story-step:last-child {
+      min-height: 92vh;
+    }
+
+    .story.is-enhanced .step-visual {
+      display: none;
+    }
+
+    .story.is-enhanced .step-copy {
+      opacity: 0.5;
+      transform: translateX(-6px);
+      transition:
+        opacity 450ms var(--ease-emphasized),
+        transform 450ms var(--ease-emphasized);
+    }
+
+    .story.is-enhanced[data-active="1"] .story-step[data-step="1"] .step-copy,
+    .story.is-enhanced[data-active="2"] .story-step[data-step="2"] .step-copy,
+    .story.is-enhanced[data-active="3"] .story-step[data-step="3"] .step-copy,
+    .story.is-enhanced[data-active="4"] .story-step[data-step="4"] .step-copy {
+      opacity: 1;
+      transform: none;
+    }
+
+    .story.is-enhanced .step-num {
+      transition: background-color 300ms var(--ease-standard);
+    }
+
+    .story.is-enhanced[data-active="1"] .story-step[data-step="1"] .step-num,
+    .story.is-enhanced[data-active="2"] .story-step[data-step="2"] .step-num,
+    .story.is-enhanced[data-active="3"] .story-step[data-step="3"] .step-num,
+    .story.is-enhanced[data-active="4"] .story-step[data-step="4"] .step-num {
+      background: var(--color-accent);
+    }
+
+    .story.is-enhanced .story-stage {
+      display: block;
+      position: sticky;
+      top: 96px;
+      height: clamp(520px, calc(100vh - 128px), 720px);
+      /* largeur du téléphone calée sur la hauteur disponible (ratio 375/812 + cadre) */
+      --phone-w: clamp(196px, calc((100vh - 220px) * 0.462), 290px);
+      /* la scène est purement décorative : elle ne doit jamais intercepter un clic ni un survol */
+      pointer-events: none;
+    }
+
+    .stage-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+
+    .stage-phone {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: var(--phone-w);
+      transform: translate(-50%, -50%);
+      z-index: 2;
+    }
+
+    /* Captures empilées : fondu en OPACITÉ uniquement (jamais de zoom, jamais de recadrage) */
+    .stage-screens {
+      position: absolute;
+      inset: 0;
+    }
+
+    .stage-screens img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top;
+      opacity: 0;
+      transition: opacity 500ms var(--ease-standard);
+    }
+
+    .story.is-enhanced[data-active="1"] .stage-screens img[data-for="1"],
+    .story.is-enhanced[data-active="2"] .stage-screens img[data-for="2"],
+    .story.is-enhanced[data-active="3"] .stage-screens img[data-for="3"],
+    .story.is-enhanced[data-active="4"] .stage-screens img[data-for="4"] {
+      opacity: 1;
+    }
+
+    /* Carte : anneaux « rayon de recherche » derrière le téléphone, pins seulement à l'étape 1 */
+    .stage-map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      overflow: visible;
+    }
+
+    .ring {
+      fill: none;
+      stroke: var(--color-border-neutral);
+      stroke-width: 1.5;
+    }
+
+    .ring--a {
+      stroke-dasharray: 3 9;
+      stroke-linecap: round;
+    }
+
+    .ring--b {
+      stroke-opacity: 0.55;
+    }
+
+    .pin path {
+      fill: var(--color-primary);
+      fill-opacity: 0.85;
+    }
+
+    .pin circle {
+      fill: var(--color-surface);
+    }
+
+    .pin--near path {
+      fill: var(--color-accent);
+    }
+
+    .pin {
+      opacity: 0;
+      transform-box: fill-box;
+      transform-origin: 50% 100%;
+      transition: opacity 300ms var(--ease-standard);
+    }
+
+    .story.is-enhanced[data-active="1"] .pin {
+      opacity: 1;
+      animation: pin-drop 650ms var(--ease-emphasized) both;
+      animation-delay: calc(var(--i) * 90ms + 150ms);
+    }
+
+    @keyframes pin-drop {
+      from {
+        opacity: 0;
+        transform: translateY(-14px) scale(0.6);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    /* Pastilles flottantes : autour du téléphone, JAMAIS sur l'écran */
+    .chip--float {
+      position: absolute;
+      z-index: 3;
+      max-width: calc(50% - var(--phone-w) / 2 - 14px);
+      padding: 7px 12px 7px 7px;
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      transform: translateY(14px) scale(0.96);
+      transition:
+        opacity 250ms var(--ease-standard),
+        transform 250ms var(--ease-standard);
+    }
+
+    .slot-l1,
+    .slot-l2 {
+      left: 0;
+    }
+
+    .slot-r1,
+    .slot-r2,
+    .slot-r3 {
+      right: 0;
+    }
+
+    .slot-l1 {
+      top: 12%;
+    }
+
+    .slot-l2 {
+      top: 62%;
+    }
+
+    .slot-r1 {
+      top: 20%;
+    }
+
+    .slot-r2 {
+      top: 64%;
+    }
+
+    .slot-r3 {
+      top: 42%;
+    }
+
+    .story.is-enhanced[data-active="1"] .chip--float[data-for="1"],
+    .story.is-enhanced[data-active="2"] .chip--float[data-for="2"],
+    .story.is-enhanced[data-active="3"] .chip--float[data-for="3"],
+    .story.is-enhanced[data-active="4"] .chip--float[data-for="4"] {
+      opacity: 1;
+      transform: none;
+      transition:
+        opacity 500ms var(--ease-emphasized),
+        transform 500ms var(--ease-emphasized);
+      transition-delay: calc(var(--i) * 110ms + 250ms);
+    }
+
+    /* micro-mouvement : les pastilles de l'étape active flottent très légèrement (propriété `translate`,
+       qui se compose avec le `transform` d'apparition) */
+    @keyframes chip-float {
+      0%,
+      100% {
+        translate: 0 0;
+      }
+
+      50% {
+        translate: 0 -4px;
+      }
+    }
+
+    .story.is-enhanced[data-active="1"] .chip--float[data-for="1"],
+    .story.is-enhanced[data-active="2"] .chip--float[data-for="2"],
+    .story.is-enhanced[data-active="3"] .chip--float[data-for="3"],
+    .story.is-enhanced[data-active="4"] .chip--float[data-for="4"] {
+      animation: chip-float 6s ease-in-out infinite;
+      animation-delay: calc(var(--i) * -1.7s);
+    }
+
+    .story.is-enhanced .story-cta {
+      margin-top: 48px;
+    }
+  }
+
+  /* Écrans de hauteur modeste : scène un peu plus compacte */
+  @media (min-width: 1024px) and (max-width: 1180px) and (prefers-reduced-motion: no-preference) {
+    .chip--float {
+      font-size: 12.5px;
+    }
+  }
+</style>

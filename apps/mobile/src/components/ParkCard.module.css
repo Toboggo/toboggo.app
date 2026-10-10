@@ -198,108 +198,142 @@
   color: var(--color-primary);
 }
 
-/* ── carousel variant — vertical, photo-first ── */
+/* ── carousel variant — full-bleed photo, text over a dark gradient ──
+   Two cards + a peek of the third: the strip's content box is the viewport
+   minus its side padding, so width = (box + pad - peek - 2 gaps) / 2. */
 .card {
+  --card-peek: 28px;
+  /* Copy on a photo is white whatever the theme (no token for it). */
+  --on-photo: #ffffff;
   flex: none;
-  width: 168px;
+  position: relative;
+  width: calc((100% + var(--space-4) - var(--card-peek) - 2 * var(--space-3)) / 2);
+  aspect-ratio: 3 / 4;
   scroll-snap-align: start;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  background: var(--color-bg-alt);
   border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
   text-align: left;
   padding: 0;
-}
-/* Wide, short photo band: keeps the card compact enough for the medium snap. */
-.media {
-  position: relative;
-  flex: none;
-  width: 100%;
-  aspect-ratio: 5 / 2;
+  isolation: isolate;
 }
 .cardPhoto {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  background-size: cover;
-  background-position: center;
   background-color: var(--color-bg-alt);
 }
-.ageTag {
+/* Progressive: transparent until mid-card, then darker toward the text so
+   white copy stays legible on bright photos. */
+.cardShade {
   position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 30%,
+    rgba(0, 0, 0, 0.28) 55%,
+    rgba(0, 0, 0, 0.62) 80%,
+    rgba(0, 0, 0, 0.78) 100%
+  );
+  pointer-events: none;
+}
+.distPill {
+  position: absolute;
+  top: var(--space-2);
   left: var(--space-2);
-  bottom: var(--space-2);
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  max-width: calc(100% - 52px);
+  padding: 0 var(--space-2);
   background: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-heading);
   font-weight: 600;
-  font-size: 11px;
-  line-height: 1.2;
-  padding: 2px 7px;
+  font-size: 12px;
+  line-height: 1;
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-sm);
   white-space: nowrap;
 }
 .favFloat {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 2px;
+  right: 2px;
 }
+/* 44px hit area around a 32px white disc. */
 .favFloat .favBtn {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: none;
+  position: relative;
+}
+.favFloat .favBtn::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
   border-radius: 50%;
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
 }
+.favFloat .favBtn svg {
+  position: relative;
+}
 .cardBody {
-  padding: 6px var(--space-3) var(--space-2);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: flex-start;
+  gap: 4px;
+  color: var(--on-photo);
 }
-/* Up to two lines, ellipsis only beyond — and always the height of two, so
-   the rating / distance rows start at the same height on every card of the
-   carousel whatever the name's length. */
+/* Up to two lines, ellipsis beyond. */
 .cardName {
   font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 700;
+  font-size: 15px;
   line-height: 1.25;
-  min-height: calc(2 * 1.25em);
-  color: var(--color-text);
+  color: var(--on-photo);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow: hidden;
   overflow-wrap: anywhere;
+  max-width: 100%;
 }
-.cardMeta {
+.cardRating {
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-width: 0;
-  font-size: 12px;
-  line-height: 1.3;
-  color: var(--color-text-muted);
+  gap: 3px;
+  font-size: 12.5px;
+  color: color-mix(in srgb, var(--on-photo) 90%, transparent);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
-.cardDist {
-  min-width: 0;
+.cardRating strong {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--on-photo);
+}
+.ageTag {
+  max-width: 100%;
+  background: color-mix(in srgb, var(--on-photo) 22%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  color: var(--on-photo);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.2;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.fact {
-  flex: none;
-  display: inline-flex;
-  color: var(--color-primary);
-}
-/* A little more air between "180 m · 2 min" and the first pictogram. */
-.cardDist + .fact {
-  margin-left: 4px;
 }

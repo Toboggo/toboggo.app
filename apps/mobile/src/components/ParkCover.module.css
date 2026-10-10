@@ -36,3 +36,10 @@
   top: auto;
   bottom: var(--space-2);
 }
+.badge[data-at="stacked"] {
+  top: calc(var(--space-2) + 24px + var(--space-1));
+  padding: 1px 6px;
+  font-size: 9px;
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  color: var(--color-text);
+}

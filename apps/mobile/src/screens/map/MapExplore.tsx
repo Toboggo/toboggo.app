@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { BottomSheet, Icon, useBottomNavHeight, useViewportHeight, type Snap } from "@toboggo/design-system";
@@ -13,6 +13,7 @@ import { NearbyBody, NearbyHeader } from "./NearbySection";
 import { RadiusSheet } from "./RadiusSheet";
 import { availableContexts, selectNearby, type NearbyContext } from "./nearbySelection";
 import { SheetState, SheetLoading } from "./SheetState";
+import { fitMedium, naturalCardHeight } from "./mediumFit";
 import { BottomTabs } from "../../components/BottomTabs";
 import { QuickMenu } from "../../components/QuickMenu";
 import { useGeo, requestBrowserLocation, DEFAULT_GEO_LABEL } from "../../lib/geo";
@@ -105,6 +106,10 @@ export default function MapExplore() {
   const vpH = useViewportHeight();
   const [headerBottom, setHeaderBottom] = useState(72);
   const headerRef = useRef<HTMLDivElement>(null);
+  // The intermediate snap's content (header + filters + carousel) is measured
+  // so the snap height follows it instead of a flat ratio — see `mediumFit`.
+  const intermediateRef = useRef<HTMLDivElement>(null);
+  const [cardMetrics, setCardMetrics] = useState<{ aboveCardsH: number; cardW: number } | null>(null);
   const alertRef = useRef<HTMLDivElement>(null);
 
   const userId = useSession((s) => s.userId);
@@ -165,18 +170,51 @@ export default function MapExplore() {
   // (viewport minus the header/search-bar strip minus the bottom nav) — the
   // same ingredients `BottomSheet`'s own `maxH` clamps against (`topInset` /
   // `bottomInset` below), so it tracks every device instead of one phone.
+  const mediumFit = useMemo(() => {
+    if (mode !== "list" || !cardMetrics) return null;
+    const usefulZoneH = vpH - (headerBottom + 12) - navH;
+    return fitMedium({
+      usefulZoneH,
+      ratioH: Math.round(usefulZoneH * MEDIUM_RATIO),
+      aboveCardsH: cardMetrics.aboveCardsH,
+      naturalCardH: naturalCardHeight(cardMetrics.cardW),
+    });
+  }, [mode, cardMetrics, vpH, headerBottom, navH]);
+
   const snapPoints = useMemo<Snap[]>(() => {
     if (mode !== "list") return SNAPS_SINGLE;
     const usefulZoneH = vpH - (headerBottom + 12) - navH;
-    const mediumH = Math.round(usefulZoneH * MEDIUM_RATIO);
-    return [PEEK_H, mediumH, 0.9];
-  }, [mode, vpH, headerBottom, navH]);
+    const ratioH = Math.round(usefulZoneH * MEDIUM_RATIO);
+    return [PEEK_H, mediumFit?.mediumH ?? ratioH, 0.9];
+  }, [mode, vpH, headerBottom, navH, mediumFit]);
 
   // Reset the snap position when the mode *changes* so the new ladder starts
   // sane — but don't fight the user's drag while they stay in the same mode.
   // Landing back on "list" (e.g. after closing a preview, or a fresh search)
   // goes to the compact bar (0), not the carousel — same "more map, less
   // chrome" default as the initial mount.
+  // Measure what sits above the first carousel card and the card width (the
+  // natural height follows from it). Only while the intermediate content is
+  // mounted; re-measured when it resizes (filters row appearing, i18n, …).
+  useLayoutEffect(() => {
+    const root = intermediateRef.current;
+    if (!root) return;
+    const measure = () => {
+      const card = root.querySelector<HTMLElement>("[data-carousel] > *");
+      if (!card) {
+        setCardMetrics(null);
+        return;
+      }
+      const aboveCardsH = Math.round(card.getBoundingClientRect().top - root.getBoundingClientRect().top);
+      const cardW = Math.round(card.getBoundingClientRect().width);
+      setCardMetrics((m) => (m && m.aboveCardsH === aboveCardsH && m.cardW === cardW ? m : { aboveCardsH, cardW }));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    return () => ro.disconnect();
+  }, [mode, snap, nearbyContext]);
+
   const prevMode = useRef(mode);
   useEffect(() => {
     if (prevMode.current === mode) return;
@@ -420,7 +458,13 @@ export default function MapExplore() {
     const contextualIds = nearby.carousel.map((p) => p.id);
     return (
       <>
-        <div className={styles.intermediate}>
+        <div
+          ref={intermediateRef}
+          className={styles.intermediate}
+          // Only at the intermediate snap, and only when the natural 3:4 cards
+          // wouldn't fit above the nav: the expanded sheet keeps natural cards.
+          style={snap === 1 && mediumFit?.cardH ? ({ "--carousel-card-h": `${mediumFit.cardH}px` } as CSSProperties) : undefined}
+        >
           {header}
           <NearbyBody
             selection={nearby}

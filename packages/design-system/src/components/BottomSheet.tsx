@@ -58,7 +58,9 @@ export interface BottomSheetProps {
   handleColor?: string;
 }
 
-const GRAB_H = 26; // handle strip — added on top of a `"fit"` content height
+/** Handle strip height (px) — added on top of a `"fit"` content height; sheet content starts below it. */
+export const SHEET_GRAB_H = 26;
+const GRAB_H = SHEET_GRAB_H;
 const EDGE_MARGIN = 12; // gap kept between the sheet's last content and the bottom obstruction / screen edge
 const TAP_SLOP = 6; // px of travel before a press becomes a drag
 const FLING = 0.5; // px/ms — above this, snap in the fling direction

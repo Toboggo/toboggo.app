@@ -209,6 +209,10 @@
   position: relative;
   width: calc((100% + var(--space-4) - var(--card-peek) - 2 * var(--space-3)) / 2);
   aspect-ratio: 3 / 4;
+  /* Set by the Explorer sheet at its intermediate snap when the natural
+     height wouldn't fit above the nav; with a definite width it wins over
+     the aspect-ratio. */
+  height: var(--carousel-card-h, auto);
   scroll-snap-align: start;
   background: var(--color-bg-alt);
   border-radius: var(--radius-md);

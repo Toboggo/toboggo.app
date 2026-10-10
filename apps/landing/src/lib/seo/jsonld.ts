@@ -5,7 +5,7 @@
  * (inexistants en base). Le BaseLayout ajoute le @context.
  */
 import { SITE_URL } from "../../config/site";
-import { cityPath, type SeoCity } from "./cities";
+import { placePath, type Place } from "./places";
 import { formatAddress, type SeoPark } from "./parks";
 import { hasValidCoordinates } from "./eligibility";
 
@@ -46,15 +46,15 @@ export function parksItemListLd(parks: SeoPark[], countryCode: string): Record<s
   };
 }
 
-export function citiesItemListLd(cities: { city: SeoCity }[]): Record<string, unknown> {
+export function citiesItemListLd(cities: { place: Place }[]): Record<string, unknown> {
   return {
     "@type": "ItemList",
     numberOfItems: cities.length,
     itemListElement: cities.map((c, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      name: `Aires de jeux à ${c.city.name}`,
-      url: abs(cityPath(c.city)),
+      name: `Aires de jeux à ${c.place.name}`,
+      url: abs(placePath(c.place)),
     })),
   };
 }

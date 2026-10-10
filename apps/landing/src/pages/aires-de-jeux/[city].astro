@@ -2,33 +2,37 @@
 /**
  * Page SEO locale d'une ville (Website-3B). Générée au BUILD depuis Supabase
  * (lecture seule) — aucune donnée de parc n'est copiée dans le dépôt. Seules
- * les villes de lib/seo/cities.ts sont générées. Indexable uniquement si
- * lib/seo/eligibility.ts le décide, sinon noindex,follow et hors sitemap.
+ * les villes validées (approved.ts) ET éligibles (eligibility.ts) sont générées :
+ * une ville non éligible n'a ni page, ni lien, ni entrée de sitemap.
  */
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import Breadcrumb from "../../components/Breadcrumb.astro";
 import SeoParkCard from "../../components/SeoParkCard.astro";
 import Button from "../../components/Button.astro";
-import { cityPath, HUB_PATH } from "../../lib/seo/cities";
-import { loadCities, type CityPageData } from "../../lib/seo/cityPage";
+import { HUB_PATH, placePath } from "../../lib/seo/places";
+import { loadSeoSite, type PlaceData } from "../../lib/seo/seoSite";
 import { breadcrumbLd, parksItemListLd } from "../../lib/seo/jsonld";
 import { groupByMinAge, hasUsefulAgeSections, repeatedStreets } from "../../lib/seo/insights";
 import { ageLabel, formatAddress } from "../../lib/seo/parks";
+import { DOCUMENTED_CARDS_VISIBLE, OTHERS_VISIBLE, splitVisible } from "../../lib/seo/display";
 
 export async function getStaticPaths() {
-  const cities = await loadCities(import.meta.env);
-  return (cities ?? []).map((data) => ({ params: { city: data.city.slug }, props: { data } }));
+  // Seules les villes validées ET éligibles (source unique : lib/seo/eligibility.ts) ont une page.
+  const site = await loadSeoSite(import.meta.env);
+  return (site?.published ?? []).map((data) => ({ params: { city: data.place.slug }, props: { data } }));
 }
 
 interface Props {
-  data: CityPageData;
+  data: PlaceData;
 }
 
 const { data } = Astro.props;
-const { city, listed, documented, others, eligibility } = data;
+const { place: city, listed, documented, others } = data;
 const total = listed.length;
 const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
 
+const cards = splitVisible(documented, DOCUMENTED_CARDS_VISIBLE);
+const otherEntries = splitVisible(others, OTHERS_VISIBLE);
 const ageGroups = groupByMinAge(documented);
 const streets = repeatedStreets(listed);
 const builtOn = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date());
@@ -41,19 +45,19 @@ const jsonLd = [
   breadcrumbLd([
     { name: "Accueil", path: "/" },
     { name: "Aires de jeux", path: HUB_PATH },
-    { name: city.name, path: cityPath(city) },
+    { name: city.name, path: placePath(city) },
   ]),
   parksItemListLd([...documented, ...others], city.countryCode),
 ];
 ---
 
-<BaseLayout title={title} description={description} robots={eligibility.eligible ? undefined : "noindex,follow"} jsonLd={jsonLd}>
+<BaseLayout title={title} description={description} jsonLd={jsonLd}>
   <section class="city-hero">
     <div class="wrap">
       <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Aires de jeux", href: HUB_PATH }, { label: city.name }]} />
       <h1>{h1}</h1>
       <p class="lead">
-        Toboggo référence {total} {plural(total, "aire de jeux", "aires de jeux")} à {city.name} ({city.department}).
+        Toboggo référence {total} {plural(total, "aire de jeux", "aires de jeux")} à {city.name}{city.department ? ` (${city.department})` : ""}.
         {documented.length > 0 && ` ${documented.length} ${plural(documented.length, "est déjà détaillée", "sont déjà détaillées")} : tranche d'âge, équipements et accessibilité tels qu'ils ont été déclarés.`}
       </p>
       <p class="city-stat"><strong>{total}</strong> {plural(total, "aire de jeux", "aires de jeux")} à {city.name}</p>
@@ -69,8 +73,18 @@ const jsonLd = [
             <p>Les informations proviennent d'OpenStreetMap et des contributions à Toboggo. Elles sont déclarées et pas toutes vérifiées sur place : en cas d'écart, signalez-le depuis la fiche du parc dans l'app.</p>
           </div>
           <ul class="card-grid card-grid--2 park-grid">
-            {documented.map((park) => <SeoParkCard park={park} />)}
+            {cards.shown.map((park) => <SeoParkCard park={park} />)}
           </ul>
+          {
+            cards.folded.length > 0 && (
+              <details class="fold">
+                <summary>Voir les {cards.folded.length} autres aires de jeux détaillées</summary>
+                <ul class="card-grid card-grid--2 park-grid">
+                  {cards.folded.map((park) => <SeoParkCard park={park} />)}
+                </ul>
+              </details>
+            )
+          }
         </div>
       </section>
     )
@@ -114,18 +128,30 @@ const jsonLd = [
             <p>Ces aires de jeux sont localisées mais pas encore détaillées. Vous pouvez compléter leur fiche depuis l'app Toboggo.</p>
           </div>
           <ul class="other-list">
-            {others.map((park) => {
-              const address = formatAddress(park);
-              const age = ageLabel(park);
-              return (
-                <li>
-                  <strong>{park.name}</strong>
-                  {address && <span> — {address}</span>}
-                  {age && <span class="muted"> · {age}</span>}
-                </li>
-              );
-            })}
+            {otherEntries.shown.map((park) => (
+              <li>
+                <strong>{park.name}</strong>
+                {formatAddress(park) && <span> — {formatAddress(park)}</span>}
+                {ageLabel(park) && <span class="muted"> · {ageLabel(park)}</span>}
+              </li>
+            ))}
           </ul>
+          {
+            otherEntries.folded.length > 0 && (
+              <details class="fold">
+                <summary>Voir les {otherEntries.folded.length} autres aires de jeux référencées</summary>
+                <ul class="other-list other-list--compact">
+                  {otherEntries.folded.map((park) => (
+                    <li>
+                      <strong>{park.name}</strong>
+                      {formatAddress(park) && <span> — {formatAddress(park)}</span>}
+                      {ageLabel(park) && <span class="muted"> · {ageLabel(park)}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )
+          }
         </div>
       </section>
     )
@@ -239,6 +265,26 @@ const jsonLd = [
 
   .muted {
     color: var(--color-text-muted);
+  }
+
+  .fold {
+    margin-top: var(--space-5);
+  }
+
+  .fold summary {
+    cursor: pointer;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    color: var(--color-primary-hover);
+  }
+
+  .fold[open] summary {
+    margin-bottom: var(--space-4);
+  }
+
+  .other-list--compact li {
+    padding: var(--space-1) 0;
+    font-size: 14px;
   }
 
   .where {

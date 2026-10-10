@@ -153,6 +153,16 @@ class TestAgainstLocalDb(unittest.TestCase):
     def test_abort_if_batch_parks_predate_import(self):
         self._run_expect_abort(_body(rb.build_rollback_sql(BATCH, 2, "2999-01-01T00:00:00Z", "US")), "hors périmètre")
 
+    def test_table_absent_from_environment_is_skipped_not_fatal(self):
+        saved = list(rb.HUMAN_OR_FUNCTIONAL_TABLES)
+        rb.HUMAN_OR_FUNCTIONAL_TABLES.append("zzz_table_absente")   # ex. STAGING sans park_confirmations
+        try:
+            sql = _body(rb.build_rollback_sql(BATCH, 2, STARTED, "US"))
+        finally:
+            rb.HUMAN_OR_FUNCTIONAL_TABLES[:] = saved
+        self.cur.execute(sql)
+        self.assertEqual(self._count("name in ('zzz_rb_a','zzz_rb_b')"), 0)
+
     def test_abort_on_wrong_country(self):
         self._run_expect_abort(_body(rb.build_rollback_sql(BATCH, 2, STARTED, "FR")), "hors périmètre")
 

@@ -92,6 +92,8 @@ transaction gardée** ; la moindre garde en échec annule tout.
 | provenance | source ≠ `osm` / `reverse_geocode`, attribut de provenance humaine |
 | équipements | `park_features` non posés par l'import OSM |
 
+État réel (lecture seule, 2026-10-12) : **STAGING** — 6 778 parcs du lot présents, **tous `published`** ⇒ le rollback **refuse** (hors périmètre), 0 ligne dans toutes les tables dépendantes, 0 `created_by`, 0 source/identité/équipement étranger ; la table `park_confirmations` est absente de STAGING (0043 non appliquée) : **ignorée** par les gardes (corrigé dans cette PR — le script ne plantait pas en silence, il s'arrêtait). **PROD** — 0 parc du lot ⇒ le script s'arrête (« 0 trouvé, 6 778 attendus ») : sûr tant que l'import n'est pas fait ; après un import `pending`, toutes les gardes passent.
+
 Dépendances supprimées en cascade (FK `ON DELETE CASCADE`) : `external_ids`, `park_sources`, `park_attribute_sources`,
 `park_features` (et les tables vides ci-dessus) ; `notifications.park_id` passerait à `NULL` (SET NULL, gardé à 0 ligne).
 Restent : lignes `audit_log` (append-only, trace de l'import et de la suppression).
@@ -118,7 +120,48 @@ dédié (dépublication `pending`/`rejected` plutôt que suppression).
 6. Publication scopée (US + `pending` + import OSM), transaction gardée avec compte attendu, **sans toucher `verification_status`** ;
    post-contrôles (`nearby_parks` anon Manhattan 2/10/20 km, 0 × 57014, 0 parc non publié exposé).
 
-## 7. Blocages / risques
+## 7. Audit réel de 0049 (lecture seule, 2026-10-12)
+| | PROD | STAGING |
+|---|---|---|
+| `park_public` md5 | `fae08d09…` | `fae08d09…` (identique) |
+| propriétaire / options | `postgres` / `security_invoker=true` | idem |
+| droits (`relacl`) | `postgres, service_role = arwdDxtm ; anon, authenticated = r` | idem |
+| colonnes | 55, md5 des types `07aabe22…` | idem |
+| commentaire, défauts, triggers, vues dépendantes | aucun | aucun |
+| `us_state_abbr` | absente | absente |
+| ancienne vs nouvelle formule sur les **vraies données** | 2 216 parcs non-US : **0 écart** | 79 036 non-US : **0 écart** ; 6 778 US : 9 adresses changent (celles qui ont déjà des champs adresse) |
+
+Propriétaire, droits, options et commentaire sont **capturés dans la transaction puis comparés** (migration 0049 et
+`0049_rollback.sql`) : ils restent ceux de l'environnement, même s'ils diffèrent un jour. Le rollback refuse s'il n'est pas
+appliqué ou si la vue a été modifiée depuis ; il vérifie le md5 d'origine. Testé : aller-retour complet, y compris avec une
+ACL et un commentaire spécifiques ajoutés à la vue.
+
+## 8. Plan d'application de 0049 sur STAGING (après merge, accord explicite)
+1. Relire en lecture seule : md5 de `park_public` = `fae08d09…`, `us_state_abbr` absente.
+2. SQL Editor STAGING : coller `supabase/manual/0049_apply_in_transaction.sql` en entier (une transaction, gardes d'empreinte).
+3. Contrôles : md5 vue ≠ origine et contient `us_state_abbr` ; mêmes colonnes/droits/options ; `nearby_parks` (md5 `afaf1b9b…`)
+   toujours OK ; sur STAGING 9 adresses US passent au format `rue, ville, NY ZIP`, **0 adresse non-US modifiée**
+   (comparer l'empreinte `md5(string_agg(id||formatted_address))` des parcs `country_code<>'US'` avant/après).
+4. App STAGING : fiche US avec adresse (format US), fiche FR/ES inchangée, recherche, partage.
+5. Anomalie ⇒ `supabase/manual/0049_rollback.sql` (restaure le md5 d'origine).
+6. PROD : seulement après validation STAGING et accord explicite (même procédure ; PROD n'a aucun parc US avant l'import).
+
+## 9. Évolution future facultative : `neighbourhood` (NON implémentée, aucun changement de schéma ici)
+Objectif : afficher un quartier/borough (« Playground • Chelsea », « …, Chelsea, New York, NY »).
+- **Déjà acquis sans coût** : le backfill US stocke `neighbourhood` (et `state_code`) dans `park_attribute_sources.value_json`
+  (`attribute_key` libre, aucune contrainte CHECK) ⇒ une fois le backfill fait, **aucun nouvel appel Geoapify** pour alimenter la colonne.
+- **Schéma (migration additive)** : `alter table parks add column neighbourhood text null` ; `park_public` : colonne ajoutée
+  **en fin de vue** (CREATE OR REPLACE autorise l'ajout en dernier) ; `formatted_address` US optionnellement
+  `rue, quartier, ville, ÉTAT ZIP` ; **contrat `nearby_parks*` (43 colonnes)** inchangé tant qu'on n'ajoute pas la colonne à leur
+  `RETURNS TABLE` (changement de type de retour ⇒ nouvelle fonction/versionnement, à décider à part).
+- **Données** : copie depuis la provenance (`value_json->>'neighbourhood'`) via `apply_park_attribute`/`set_park_attribute_source`
+  (priorités de sources respectées) ; jamais d'écrasement d'une valeur humaine.
+- **App** : `getParkDisplayName` : qualifier `quartier` avant `rue` ; types régénérés ; tests FR/ES/US.
+- **Pièges** : le *postal city* new-yorkais est souvent le borough (Brooklyn) ou le quartier (Astoria) — règle à valider sur
+  un échantillon réel de réponses Geoapify ; ne pas confondre `neighbourhood` et `admin_area_2` (county).
+- **Décision à prendre** avant : valeur produit du quartier vs coût (migration + types + contrat RPC).
+
+## 10. Blocages / risques
 - Légal (point 4) et décision `neighbourhood` : **non tranchés**.
 - Règle « quartier = borough » non vérifiable sans appel Geoapify (volontairement non lancé).
 - Parité Python ↔ TS ↔ SQL du format à maintenir (table des États : test DB).

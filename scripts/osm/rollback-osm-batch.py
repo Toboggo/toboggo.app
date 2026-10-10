@@ -98,6 +98,8 @@ begin
 
   -- 4. aucune donnée humaine / fonctionnelle rattachée
   foreach t in array array[{tables}] loop
+    -- table absente de cet environnement (ex. STAGING sans 0043) : rien à contrôler
+    if to_regclass(format('public.%I', t)) is null then continue; end if;
     execute format(
       'select count(*) from public.%I x where x.park_id in (select e.park_id from external_ids e join _batch_ids b on b.external_id = e.external_id where e.provider = ''osm'')', t)
       into bad;
@@ -178,7 +180,12 @@ def run_remote_sql(sql, ref):
         path.unlink(missing_ok=True)
 
 
-def dry_run_report_sql(ids, country_code):
+def existing_tables_sql():
+    arr = ", ".join(q(t) for t in HUMAN_OR_FUNCTIONAL_TABLES)
+    return f"select t from unnest(array[{arr}]) t where to_regclass('public.' || t) is not null order by 1"
+
+
+def dry_run_report_sql(ids, country_code, tables=None):
     """Requêtes SELECT (lecture seule) : combien de parcs du lot existent et pourquoi un rollback serait refusé."""
     arr = ", ".join(q(i) for i in sorted(set(ids)))
     victims = f"(select e.park_id from external_ids e where e.provider = 'osm' and e.external_id = any(array[{arr}]))"
@@ -186,8 +193,10 @@ def dry_run_report_sql(ids, country_code):
         ("parcs_du_lot", f"select count(*) n from parks where id in {victims}"),
         ("hors_perimetre", f"select count(*) n from parks where id in {victims} and (country_code <> {q(country_code)} or moderation_status <> 'pending' or created_by is not null)"),
     ]
-    for t in HUMAN_OR_FUNCTIONAL_TABLES:
-        checks.append((f"lignes_{t}", f"select count(*) n from {t} where park_id in {victims}"))
+    # `tables` : tables réellement présentes dans l'environnement (une table absente — ex. STAGING sans
+    # park_confirmations — ne peut pas figurer dans une requête statique : elle est ignorée).
+    for t in (HUMAN_OR_FUNCTIONAL_TABLES if tables is None else tables):
+        checks.append((f"lignes_{t}", f"select count(*) n from public.{t} where park_id in {victims}"))
     return checks
 
 
@@ -216,7 +225,10 @@ def main():
     ref = PROJECTS[args.environment]
     print(f"Environnement : {args.environment.upper()} ({ref}) — {'COMMIT' if args.commit else 'DRY-RUN (lecture seule)'}")
     if not args.commit:
-        for label, check in dry_run_report_sql(ids, args.country_code):
+        present = [r["t"] for r in json.loads(re.search(r"\[.*\]", run_remote_sql(existing_tables_sql(), ref), re.S).group(0))]
+        for t in sorted(set(HUMAN_OR_FUNCTIONAL_TABLES) - set(present)):
+            print(f"  (table absente de cet environnement, ignorée : {t})")
+        for label, check in dry_run_report_sql(ids, args.country_code, present):
             print(f"  {label:34s} {run_remote_sql(check, ref).strip()[:120]}")
         print("DRY-RUN : aucune écriture. Relancer avec --commit pour exécuter la transaction gardée.")
         return

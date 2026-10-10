@@ -234,5 +234,60 @@ class TestViewFormattedAddress(unittest.TestCase):
                 conn.rollback()
 
 
+def _strip_tx(sql):
+    import re
+    sql = re.sub(r"(?m)^begin;\s*$", "", sql, count=1)
+    return re.sub(r"(?m)^commit;\s*$", "", sql)
+
+
+@unittest.skipUnless(_db_available(), "Supabase local injoignable (supabase start ?)")
+class TestApplyAndRollbackScripts(unittest.TestCase):
+    """Scripts manuels 0049 (apply + rollback) : vue, droits, propriétaire, options restaurés
+    EXACTEMENT, y compris avec une ACL / un commentaire propres à l'environnement."""
+
+    META = ("select md5(pg_get_viewdef('public.park_public'::regclass, true)), c.relowner::regrole::text, "
+            "coalesce(c.relacl::text, ''), coalesce(c.reloptions::text, ''), coalesce(obj_description(c.oid, 'pg_class'), '') "
+            "from pg_class c where c.oid = 'public.park_public'::regclass")
+
+    def _roundtrip(self, prepare_sql=""):
+        apply_sql = _strip_tx((ROOT / "supabase" / "manual" / "0049_apply_in_transaction.sql").read_text(encoding="utf-8"))
+        rollback_sql = _strip_tx((ROOT / "supabase" / "manual" / "0049_rollback.sql").read_text(encoding="utf-8"))
+        with psycopg.connect(LOCAL_DSN) as conn:
+            try:
+                cur = conn.cursor()
+                if prepare_sql:
+                    cur.execute(prepare_sql)
+                cur.execute(self.META); before = cur.fetchone()
+                cur.execute(apply_sql)
+                cur.execute(self.META); applied = cur.fetchone()
+                self.assertNotEqual(applied[0], before[0])          # la vue a bien changé…
+                self.assertEqual(applied[1:], before[1:])           # …mais pas propriétaire / droits / options / commentaire
+                cur.execute("select count(*) from supabase_migrations.schema_migrations where version = '0049'")
+                self.assertEqual(cur.fetchone()[0], 1)
+                cur.execute(rollback_sql)
+                cur.execute(self.META); after = cur.fetchone()
+                self.assertEqual(after, before)                     # restauration EXACTE
+                cur.execute("select count(*) from pg_proc where proname = 'us_state_abbr'")
+                self.assertEqual(cur.fetchone()[0], 0)
+            finally:
+                conn.rollback()
+
+    def test_default_environment(self):
+        self._roundtrip()
+
+    def test_environment_specific_acl_and_comment_preserved(self):
+        self._roundtrip("comment on view public.park_public is 'zzz env specific'; grant insert on public.park_public to service_role;")
+
+    def test_rollback_refuses_when_not_applied_or_view_modified(self):
+        rollback_sql = _strip_tx((ROOT / "supabase" / "manual" / "0049_rollback.sql").read_text(encoding="utf-8"))
+        with psycopg.connect(LOCAL_DSN) as conn:
+            try:
+                with self.assertRaisesRegex(psycopg.errors.RaiseException, "non enregistrée"):
+                    with conn.transaction():
+                        conn.execute(rollback_sql)
+            finally:
+                conn.rollback()
+
+
 if __name__ == "__main__":
     unittest.main()

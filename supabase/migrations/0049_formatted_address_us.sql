@@ -118,6 +118,13 @@ create temporary table _park_public_cols_0049 on commit drop as
   select a.attnum, a.attname::text as attname, format_type(a.atttypid, a.atttypmod) as typ
     from pg_attribute a where a.attrelid = 'public.park_public'::regclass and a.attnum > 0 and not a.attisdropped;
 
+-- Propriétaire, droits, options et commentaire PROPRES À L'ENVIRONNEMENT, comparés après.
+drop table if exists pg_temp._park_public_meta_0049;
+create temporary table _park_public_meta_0049 on commit drop as
+  select c.relowner::regrole::text as owner, coalesce(c.relacl::text, '') as acl,
+         coalesce(c.reloptions::text, '') as opts, coalesce(obj_description(c.oid, 'pg_class'), '') as cmt
+    from pg_class c where c.oid = 'public.park_public'::regclass;
+
 create or replace view public.park_public with (security_invoker = true) as
 SELECT id,
     name,
@@ -239,6 +246,13 @@ begin
   end if;
   if not (has_table_privilege('anon', 'public.park_public', 'select') and has_table_privilege('authenticated', 'public.park_public', 'select')) then
     raise exception '0049: droits SELECT de park_public perdus';
+  end if;
+  if exists (
+    select 1 from pg_class c, _park_public_meta_0049 m
+     where c.oid = 'public.park_public'::regclass
+       and (c.relowner::regrole::text, coalesce(c.relacl::text, ''), coalesce(c.reloptions::text, ''), coalesce(obj_description(c.oid, 'pg_class'), ''))
+           is distinct from (m.owner, m.acl, m.opts, m.cmt)) then
+    raise exception '0049: propriétaire, droits, options ou commentaire de park_public modifiés';
   end if;
   raise notice '0049 OK — park_public : % colonnes inchangées, formatted_address country-aware (US) ; us_state_abbr créée', n_before;
 end $$;

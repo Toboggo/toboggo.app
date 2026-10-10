@@ -1,6 +1,10 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- RETOUR ARRIÈRE de 0049 — restaure `park_public` d'origine (md5 fae08d091ae8a59acd7f4de48af8b5f8) et supprime
--- `us_state_abbr`. UNE transaction, SQL Editor. Les adresses FR/ES n'ont jamais changé.
+-- RETOUR ARRIÈRE de 0049 — restaure `park_public` d'origine (md5 fae08d091ae8a59acd7f4de48af8b5f8, identique
+-- en PROD et STAGING au 2026-10-12) et supprime `us_state_abbr`. UNE transaction.
+-- Propriétaire, droits, options et commentaire de la vue PROPRES À L'ENVIRONNEMENT sont
+-- préservés (CREATE OR REPLACE VIEW) et VÉRIFIÉS avant/après dans la transaction.
+-- Refuse de s'exécuter si 0049 n'est pas appliquée ou si la vue a été modifiée depuis.
+-- Les adresses FR/ES n'ont jamais changé.
 -- ════════════════════════════════════════════════════════════════════════════
 begin;
 
@@ -9,7 +13,16 @@ begin
   if not exists (select 1 from supabase_migrations.schema_migrations where version = '0049') then
     raise exception 'Retour arrière : 0049 non enregistrée — ARRÊT';
   end if;
+  if position('us_state_abbr' in pg_get_viewdef('public.park_public'::regclass, true)) = 0 then
+    raise exception 'Retour arrière : park_public ne contient pas la formule 0049 (modifiée depuis ?) — ARRÊT';
+  end if;
 end $$;
+
+drop table if exists pg_temp._park_public_meta_rb0049;
+create temporary table _park_public_meta_rb0049 on commit drop as
+  select c.relowner::regrole::text as owner, coalesce(c.relacl::text, '') as acl,
+         coalesce(c.reloptions::text, '') as opts, coalesce(obj_description(c.oid, 'pg_class'), '') as cmt
+    from pg_class c where c.oid = 'public.park_public'::regclass;
 
 create or replace view public.park_public with (security_invoker = true) as
 SELECT id,
@@ -119,6 +132,13 @@ do $$
 begin
   if md5(pg_get_viewdef('public.park_public'::regclass, true)) <> 'fae08d091ae8a59acd7f4de48af8b5f8' then
     raise exception 'Retour arrière : park_public ≠ définition d''origine — transaction annulée';
+  end if;
+  if exists (
+    select 1 from pg_class c, _park_public_meta_rb0049 m
+     where c.oid = 'public.park_public'::regclass
+       and (c.relowner::regrole::text, coalesce(c.relacl::text, ''), coalesce(c.reloptions::text, ''), coalesce(obj_description(c.oid, 'pg_class'), ''))
+           is distinct from (m.owner, m.acl, m.opts, m.cmt)) then
+    raise exception 'Retour arrière : propriétaire, droits, options ou commentaire de park_public modifiés — transaction annulée';
   end if;
 end $$;
 

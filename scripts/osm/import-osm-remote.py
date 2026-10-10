@@ -29,7 +29,7 @@ def q(v):
 def n(v):
     return "null" if v is None else str(v)
 
-def build_candidates(pbf, local, placeholder_name=naming.DEFAULT_PLACEHOLDER_NAME):
+def build_candidates(pbf, local, placeholder_name=naming.DEFAULT_PLACEHOLDER_NAME, country_code=None):
     mapping = local.load_mapping()
     with tempfile.TemporaryDirectory(prefix="toboggo-osm-remote-") as tmp:
         tmp = Path(tmp)
@@ -101,7 +101,7 @@ def build_candidates(pbf, local, placeholder_name=naming.DEFAULT_PLACEHOLDER_NAM
                     "longitude": lng,
                     "min_age": local.parse_age(props.get("min_age")),
                     "max_age": local.parse_age(props.get("max_age")),
-                    "address": address_lib.extract_address_from_tags(props),
+                    "address": address_lib.extract_address_from_tags(props, country_code),
                     "features": equipment,
                     "attribute_features": attrs,
                 })
@@ -282,7 +282,7 @@ def main():
     pbf = Path(args.pbf).expanduser().resolve()
     project = PROJECTS[args.environment]
     local = load_local()
-    candidates, skipped, enrich = build_candidates(pbf, local, args.placeholder_name)
+    candidates, skipped, enrich = build_candidates(pbf, local, args.placeholder_name, args.country_code)
 
     print(f"Environment : {args.environment.upper()}")
     print(f"Project ref : {project['ref']}")

@@ -731,7 +731,8 @@ def main():
 
                         "address":
                             address_lib.extract_address_from_tags(
-                                props
+                                props,
+                                args.country_code,
                             ),
 
                         "features":

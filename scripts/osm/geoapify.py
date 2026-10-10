@@ -21,6 +21,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from address import abbreviate_us_street
+
 GEOAPIFY_BASE_URL = "https://api.geoapify.com/v1/geocode/reverse"
 DEFAULT_TIMEOUT_S = 10
 DEFAULT_MAX_RETRIES = 3
@@ -131,8 +133,14 @@ class GeoapifyClient:
             return None
         r = results[0]
 
+        country_code = (r.get("country_code") or "").upper() or None
+        is_us = country_code == "US"
+
         housenumber = r.get("housenumber")
         street = r.get("street")
+        if is_us:
+            # US : « West 42nd Street » → « W 42nd St » (direction + suffixe).
+            street = abbreviate_us_street(street)
         if housenumber and street:
             address_line = f"{housenumber} {street}"
         elif street:
@@ -141,9 +149,21 @@ class GeoapifyClient:
             address_line = r.get("address_line1")
 
         city = r.get("city") or r.get("town") or r.get("village")
+        if is_us and not city:
+            city = r.get("hamlet")      # NY : de nombreux lieux sont des « hamlets »
         postal_code = r.get("postcode")
         admin_area_1 = r.get("state")
         admin_area_2 = r.get("county") or r.get("state_district")
+
+        # Quartier / borough et code d'État : US uniquement, et seulement dans la
+        # provenance (aucune colonne `parks` dédiée aujourd'hui). FR/ES : None.
+        neighbourhood = None
+        state_code = None
+        if is_us:
+            neighbourhood = (
+                r.get("suburb") or r.get("neighbourhood") or r.get("district") or r.get("quarter")
+            )
+            state_code = r.get("state_code")
 
         # Geoapify ne renvoie pas toujours `rank.confidence` en reverse
         # geocoding (constaté sur le test réel de 10 parcs staging : absent
@@ -162,6 +182,9 @@ class GeoapifyClient:
             "admin_area_2": admin_area_2,
             "confidence": confidence,
             "formatted": r.get("formatted"),
+            "country_code": country_code,
+            "neighbourhood": neighbourhood,
+            "state_code": state_code,
         }
         if not any([result["address_line"], result["postal_code"], result["city"]]):
             return None

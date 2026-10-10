@@ -67,9 +67,6 @@
     "noParkPhoto": "Sin foto para este parque",
     "parkIllustration": "Ilustración de un parque infantil (aún no hay foto de este parque)"
   },
-  "cover": {
-    "illustration": "Ilustración"
-  },
   "comingSoon": "Próximamente",
   "visitPrompt": {
     "title": "¿Has ido a este parque?",

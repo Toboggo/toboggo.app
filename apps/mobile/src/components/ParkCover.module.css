@@ -19,27 +19,3 @@
   background: var(--color-primary-tint);
   color: var(--color-primary);
 }
-.badge {
-  position: absolute;
-  left: var(--space-2);
-  top: var(--space-2);
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-surface) 85%, transparent);
-  color: var(--color-text-muted);
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.4;
-  pointer-events: none;
-}
-.badge[data-at="bottom"] {
-  top: auto;
-  bottom: var(--space-2);
-}
-.badge[data-at="stacked"] {
-  top: calc(var(--space-2) + 24px + var(--space-1));
-  padding: 1px 6px;
-  font-size: 9px;
-  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
-  color: var(--color-text);
-}

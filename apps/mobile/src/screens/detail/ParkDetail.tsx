@@ -171,7 +171,7 @@ export default function ParkDetail() {
   return (
     <div className={styles.wrap}>
       <div className={styles.hero}>
-        <ParkCover park={park} index={photoIndex} className={styles.heroCover} markSize={40} badgeAt="bottom" eager />
+        <ParkCover park={park} index={photoIndex} className={styles.heroCover} markSize={40} eager />
         <div className={styles.heroTop}>
           <CircleBtn label={t("a11y.back")} onClick={() => navigate(-1)}>
             <Icon name="ic-back" size={18} style={{ color: "var(--color-text)" }} />
@@ -228,15 +228,15 @@ export default function ParkDetail() {
         {!hasPhotos && (
           <div className={styles.firstPhoto} data-testid="first-photo-card">
             <span className={styles.firstPhotoIcon} aria-hidden>
-              <Icon name="ic-camera" size={20} />
+              <Icon name="ic-camera" size={18} />
             </span>
             <div className={styles.firstPhotoText}>
               <strong className={styles.firstPhotoTitle}>{t("firstPhoto.title")}</strong>
               <span className={styles.firstPhotoHint}>{t("firstPhoto.subtitle")}</span>
-              <button type="button" className={styles.firstPhotoCta} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
-                {t("addPhoto")}
-              </button>
             </div>
+            <button type="button" className={styles.firstPhotoCta} onClick={() => navigate(`/photo-add?park=${park.id}`)}>
+              {t("addPhoto")}
+            </button>
           </div>
         )}
         <h1 className={styles.name}>{getParkDisplayName(park, t)}</h1>

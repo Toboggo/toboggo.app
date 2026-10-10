@@ -108,8 +108,10 @@ describe("ParkCard carousel — photo card", () => {
     expect(within(card).getByRole("img", { name: /illustration/i })).toBeTruthy(); // existing fallback, unchanged
   });
 
-  it("keeps the 'Illustration' tag on illustrated covers, and none on a real photo", () => {
-    expect(within(renderCard(park())).getByText("Illustration")).toBeTruthy();
+  it("shows no visible 'Illustration' tag, but keeps an accessible description on illustrated covers", () => {
+    const illustrated = renderCard(park());
+    expect(within(illustrated).queryByText("Illustration")).toBeNull();
+    expect(within(illustrated).getByRole("img", { name: /illustration/i })).toBeTruthy();
     expect(within(renderCard(full)).queryByText("Illustration")).toBeNull();
   });
 

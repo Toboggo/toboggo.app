@@ -127,7 +127,7 @@ export function ParkCard({
     // tag (stacked under the distance pill).
     return (
       <div className={styles.card} {...activate}>
-        <ParkCover park={park} className={styles.cardPhoto} markSize={44} badgeAt="stacked" />
+        <ParkCover park={park} className={styles.cardPhoto} markSize={44} />
         <div className={styles.cardShade} aria-hidden />
         {distanceM != null && <span className={styles.distPill}>{f.distance(distanceM)}</span>}
         {onToggleFavorite && (
@@ -155,7 +155,7 @@ export function ParkCard({
     const chips = [...(ageBand ? [ageBand] : []), ...attrs.map((a) => t(`attr.${a}`))];
     return (
       <div className={styles.listCard} {...activate}>
-        <ParkCover park={park} className={styles.listPhoto} markSize={26} badge={false} />
+        <ParkCover park={park} className={styles.listPhoto} markSize={26} />
         <div className={styles.listBody}>
           <div className={styles.listTop}>
             <div className={styles.name}>{displayName}</div>
@@ -186,7 +186,7 @@ export function ParkCard({
     const extraCount = chips.length - shownChips.length;
     return (
       <div className={styles.favCard} {...activate}>
-        <ParkCover park={park} className={styles.favPhoto} markSize={32} badge={false} />
+        <ParkCover park={park} className={styles.favPhoto} markSize={32} />
         <div className={styles.favBody}>
           <div className={styles.favTop}>
             <div className={styles.favName}>{displayName}</div>
@@ -220,7 +220,7 @@ export function ParkCard({
 
   return (
     <div className={styles.row} {...activate}>
-      <ParkCover park={park} className={styles.thumb} markSize={22} badge={false} />
+      <ParkCover park={park} className={styles.thumb} markSize={22} />
       <div className={styles.body}>
         <div className={styles.name}>{displayName}</div>
         <div className={styles.meta}>{metaLine}</div>

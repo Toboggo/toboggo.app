@@ -21,8 +21,6 @@ export function ParkCover({
   className,
   style,
   markSize = 28,
-  badge = true,
-  badgeAt = "top",
   eager = false,
   children,
 }: {
@@ -32,10 +30,6 @@ export function ParkCover({
   style?: CSSProperties;
   /** Size of the last-resort Toboggo mark. */
   markSize?: number;
-  /** "Illustration" tag on illustrated covers; turn off on tiny thumbnails. */
-  badge?: boolean;
-  /** "stacked": top-left, just under a 24px pill the caller draws there. */
-  badgeAt?: "top" | "bottom" | "stacked";
   /** Above-the-fold covers skip lazy loading. */
   eager?: boolean;
   children?: ReactNode;
@@ -91,7 +85,6 @@ export function ParkCover({
           data-cover="illustration"
           onError={() => setIllustrationFailed(true)}
         />
-        {badge && <span className={styles.badge} data-at={badgeAt}>{t("cover.illustration")}</span>}
         {children}
       </div>
     </div>

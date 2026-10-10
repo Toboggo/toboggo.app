@@ -1,0 +1,177 @@
+---
+/** Corps d'une page article (partagé entre /guides/<slug>/ publié et /apercu/<slug>/ brouillon). Rendu statique : le contenu est dans le HTML. */
+import Breadcrumb from "./Breadcrumb.astro";
+import Button from "./Button.astro";
+import type { Article } from "../lib/blog/types";
+import { formatDate } from "../lib/blog/articles";
+import { renderBody } from "../lib/blog/portableText";
+import { sanityImage, sanitySrcset } from "../lib/blog/images";
+
+interface Props {
+  article: Article;
+}
+
+const { article } = Astro.props;
+const html = renderBody(article.body);
+const modified = article.updatedAt && article.updatedAt > article.publishedAt ? article.updatedAt : null;
+---
+
+<article class="post">
+  <div class="wrap post-wrap">
+    <Breadcrumb items={[{ label: "Accueil", href: "/" }, { label: "Guides & idées", href: "/guides/" }, { label: article.title }]} />
+    <header class="post-head">
+      {article.category && <span class="eyebrow">{article.category.title}</span>}
+      <h1>{article.title}</h1>
+      <p class="post-lead">{article.excerpt}</p>
+      <p class="post-meta">
+        {article.author && <span>Par {article.author.name}{article.author.role ? `, ${article.author.role}` : ""}</span>}
+        <span>
+          Publié le <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
+        </span>
+        {modified && (
+          <span>
+            Mis à jour le <time datetime={modified}>{formatDate(modified)}</time>
+          </span>
+        )}
+      </p>
+    </header>
+    {
+      article.cover?.url && (
+        <figure class="post-cover">
+          <img
+            src={sanityImage(article.cover.url, { w: 960, h: 540 })}
+            srcset={sanitySrcset(article.cover.url, [480, 720, 960, 1280], 16 / 9)}
+            sizes="(min-width: 1000px) 840px, calc(100vw - 48px)"
+            width="960"
+            height="540"
+            alt={article.cover.alt ?? ""}
+            fetchpriority="high"
+            decoding="async"
+          />
+        </figure>
+      )
+    }
+    <div class="post-body" set:html={html} />
+    <div class="post-footer">
+      <Button href="/guides/" variant="secondary">← Tous les guides</Button>
+    </div>
+  </div>
+</article>
+
+<style>
+  .post {
+    padding: var(--space-6) 0 var(--space-9, 96px);
+  }
+
+  .post-wrap {
+    max-width: 840px;
+  }
+
+  .post-head {
+    margin: var(--space-6) 0 var(--space-5);
+  }
+
+  .post-head h1 {
+    margin: 0 0 var(--space-3);
+    overflow-wrap: anywhere;
+  }
+
+  .post-lead {
+    margin: 0 0 var(--space-4);
+    font-size: var(--text-lg);
+    color: var(--color-text-muted);
+  }
+
+  .post-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-1) var(--space-4);
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-faint);
+  }
+
+  .post-cover {
+    margin: 0 0 var(--space-6);
+  }
+
+  .post-cover img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+  }
+
+  .post-body {
+    font-size: var(--text-base);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+
+  .post-body :global(h2) {
+    font-size: var(--text-xl, 26px);
+    margin: var(--space-7) 0 var(--space-3);
+  }
+
+  .post-body :global(h3) {
+    font-size: var(--text-lg);
+    margin: var(--space-6) 0 var(--space-2);
+  }
+
+  .post-body :global(h4) {
+    font-size: var(--text-base);
+    margin: var(--space-5) 0 var(--space-2);
+  }
+
+  .post-body :global(p),
+  .post-body :global(ul),
+  .post-body :global(ol) {
+    margin: 0 0 var(--space-4);
+  }
+
+  .post-body :global(ul),
+  .post-body :global(ol) {
+    padding-left: var(--space-6);
+  }
+
+  .post-body :global(li) {
+    margin-bottom: var(--space-2);
+  }
+
+  .post-body :global(a) {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .post-body :global(blockquote) {
+    margin: var(--space-5) 0;
+    padding: var(--space-3) var(--space-5);
+    border-left: 4px solid var(--color-primary);
+    background: var(--color-primary-tint);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+
+  .post-body :global(figure) {
+    margin: var(--space-5) 0;
+  }
+
+  .post-body :global(img) {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-md);
+  }
+
+  .post-body :global(figcaption) {
+    margin-top: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-text-faint);
+  }
+
+  .post-footer {
+    margin-top: var(--space-8);
+  }
+</style>

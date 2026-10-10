@@ -38,6 +38,7 @@ Les sources de vérité détaillées sont listées en §12.
 | `apps/mobile` | App parents — React 18 + Vite + TS, PWA. Dev sur `:5173`. Mode invité par défaut, login juste-à-temps. |
 | `apps/backoffice` | **Une seule** app back-office, role-routée (admin Toboggo *ou* collectivité) via `src/lib/orgSession.ts`. Dev sur `:5174`. |
 | `apps/landing` | Site vitrine — **Astro** (`output: "static"`, génération statique), vrai workspace npm (`@toboggo/landing`). Dev sur `:4321`. Formulaire contact = `apps/landing/public/config.js`. |
+| `apps/studio` | Sanity Studio (blog du site vitrine, UI en français). **Hors workspaces npm** : `npm run install:studio` puis `dev:studio` / `build:studio`. Voir `docs/blog-sanity.md`. |
 | `packages/design-system` | Tokens CSS (`src/tokens.css`) + primitives React + `Logo` + sprite d'icônes. Implémentation exécutable du design. |
 | `packages/shared` | Types, client Supabase (`src/supabaseClient.ts`), **couche d'accès données `src/api/*`**, types générés (`src/types/database.types.ts`), utils. |
 | `supabase/` | Migrations SQL, RLS, `seed.sql`. Voir §4. |
@@ -252,6 +253,7 @@ vérité **uniquement** pour ce périmètre). Ne pas dupliquer leur contenu ici.
 | Formats & export d'assets uniquement | `docs/identite-visuelle-formats.md` |
 | Photographie technique **datée du 30/08/2026** (constat, non contractuel — pas une spécification permanente) | `docs/RECONCILIATION-2026-08-30.md` *(non tracké)* |
 | Présentation éditoriale de marque (à montrer, pas à coder depuis) | `docs/Toboggo-Brand-Guidelines.pdf` *(non tracké)* |
+| Blog Sanity (Studio, variables, réglages Vercel, rédaction/prévisualisation/publication) | `docs/blog-sanity.md` |
 | Panorama général du produit | `IMPLEMENTATION.md` |
 | `README.md` | **Legacy** — décrit l'ancien handoff Claude Design (`chats/`, `project/` absents du repo). N'est plus le point d'entrée. |
 

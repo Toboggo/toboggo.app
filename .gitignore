@@ -10,3 +10,7 @@ dist/
 
 # Local Supabase backups — never commit
 backups/
+
+# Adapter Vercel (sortie Build Output API)
+.vercel/
+.sanity/

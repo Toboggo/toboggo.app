@@ -1,0 +1,38 @@
+---
+/** Page article publiée : générée au build depuis Sanity (HTML complet, indexable). Les brouillons n'ont aucune page. */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ArticleView from "../../components/ArticleView.astro";
+import { getArticle, getArticles } from "../../lib/blog/articles";
+import { articleJsonLd, articleMeta } from "../../lib/blog/seo";
+import { breadcrumbLd } from "../../lib/seo/jsonld";
+
+export async function getStaticPaths() {
+  const list = await getArticles();
+  const articles = await Promise.all(list.map((a) => getArticle(a.slug)));
+  return articles.flatMap((article) => (article ? [{ params: { slug: article.slug }, props: { article } }] : []));
+}
+
+const { article } = Astro.props;
+const meta = articleMeta(article);
+const jsonLd = [
+  articleJsonLd(article),
+  breadcrumbLd([
+    { name: "Accueil", path: "/" },
+    { name: "Guides & idées", path: "/guides/" },
+    { name: article.title, path: `/guides/${article.slug}/` },
+  ]),
+];
+---
+
+<BaseLayout
+  title={meta.title}
+  description={meta.description}
+  ogType="article"
+  twitterCard={meta.image ? "summary_large_image" : "summary"}
+  ogImage={meta.image}
+  ogImageAlt={meta.imageAlt}
+  article={meta.article}
+  jsonLd={jsonLd}
+>
+  <ArticleView article={article} />
+</BaseLayout>

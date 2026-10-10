@@ -1,0 +1,45 @@
+---
+/**
+ * Prévisualisation d'un brouillon : rendu à la demande (jamais statique), derrière un cookie signé posé par
+ * /api/preview/enable/ après validation d'un secret créé dans le Studio. Sans cookie valide : 404.
+ * noindex, jamais mis en cache, absent du sitemap.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import ArticleView from "../../components/ArticleView.astro";
+import { getPreviewArticle } from "../../lib/blog/articles";
+import { hasPreviewToken } from "../../lib/blog/client";
+import { isValidPreviewCookie, PREVIEW_COOKIE } from "../../lib/blog/previewSession";
+
+export const prerender = false;
+
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("X-Robots-Tag", "noindex, nofollow");
+
+const { slug } = Astro.params;
+const authorised = hasPreviewToken && isValidPreviewCookie(Astro.cookies.get(PREVIEW_COOKIE)?.value);
+const article = authorised && slug ? await getPreviewArticle(slug) : null;
+if (!article) return new Response("Not found", { status: 404, headers: { "Cache-Control": "private, no-store" } });
+---
+
+<BaseLayout title={`Aperçu : ${article.title}`} description={article.excerpt} robots="noindex,nofollow" errorPage>
+  <div class="preview-bar" role="status">
+    Prévisualisation du brouillon — non public. <a href="/api/preview/disable/">Quitter l'aperçu</a>
+  </div>
+  <ArticleView article={article} />
+</BaseLayout>
+
+<style>
+  .preview-bar {
+    padding: var(--space-2) var(--space-6);
+    background: var(--color-accent, #f5a524);
+    color: var(--color-text);
+    font-family: var(--font-heading);
+    font-size: var(--text-sm);
+    text-align: center;
+  }
+
+  .preview-bar a {
+    color: inherit;
+    text-decoration: underline;
+  }
+</style>

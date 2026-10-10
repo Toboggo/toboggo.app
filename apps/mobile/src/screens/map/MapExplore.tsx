@@ -475,6 +475,7 @@ export default function MapExplore() {
             onSelectPark={setSelectedId}
             onOpenZone={() => setRadiusOpen(true)}
             onSetRadius={setRadiusKm}
+            showDiscoveryBanner={snap === 2}
           />
         </div>
         {nearby.activeParks.length > 0 && (

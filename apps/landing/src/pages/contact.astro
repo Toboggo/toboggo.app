@@ -69,7 +69,7 @@ const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
                   </div>
                   <p class="form-privacy">
                     Vos données servent uniquement à vous répondre. Voir notre{" "}
-                    <a href="/cgu/#confidentialite">politique de confidentialité</a>.
+                    <a href="/confidentialite/">politique de confidentialité</a>.
                   </p>
                   <button class="btn btn-primary" type="submit" id="submit-btn">Envoyer</button>
                 </form>
@@ -129,12 +129,17 @@ const formEnabled = /^https?:\/\//.test(supabaseUrl) && anonKey.length > 0;
 
     function show(kind: "success" | "error", text: string, field?: string) {
       msgEl.innerHTML = "";
+      form?.querySelectorAll("[aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
       const box = document.createElement("div");
       box.className = `form-msg ${kind}`;
       box.setAttribute("role", kind === "error" ? "alert" : "status");
       box.textContent = text;
       msgEl.appendChild(box);
-      if (field) document.getElementById(field)?.focus();
+      if (field) {
+        const fieldEl = document.getElementById(field);
+        fieldEl?.setAttribute("aria-invalid", "true");
+        fieldEl?.focus();
+      }
     }
 
     function read(): ContactInput {

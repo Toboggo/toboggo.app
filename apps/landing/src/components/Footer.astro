@@ -85,26 +85,27 @@ const socials = listSocials(SOCIAL_LINKS);
       <a href="/contact/">{dict.footer.aPropos.contact}</a>
       <a href="/faq/">{dict.footer.aPropos.aide}</a>
     </nav>
-
-    <nav class="footer-col" aria-label={dict.footer.legal.heading}>
-      <p class="footer-title">{dict.footer.legal.heading}</p>
-      <a href="/cgu/#confidentialite">{dict.footer.legal.confidentialite}</a>
-      <a href="/cgu/#cgu">{dict.footer.legal.cgu}</a>
-      <a href="/mentions-legales/">{dict.footer.legal.mentionsLegales}</a>
-      <a href="/cgu/#cookies">{dict.footer.legal.cookies}</a>
-    </nav>
   </div>
 
-  <div class="wrap footer-bottom">
-    <p>{dict.footer.copyright}</p>
-    <!-- Attribution OpenStreetMap : les données de parcs importées d'OSM sont sous
-         licence ODbL, qui impose la mention « © OpenStreetMap contributors »
-         avec un lien vers la page de licence. -->
-    <p>
-      {dict.footer.dataCredit}
-      <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>
-      (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">ODbL</a>)
-    </p>
+  <div class="footer-bottom">
+    <div class="wrap footer-bottom-inner">
+      <p class="footer-copy">{dict.footer.copyright}</p>
+      <!-- Liens juridiques : discrets, en bas de page (pas de colonne dédiée). -->
+      <nav class="footer-legal" aria-label={dict.footer.legal.heading}>
+        <a href="/confidentialite/">{dict.footer.legal.confidentialite}</a>
+        <a href="/cgu/">{dict.footer.legal.cgu}</a>
+        <a href="/mentions-legales/">{dict.footer.legal.mentionsLegales}</a>
+        <a href="/cookies/">{dict.footer.legal.cookies}</a>
+      </nav>
+      <!-- Attribution OpenStreetMap : les données de parcs importées d'OSM sont sous
+           licence ODbL, qui impose la mention « © OpenStreetMap contributors »
+           avec un lien vers la page de licence. -->
+      <p class="footer-credit">
+        {dict.footer.dataCredit}{" "}
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a>{" "}
+        (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener noreferrer">ODbL</a>)
+      </p>
+    </div>
   </div>
 </footer>
 
@@ -240,7 +241,7 @@ const socials = listSocials(SOCIAL_LINKS);
   /* ---- Grille du pied de page ------------------------------------------ */
   .footer-main {
     display: grid;
-    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+    grid-template-columns: 1.3fr 1fr 1fr;
     gap: var(--space-6);
     padding-top: 72px;
     padding-bottom: 56px;
@@ -285,7 +286,7 @@ const socials = listSocials(SOCIAL_LINKS);
 
   .footer-social a:hover {
     border-color: var(--color-primary);
-    color: var(--color-primary-hover);
+    color: var(--color-primary-ink);
   }
 
   .footer-col {
@@ -351,7 +352,7 @@ const socials = listSocials(SOCIAL_LINKS);
 
   .footer-col a:hover,
   .footer-col a:focus-visible {
-    color: var(--color-primary-hover);
+    color: var(--color-primary-ink);
   }
 
   .footer-col a:hover::after,
@@ -366,33 +367,59 @@ const socials = listSocials(SOCIAL_LINKS);
     }
   }
 
-  /* bandeau bas teinté de vert très clair, pleine largeur : sépare nettement le légal du contenu */
+  /* bandeau bas teinté de vert très clair, pleine largeur : copyright, liens juridiques discrets, crédit OSM */
   .footer-bottom {
-    position: relative;
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: var(--space-2) var(--space-6);
-    padding-top: var(--space-5);
-    padding-bottom: var(--space-5);
     background: var(--color-primary-tint);
-    box-shadow: 0 0 0 100vmax var(--color-primary-tint);
-    clip-path: inset(0 -100vmax);
     color: color-mix(in srgb, var(--color-text) 80%, var(--color-surface));
     font-size: var(--text-xs);
+  }
+
+  .footer-bottom-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-6);
+    padding-top: var(--space-4);
+    padding-bottom: var(--space-4);
   }
 
   .footer-bottom p {
     margin: 0;
   }
 
-  .footer-bottom a {
+  .footer-legal {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-5);
+  }
+
+  .footer-legal a,
+  .footer-credit a {
     color: inherit;
+    text-decoration: none;
+  }
+
+  .footer-legal a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+  }
+
+  .footer-credit {
+    flex-basis: 100%;
+    opacity: 0.9;
+  }
+
+  .footer-credit a {
     text-decoration: underline;
   }
 
-  .footer-bottom a:hover {
-    color: var(--color-primary-hover);
+  .footer-legal a:hover,
+  .footer-legal a:focus-visible,
+  .footer-credit a:hover {
+    color: var(--color-primary-pressed);
+    text-decoration: underline;
   }
 
   @media (max-width: 1000px) {
@@ -412,8 +439,8 @@ const socials = listSocials(SOCIAL_LINKS);
       opacity: 0.55;
     }
 
-    /* mobile/tablette : marque en haut, « Toboggo » pleine largeur (liens sur 2 colonnes),
-       puis « À propos » et « Légal » côte à côte — beaucoup plus court qu'une longue liste */
+    /* mobile/tablette : marque en haut pleine largeur, puis « Toboggo » et « À propos » côte à côte
+       (deux colonnes de liens courts, lisibles dès 320px) ; le juridique reste dans le bandeau du bas */
     .footer-main {
       grid-template-columns: 1fr 1fr;
       gap: var(--space-8) var(--space-5);
@@ -426,26 +453,7 @@ const socials = listSocials(SOCIAL_LINKS);
     }
 
     .footer-col + .footer-col {
-      padding-left: 0;
-      border-left: 0;
-    }
-
-    .footer-col:nth-child(2) {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      column-gap: var(--space-5);
-      padding-top: var(--space-6);
-      border-top: 1px solid var(--color-border-neutral);
-    }
-
-    .footer-col:nth-child(2) .footer-title {
-      grid-column: 1 / -1;
-    }
-
-    .footer-col:nth-child(n + 3) {
-      padding-top: var(--space-6);
-      border-top: 1px solid var(--color-border-neutral);
+      padding-left: var(--space-5);
     }
 
     .footer-col {
@@ -484,8 +492,13 @@ const socials = listSocials(SOCIAL_LINKS);
       display: none;
     }
 
-    .footer-bottom {
+    .footer-bottom-inner {
       flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .footer-legal {
+      gap: 0 var(--space-4);
     }
   }
 </style>

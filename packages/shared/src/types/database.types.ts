@@ -2232,25 +2232,6 @@ export type Database = {
       }
     }
     Functions: {
-      give_app_feedback: {
-        Args: { p_body?: string; p_rating: number }
-        Returns: {
-          body: string | null
-          created_at: string
-          edited_at: string | null
-          id: string
-          rating: number
-          title: string | null
-          updated_at: string
-          user_id: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "app_feedback"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
@@ -2559,6 +2540,25 @@ export type Database = {
       }
       geomfromewkt: { Args: { "": string }; Returns: unknown }
       gettransactionid: { Args: never; Returns: unknown }
+      give_app_feedback: {
+        Args: { p_body?: string; p_rating: number }
+        Returns: {
+          body: string | null
+          created_at: string
+          edited_at: string | null
+          id: string
+          rating: number
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "app_feedback"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       increment_park_views: { Args: { p_park_id: string }; Returns: undefined }
       is_commune_gestionnaire: {
         Args: { p_commune_id: string; p_uid: string }
@@ -2585,6 +2585,61 @@ export type Database = {
       }
       nearby_parks: {
         Args: { p_lat: number; p_lng: number; p_radius_m?: number }
+        Returns: {
+          address_line: string
+          age_max: number
+          age_min: number
+          benches: boolean
+          city: string
+          commune_id: string
+          country_code: string
+          cover_photo: string
+          created_at: string
+          created_by: string
+          description: string
+          distance_m: number
+          features: Json
+          fenced: boolean
+          formatted_address: string
+          has_open_report: boolean
+          id: string
+          lat: number
+          latitude: number
+          lng: number
+          longitude: number
+          max_age: number
+          min_age: number
+          moderation_status: Database["public"]["Enums"]["park_moderation_status"]
+          name: string
+          operational_status: Database["public"]["Enums"]["park_operational_status"]
+          organization_id: string
+          parking: boolean
+          photos: string[]
+          play_equipment: string[]
+          pmr: boolean
+          rating: number
+          review_count: number
+          score: number
+          shade: boolean
+          status: Database["public"]["Enums"]["park_moderation_status"]
+          surface: string
+          timezone: string
+          updated_at: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
+          views: number
+          water: boolean
+          wc: boolean
+        }[]
+      }
+      nearby_parks_page: {
+        Args: {
+          p_after_distance?: number
+          p_after_id?: string
+          p_lat: number
+          p_limit?: number
+          p_lng: number
+          p_radius_m?: number
+        }
         Returns: {
           address_line: string
           age_max: number

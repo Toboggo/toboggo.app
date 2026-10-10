@@ -84,7 +84,10 @@ begin
     perform respond_to_report('e0450000-0000-4000-a000-00000000d001', 'resolved');
     raise exception 'T2 FAIL — anon peut voter';
   exception when insufficient_privilege then null; end;
-  raise notice 'T2 OK — anon : table et vote refusés (42501)';
+  if has_function_privilege('anon', 'public.respond_to_report(uuid,text)', 'execute') then
+    raise exception 'T2 FAIL — anon garde EXECUTE sur respond_to_report (0048)';
+  end if;
+  raise notice 'T2 OK — anon : table et vote refusés (42501), EXECUTE retiré';
 end $$;
 
 -- ══ U1 ════════════════════════════════════════════════════════════════════

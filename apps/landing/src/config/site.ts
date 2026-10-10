@@ -30,6 +30,13 @@ export const APP_URL = "https://toboggo-app.vercel.app";
  * les boutons stores n'apparaissent alors NULLE PART. Le jour de la publication,
  * il suffit de coller les deux URLs ici — rien d'autre à modifier.
  */
+/**
+ * Réseaux sociaux RÉELLEMENT existants. Liste vide tant qu'aucune page officielle n'est confirmée :
+ * le pied de page n'affiche alors rien (aucun faux lien, aucune icône morte). Pour en ajouter un :
+ * `{ label: "Instagram", href: "https://www.instagram.com/…" }` — uniquement des URL https valides.
+ */
+export const SOCIAL_LINKS: readonly { label: string; href: string }[] = [];
+
 export const STORE_LINKS: { appStore: string | null; googlePlay: string | null } = {
   appStore: null,
   googlePlay: null,

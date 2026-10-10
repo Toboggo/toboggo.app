@@ -34,7 +34,7 @@ select count(*) from public.report_confirmations;                               
 select has_table_privilege('anon', 'public.report_confirmations', 'select')                 as anon_select,      -- false
        has_table_privilege('authenticated', 'public.report_confirmations', 'insert')        as auth_insert,      -- false
        has_function_privilege('anon', 'public.park_active_reports(uuid)', 'execute')        as anon_read_rpc,    -- true
-       has_function_privilege('anon', 'public.respond_to_report(uuid,text)', 'execute')     as anon_vote_rpc,    -- true sur Supabase (GRANT par défaut à anon) : sans effet, la fonction rejette auth.uid() null (42501)
+       has_function_privilege('anon', 'public.respond_to_report(uuid,text)', 'execute')     as anon_vote_rpc,    -- false une fois 0048 appliquée (avant : true, GRANT par défaut de Supabase, sans effet car la fonction rejette auth.uid() null)
        has_function_privilege('authenticated', 'public.respond_to_report(uuid,text)', 'execute') as auth_vote_rpc; -- true
 select polname from pg_policy where polrelid = 'public.report_confirmations'::regclass;     -- report_confirmations_select seul
 ```
@@ -43,3 +43,10 @@ Test complet (transaction + ROLLBACK, **local/Staging uniquement**, jamais prod)
 ## 4. Après le merge
 `supabase gen types typescript --linked` (lecture seule) : le bloc `report_confirmations` et les deux fonctions de
 `packages/shared/src/types/database.types.ts` (ajoutés à la main dans la PR) doivent être identiques.
+
+## 5. Durcissement 0048 (anon ne peut plus exécuter `respond_to_report`)
+`supabase/migrations/0048_respond_to_report_revoke_anon.sql` (un seul `REVOKE`, idempotent). Le REVOKE a déjà été
+exécuté en production ; coller `supabase/manual/0048_apply_in_transaction.sql` dans le SQL Editor pour
+**enregistrer** `('0048','respond_to_report_revoke_anon')` dans `schema_migrations` (rejouable sans effet).
+Contrôle : `has_function_privilege('anon','public.respond_to_report(uuid,text)','execute')` = false,
+`authenticated` = true, `park_active_reports` reste exécutable par anon.

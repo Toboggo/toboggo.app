@@ -1,30 +1,89 @@
 ---
 /**
- * Homepage (Website-2). Ordre des sections validé ; seul ajout décidé ensuite :
- * le rappel final FinalCta (mêmes boutons que le hero). Chaque section vit dans son propre
- * composant sous components/home/, cette page ne fait qu'assembler.
+ * Homepage (Website-2 / Landing V2). Ordre des sections validé ; la section « app » est le storytelling
+ * ProductStory, et le rappel final est le grand CTA du pied de page (`footerCta`). Chaque section vit dans
+ * son propre composant sous components/home/, cette page ne fait qu'assembler.
  */
 import BaseLayout from "../layouts/BaseLayout.astro";
 import Hero from "../components/home/Hero.astro";
 import NearbyParks from "../components/home/NearbyParks.astro";
 import HowItWorks from "../components/home/HowItWorks.astro";
-import AppShowcase from "../components/home/AppShowcase.astro";
+import ProductStory from "../components/home/ProductStory.astro";
 import AudienceSplit from "../components/home/AudienceSplit.astro";
 import Community from "../components/home/Community.astro";
 import Guides from "../components/home/Guides.astro";
-import FinalCta from "../components/home/FinalCta.astro";
 ---
 
 <BaseLayout
+  footerCta
   title="Trouvez le terrain de jeu qui leur correspond"
   description="Toboggo aide les familles à trouver les aires de jeux adaptées à leurs enfants, simplement et autour d'elles."
 >
   <Hero />
   <NearbyParks />
   <HowItWorks />
-  <AppShowcase />
+  <ProductStory />
   <AudienceSplit />
   <Community />
   <Guides />
-  <FinalCta />
 </BaseLayout>
+
+<script>
+  // Apparition douce des blocs de la Home au défilement (opacité + transform, une seule fois).
+  // Les blocs DÉJÀ visibles à l'ouverture ne sont jamais masqués ; sans JS ou avec
+  // « réduire les animations », rien n'est caché ni animé.
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  if (!calm.matches && "IntersectionObserver" in window) {
+    const below = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]")).filter(
+      (el) => el.getBoundingClientRect().top > window.innerHeight * 0.92,
+    );
+
+    // décalage léger entre frères (cartes d'une même rangée)
+    const rank = new Map<Element, number>();
+    below.forEach((el) => {
+      const siblings = below.filter((other) => other.parentElement === el.parentElement);
+      rank.set(el, siblings.indexOf(el));
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          const el = entry.target as HTMLElement;
+          el.style.transitionDelay = `${(rank.get(el) ?? 0) * 90}ms`;
+          el.classList.add("reveal-in");
+          observer.unobserve(el);
+          // nettoyage une fois l'animation finie : l'élément retrouve son état normal
+          window.setTimeout(() => {
+            el.classList.remove("reveal-pending", "reveal-in");
+            el.style.transitionDelay = "";
+          }, 1200);
+        }
+      },
+      { threshold: 0.12 },
+    );
+
+    below.forEach((el) => {
+      el.classList.add("reveal-pending");
+      observer.observe(el);
+    });
+  }
+</script>
+
+<style is:global>
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal-pending {
+      opacity: 0;
+      transform: translateY(20px);
+      transition:
+        opacity 650ms var(--ease-emphasized),
+        transform 650ms var(--ease-emphasized);
+    }
+
+    .reveal-pending.reveal-in {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>

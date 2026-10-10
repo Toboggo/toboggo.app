@@ -18,9 +18,11 @@ interface Props {
   errorPage?: boolean;
   /** Objets JSON-LD supplémentaires propres à la page (ex. FAQPage). */
   jsonLd?: Record<string, unknown>[];
+  /** Gros CTA final au-dessus du pied de page (Home seulement ; les autres pages ont leur propre CTA). */
+  footerCta?: boolean;
 }
 
-const { title, description, noindex = false, robots, ogImage = DEFAULT_OG_IMAGE, ogImageAlt = DEFAULT_OG_IMAGE_ALT, jsonLd = [], errorPage = false } = Astro.props;
+const { title, description, noindex = false, robots, ogImage = DEFAULT_OG_IMAGE, ogImageAlt = DEFAULT_OG_IMAGE_ALT, jsonLd = [], errorPage = false, footerCta = false } = Astro.props;
 // Canonical toujours bâti sur SITE_URL (jamais sur l'hôte de la requête, ex. un
 // déploiement preview), avec le même slash final que le sitemap.
 const canonicalURL = new URL(Astro.url.pathname, SITE_URL);
@@ -78,6 +80,6 @@ const structuredData = [organization, ...jsonLd.map((item) => ({ "@context": "ht
     <main id="contenu" tabindex="-1">
       <slot />
     </main>
-    <Footer />
+    <Footer cta={footerCta} />
   </body>
 </html>

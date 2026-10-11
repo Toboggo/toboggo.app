@@ -275,39 +275,69 @@
   color: var(--color-text);
 }
 
-.emptyCard {
-  background: var(--color-surface);
+.firstPhoto {
+  container-type: inline-size;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 4px 10px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--color-primary-tint) 55%, var(--color-surface));
+  border: 1px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
   border-radius: 14px;
-  padding: 14px 16px;
+}
+.firstPhotoIcon {
+  display: inline-flex;
+  margin-top: 1px;
+  color: var(--color-primary);
+}
+.firstPhotoText {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  gap: 2px;
 }
-.emptyTitle {
+.firstPhotoTitle {
   font-family: var(--font-heading);
   font-size: 14px;
   font-weight: 600;
+  line-height: 1.3;
   color: var(--color-text);
 }
-.emptyHint {
+.firstPhotoHint {
   font-size: 13px;
+  line-height: 1.35;
   color: var(--color-text-muted);
 }
-.emptyCta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 10px;
-  min-height: 40px;
-  padding: 0 16px;
-  border: none;
+.firstPhotoCta {
+  grid-column: 2;
+  justify-self: start;
+  margin-top: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1.5px solid var(--color-primary);
   border-radius: 999px;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: transparent;
+  color: var(--color-primary);
   font-weight: 700;
   font-size: 13px;
   cursor: pointer;
+}
+.firstPhotoCta:active {
+  background: var(--color-primary-tint);
+}
+/* Assez large : le bouton passe à droite du texte. */
+@container (min-width: 460px) {
+  .firstPhoto {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+  }
+  .firstPhotoCta {
+    grid-column: 3;
+    grid-row: 1;
+    margin-top: 0;
+  }
 }
 
 .equipRow {

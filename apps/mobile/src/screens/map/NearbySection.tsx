@@ -76,6 +76,7 @@ export function NearbyBody({
   onSelectPark,
   onOpenZone,
   onSetRadius,
+  showDiscoveryBanner = true,
 }: {
   selection: NearbySelection;
   contexts: NearbyContext[];
@@ -85,6 +86,8 @@ export function NearbyBody({
   onSelectPark: (id: string) => void;
   onOpenZone: () => void;
   onSetRadius: (r: RadiusKm) => void;
+  /** "Envie de plus d'options ?" — only meaningful at the top snap; elsewhere it is not rendered at all (no space, no tab stop). */
+  showDiscoveryBanner?: boolean;
 }) {
   const { t } = useTranslation("map");
   const f = useFormat();
@@ -153,7 +156,7 @@ export function NearbyBody({
         </div>
       )}
 
-      {selection.hasMoreBeyond && (
+      {showDiscoveryBanner && selection.hasMoreBeyond && (
         <button type="button" className={styles.more} onClick={onOpenZone}>
           <span className={styles.moreIcon}>
             <CompassIcon size={18} />

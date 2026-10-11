@@ -7,14 +7,15 @@
  * reflet sur la tranche, ombres.
  */
 interface Props {
-  src: string;
-  alt: string;
+  /** Capture unique. Sans `src`, le contenu du <slot> remplit l'écran (ex. captures empilées en fondu). */
+  src?: string;
+  alt?: string;
   class?: string;
   /** `eager` pour un téléphone visible dès le premier écran (Hero) ; `lazy` ailleurs. */
   loading?: "lazy" | "eager";
 }
 
-const { src, alt, class: className, loading = "lazy" } = Astro.props;
+const { src, alt = "", class: className, loading = "lazy" } = Astro.props;
 ---
 
 <div class:list={["phone", className]}>
@@ -23,7 +24,7 @@ const { src, alt, class: className, loading = "lazy" } = Astro.props;
   <span class="phone-btn phone-btn--vol-down" aria-hidden="true"></span>
   <span class="phone-btn phone-btn--power" aria-hidden="true"></span>
   <div class="phone-screen">
-    <img src={src} alt={alt} loading={loading} decoding="async" width="375" height="812" />
+    {src ? <img src={src} alt={alt} loading={loading} decoding="async" width="375" height="812" /> : <slot />}
   </div>
 </div>
 

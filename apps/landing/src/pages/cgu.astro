@@ -4,15 +4,13 @@ import Container from "../components/Container.astro";
 ---
 
 <BaseLayout
-  title="CGU & Confidentialité"
-  description="Conditions générales d'utilisation, politique de confidentialité (RGPD) et cookies de Toboggo : données collectées, durée de conservation et vos droits."
+  title="Conditions générales d'utilisation"
+  description="Conditions générales d'utilisation de Toboggo : compte, contenus déposés par les utilisateurs, comptes collectivités, responsabilité et résiliation."
 >
   <Container>
     <div class="doc-section">
-      <h1>Conditions Générales d'Utilisation &amp; Confidentialité</h1>
+      <h1>Conditions Générales d'Utilisation</h1>
       <p class="doc-updated">Dernière mise à jour : 24 août 2026</p>
-
-      <h2 id="cgu">Conditions Générales d'Utilisation</h2>
 
       <h2>1. Objet</h2>
       <p>Toboggo permet de localiser des aires de jeux, de consulter leurs équipements (toilettes, ombre, tranche d'âge…), de laisser des avis et de proposer de nouveaux parcs.</p>
@@ -32,25 +30,12 @@ import Container from "../components/Container.astro";
       <h2>6. Résiliation</h2>
       <p>Vous pouvez supprimer votre compte à tout moment depuis l'application, ou en écrivant à <a href="mailto:contact@toboggo.app">contact@toboggo.app</a>.</p>
 
-      <h2 id="confidentialite">Confidentialité</h2>
-
-      <h2>Données collectées</h2>
-      <p>Votre position géographique (jamais partagée avec des tiers à des fins publicitaires), votre e-mail et mot de passe, ainsi que les contributions que vous choisissez de publier. Le prénom et l'âge de vos enfants, s'ils sont renseignés, ne sont jamais rendus publics ni partagés.</p>
-
-      <h2>Finalité et base légale</h2>
-      <p>Exécution du contrat de service, et pour la géolocalisation, votre consentement explicite — révocable à tout moment.</p>
-
-      <h2>Conservation</h2>
-      <p>Vos données sont supprimées dans un délai de 30 jours après la fermeture de votre compte. Les avis et parcs publiés peuvent rester visibles sous forme anonymisée.</p>
-
-      <h2>Vos droits</h2>
-      <p>Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation et de portabilité de vos données. Contact : <a href="mailto:privacy@toboggo.app">privacy@toboggo.app</a>. Vous disposez également d'un droit de réclamation auprès de la CNIL.</p>
-
-      <h2>Partage des données</h2>
-      <p>Nous ne vendons aucune donnée. Seuls des prestataires techniques (hébergement, e-mail) y accèdent, sous engagement de confidentialité.</p>
-
-      <h2 id="cookies">Cookies</h2>
-      <p>Toboggo n'utilise que des cookies strictement nécessaires au fonctionnement du service (session, préférences). Aucun cookie publicitaire ou de tracking tiers n'est déposé.</p>
     </div>
   </Container>
 </BaseLayout>
+
+<!-- Anciens liens /cgu/#confidentialite et /cgu/#cookies : ces sections ont désormais leur propre page. -->
+<script>
+  const target = { "#confidentialite": "/confidentialite/", "#cookies": "/cookies/" }[location.hash];
+  if (target) location.replace(target);
+</script>

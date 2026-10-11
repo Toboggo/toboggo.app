@@ -119,7 +119,7 @@ def confirm_prod_commit(project_ref: str, candidate_count: int, flag_ack: bool) 
     print("  Confirmé.")
     print()
 
-def flag_result(value: dict) -> list[str]:
+def flag_result(value: dict, country_code: str | None = None) -> list[str]:
     """Signaux d'attention génériques, indépendants du pays.
 
     Les contrôles géographiques propres à une région ne doivent pas être
@@ -132,6 +132,8 @@ def flag_result(value: dict) -> list[str]:
         flags.append("sans_code_postal")
     if not value.get("address_line"):
         flags.append("sans_numero_rue")
+    if (country_code or "").upper() == "US" and not value.get("admin_area_1"):
+        flags.append("sans_etat")   # format US « …, NY 10036 » : l'État est attendu
     return flags
 
 
@@ -337,8 +339,11 @@ class RemoteConn:
         pass
 
 
-def build_write_sql(park_id, value, confidence):
-    value_json = q(json.dumps(value, ensure_ascii=False))
+def build_write_sql(park_id, value, confidence, provenance=None):
+    # `value` = colonnes écrites dans `parks` ; `provenance` = jsonb enregistré
+    # dans park_attribute_sources (= `value` + extras US éventuels). Défaut :
+    # identique à `value` (FR/ES, comportement historique inchangé).
+    value_json = q(json.dumps(provenance if provenance is not None else value, ensure_ascii=False))
     return f"""
 do $toboggo$
 declare v_source_id uuid;
@@ -480,11 +485,19 @@ def main():
             "admin_area_1": result["admin_area_1"],
             "admin_area_2": result["admin_area_2"],
         }
-        formatted = address_lib.build_formatted_address(value)
+        # US : quartier / borough et code d'État conservés dans la PROVENANCE
+        # uniquement (jsonb libre ; aucune colonne `parks` dédiée). FR/ES : valeur
+        # inchangée (mêmes 5 clés ⇒ comparaison d'idempotence inchangée).
+        provenance = dict(value)
+        if (result.get("country_code") or "").upper() == "US":
+            for extra in ("neighbourhood", "state_code"):
+                if result.get(extra):
+                    provenance[extra] = result[extra]
+        formatted = address_lib.build_formatted_address(value, result.get("country_code"))
         confidence_display = (
             result["confidence"] if result["confidence"] is not None else "n/a"
         )
-        flags = flag_result(value)
+        flags = flag_result(value, result.get("country_code"))
         if flags:
             flagged_rows.append((park_id, lat, lon, formatted, flags))
 
@@ -500,7 +513,7 @@ def main():
             continue
 
         # confidence=None -> NULL en base (jamais une valeur fabriquée) — cf. geoapify.py
-        conn.execute_sql_text(build_write_sql(park_id, value, result["confidence"]))
+        conn.execute_sql_text(build_write_sql(park_id, value, result["confidence"], provenance))
         written += 1
 
     print()

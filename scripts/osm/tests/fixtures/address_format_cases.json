@@ -1,0 +1,23 @@
+{
+  "_doc": "Cas partagés (source de vérité) : tests Python (address.build_formatted_address) ET test DB (vue park_public, migration 0049). FR/ES : formule historique inchangée ; US : « rue, ville, ÉTAT ZIP ».",
+  "cases": [
+    {"name": "FR complète", "country_code": "FR", "address_line": "12 Rue de la Capelle", "postal_code": "12100", "city": "Millau", "admin_area_1": "Occitanie", "expected": "12 Rue de la Capelle, 12100 Millau"},
+    {"name": "FR sans rue", "country_code": "FR", "address_line": null, "postal_code": "31000", "city": "Toulouse", "admin_area_1": "Occitanie", "expected": "31000 Toulouse"},
+    {"name": "FR sans ville", "country_code": "FR", "address_line": "3 Rue X", "postal_code": "69000", "city": null, "admin_area_1": null, "expected": "3 Rue X, 69000"},
+    {"name": "FR rien", "country_code": "FR", "address_line": null, "postal_code": null, "city": null, "admin_area_1": "Occitanie", "expected": null},
+    {"name": "ES complète", "country_code": "ES", "address_line": "Carrer de Mallorca 401", "postal_code": "08013", "city": "Barcelona", "admin_area_1": "Cataluña", "expected": "Carrer de Mallorca 401, 08013 Barcelona"},
+    {"name": "ES sans code postal", "country_code": "ES", "address_line": "Calle Mayor 1", "postal_code": null, "city": "Madrid", "admin_area_1": "Comunidad de Madrid", "expected": "Calle Mayor 1, Madrid"},
+    {"name": "US complète", "country_code": "US", "address_line": "123 W 42nd St", "postal_code": "10036", "city": "New York", "admin_area_1": "New York", "expected": "123 W 42nd St, New York, NY 10036"},
+    {"name": "US État en code", "country_code": "US", "address_line": "5 E Main St", "postal_code": "12207", "city": "Albany", "admin_area_1": "NY", "expected": "5 E Main St, Albany, NY 12207"},
+    {"name": "US ZIP+4", "country_code": "US", "address_line": "10 Park Ave", "postal_code": "10016-1234", "city": "New York", "admin_area_1": "New York", "expected": "10 Park Ave, New York, NY 10016-1234"},
+    {"name": "US sans rue", "country_code": "US", "address_line": null, "postal_code": "11201", "city": "Brooklyn", "admin_area_1": "New York", "expected": "Brooklyn, NY 11201"},
+    {"name": "US sans ZIP", "country_code": "US", "address_line": "9 Broadway", "postal_code": null, "city": "Brooklyn", "admin_area_1": "New York", "expected": "9 Broadway, Brooklyn, NY"},
+    {"name": "US sans ville", "country_code": "US", "address_line": "1 Main St", "postal_code": "14201", "city": null, "admin_area_1": "New York", "expected": "1 Main St, NY 14201"},
+    {"name": "US sans État", "country_code": "US", "address_line": "1 Main St", "postal_code": "14201", "city": "Buffalo", "admin_area_1": null, "expected": "1 Main St, Buffalo, 14201"},
+    {"name": "US État inconnu conservé", "country_code": "US", "address_line": "1 Main St", "postal_code": "00000", "city": "Nowhere", "admin_area_1": "Atlantis", "expected": "1 Main St, Nowhere, Atlantis 00000"},
+    {"name": "US ville seule", "country_code": "US", "address_line": null, "postal_code": null, "city": "Rochester", "admin_area_1": null, "expected": "Rochester"},
+    {"name": "US État seul", "country_code": "US", "address_line": null, "postal_code": null, "city": null, "admin_area_1": "New York", "expected": "NY"},
+    {"name": "US rien", "country_code": "US", "address_line": null, "postal_code": null, "city": null, "admin_area_1": null, "expected": null},
+    {"name": "US DC", "country_code": "US", "address_line": "1600 Pennsylvania Ave NW", "postal_code": "20500", "city": "Washington", "admin_area_1": "District of Columbia", "expected": "1600 Pennsylvania Ave NW, Washington, DC 20500"}
+  ]
+}

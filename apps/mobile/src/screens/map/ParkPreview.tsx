@@ -65,7 +65,7 @@ export function ParkPreview({
           }
         }}
       >
-        <ParkCover park={park} className={styles.photo} markSize={30} badge={false} />
+        <ParkCover park={park} className={styles.photo} markSize={30} />
         <div className={styles.headBody}>
           <div className={styles.titleRow}>
             <div className={styles.name}>{displayName}</div>

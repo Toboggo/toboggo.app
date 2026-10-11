@@ -191,15 +191,17 @@ describe("Autour de vous — medium", () => {
     const cards = carouselCards();
     expect(cards).toHaveLength(3);
     expect(cards[0].textContent).toContain("Parc A");
-    const dist = (cards[0].querySelector('[class*="_cardDist_"]')?.textContent ?? "").replace(/\s+/g, " ");
-    expect(dist).toBe("200 m · 3 min"); // distance + walking time kept on the card
+    const dist = (cards[0].querySelector('[class*="_distPill_"]')?.textContent ?? "").replace(/\s+/g, " ");
+    expect(dist).toBe("200 m"); // distance pill kept on the card; walking time dropped
   });
 
   it("offers 'Envie de plus d'options ?' only when parks exist beyond the radius", async () => {
     world.parks = [park("a", "Parc A", 200), park("far", "Parc Loin", 6000)];
     renderExplore();
     await toMedium("1 parc à moins de 2 km");
-    fireEvent.click(screen.getByText("Envie de plus d’options ?"));
+    expect(screen.queryByText("Envie de plus d’options ?")).toBeNull(); // not at the intermediate snap
+    tapHandle(); // medium → expanded
+    fireEvent.click(await screen.findByText("Envie de plus d’options ?"));
     expect(await screen.findByText("Zone de recherche")).toBeTruthy();
     expect(useNearbyRadius.getState().radiusKm).toBe(2); // opens the picker, never changes the radius itself
   });
@@ -208,7 +210,23 @@ describe("Autour de vous — medium", () => {
     world.parks = [park("a", "Parc A", 200)];
     renderExplore();
     await toMedium("1 parc à moins de 2 km");
+    tapHandle(); // expanded
+    await screen.findByText("Tous les parcs autour de vous");
     expect(screen.queryByText("Envie de plus d’options ?")).toBeNull();
+  });
+
+  it("shows 'Envie de plus d'options ?' only at the top snap: absent at peek and medium, back at top, gone again when lowered", async () => {
+    world.parks = [park("a", "Parc A", 200), park("far", "Parc Loin", 6000)];
+    renderExplore();
+    await screen.findByText("1 parc à moins de 2 km");
+    const banner = () => screen.queryByText("Envie de plus d’options ?");
+    expect(banner()).toBeNull(); // peek
+    tapHandle();
+    await screen.findByText("À proximité");
+    expect(banner()).toBeNull(); // medium: not rendered (no space, no tab stop)
+    tapHandle();
+    expect(await screen.findByText("Envie de plus d’options ?")).toBeTruthy(); // top
+    expect(screen.getByRole("button", { name: /Envie de plus d’options/ })).toBeTruthy();
   });
 
   it("never shows the removed blocks, Nouveautés, Populaires nor any emoji", async () => {

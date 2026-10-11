@@ -19,7 +19,7 @@ export function ParkCarousel({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className={styles.strip}>
+    <div className={styles.strip} data-carousel>
       {parks.map((p) => (
         <ParkCard
           key={p.id}

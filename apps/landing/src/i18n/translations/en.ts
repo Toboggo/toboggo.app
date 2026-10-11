@@ -16,7 +16,8 @@ export const en: Dictionary = {
   footer: {
     tagline: "Explore. Play. Share.",
     explorer: {
-      heading: "Explore",
+      heading: "Toboggo",
+      explorer: "Explore",
       fonctionnalites: "Features",
       guides: "Guides & ideas",
       collectivites: "For local authorities",

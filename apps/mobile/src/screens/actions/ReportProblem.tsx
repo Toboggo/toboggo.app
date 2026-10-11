@@ -360,7 +360,7 @@ export default function ReportProblem() {
             <RecapCard
               thumb={
                 park ? (
-                  <ParkCover park={park} className={styles.recapThumb} markSize={24} badge={false} />
+                  <ParkCover park={park} className={styles.recapThumb} markSize={24} />
                 ) : (
                   <ParkPhoto park={{ photos: [] }} className={styles.recapThumb} markSize={24} />
                 )

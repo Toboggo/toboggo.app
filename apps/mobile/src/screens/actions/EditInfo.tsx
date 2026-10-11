@@ -609,7 +609,7 @@ export default function EditInfo() {
             <h2 className={styles.title}>{t("edit.verifyTitle")}</h2>
             <p className={styles.subtitle}>{t("edit.verifyHint")}</p>
             <RecapCard
-              thumb={<ParkCover park={park} className={styles.recapThumb} markSize={24} badge={false} />}
+              thumb={<ParkCover park={park} className={styles.recapThumb} markSize={24} />}
               name={park.name ?? ""}
               address={dedupeAddress(park.formatted_address)}
             >

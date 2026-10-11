@@ -10,6 +10,18 @@
 */
 @import "../../../../packages/design-system/src/tokens.css";
 
+/*
+  Ajustements d'accessibilité propres à la landing (le design system reste inchangé) : les gris et le vert
+  « texte » des tokens d'origine donnent un contraste < 4,5:1 sur blanc / fond clair. Teinte conservée,
+  valeur assombrie pour atteindre le niveau AA (WCAG 2.1) en petit texte.
+*/
+:root {
+  --color-text-muted: #6b665a;
+  --color-text-faint: #6e695d;
+  /* vert de marque pour du TEXTE (liens, étiquettes) ; les fonds/boutons gardent --color-primary */
+  --color-primary-ink: color-mix(in srgb, var(--color-primary-pressed) 85%, var(--color-text));
+}
+
 /* ============================================================
    Polices auto-hébergées (voir apps/landing/FONTS.md)
    Fredoka (titres) et Nunito (texte) sont des polices VARIABLES : un seul fichier par
@@ -142,13 +154,14 @@
   white-space: nowrap;
 }
 
+/* vert « pressed » du design system : texte blanc ≥ 4,5:1 (le vert de marque #2FA37C ne donne que 3,2:1) */
 .btn-primary {
-  background: var(--color-primary);
+  background: var(--color-primary-pressed);
   color: var(--color-on-primary);
 }
 
 .btn-primary:hover {
-  background: var(--color-primary-hover);
+  background: color-mix(in srgb, var(--color-primary-pressed) 88%, var(--color-text));
 }
 
 .btn-secondary {
@@ -281,7 +294,7 @@ section {
 
 .form-msg.success {
   background: var(--color-primary-tint);
-  color: var(--color-primary-hover);
+  color: var(--color-primary-ink);
 }
 
 .form-msg.error {
@@ -305,7 +318,7 @@ section {
   font-size: var(--text-xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-primary-hover);
+  color: var(--color-primary-ink);
   margin-bottom: var(--space-3);
 }
 
@@ -535,7 +548,7 @@ section {
   z-index: calc(var(--z-nav) + 1);
   padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-pill);
-  background: var(--color-primary);
+  background: var(--color-primary-pressed);
   color: var(--color-on-primary);
   font-family: var(--font-heading);
   font-weight: 600;

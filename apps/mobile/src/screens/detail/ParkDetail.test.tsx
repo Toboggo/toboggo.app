@@ -386,12 +386,22 @@ describe("ParkDetail — allègement de la fiche", () => {
 describe("ParkDetail — couverture illustrée & encart première photo", () => {
   it("sans photo : illustration + encart ; « Ajouter une photo » ouvre le parcours existant", () => {
     renderDetail({ photos: [] });
-    expect(screen.getByText("Ce parc attend sa première photo")).toBeTruthy();
-    expect(screen.getByText("Aidez les familles à le découvrir")).toBeTruthy();
+    expect(screen.getByText("La première photo pourrait être la vôtre")).toBeTruthy();
+    expect(screen.getByText("Aidez les familles à découvrir ce parc")).toBeTruthy();
     expect(document.querySelector('img[data-cover="illustration"]')).toBeTruthy();
     const card = screen.getByTestId("first-photo-card");
     fireEvent.click(card.querySelector("button")!);
     expect(screen.getByText("AJOUT PHOTO")).toBeTruthy();
+  });
+
+  it("l'encart est unique, sous le hero, avant le nom du parc, avec l'icône appareil photo", () => {
+    renderDetail({ photos: [] });
+    const cards = screen.getAllByTestId("first-photo-card");
+    expect(cards).toHaveLength(1);
+    const h1 = screen.getByRole("heading", { level: 1 });
+    expect(cards[0]!.compareDocumentPosition(h1) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(cards[0]!.querySelector("use")?.getAttribute("href")).toContain("ic-camera");
+    expect(screen.queryByText("Photos de la communauté")).toBeNull();
   });
 
   it("avec photo approuvée : pas d'encart ; photo en couverture", () => {

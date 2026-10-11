@@ -20,6 +20,27 @@ function str(v: unknown): string | null {
   return typeof v === "string" && v !== "" ? v : null;
 }
 
+// États-Unis : « West 42nd Street » → « W 42nd St ». Miroir EXACT de
+// `scripts/osm/address.py::abbreviate_us_street` (vérifié par parity.test.ts) :
+// direction EN TÊTE et suffixe de voie EN FIN uniquement, jamais si le mot
+// constitue le nom entier.
+const US_DIRECTIONS: Record<string, string> = {
+  north: "N", south: "S", east: "E", west: "W", northeast: "NE", northwest: "NW", southeast: "SE", southwest: "SW",
+};
+const US_STREET_SUFFIXES: Record<string, string> = {
+  street: "St", avenue: "Ave", boulevard: "Blvd", road: "Rd", drive: "Dr", place: "Pl", lane: "Ln", court: "Ct",
+  terrace: "Ter", parkway: "Pkwy", highway: "Hwy", square: "Sq", circle: "Cir", trail: "Trl",
+};
+export function abbreviateUsStreet(street: string | null): string | null {
+  if (!street) return street;
+  const words = street.split(/\s+/).filter(Boolean);
+  if (words.length > 2 && words[0].toLowerCase() in US_DIRECTIONS) words[0] = US_DIRECTIONS[words[0].toLowerCase()];
+  if (words.length >= 2 && words[words.length - 1].toLowerCase() in US_STREET_SUFFIXES) {
+    words[words.length - 1] = US_STREET_SUFFIXES[words[words.length - 1].toLowerCase()];
+  }
+  return words.join(" ");
+}
+
 /** Coordonnées WGS84 valides (hors « Null Island »), sinon `null`. Seules `lat`
  * et `lng` sont lues : aucun autre champ du corps n'a d'effet. */
 export function parseCoordinates(body: unknown): { lat: number; lng: number } | null {
@@ -39,17 +60,20 @@ export function extractAddress(data: unknown): StructuredAddress | null {
   if (!Array.isArray(results) || results.length === 0) return null;
   const r = results[0] as Record<string, unknown>;
 
+  const country_code = str(r.country_code)?.toUpperCase() ?? null;
+  const isUs = country_code === "US";
+
   const housenumber = str(r.housenumber);
-  const street = str(r.street);
+  const street = isUs ? abbreviateUsStreet(str(r.street)) : str(r.street);
   const address_line = housenumber && street ? `${housenumber} ${street}` : street ?? str(r.address_line1);
 
   const result: StructuredAddress = {
     address_line,
     postal_code: str(r.postcode),
-    city: str(r.city) ?? str(r.town) ?? str(r.village),
+    city: str(r.city) ?? str(r.town) ?? str(r.village) ?? (isUs ? str(r.hamlet) : null),
     admin_area_1: str(r.state),
     admin_area_2: str(r.county) ?? str(r.state_district),
-    country_code: str(r.country_code)?.toUpperCase() ?? null,
+    country_code,
     formatted: str(r.formatted),
   };
   if (!result.address_line && !result.postal_code && !result.city) return null;

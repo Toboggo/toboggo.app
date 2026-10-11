@@ -14,7 +14,7 @@ const ITEMS = [
     <div class="community-grid">
       {
         ITEMS.map((item) => (
-          <div class="community-item">
+          <div class="community-item" data-reveal>
             <span class="community-badge">
               <svg width="24" height="24" aria-hidden="true">
                 <use href={`/icons-sprite.svg#${item.icon}`} />
@@ -116,7 +116,7 @@ const ITEMS = [
     font-family: var(--font-heading);
     font-style: italic;
     font-weight: 500;
-    color: var(--color-primary-hover);
+    color: var(--color-primary-ink);
     font-size: 18px;
   }
 

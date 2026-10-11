@@ -15,6 +15,7 @@ export interface Dictionary {
     tagline: string;
     explorer: {
       heading: string;
+      explorer: string;
       fonctionnalites: string;
       guides: string;
       collectivites: string;

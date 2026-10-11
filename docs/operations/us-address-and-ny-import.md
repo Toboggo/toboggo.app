@@ -55,6 +55,8 @@ Constat : sur un parc US la vue donnait « 10036 New York » (ordre français, *
   plan Geoapify avant** ; commencer par `--limit 10` en dry-run puis commit sur STAGING.
 
 ## 4. Plan d'import PROD en `pending`
+
+> Runbook détaillé, résultats du dry-run et rapport d'exposition : `docs/operations/ny-prod-import-runbook.md`.
 **Prérequis (tous)** : #138/#142/#145 mergées ✔ ; 0046 appliquée sur PROD ✔ ; accord explicite de l'import ;
 PBF `new-york-261004.osm.pbf` (497 290 175 octets) ; fenêtre calme.
 

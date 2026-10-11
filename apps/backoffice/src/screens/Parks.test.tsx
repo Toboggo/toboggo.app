@@ -18,7 +18,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
 });
 
 const perms = vi.hoisted(() => ({ canCreatePark: true }));
-vi.mock("../lib/permissions", () => ({
+vi.mock("@toboggo/backoffice-core/lib/permissions", () => ({
   usePermissions: () => ({
     canCreatePark: perms.canCreatePark,
     canImportParksCsv: false,
@@ -26,9 +26,9 @@ vi.mock("../lib/permissions", () => ({
   }),
 }));
 const scope = vi.hoisted(() => ({ isAdmin: true }));
-vi.mock("../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: scope.isAdmin, communeId: scope.isAdmin ? undefined : "org-1" }) }));
+vi.mock("@toboggo/backoffice-core/lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: scope.isAdmin, communeId: scope.isAdmin ? undefined : "org-1" }) }));
 const session = { userName: "Testeur", isGestionnaireOrAbove: () => true, communes: [{ id: "org-1", name: "Ville de Lyon" }] };
-vi.mock("../lib/orgSession", () => ({
+vi.mock("@toboggo/backoffice-core/lib/orgSession", () => ({
   useOrgSession: (sel?: (s: typeof session) => unknown) => (sel ? sel(session) : session),
 }));
 

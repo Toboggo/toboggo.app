@@ -8,10 +8,11 @@ export default defineConfig({
     alias: {
       "@toboggo/design-system": path.resolve(__dirname, "../../packages/design-system/src"),
       "@toboggo/shared": path.resolve(__dirname, "../../packages/shared/src"),
+      "@toboggo/backoffice-core": path.resolve(__dirname, "../../packages/backoffice-core/src"),
     },
   },
   optimizeDeps: {
-    exclude: ["@toboggo/design-system", "@toboggo/shared"],
+    exclude: ["@toboggo/design-system", "@toboggo/shared", "@toboggo/backoffice-core"],
   },
   plugins: [react()],
   server: { port: 5174 },

@@ -1,7 +1,7 @@
 ---
 /**
- * "Nos derniers guides & idées" (Website-2 §8) — 3 sujets « à venir »,
- * pas de vraies pages articles. Données (dont les photos réelles et leurs
+ * "Nos derniers guides & idées" (Website-2 §8) — les 3 derniers articles Sanity,
+ * ou, tant qu'aucun n'est publié, 3 sujets « à venir » sans page. Données (dont les photos réelles et leurs
  * alt) : ../../data/demoGuides.ts et apps/landing/public/images/IMAGE-SOURCES.md.
  *
  * Structure : titre → grille (GuideGrid) → footer de section séparé qui porte
@@ -10,12 +10,17 @@
  */
 import Button from "../Button.astro";
 import GuideGrid from "../GuideGrid.astro";
+import ArticleGrid from "../ArticleGrid.astro";
+import { getArticles } from "../../lib/blog/articles";
+
+// Les 3 derniers articles publiés dans Sanity ; tant qu'il n'y en a aucun, les sujets « à venir ».
+const latest = (await getArticles()).slice(0, 3);
 ---
 
 <section class="guides">
   <div class="wrap">
     <h2>Nos derniers guides & idées</h2>
-    <GuideGrid />
+    {latest.length > 0 ? <ArticleGrid articles={latest} /> : <GuideGrid />}
     <div class="guides-footer">
       <Button href="/guides/" variant="secondary">Voir tous les articles</Button>
     </div>

@@ -1,5 +1,5 @@
 /**
- * Traitement SERVEUR du formulaire de contact (Vercel Function `api/contact.ts`).
+ * Traitement SERVEUR du formulaire de contact (route Astro `src/pages/api/contact.ts`).
  *
  * formulaire → POST /api/contact → validation serveur → anti-spam → Resend → boîte de réception
  *

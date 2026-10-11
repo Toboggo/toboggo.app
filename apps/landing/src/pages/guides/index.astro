@@ -1,0 +1,66 @@
+---
+/**
+ * Index éditorial. Articles publiés dans Sanity (récupérés au build). Tant qu'aucun article n'est publié, la page
+ * garde son état « à venir » (3 sujets sans lien) en noindex et hors sitemap (voir astro.config.mjs) ; dès qu'un
+ * article existe elle devient indexable et liste les articles.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import PageHero from "../../components/PageHero.astro";
+import GuideGrid from "../../components/GuideGrid.astro";
+import ArticleGrid from "../../components/ArticleGrid.astro";
+import Button from "../../components/Button.astro";
+import { getArticles } from "../../lib/blog/articles";
+import { SITE_URL } from "../../config/site";
+import { breadcrumbLd } from "../../lib/seo/jsonld";
+
+const articles = await getArticles();
+const hasArticles = articles.length > 0;
+const description = hasArticles
+  ? "Guides et idées de sorties Toboggo : choisir une aire de jeux, préparer une sortie au parc en famille."
+  : "Les guides et idées de sorties Toboggo arrivent bientôt : choisir une aire de jeux, préparer une sortie en famille.";
+
+const jsonLd = hasArticles
+  ? [
+      {
+        "@type": "CollectionPage",
+        name: "Guides & idées",
+        url: new URL("/guides/", SITE_URL).toString(),
+        description,
+        mainEntity: {
+          "@type": "ItemList",
+          itemListElement: articles.map((a, i) => ({ "@type": "ListItem", position: i + 1, url: new URL(`/guides/${a.slug}/`, SITE_URL).toString(), name: a.title })),
+        },
+      },
+      breadcrumbLd([{ name: "Accueil", path: "/" }, { name: "Guides & idées", path: "/guides/" }]),
+    ]
+  : [];
+---
+
+<BaseLayout title="Guides & idées" description={description} noindex={!hasArticles} jsonLd={jsonLd}>
+  <PageHero
+    eyebrow="Guides & idées"
+    title="Des conseils pour mieux choisir vos sorties."
+    lead={hasArticles ? "Choisir une aire de jeux, préparer une sortie en famille : nos guides pour des sorties réussies." : "Nos premiers guides sont en préparation. Voici les sujets que nous prévoyons d'aborder."}
+  />
+
+  <section class="page-section page-section--tint">
+    <div class="wrap">
+      {hasArticles ? <ArticleGrid articles={articles} headingLevel="h2" /> : <GuideGrid headingLevel="h2" />}
+      {!hasArticles && <p class="note">Aucun guide n'est encore publié. En attendant, la FAQ répond aux questions les plus fréquentes.</p>}
+      <div class="guides-footer">
+        <Button href="/faq/" variant="secondary">Consulter la FAQ</Button>
+        <Button href="/fonctionnalites/" variant="secondary">Découvrir les fonctionnalités</Button>
+      </div>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .guides-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-3);
+    margin-top: var(--space-6);
+  }
+</style>

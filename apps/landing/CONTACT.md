@@ -2,7 +2,7 @@
 
 ```
 formulaire (/contact/)
-  → POST /api/contact            Vercel Function (apps/landing/api/contact.ts)
+  → POST /api/contact/           Route Astro serveur (apps/landing/src/pages/api/contact.ts)
   → validation serveur           src/lib/contactServer.ts (mêmes règles que le client : src/lib/contact.ts)
   → anti-spam                    honeypot `website` + délai minimal + contrôle d'Origin + taille max + JSON/POST uniquement
   → Resend (https://api.resend.com/emails), texte brut uniquement

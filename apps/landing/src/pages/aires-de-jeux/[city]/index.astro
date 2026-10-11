@@ -5,28 +5,43 @@
  * les villes validées (approved.ts) ET éligibles (eligibility.ts) sont générées :
  * une ville non éligible n'a ni page, ni lien, ni entrée de sitemap.
  */
-import BaseLayout from "../../layouts/BaseLayout.astro";
-import Breadcrumb from "../../components/Breadcrumb.astro";
-import SeoParkCard from "../../components/SeoParkCard.astro";
-import Button from "../../components/Button.astro";
-import { HUB_PATH, placePath } from "../../lib/seo/places";
-import { loadSeoSite, type PlaceData } from "../../lib/seo/seoSite";
-import { breadcrumbLd, parksItemListLd } from "../../lib/seo/jsonld";
-import { groupByMinAge, hasUsefulAgeSections, repeatedStreets } from "../../lib/seo/insights";
-import { ageLabel, formatAddress } from "../../lib/seo/parks";
-import { DOCUMENTED_CARDS_VISIBLE, OTHERS_VISIBLE, splitVisible } from "../../lib/seo/display";
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../../components/Breadcrumb.astro";
+import SeoParkCard from "../../../components/SeoParkCard.astro";
+import Button from "../../../components/Button.astro";
+import { HUB_PATH, placePath } from "../../../lib/seo/places";
+import { loadSeoSite, type PlaceData } from "../../../lib/seo/seoSite";
+import { breadcrumbLd, parksItemListLd } from "../../../lib/seo/jsonld";
+import { groupByMinAge, hasUsefulAgeSections, repeatedStreets } from "../../../lib/seo/insights";
+import { ageLabel, formatAddress } from "../../../lib/seo/parks";
+import { DOCUMENTED_CARDS_VISIBLE, OTHERS_VISIBLE, splitVisible } from "../../../lib/seo/display";
 
 export async function getStaticPaths() {
   // Seules les villes validées ET éligibles (source unique : lib/seo/eligibility.ts) ont une page.
   const site = await loadSeoSite(import.meta.env);
-  return (site?.published ?? []).map((data) => ({ params: { city: data.place.slug }, props: { data } }));
+  return (site?.published ?? []).map((data) => {
+    // Fiches RÉELLEMENT générées de cette ville : seules cibles de liens autorisées.
+    const fiches = (site?.parkPages ?? []).filter((f) => f.placeSlug === data.place.slug);
+    return {
+      params: { city: data.place.slug },
+      props: {
+        data,
+        ficheLinks: Object.fromEntries(fiches.map((f) => [f.park.id, f.path])) as Record<string, string>,
+        indexableFiches: Object.fromEntries(fiches.filter((f) => f.indexable).map((f) => [f.park.id, f.path])) as Record<string, string>,
+      },
+    };
+  });
 }
 
 interface Props {
   data: PlaceData;
+  /** parkId → chemin de la fiche (fiches générées uniquement). */
+  ficheLinks: Record<string, string>;
+  /** parkId → chemin des fiches INDEXABLES (seules à figurer dans le JSON-LD). */
+  indexableFiches: Record<string, string>;
 }
 
-const { data } = Astro.props;
+const { data, ficheLinks, indexableFiches } = Astro.props;
 const { place: city, listed, documented, others } = data;
 const total = listed.length;
 const plural = (n: number, one: string, many: string) => (n > 1 ? many : one);
@@ -47,7 +62,7 @@ const jsonLd = [
     { name: "Aires de jeux", path: HUB_PATH },
     { name: city.name, path: placePath(city) },
   ]),
-  parksItemListLd([...documented, ...others], city.countryCode),
+  parksItemListLd([...documented, ...others], city.countryCode, (park) => indexableFiches[park.id]),
 ];
 ---
 
@@ -73,14 +88,14 @@ const jsonLd = [
             <p>Les informations proviennent d'OpenStreetMap et des contributions à Toboggo. Elles sont déclarées et pas toutes vérifiées sur place : en cas d'écart, signalez-le depuis la fiche du parc dans l'app.</p>
           </div>
           <ul class="card-grid card-grid--2 park-grid">
-            {cards.shown.map((park) => <SeoParkCard park={park} />)}
+            {cards.shown.map((park) => <SeoParkCard park={park} href={ficheLinks[park.id]} />)}
           </ul>
           {
             cards.folded.length > 0 && (
               <details class="fold">
                 <summary>Voir les {cards.folded.length} autres aires de jeux détaillées</summary>
                 <ul class="card-grid card-grid--2 park-grid">
-                  {cards.folded.map((park) => <SeoParkCard park={park} />)}
+                  {cards.folded.map((park) => <SeoParkCard park={park} href={ficheLinks[park.id]} />)}
                 </ul>
               </details>
             )

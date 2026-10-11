@@ -11,6 +11,8 @@ import { groupPlaces, placePath, type Place } from "./places";
 import { SeoLoadError, type SeoSnapshot } from "./loader";
 import { loadSnapshot } from "./snapshot";
 import type { SeoPark } from "./parks";
+import { APPROVED_PARKS, type ApprovedPark } from "./approvedParks";
+import { buildParkPages, type ParkPageData } from "./parkPages";
 
 export interface PlaceData {
   place: Place;
@@ -34,6 +36,10 @@ export interface SeoSite {
   issues: string[];
   /** Le hub n'est indexable (et dans le sitemap) que s'il liste au moins une ville. */
   hubIndexable: boolean;
+  /** Fiches de parc générées (validées ET au-dessus du seuil de qualité). */
+  parkPages: ParkPageData[];
+  /** Fiches validées mais non générées / écarts de slug (messages). */
+  parkIssues: string[];
 }
 
 export function analyzePlace(place: Place): PlaceData {
@@ -45,6 +51,8 @@ export function analyzePlace(place: Place): PlaceData {
 
 export interface BuildOptions {
   approved?: readonly string[];
+  /** Fiches de parc validées éditorialement (défaut : approvedParks.ts). */
+  approvedParks?: readonly ApprovedPark[];
   /** En production, une ville validée qui n'est plus éligible fait échouer le build (évite un 404 silencieux sur une page indexée). */
   strict?: boolean;
 }
@@ -68,7 +76,17 @@ export function buildSeoSite(snapshot: Pick<SeoSnapshot, "parks" | "fetchedAt">,
   if (issues.length > 0 && options.strict) throw new SeoLoadError(issues.join(" ; "));
 
   const candidates = places.filter((p) => p.eligibility.eligible && !approved.includes(p.place.slug));
-  return { fetchedAt: snapshot.fetchedAt, places, published, candidates, issues, hubIndexable: published.length > 0 };
+  const { pages: parkPages, issues: parkIssueList } = buildParkPages(published, options.approvedParks ?? APPROVED_PARKS, { strict: options.strict });
+  return {
+    fetchedAt: snapshot.fetchedAt,
+    places,
+    published,
+    candidates,
+    issues,
+    hubIndexable: published.length > 0,
+    parkPages,
+    parkIssues: parkIssueList.map((i) => i.message),
+  };
 }
 
 /**
@@ -101,7 +119,7 @@ function siteCache(): WeakMap<object, SeoSite> {
 /** `null` sans configuration Supabase : aucune page de ville, hub non indexable. */
 export async function loadSeoSite(
   env: Record<string, string | undefined>,
-  options: { strict?: boolean; approved?: readonly string[] } = {},
+  options: { strict?: boolean; approved?: readonly string[]; approvedParks?: readonly ApprovedPark[] } = {},
 ): Promise<SeoSite | null> {
   const strict = options.strict ?? isStrictBuild();
   const approved = options.approved ?? APPROVED_PLACE_SLUGS;
@@ -114,20 +132,27 @@ export async function loadSeoSite(
   const cache = siteCache();
   let site = cache.get(snapshot);
   if (!site) {
-    site = buildSeoSite(snapshot, { strict, approved });
+    site = buildSeoSite(snapshot, { strict, approved, approvedParks: options.approvedParks });
     cache.set(snapshot, site);
     console.info(
       `[seo] ${site.places.length} villes, ${site.published.length} pages publiées (${site.published.map((p) => p.place.slug).join(", ") || "aucune"}), ` +
         `${site.candidates.length} candidates non validées${site.candidates.length ? ` (${site.candidates.map((c) => c.place.slug).join(", ")})` : ""}`,
     );
-    for (const issue of site.issues) console.warn(`[seo] ATTENTION : ${issue}`);
+    console.info(
+      `[seo] ${site.parkPages.length} fiche(s) de parc générée(s) : ${site.parkPages.filter((f) => f.indexable).length} indexable(s), ${site.parkPages.filter((f) => !f.indexable).length} noindex`,
+    );
+    for (const issue of [...site.issues, ...site.parkIssues]) console.warn(`[seo] ATTENTION : ${issue}`);
   }
   return site;
 }
 
-/** Chemins à retirer du sitemap : le hub s'il n'a rien à lister. Les villes non générées n'y figurent pas d'office. */
+/**
+ * Chemins à retirer du sitemap : le hub s'il n'a rien à lister, et les fiches de parc
+ * en noindex (générées mais non indexables). Les pages non générées n'y figurent pas d'office.
+ */
 export function sitemapExclusions(site: SeoSite | null, hubPath: string): string[] {
-  return site?.hubIndexable ? [] : [hubPath];
+  const noindexParks = (site?.parkPages ?? []).filter((p) => !p.indexable).map((p) => p.path);
+  return [...(site?.hubIndexable ? [] : [hubPath]), ...noindexParks];
 }
 
 export function publishedPaths(site: SeoSite | null): string[] {

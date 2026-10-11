@@ -50,6 +50,16 @@ En production (`VERCEL_ENV=production`) ou avec `SEO_STRICT=1`, une ville valid�
 
 Signal de qualité (au moins un) : collectivité vérifiée (`organization_parks.verified` **et** `organizations.verified`), photo à droits **validés**, ou vérification réelle (`last_verified_at`). Aujourd'hui aucun parc n'en a : le palier 3 est vide. **Aucune photo n'est lue ni affichée** tant que le modèle de droits n'existe pas.
 
+## Fiches de parc (Phase 2B) — `/aires-de-jeux/<ville>/<parc>/`
+
+Une fiche est **générée** si et seulement si : parc validé éditorialement (`approvedParks.ts`) ∧ ville publiée ∧ seuil de qualité d'une fiche (`parkPages.ts` : nom spécifique, coordonnées + code postal + ville, parc documenté, ≥ 5 infos déclarées, ≥ 2 groupes d'infos). Aujourd'hui : exactement les 6 parcs documentés de Millau.
+
+- **URL figée** : le `slug` est écrit dans `approvedParks.ts` (parks.slug est vide en base ; aucune écriture). Un renommage du parc ne change jamais l'URL ; un test vérifie que les slugs figés correspondent aux règles de `slugs.ts` pour les noms actuels.
+- **Indexation** : `index` + sitemap seulement si la fiche atteint le palier 3 (signal de qualité réel) **ou** porte une validation éditoriale explicite (`editorialReview: { reviewedAt, reviewer }` dans `approvedParks.ts`, à renseigner par un humain après relecture). Sinon : générée en `noindex,follow` et hors sitemap. **Les 6 fiches sont noindex tant qu'aucune relecture n'est renseignée.**
+- **Contenu** : uniquement des faits enregistrés — 8 critères famille (oui / non / partiel / « non renseigné »), jeux, services, accessibilité, environnement, équipements explicitement indisponibles, adresse **si elle existe**, coordonnées + lien OpenStreetMap, « Informations à confirmer », fiches voisines (distance réelle). **Aucune photo, note, avis, horaire ni téléphone.**
+- **JSON-LD** : `BreadcrumbList` (4 niveaux) + `Playground` (nom, URL de la page, adresse si elle existe, coordonnées). Les URLs de fiches n'apparaissent dans l'`ItemList` de la ville que pour les fiches indexables.
+- **Garde-fous** : liste d'allowlist invalide → build en échec ; fiche relue devenue inéligible ou introuvable → échec en production ; `verify-dist` vérifie l'absence d'image, le JSON-LD, les titres/descriptions uniques et l'exclusion des fiches noindex du sitemap.
+
 ## Variables d'environnement
 
 | Variable | Rôle |

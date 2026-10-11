@@ -5,7 +5,10 @@
  *   - aucune page noindex dans le sitemap ; toute page indexable y figure ;
  *   - canonical absolu, auto-référent, avec slash final (sauf la 404, sans canonical) ;
  *   - aucun lien interne vers une page non générée ni sans slash final ;
- *   - toute ville générée est listée dans le hub (et inversement).
+ *   - toute ville générée est listée dans le hub (et inversement) ;
+ *   - fiches de parc : aucune image, JSON-LD Playground sans note/avis/image/horaires/téléphone,
+ *     fil d'Ariane à 4 niveaux ;
+ *   - titres et descriptions uniques sur tout le site.
  * Code de sortie 1 au moindre écart. Aucune écriture, aucun réseau.
  *
  * Usage : node scripts/verify-dist.mjs [dist]
@@ -78,7 +81,36 @@ for (const city of cityDirs) {
 }
 for (const m of hub.matchAll(/href="\/aires-de-jeux\/([^/"]+)\/"/g)) if (!cityDirs.includes(m[1])) fail(`hub : lien vers une ville non générée (${m[1]})`);
 
-console.log(`pages HTML : ${htmlFiles.length} | URLs sitemap : ${sitemapPaths.size} | villes générées : ${cityDirs.join(", ") || "aucune"}`);
+// fiches de parc : /aires-de-jeux/<ville>/<parc>/
+const FICHE_RE = /^\/aires-de-jeux\/[^/]+\/[^/]+\/$/;
+const FORBIDDEN_LD = /"(aggregateRating|review|reviews|image|photo|telephone|openingHours|openingHoursSpecification|priceRange|LocalBusiness)"/;
+const fiches = [...pages.keys()].filter((path) => FICHE_RE.test(path));
+for (const path of fiches) {
+  const html = pages.get(path);
+  if (/<img\b/i.test(html)) fail(`${path} : une image est présente (aucune photo sans droits documentés)`);
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
+  const playground = blocks.find((b) => b["@type"] === "Playground");
+  const breadcrumb = blocks.find((b) => b["@type"] === "BreadcrumbList");
+  if (!playground) fail(`${path} : JSON-LD Playground absent`);
+  else if (FORBIDDEN_LD.test(JSON.stringify(playground))) fail(`${path} : propriété interdite dans le JSON-LD Playground`);
+  else if (playground.url !== `${SITE}${path}`) fail(`${path} : url du Playground différente de la page`);
+  if (!breadcrumb || breadcrumb.itemListElement.length !== 4) fail(`${path} : fil d'Ariane à 4 niveaux attendu`);
+}
+
+// titres et descriptions uniques
+const seen = { title: new Map(), description: new Map() };
+for (const [path, html] of pages) {
+  if (path === "/404") continue;
+  const title = /<title>([^<]*)<\/title>/.exec(html)?.[1];
+  const description = /name="description" content="([^"]*)"/.exec(html)?.[1];
+  for (const [kind, value] of [["title", title], ["description", description]]) {
+    if (!value) { fail(`${path} : ${kind} absent`); continue; }
+    if (seen[kind].has(value)) fail(`${kind} en double : ${path} et ${seen[kind].get(value)}`);
+    else seen[kind].set(value, path);
+  }
+}
+
+console.log(`pages HTML : ${htmlFiles.length} | URLs sitemap : ${sitemapPaths.size} | villes générées : ${cityDirs.join(", ") || "aucune"} | fiches de parc : ${fiches.length}`);
 if (errors.length > 0) {
   console.error(`\n${errors.length} problème(s) :\n- ${errors.join("\n- ")}`);
   process.exit(1);

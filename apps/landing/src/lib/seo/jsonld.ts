@@ -38,11 +38,14 @@ export function playgroundLd(park: SeoPark, countryCode: string): Record<string,
 }
 
 /** ItemList des parcs AFFICHÉS sur la page (sans URL par parc : aucune fiche publique n'existe). */
-export function parksItemListLd(parks: SeoPark[], countryCode: string): Record<string, unknown> {
+export function parksItemListLd(parks: SeoPark[], countryCode: string, indexablePath: (park: SeoPark) => string | undefined = () => undefined): Record<string, unknown> {
   return {
     "@type": "ItemList",
     numberOfItems: parks.length,
-    itemListElement: parks.map((park, i) => ({ "@type": "ListItem", position: i + 1, item: playgroundLd(park, countryCode) })),
+    itemListElement: parks.map((park, i) => {
+      const path = indexablePath(park);
+      return { "@type": "ListItem", position: i + 1, item: { ...playgroundLd(park, countryCode), ...(path ? { url: abs(path) } : {}) } };
+    }),
   };
 }
 
@@ -56,5 +59,18 @@ export function citiesItemListLd(cities: { place: Place }[]): Record<string, unk
       name: `Aires de jeux à ${c.place.name}`,
       url: abs(placePath(c.place)),
     })),
+  };
+}
+
+/**
+ * JSON-LD d'une fiche : un `Playground` avec UNIQUEMENT les propriétés réellement
+ * disponibles (nom, URL de la page, adresse si elle existe, coordonnées). Jamais
+ * d'image, d'horaires, de téléphone, de note ni d'avis.
+ */
+export function parkPageLd(park: SeoPark, countryCode: string, pagePath: string, placeName: string): Record<string, unknown> {
+  return {
+    ...playgroundLd(park, countryCode),
+    url: abs(pagePath),
+    containedInPlace: { "@type": "City", name: placeName },
   };
 }

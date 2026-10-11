@@ -201,3 +201,33 @@ export function iconsFor(park: SeoPark, max = 6): string[] {
   if (SHADE[park.features?.shade_level?.value ?? ""]) icons.push("ic-shade");
   return icons.slice(0, max);
 }
+
+/** Libellé français d'un équipement/service/accès par son code (null si le code n'a pas de libellé). */
+export function featureLabel(code: string): string | null {
+  return EQUIPMENT[code] ?? SERVICES[code] ?? ACCESSIBILITY[code] ?? null;
+}
+
+/** Statut enregistré d'une caractéristique : « available » | « unavailable » | … ; null = jamais renseignée. */
+export function featureStatus(park: Pick<SeoPark, "features">, code: string): string | null {
+  return park.features?.[code]?.status ?? null;
+}
+
+/**
+ * Équipements/services/accès explicitement enregistrés comme NON disponibles
+ * (information réelle saisie : « pas de toilettes »). Une caractéristique jamais
+ * renseignée n'est PAS « indisponible » : elle n'apparaît pas ici.
+ */
+export function unavailableLabels(park: Pick<SeoPark, "features">): string[] {
+  const order = [...Object.keys(EQUIPMENT), ...Object.keys(SERVICES), ...Object.keys(ACCESSIBILITY)];
+  return order.filter((code) => park.features?.[code]?.status === "unavailable").map((code) => featureLabel(code) as string);
+}
+
+/** Libellé de la valeur d'ombre / clôture / revêtement (null si inconnue ou « aucune »). */
+export function environmentLabels(park: Pick<SeoPark, "features">): { fence: string | null; shade: string | null; surface: string | null } {
+  const f = park.features ?? {};
+  return {
+    fence: f.fence_status?.status === "available" ? FENCE[f.fence_status.value ?? ""] ?? null : null,
+    shade: f.shade_level?.status === "available" ? SHADE[f.shade_level.value ?? ""] ?? null : null,
+    surface: f.surface_type?.status === "available" ? SURFACE[f.surface_type.value ?? ""] ?? null : null,
+  };
+}

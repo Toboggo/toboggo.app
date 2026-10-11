@@ -1,0 +1,357 @@
+---
+/**
+ * Fiche publique d'un parc (Phase 2B). Générée au BUILD depuis le snapshot Supabase
+ * partagé (lecture seule). Seules les fiches validées éditorialement
+ * (approvedParks.ts) ET au-dessus du seuil de qualité (parkPages.ts) existent.
+ * Indexable seulement avec un signal de qualité réel ou une validation éditoriale
+ * explicite ; sinon `noindex,follow` et hors sitemap.
+ *
+ * Contenu = uniquement des faits enregistrés. AUCUNE photo (droits non documentés),
+ * aucune note, aucun avis, aucun horaire, aucun téléphone.
+ */
+import BaseLayout from "../../../layouts/BaseLayout.astro";
+import Breadcrumb from "../../../components/Breadcrumb.astro";
+import Button from "../../../components/Button.astro";
+import { HUB_PATH, placePath } from "../../../lib/seo/places";
+import { loadSeoSite } from "../../../lib/seo/seoSite";
+import { breadcrumbLd, parkPageLd } from "../../../lib/seo/jsonld";
+import { formatDistance, parkLead } from "../../../lib/seo/parkContent";
+import type { ParkPageData } from "../../../lib/seo/parkPages";
+
+export async function getStaticPaths() {
+  const site = await loadSeoSite(import.meta.env);
+  return (site?.parkPages ?? []).map((page) => ({ params: { city: page.placeSlug, park: page.slug }, props: { page } }));
+}
+
+interface Props {
+  page: ParkPageData;
+}
+
+const { page } = Astro.props;
+const { park, content } = page;
+const lead = parkLead(park, content, page.placeName);
+const cityPath = placePath({ slug: page.placeSlug });
+const builtOn = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeZone: "Europe/Paris" }).format(new Date());
+
+const jsonLd = [
+  breadcrumbLd([
+    { name: "Accueil", path: "/" },
+    { name: "Aires de jeux", path: HUB_PATH },
+    { name: page.placeName, path: cityPath },
+    { name: park.name, path: page.path },
+  ]),
+  parkPageLd(park, "FR", page.path, page.placeName),
+];
+
+const groups = [
+  { title: "Jeux et équipements", items: content.equipment },
+  { title: "Services", items: content.services },
+  { title: "Accessibilité", items: content.accessibility },
+  { title: "Environnement", items: [...content.environment, ...(content.surface ? [content.surface] : [])] },
+].filter((g) => g.items.length > 0);
+---
+
+<BaseLayout
+  title={page.title}
+  description={page.description}
+  robots={page.indexable ? undefined : "noindex,follow"}
+  jsonLd={jsonLd}
+>
+  <section class="fiche-hero">
+    <div class="wrap">
+      <Breadcrumb
+        items={[
+          { label: "Accueil", href: "/" },
+          { label: "Aires de jeux", href: HUB_PATH },
+          { label: page.placeName, href: cityPath },
+          { label: park.name },
+        ]}
+      />
+      <h1>{park.name}</h1>
+      <div class="lead">
+        {lead.map((sentence) => <p>{sentence}</p>)}
+      </div>
+      <p class="fiche-status">Informations déclarées, pas encore vérifiées sur place.</p>
+    </div>
+  </section>
+
+  <section class="page-section page-section--white">
+    <div class="wrap narrow">
+      <div class="section-head">
+        <h2>L'essentiel pour les parents</h2>
+        <p>Les 8 critères famille de Toboggo, tels qu'ils sont enregistrés pour ce parc.</p>
+      </div>
+      <dl class="criteria">
+        {
+          content.criteria.map((c) => (
+            <div class={`criterion criterion--${c.state}`}>
+              <dt>{c.label}</dt>
+              <dd>
+                <span class="criterion-mark" aria-hidden="true">{c.state === "yes" ? "✓" : c.state === "no" ? "✗" : c.state === "partial" ? "◐" : "?"}</span>
+                {c.text}
+              </dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+  </section>
+
+  {
+    groups.length > 0 && (
+      <section class="page-section page-section--tint">
+        <div class="wrap narrow">
+          <div class="section-head">
+            <h2>Ce qu'on y trouve</h2>
+          </div>
+          {groups.map((g) => (
+            <div class="fiche-group">
+              <h3>{g.title}</h3>
+              <ul class="chips">
+                {g.items.map((item) => <li>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+          {
+            content.unavailable.length > 0 && (
+              <div class="fiche-group">
+                <h3>Indiqué comme non disponible</h3>
+                <p class="muted">{content.unavailable.join(", ")}.</p>
+              </div>
+            )
+          }
+        </div>
+      </section>
+    )
+  }
+
+  <section class="page-section page-section--white">
+    <div class="wrap narrow">
+      <div class="section-head">
+        <h2>Où se trouve ce parc ?</h2>
+      </div>
+      <ul class="where-list">
+        <li>
+          <strong>Adresse</strong>
+          {content.address ? <span>{content.address}, {park.postalCode} {park.city}</span> : <span class="muted">Non renseignée pour le moment.</span>}
+        </li>
+        {
+          content.coordinates && (
+            <li>
+              <strong>Coordonnées</strong>
+              <span>{content.coordinates.text}</span>
+            </li>
+          )
+        }
+      </ul>
+      <div class="page-actions where-actions">
+        {content.coordinates && <Button href={content.coordinates.osmUrl} variant="secondary">Voir sur OpenStreetMap</Button>}
+        <Button href="/#app-toboggo" variant="secondary">Retrouver ce parc dans l'app Toboggo</Button>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-section page-section--tint">
+    <div class="wrap narrow">
+      <div class="section-head">
+        <h2>Informations à confirmer</h2>
+        <p>
+          Ces informations ont été saisies par la communauté ou la collectivité et ne sont pas encore vérifiées sur place.
+          Une erreur ou un oubli ? Signalez-le depuis la fiche du parc dans l'app Toboggo.
+        </p>
+      </div>
+      {
+        content.toConfirm.length > 0 && (
+          <ul class="check-list">
+            {content.toConfirm.map((item) => <li>{item}</li>)}
+          </ul>
+        )
+      }
+    </div>
+  </section>
+
+  {
+    page.nearby.length > 0 && (
+      <section class="page-section page-section--white">
+        <div class="wrap narrow">
+          <div class="section-head">
+            <h2>À proximité, à {page.placeName}</h2>
+          </div>
+          <ul class="nearby-list">
+            {page.nearby.map((n) => (
+              <li>
+                <a href={n.path}>{n.name}</a> <span class="muted">· à {formatDistance(n.distanceM)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    )
+  }
+
+  <section class="page-cta">
+    <div class="wrap">
+      <h2>Toutes les aires de jeux de {page.placeName}</h2>
+      <p>Comparez les parcs de la ville, avec leurs équipements et leurs tranches d'âge déclarés.</p>
+      <div class="page-actions">
+        <Button href={cityPath}>Voir les aires de jeux de {page.placeName}</Button>
+        <Button href="/#app-toboggo" variant="secondary">Découvrir Toboggo</Button>
+      </div>
+      <p class="data-note">Données consultées le {builtOn}. Certaines données : © OpenStreetMap contributors (ODbL).</p>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .fiche-hero {
+    padding: var(--space-6) 0 56px;
+    background: var(--color-surface);
+  }
+
+  .fiche-hero h1 {
+    font-size: clamp(28px, 6vw, 42px);
+    margin: var(--space-5) 0 var(--space-3);
+  }
+
+  .fiche-hero .lead {
+    max-width: 640px;
+    color: var(--color-text-muted);
+    font-size: 17px;
+  }
+
+  .fiche-hero .lead p {
+    margin: 0 0 var(--space-2);
+  }
+
+  .fiche-status {
+    display: inline-block;
+    margin: var(--space-3) 0 0;
+    padding: 2px 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent-tint);
+    color: var(--color-text);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+
+  .narrow {
+    max-width: 720px;
+  }
+
+  .criteria {
+    margin: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .criterion {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+  }
+
+  .criterion dt {
+    font-family: var(--font-heading);
+    font-weight: 600;
+  }
+
+  .criterion dd {
+    margin: 0;
+    font-size: 14.5px;
+  }
+
+  .criterion-mark {
+    display: inline-block;
+    width: 1.4em;
+    font-weight: 700;
+  }
+
+  .criterion--yes .criterion-mark {
+    color: var(--color-primary);
+  }
+
+  .criterion--partial .criterion-mark {
+    color: var(--color-warning-text);
+  }
+
+  .criterion--no .criterion-mark,
+  .criterion--unknown .criterion-mark {
+    color: var(--color-text-muted);
+  }
+
+  .criterion--unknown dd {
+    color: var(--color-text-muted);
+  }
+
+  .fiche-group + .fiche-group {
+    margin-top: var(--space-5);
+  }
+
+  .fiche-group h3 {
+    margin: 0 0 var(--space-2);
+    font-size: var(--text-base);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .chips li {
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-primary-hover);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .muted {
+    color: var(--color-text-muted);
+  }
+
+  .where-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .where-list li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-1) var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 14.5px;
+  }
+
+  .where-actions {
+    justify-content: flex-start;
+    margin-top: var(--space-5);
+  }
+
+  .nearby-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nearby-list li {
+    padding: var(--space-2) 0;
+  }
+
+  .data-note {
+    margin: var(--space-5) 0 0;
+    font-size: var(--text-sm);
+    color: var(--color-text-faint);
+  }
+</style>

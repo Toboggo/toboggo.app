@@ -126,6 +126,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { memberships, communes, activeOrg, setActiveOrg } = useOrgSession();
   const { isAdmin, communeId } = useOrgScope();
   const mainRef = useRef<HTMLElement>(null);
+  const navRef = useRef<HTMLElement>(null);
   const isFirstRender = useRef(true);
 
   const { data: pendingParks = 0 } = useQuery({
@@ -178,6 +179,15 @@ export function Shell({ children }: { children: ReactNode }) {
     mainRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
+  // Barre de navigation basse (≤ 860 px) : sur téléphone elle défile
+  // horizontalement ; l'entrée active est ramenée dans la zone visible (sans
+  // jamais faire défiler la page). Sans effet en mode bureau (rien ne défile).
+  useEffect(() => {
+    navRef.current
+      ?.querySelector<HTMLElement>('[aria-current="page"]')
+      ?.scrollIntoView?.({ inline: "center", block: "nearest" });
+  }, [location.pathname, isAdmin]);
+
   // "bo-shell-admin" (Admin-UI-7C) is a plain global marker, not a CSS-module
   // class: it must be readable both from this module (via `:global()`) and
   // from the shared, non-module `index.css` (`.bo-content` background) — same
@@ -216,7 +226,7 @@ export function Shell({ children }: { children: ReactNode }) {
           )}
         </div>
 
-        <nav className={styles.nav} aria-label="Navigation principale">
+        <nav className={styles.nav} aria-label="Navigation principale" ref={navRef}>
           {groups.map((group) => (
             <div key={group.title} className={styles.group}>
               <div className={styles.groupTitle}>{group.title}</div>

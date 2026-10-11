@@ -26,6 +26,7 @@ body,
 
 @media (max-width: 860px) {
   .bo-content {
-    padding: 16px 16px 90px;
+    /* Réserve la hauteur de la barre de navigation basse (sélecteur d'organisation + entrées sur 2 lignes). */
+    padding: 16px 16px 128px;
   }
 }

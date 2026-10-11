@@ -5,9 +5,23 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@toboggo/design-system": ["../../packages/design-system/src"],
-      "@toboggo/shared": ["../../packages/shared/src"]
+      "@toboggo/design-system": [
+        "../../packages/design-system/src"
+      ],
+      "@toboggo/shared": [
+        "../../packages/shared/src"
+      ],
+      "@toboggo/backoffice-core": [
+        "../../packages/backoffice-core/src"
+      ],
+      "@toboggo/backoffice-core/*": [
+        "../../packages/backoffice-core/src/*"
+      ]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "../backoffice-admin/src",
+    "../backoffice-collectivity/src"
+  ]
 }

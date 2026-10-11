@@ -15,7 +15,7 @@ const session = vi.hoisted(() => ({
   activeOrg: { type: "admin" } as { type: "admin" } | { type: "commune"; communeId: string } | null,
 }));
 
-vi.mock("../lib/orgSession", () => ({
+vi.mock("@toboggo/backoffice-core/lib/orgSession", () => ({
   useOrgSession: (sel?: (s: unknown) => unknown) => {
     const state = { ...session, init: vi.fn() };
     return sel ? sel(state) : state;
@@ -25,27 +25,27 @@ vi.mock("@toboggo/design-system", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@toboggo/design-system")>()),
   useIconSprite: () => {},
 }));
-vi.mock("../components/Shell", () => ({ Shell: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
+vi.mock("@toboggo/backoffice-core/components/Shell", () => ({ Shell: ({ children }: { children: React.ReactNode }) => <>{children}</> }));
 vi.mock("../screens/Dashboard", () => ({ default: () => <div data-testid="screen-Dashboard" /> }));
 vi.mock("../screens/Parks", () => ({ default: () => <div data-testid="screen-Parks" /> }));
-vi.mock("../screens/parkNew/ParkNew", () => ({ default: () => <div data-testid="screen-ParkNew" /> }));
-vi.mock("../screens/ParkDetail", () => ({ default: () => <div data-testid="screen-ParkDetail" /> }));
-vi.mock("../screens/Validation", () => ({ default: () => <div data-testid="screen-Validation" /> }));
-vi.mock("../screens/ValidationDetail", () => ({ default: () => <div data-testid="screen-ValidationDetail" /> }));
-vi.mock("../screens/Organizations", () => ({ default: () => <div data-testid="screen-Organizations" /> }));
-vi.mock("../screens/OrganizationDetail", () => ({ default: () => <div data-testid="screen-OrganizationDetail" /> }));
-vi.mock("../screens/Reports", () => ({ default: () => <div data-testid="screen-Reports" /> }));
-vi.mock("../screens/Reviews", () => ({ default: () => <div data-testid="screen-Reviews" /> }));
-vi.mock("../screens/Photos", () => ({ default: () => <div data-testid="screen-Photos" /> }));
-vi.mock("../screens/Users", () => ({ default: () => <div data-testid="screen-Users" /> }));
-vi.mock("../screens/AppFeedback", () => ({ default: () => <div data-testid="screen-AppFeedback" /> }));
-vi.mock("../screens/MapScreen", () => ({ default: () => <div data-testid="screen-MapScreen" /> }));
-vi.mock("../screens/Maintenance", () => ({ default: () => <div data-testid="screen-Maintenance" /> }));
-vi.mock("../screens/Journal", () => ({ default: () => <div data-testid="screen-Journal" /> }));
-vi.mock("../screens/Statistiques", () => ({ default: () => <div data-testid="screen-Statistiques" /> }));
-vi.mock("../screens/Settings", () => ({ default: () => <div data-testid="screen-Settings" /> }));
-vi.mock("../screens/Login", () => ({ default: () => <div data-testid="screen-Login" /> }));
-vi.mock("../screens/AccessDenied", () => ({ default: () => <div data-testid="screen-AccessDenied" /> }));
+vi.mock("../../../backoffice-collectivity/src/screens/parkNew/ParkNew", () => ({ default: () => <div data-testid="screen-ParkNew" /> }));
+vi.mock("@toboggo/backoffice-core/screens/ParkDetail", () => ({ default: () => <div data-testid="screen-ParkDetail" /> }));
+vi.mock("../../../backoffice-admin/src/screens/Validation", () => ({ default: () => <div data-testid="screen-Validation" /> }));
+vi.mock("@toboggo/backoffice-core/screens/ValidationDetail", () => ({ default: () => <div data-testid="screen-ValidationDetail" /> }));
+vi.mock("../../../backoffice-admin/src/screens/Organizations", () => ({ default: () => <div data-testid="screen-Organizations" /> }));
+vi.mock("../../../backoffice-admin/src/screens/OrganizationDetail", () => ({ default: () => <div data-testid="screen-OrganizationDetail" /> }));
+vi.mock("@toboggo/backoffice-core/screens/Reports", () => ({ default: () => <div data-testid="screen-Reports" /> }));
+vi.mock("@toboggo/backoffice-core/screens/Reviews", () => ({ default: () => <div data-testid="screen-Reviews" /> }));
+vi.mock("@toboggo/backoffice-core/screens/Photos", () => ({ default: () => <div data-testid="screen-Photos" /> }));
+vi.mock("../../../backoffice-admin/src/screens/Users", () => ({ default: () => <div data-testid="screen-Users" /> }));
+vi.mock("../../../backoffice-admin/src/screens/AppFeedback", () => ({ default: () => <div data-testid="screen-AppFeedback" /> }));
+vi.mock("../../../backoffice-collectivity/src/screens/MapScreen", () => ({ default: () => <div data-testid="screen-MapScreen" /> }));
+vi.mock("../../../backoffice-collectivity/src/screens/Maintenance", () => ({ default: () => <div data-testid="screen-Maintenance" /> }));
+vi.mock("../../../backoffice-collectivity/src/screens/Journal", () => ({ default: () => <div data-testid="screen-Journal" /> }));
+vi.mock("../../../backoffice-collectivity/src/screens/Statistiques", () => ({ default: () => <div data-testid="screen-Statistiques" /> }));
+vi.mock("@toboggo/backoffice-core/screens/Settings", () => ({ default: () => <div data-testid="screen-Settings" /> }));
+vi.mock("@toboggo/backoffice-core/screens/Login", () => ({ default: () => <div data-testid="screen-Login" /> }));
+vi.mock("@toboggo/backoffice-core/screens/AccessDenied", () => ({ default: () => <div data-testid="screen-AccessDenied" /> }));
 
 function Where() {
   const { pathname } = useLocation();

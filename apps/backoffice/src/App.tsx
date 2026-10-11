@@ -1,30 +1,26 @@
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { useOrgSession } from "./lib/orgSession";
-import { useIconSprite } from "@toboggo/design-system";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import Login from "./screens/Login";
-import AccessDenied from "./screens/AccessDenied";
-import { Shell } from "./components/Shell";
-import { RouteGuard, type RouteSurface } from "./components/RouteGuard";
+import { BackofficeApp } from "@toboggo/backoffice-core/BackofficeApp";
+import { ErrorBoundary } from "@toboggo/backoffice-core/components/ErrorBoundary";
+import { RouteGuard, type RouteSurface } from "@toboggo/backoffice-core/components/RouteGuard";
 import Dashboard from "./screens/Dashboard";
 import Parks from "./screens/Parks";
-import ParkNew from "./screens/parkNew/ParkNew";
-import ParkDetail from "./screens/ParkDetail";
-import Validation from "./screens/Validation";
-import ValidationDetail from "./screens/ValidationDetail";
-import Organizations from "./screens/Organizations";
-import OrganizationDetail from "./screens/OrganizationDetail";
-import Reports from "./screens/Reports";
-import Reviews from "./screens/Reviews";
-import Photos from "./screens/Photos";
-import Users from "./screens/Users";
-import AppFeedback from "./screens/AppFeedback";
-import MapScreen from "./screens/MapScreen";
-import Maintenance from "./screens/Maintenance";
-import Journal from "./screens/Journal";
-import Statistiques from "./screens/Statistiques";
-import Settings from "./screens/Settings";
+import ParkNew from "../../backoffice-collectivity/src/screens/parkNew/ParkNew";
+import ParkDetail from "@toboggo/backoffice-core/screens/ParkDetail";
+import Validation from "../../backoffice-admin/src/screens/Validation";
+import ValidationDetail from "@toboggo/backoffice-core/screens/ValidationDetail";
+import Organizations from "../../backoffice-admin/src/screens/Organizations";
+import OrganizationDetail from "../../backoffice-admin/src/screens/OrganizationDetail";
+import Reports from "@toboggo/backoffice-core/screens/Reports";
+import Reviews from "@toboggo/backoffice-core/screens/Reviews";
+import Photos from "@toboggo/backoffice-core/screens/Photos";
+import Users from "../../backoffice-admin/src/screens/Users";
+import AppFeedback from "../../backoffice-admin/src/screens/AppFeedback";
+import MapScreen from "../../backoffice-collectivity/src/screens/MapScreen";
+import Maintenance from "../../backoffice-collectivity/src/screens/Maintenance";
+import Journal from "../../backoffice-collectivity/src/screens/Journal";
+import Statistiques from "../../backoffice-collectivity/src/screens/Statistiques";
+import Settings from "@toboggo/backoffice-core/screens/Settings";
 
 /** Route reserved to one surface (Admin Toboggo / collectivité) — see RouteGuard. */
 function guarded(surface: RouteSurface, screen: ReactNode) {
@@ -67,40 +63,9 @@ export function RoutedContent() {
 }
 
 export default function App() {
-  const init = useOrgSession((s) => s.init);
-  const loading = useOrgSession((s) => s.loading);
-  const userId = useOrgSession((s) => s.userId);
-  const accessDenied = useOrgSession((s) => s.accessDenied);
-  useIconSprite(); // charge packages/design-system/src/icons/icons-sprite.svg (public/icons-sprite.svg)
-
-  useEffect(() => {
-    init();
-  }, [init]);
-
   return (
-    <ErrorBoundary>
-      {loading ? (
-        <div
-          style={{
-            minHeight: "100vh",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--color-text-muted)",
-            fontSize: 13.5,
-          }}
-        >
-          Chargement…
-        </div>
-      ) : !userId ? (
-        <Login />
-      ) : accessDenied ? (
-        <AccessDenied />
-      ) : (
-        <Shell>
-          <RoutedContent />
-        </Shell>
-      )}
-    </ErrorBoundary>
+    <BackofficeApp surface="all">
+      <RoutedContent />
+    </BackofficeApp>
   );
 }

@@ -77,7 +77,7 @@ function Probe() {
   }, []);
   return <input aria-label="draft-field" value={v} onChange={(e) => setV(e.target.value)} />;
 }
-vi.mock("../components/Shell", () => ({
+vi.mock("@toboggo/backoffice-core/components/Shell", () => ({
   Shell: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="shell">
       <Probe />
@@ -89,7 +89,7 @@ vi.mock("../screens/Dashboard", () => ({ default: () => <div>dashboard</div> }))
 
 // Imported after the mocks are declared.
 import App from "../App";
-import { useOrgSession } from "./orgSession";
+import { useOrgSession } from "@toboggo/backoffice-core/lib/orgSession";
 
 const SESSION = { user: { id: "user-1", email: "alice@ville.fr", user_metadata: { name: "Alice" } } };
 const MEMBERSHIP = { id: "m1", user_id: "user-1", role: "gestionnaire", commune_id: "org-1", organization_id: "org-1" };

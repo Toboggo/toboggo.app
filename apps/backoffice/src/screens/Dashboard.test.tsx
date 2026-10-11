@@ -90,7 +90,7 @@ async function mapInstances(): Promise<{ maps: any[]; markers: any[] }> {
 }
 
 const scope = vi.hoisted(() => ({ isAdmin: true, communeId: undefined as string | undefined }));
-vi.mock("../lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: scope.isAdmin, communeId: scope.communeId }) }));
+vi.mock("@toboggo/backoffice-core/lib/orgScope", () => ({ useOrgScope: () => ({ isAdmin: scope.isAdmin, communeId: scope.communeId }) }));
 
 function LocationProbe() {
   const loc = useLocation();

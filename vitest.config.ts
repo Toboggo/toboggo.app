@@ -24,6 +24,7 @@ export default defineConfig({
     alias: {
       "@toboggo/design-system": path.resolve(__dirname, "packages/design-system/src"),
       "@toboggo/shared": path.resolve(__dirname, "packages/shared/src"),
+      "@toboggo/backoffice-core": path.resolve(__dirname, "packages/backoffice-core/src"),
     },
   },
   test: {
@@ -38,6 +39,9 @@ export default defineConfig({
       "packages/shared/src/**/*.test.ts",
       "packages/design-system/src/**/*.test.{ts,tsx}",
       "apps/backoffice/src/**/*.test.{ts,tsx}",
+      "apps/backoffice-admin/src/**/*.test.{ts,tsx}",
+      "apps/backoffice-collectivity/src/**/*.test.{ts,tsx}",
+      "packages/backoffice-core/src/**/*.test.{ts,tsx}",
       "apps/mobile/src/**/*.test.{ts,tsx}",
       "apps/landing/src/**/*.test.ts",
       "supabase/functions/**/*.test.ts",

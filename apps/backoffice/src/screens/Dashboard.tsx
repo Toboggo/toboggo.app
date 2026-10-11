@@ -1,6 +1,6 @@
-import { useOrgScope } from "../lib/orgScope";
-import AdminDashboard from "./AdminDashboard";
-import CommuneDashboard from "./CommuneDashboard";
+import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
+import AdminDashboard from "../../../backoffice-admin/src/screens/AdminDashboard";
+import CommuneDashboard from "../../../backoffice-collectivity/src/screens/CommuneDashboard";
 
 /** One route, two dashboards: Toboggo Admin gets the platform cockpit
  * (`AdminDashboard`, Admin-UI), a collectivité its own operational view

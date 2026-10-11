@@ -64,7 +64,8 @@ export function extractAddress(data: unknown): StructuredAddress | null {
   const isUs = country_code === "US";
 
   const housenumber = str(r.housenumber);
-  const street = isUs ? abbreviateUsStreet(str(r.street)) : str(r.street);
+  // `|| null` : une rue vide après normalisation (US, valeur blanche) retombe sur address_line1, comme `if street:` côté Python.
+  const street = isUs ? abbreviateUsStreet(str(r.street)) || null : str(r.street);
   const address_line = housenumber && street ? `${housenumber} ${street}` : street ?? str(r.address_line1);
 
   const result: StructuredAddress = {

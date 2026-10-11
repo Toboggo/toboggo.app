@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { type Park } from "@toboggo/shared";
 import { Icon } from "@toboggo/design-system";
@@ -11,6 +11,14 @@ import { trackEvent } from "../../lib/analytics";
 import styles from "./ParkList.module.css";
 
 const SORT_VALUES: SortMode[] = ["distance", "rating", "recent"];
+
+/** Key of the empty state last reported as `zero_results` (survives ParkList remounts). */
+let lastReportedEmptyKey: string | null = null;
+
+/** Test seam: forget what was reported. */
+export function resetZeroResultsDedupe() {
+  lastReportedEmptyKey = null;
+}
 
 export function ParkList({
   parks,
@@ -58,13 +66,21 @@ export function ParkList({
   // `zero_results` ne doit se déclencher qu'à la TRANSITION vers cet état
   // vide, pas à chaque re-render tant qu'on y reste.
   const isEmpty = rows.length === 0;
-  const wasEmptyRef = useRef(false);
+  // The list is only mounted at the sheet's top snap, so it remounts on every
+  // medium → top. The "already reported" marker therefore lives outside the
+  // component (module scope), keyed on what produced the empty state — the
+  // parks in play, the age filter and the children's ages. A remount with the
+  // same inputs stays silent; a new search/radius/filter change (different
+  // key), or leaving the empty state and coming back, reports again.
+  const emptyKey = isEmpty ? `${forChildren}|${childAges.join(",")}|${parks.length}|${parks[0]?.id ?? ""}|${parks[parks.length - 1]?.id ?? ""}` : null;
   useEffect(() => {
-    if (isEmpty && !wasEmptyRef.current) {
+    if (emptyKey == null) {
+      lastReportedEmptyKey = null;
+    } else if (emptyKey !== lastReportedEmptyKey) {
+      lastReportedEmptyKey = emptyKey;
       trackEvent("zero_results", { reason: "children_age_no_match" });
     }
-    wasEmptyRef.current = isEmpty;
-  }, [isEmpty]);
+  }, [emptyKey]);
 
   function handleSetSort(value: SortMode) {
     setSort(value);

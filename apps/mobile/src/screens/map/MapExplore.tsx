@@ -439,9 +439,8 @@ export default function MapExplore() {
     // One header across every snap — only the peek adds its "raise" chevron.
     // Peek is this header alone (no card); medium adds the contextual filters
     // + carousel (or the empty-zone suggestions); expanded additionally
-    // reveals the full list. Medium and expanded share the same tree: at
-    // medium the sheet's fixed, non-scrollable height (see BottomSheet's
-    // canScroll) crops what follows, expanded makes it scrollable.
+    // reveals the discovery banner and the full list (top snap only — they are
+    // not mounted below it). Medium and expanded share the header + carousel tree.
     const header = (
       <NearbyHeader
         count={nearby.activeParks.length}
@@ -478,7 +477,11 @@ export default function MapExplore() {
             showDiscoveryBanner={snap === 2}
           />
         </div>
-        {nearby.activeParks.length > 0 && (
+        {/* Everything after the carousel (discovery banner, "Tous les parcs" title,
+            sort filters, list) is top-snap only: not rendered at peek/medium, so it
+            reserves no space, can't be tabbed to, and never shows under the nav.
+            Its state lives in stores (sort, nearbyContext) and survives the swap. */}
+        {snap === 2 && nearby.activeParks.length > 0 && (
           <ParkList
             parks={nearby.activeParks}
             onToggleFavorite={toggleFavorite}

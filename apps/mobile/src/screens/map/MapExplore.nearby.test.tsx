@@ -229,6 +229,46 @@ describe("Autour de vous — medium", () => {
     expect(screen.getByRole("button", { name: /Envie de plus d’options/ })).toBeTruthy();
   });
 
+  it("keeps everything after the carousel (banner, « Tous les parcs » title, sort filters, list) out of peek and medium — present only at the top", async () => {
+    world.parks = [park("a", "Parc A", 200), park("b", "Parc B", 900), park("far", "Parc Loin", 6000)];
+    renderExplore();
+    await screen.findByText("2 parcs à moins de 2 km");
+    const afterCarousel = () => ({
+      title: screen.queryByText("Tous les parcs autour de vous"),
+      sort: screen.queryByRole("button", { name: "Mieux notés" }),
+      banner: screen.queryByText("Envie de plus d’options ?"),
+      rows: listCards().length,
+    });
+    expect(Object.values(afterCarousel()).every((v) => !v)).toBe(true); // peek
+
+    tapHandle();
+    await screen.findByText("À proximité");
+    expect(afterCarousel()).toEqual({ title: null, sort: null, banner: null, rows: 0 }); // medium
+    expect(carouselCards().length).toBe(2); // header, carousel filters and cards stay
+
+    tapHandle(); // top
+    expect(await screen.findByText("Tous les parcs autour de vous")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mieux notés" })).toBeTruthy();
+    expect(screen.getByText("Envie de plus d’options ?")).toBeTruthy();
+    expect(listCards().length).toBeGreaterThan(0);
+  });
+
+  it("keeps filter state when the list is not mounted: sort chosen below the top (store) and the carousel context both show at the top", async () => {
+    world.parks = [park("a", "Parc A", 200), park("b", "Parc B", 900)];
+    world.favorites = ["b"];
+    world.userId = "u1";
+    useFilters.getState().setSort("rating"); // lives in a store, not in ParkList
+    renderExplore();
+    await toMedium("2 parcs à moins de 2 km");
+    fireEvent.click(within(filterChips()).getByText("Favoris")); // carousel context at medium
+    expect(screen.queryByText("Tous les parcs autour de vous")).toBeNull();
+    tapHandle(); // top: list mounts with the state intact
+    expect(await screen.findByText("Tous les parcs autour de vous")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Mieux notés" }).getAttribute("data-on")).toBe("1");
+    expect(within(filterChips()).getByText("Favoris").getAttribute("aria-pressed")).toBe("true");
+    expect(carouselCards()).toHaveLength(1);
+  });
+
   it("never shows the removed blocks, Nouveautés, Populaires nor any emoji", async () => {
     world.parks = [park("a", "Parc A", 200)];
     world.userId = "u1";

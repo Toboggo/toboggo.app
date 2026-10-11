@@ -125,7 +125,7 @@ export async function sendContactApi(
 ): Promise<"sent" | "unavailable"> {
   let res: Response;
   try {
-    res = await fetchImpl("/api/contact", {
+    res = await fetchImpl("/api/contact/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...input, elapsedMs }),

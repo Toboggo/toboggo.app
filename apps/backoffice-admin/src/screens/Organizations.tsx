@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { Button, DataTable, Input, Select, Tag, type DataTableColumn } from "@toboggo/design-system";
-import { listOrganizationsWithCounts, type OrganizationType, type OrganizationWithCounts } from "@toboggo/shared";
+import { type OrganizationType, type OrganizationWithCounts } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
+import { useOrganizations } from "@toboggo/backoffice-core/lib/sharedQueries";
 import styles from "./Organizations.module.css";
 
 const ORG_TYPE_LABEL: Record<OrganizationType, string> = {
@@ -64,10 +64,7 @@ export default function Organizations() {
     setSearchParams(new URLSearchParams(), { replace: true });
   }
 
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["bo-organizations"],
-    queryFn: () => listOrganizationsWithCounts(),
-  });
+  const { data, isLoading, isError, refetch } = useOrganizations();
   const all = data ?? [];
 
   const filtered = all

@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Input, Select, Tabs, TabPanel, Tag, useConfirm, useToast } from "@toboggo/design-system";
 import {
   deleteMedia,
-  listPendingMedia,
   listProcessedMedia,
   setMediaStatus,
   setParkCover,
@@ -16,6 +15,7 @@ import { MediaStatusTag } from "../components/StatusTag";
 import { useOrgScope } from "../lib/orgScope";
 import { usePermissions } from "../lib/permissions";
 import { queryClient } from "../lib/queryClient";
+import { usePendingMedia } from "../lib/sharedQueries";
 
 // Mêmes libellés que Parks.tsx / ParkDetail.tsx — pas de 2e formulation pour
 // les mêmes valeurs de `source_type`. `osm` est exclu des filtres : `park_media`
@@ -62,10 +62,7 @@ export default function Photos() {
   const [source, setSource] = useState<SourceType | "all">("all");
   const [processedStatus, setProcessedStatus] = useState<ProcessedFilter>("all");
 
-  const { data: pending = [], isLoading: pendingLoading } = useQuery({
-    queryKey: ["bo-pending-media", communeId],
-    queryFn: () => listPendingMedia({ communeId }),
-  });
+  const { data: pending = [], isLoading: pendingLoading } = usePendingMedia(communeId);
   const { data: processed = [], isLoading: processedLoading } = useQuery({
     queryKey: ["bo-processed-media", communeId],
     queryFn: () => listProcessedMedia({ communeId }),
@@ -75,7 +72,6 @@ export default function Photos() {
     void queryClient.invalidateQueries({ queryKey: ["bo-pending-media"] });
     void queryClient.invalidateQueries({ queryKey: ["bo-processed-media"] });
     void queryClient.invalidateQueries({ queryKey: ["bo-parks"] });
-    void queryClient.invalidateQueries({ queryKey: ["shell-pending-media"] });
   }
 
   async function run(id: string, fn: () => Promise<void>, successMessage: string) {

@@ -11,6 +11,7 @@ import { useOrgScope } from "../lib/orgScope";
 import { usePermissions } from "../lib/permissions";
 import { useAsyncAction } from "../lib/useAsyncAction";
 import { queryClient } from "../lib/queryClient";
+import { boQueryKeys } from "../lib/sharedQueries";
 import styles from "./ValidationDetail.module.css";
 
 const dateTimeFmt = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
@@ -64,7 +65,7 @@ export default function ValidationDetail() {
   function invalidateAfterDecision() {
     void queryClient.invalidateQueries({ queryKey: ["park-edit", editId] });
     void queryClient.invalidateQueries({ queryKey: ["bo-park-edits"] });
-    void queryClient.invalidateQueries({ queryKey: ["shell-pending-edits"] });
+    void queryClient.invalidateQueries({ queryKey: boQueryKeys.pendingEditsAdmin });
   }
 
   function handleResult(result: ParkEditReviewResult) {

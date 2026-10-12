@@ -10,16 +10,10 @@ import {
   listReports,
   listReviews,
   listActivity,
-  listPendingMedia,
   listMaintenance,
   listPendingParkEditsForOrg,
-  listParkEdits,
   getParkSourceDistribution,
   getParkStatusCounts,
-  getParkCountryDistribution,
-  listCommunes,
-  listAllUsers,
-  listOrganizationsWithCounts,
   toCsv,
   downloadCsv,
   mapStyleUrl,
@@ -30,6 +24,14 @@ import {
 } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
+import {
+  useOrganizations,
+  useParkCountries,
+  usePendingEditsAdmin,
+  usePendingMedia,
+  useUsersCount,
+} from "@toboggo/backoffice-core/lib/sharedQueries";
+import { useInView } from "@toboggo/backoffice-core/lib/useInView";
 import { activityIcon } from "../lib/activityCategory";
 import { COUNTRY_LABEL } from "@toboggo/backoffice-core/lib/countryLabels";
 import styles from "./AdminDashboard.module.css";
@@ -245,10 +247,8 @@ export default function AdminDashboard() {
   const reportsQ = useQuery({ queryKey: ["dash-reports", communeId], queryFn: () => listReports({ communeId }) });
   const reviewsQ = useQuery({ queryKey: ["dash-reviews", communeId], queryFn: () => listReviews({ communeId }) });
   const activityQ = useQuery({ queryKey: ["dash-activity", communeId, isAdmin], queryFn: () => listActivity(isAdmin ? null : communeId!) });
-  const pendingMediaQ = useQuery({
-    queryKey: ["dash-pending-media", communeId],
-    queryFn: () => listPendingMedia({ communeId }),
-  });
+  // Même requête (et même entrée de cache) que le badge « Photos » du Shell.
+  const pendingMediaQ = usePendingMedia(communeId);
   // Collectivité only: no cross-organisation "entretien" screen exists yet
   // for the admin context (hors scope de ce lot).
   const maintenanceQ = useQuery({
@@ -261,32 +261,42 @@ export default function AdminDashboard() {
   // (sans filtre org) est déjà correctement scopé côté serveur. Une
   // collectivité continue de voir uniquement ses propres parcs via
   // `listPendingParkEditsForOrg` (résolution par `organization_parks`, Lot 1).
-  const pendingEditsQ = useQuery({
+  // Admin : même requête (et même entrée de cache) que le badge du Shell.
+  const pendingEditsAdminQ = usePendingEditsAdmin({ enabled: isAdmin });
+  const pendingEditsOrgQ = useQuery({
     queryKey: ["dash-pending-edits", communeId, isAdmin],
-    queryFn: () => (isAdmin ? listParkEdits({ status: ["pending"] }) : listPendingParkEditsForOrg(communeId!)),
-    enabled: isAdmin || !!communeId,
+    queryFn: () => listPendingParkEditsForOrg(communeId!),
+    enabled: !isAdmin && !!communeId,
   });
+  const pendingEditsQ = isAdmin ? pendingEditsAdminQ : pendingEditsOrgQ;
   // Répartition par source (Admin-UI-2 §3) : catalogue entier, admin
   // uniquement — peu de sens pour une collectivité qui ne voit que ses
   // propres parcs (quasi toujours une seule source).
+  //
+  // Cartes sous la ligne de flottaison (source, couverture géographique) :
+  // leurs requêtes ne partent que lorsque la carte approche du viewport
+  // (`useInView`) — ~17 requêtes en moins au chargement. Contenu inchangé.
+  const [sourceRef, sourceSeen] = useInView<HTMLHeadingElement>();
+  const [countryRef, countrySeen] = useInView<HTMLHeadingElement>();
   const sourceQ = useQuery({
     queryKey: ["dash-park-sources"],
     queryFn: () => getParkSourceDistribution(),
-    enabled: isAdmin,
+    enabled: isAdmin && sourceSeen,
   });
+  const sourceLoading = sourceQ.isLoading || (isAdmin && !sourceSeen);
   // Couverture géographique (Admin-UI-7D-C §4) : même raisonnement que
   // `sourceQ` — admin uniquement, catalogue entier, fiable au-delà de
   // max_rows (voir `getParkCountryDistribution`).
-  const countryQ = useQuery({
-    queryKey: ["dash-park-countries"],
-    queryFn: () => getParkCountryDistribution(),
-    enabled: isAdmin,
-  });
+  const countryQ = useParkCountries({ enabled: isAdmin && countrySeen });
+  const countryLoading = countryQ.isLoading || (isAdmin && !countrySeen);
   // KPI Collectivités/Utilisateurs (Admin-UI-4 §1) : totaux réels, admin
   // uniquement — une collectivité ne gère ni les autres organisations ni
   // l'ensemble des utilisateurs de la plateforme.
-  const communesQ = useQuery({ queryKey: ["dash-communes"], queryFn: () => listCommunes(), enabled: isAdmin });
-  const usersQ = useQuery({ queryKey: ["dash-all-users"], queryFn: () => listAllUsers(), enabled: isAdmin });
+  // `usersQ` : seul le total est affiché → comptage exact (head), plus le
+  // téléchargement de tous les profils. `communesQ` : le total des
+  // collectivités se déduit de `orgsQ` ci-dessous (même liste) — plus de
+  // requête `organizations` séparée.
+  const usersQ = useUsersCount({ enabled: isAdmin });
   // "Top collectivités" (Admin-UI-7D §8) : `organizations`/`organization_parks`
   // sont en lecture publique (RLS `using (true)`, migration 0018) — sans
   // rapport avec la piste `activity_log` écartée en Admin-UI-4 (celle-ci était
@@ -294,11 +304,8 @@ export default function AdminDashboard() {
   // entrées `organization_id IS NULL`, jamais l'activité des collectivités).
   // `listOrganizationsWithCounts` (déjà utilisée par Organizations.tsx) donne
   // donc un vrai classement par nombre de parcs rattachés, admin uniquement.
-  const orgsQ = useQuery({
-    queryKey: ["dash-organizations-counts"],
-    queryFn: () => listOrganizationsWithCounts(),
-    enabled: isAdmin,
-  });
+  const orgsQ = useOrganizations({ enabled: isAdmin });
+  const communesQ = orgsQ;
 
   const parks = parksQ.data ?? [];
   const reports = reportsQ.data ?? [];
@@ -440,7 +447,7 @@ export default function AdminDashboard() {
         },
         {
           key: "users",
-          value: usersQ.data?.length ?? 0,
+          value: usersQ.data ?? 0,
           label: "Utilisateurs",
           icon: "ic-users",
           tint: "info",
@@ -656,10 +663,10 @@ export default function AdminDashboard() {
           </Card>
 
           <Card variant="admin" padding="sm" className={styles.card}>
-            <h2 className={styles.sectionTitle}>Répartition des parcs par source</h2>
+            <h2 ref={sourceRef} className={styles.sectionTitle}>Répartition des parcs par source</h2>
             <SourceBreakdown
               data={sourceQ.data}
-              isLoading={sourceQ.isLoading}
+              isLoading={sourceLoading}
               isError={sourceQ.isError}
               onRetry={() => void sourceQ.refetch()}
               onSelectSource={(source) => navigate(`/parks?source=${source}&status=all`)}
@@ -668,13 +675,13 @@ export default function AdminDashboard() {
           </Card>
 
           <Card variant="admin" padding="sm" className={styles.card}>
-            <h2 className={styles.sectionTitle}>Couverture géographique</h2>
-            {!countryQ.isLoading && !countryQ.isError && (
+            <h2 ref={countryRef} className={styles.sectionTitle}>Couverture géographique</h2>
+            {!countryLoading && !countryQ.isError && (
               <GeoCoverageMap rows={countryQ.data ?? []} onSelectCountry={(code) => navigate(`/parks?country=${code}&status=all`)} />
             )}
             <CountryBreakdown
               data={countryQ.data}
-              isLoading={countryQ.isLoading}
+              isLoading={countryLoading}
               isError={countryQ.isError}
               onRetry={() => void countryQ.refetch()}
               onSelectCountry={(code) => navigate(`/parks?country=${code}&status=all`)}

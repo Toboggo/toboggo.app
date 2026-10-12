@@ -15,10 +15,8 @@ import {
   type DataTableColumn,
 } from "@toboggo/design-system";
 import {
-  getParkCountryDistribution,
   isValidCoordinate,
   listAllParksForExport,
-  listCommunes,
   listParks,
   listParksPage,
   setParkStatus,
@@ -45,6 +43,7 @@ import { usePermissions } from "@toboggo/backoffice-core/lib/permissions";
 import { useAsyncAction } from "@toboggo/backoffice-core/lib/useAsyncAction";
 import { parkStatusTransitions } from "@toboggo/backoffice-core/lib/parkStatus";
 import { queryClient } from "@toboggo/backoffice-core/lib/queryClient";
+import { useOrganizations, useParkCountries } from "@toboggo/backoffice-core/lib/sharedQueries";
 import styles from "./AdminParks.module.css";
 
 /** An empty/missing CSV cell must never coerce to `0` (a false-looking, but
@@ -162,12 +161,10 @@ export function AdminParks() {
   const hasActiveFilters =
     q !== "" || status !== defaultStatus || verification !== "all" || source !== "all" || organizationId !== "" || country !== "all";
 
-  const organizationsQ = useQuery({
-    queryKey: ["bo-parks-organizations"],
-    queryFn: () => listCommunes(),
-    enabled: isAdmin,
-    staleTime: 60_000,
-  });
+  // Même requête / même cache que le Dashboard et l'écran Collectivités
+  // (`sharedQueries`) — la liste enrichie des compteurs de parcs contient
+  // déjà `id` et `name`, seuls champs utilisés ici.
+  const organizationsQ = useOrganizations({ enabled: isAdmin });
 
   // Admin-UI-8D — colonne + filtre Pays : résout un `organization_id` déjà
   // présent sur chaque ligne (`listParksPage`) sans requête supplémentaire —
@@ -182,12 +179,7 @@ export function AdminParks() {
   // FR/ES) — même fonction que la carte "Couverture géographique" du
   // Dashboard (`getParkCountryDistribution`, bornée au-delà de `max_rows`,
   // un seul aller-retour skinny `country_code`).
-  const countriesQ = useQuery({
-    queryKey: ["bo-parks-countries"],
-    queryFn: () => getParkCountryDistribution(),
-    enabled: isAdmin,
-    staleTime: 60_000,
-  });
+  const countriesQ = useParkCountries({ enabled: isAdmin });
   // Trié par libellé (pas par volume) pour un menu prévisible. Le pays
   // actuellement actif est toujours présent dans les options même s'il a 0
   // parc dans la distribution (ex. juste après un deep-link `?country=ES`

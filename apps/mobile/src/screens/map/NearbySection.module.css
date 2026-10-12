@@ -63,7 +63,7 @@
   position: absolute;
   inset: -9px 0;
 }
-/* Zone modifiée (≠ valeur par défaut) : même style que les filtres appliqués. */
+/* Zone modifiée (≠ rayon par défaut) : même style que les filtres appliqués. */
 .zonePill[data-active="1"] {
   border-color: var(--color-primary);
   background: var(--color-primary-tint);

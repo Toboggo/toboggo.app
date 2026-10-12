@@ -69,6 +69,8 @@ def flags_for(row):
         f.append("etat_hors_NY")
     if not row.get("city"):
         f.append("sans_ville")
+    elif address_lib.normalize_us_city(row["city"]) != row["city"]:
+        f.append("ville_prefixe_administratif")
     if not row.get("address_line"):
         f.append("sans_rue")
     elif looks_like_poi(row["address_line"]):

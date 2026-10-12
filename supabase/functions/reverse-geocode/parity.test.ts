@@ -29,6 +29,12 @@ const FIXTURES: unknown[] = [
   // FR/ES : jamais d'abréviation (« Avenue » reste « Avenue »)
   { results: [{ housenumber: "8", street: "Avenue du Parc", city: "Lyon", country_code: "fr" }] },
   { results: [{ housenumber: "8", street: "Calle Norte Avenida", city: "Madrid", country_code: "es" }] },
+  // États-Unis : préfixes administratifs retirés ; FR/ES inchangés
+  { results: [{ housenumber: "41", street: "Birch Lane", city: "Village of Massapequa Park", postcode: "11762", country_code: "us" }] },
+  { results: [{ street: "Middletown Road", town: "Town of Waterford", country_code: "us" }] },
+  { results: [{ street: "Euclid Avenue", housenumber: "356 REAR", city: "City of Syracuse", postcode: "13203-1234", country_code: "us" }] },
+  { results: [{ street: "Main Street", city: "City of ", country_code: "us" }] },
+  { results: [{ street: "Rue X", city: "City of Lyon", country_code: "fr" }] },
 ];
 
 const root = fileURLToPath(new URL("../../../scripts/osm", import.meta.url));
@@ -73,6 +79,16 @@ describe("États-Unis (normalisation de la rue)", () => {
   it("FR/ES : rue inchangée", () => {
     expect(extractAddress({ results: [{ housenumber: "8", street: "Avenue du Parc", city: "Lyon", country_code: "fr" }] })!.address_line).toBe("8 Avenue du Parc");
     expect(extractAddress({ results: [{ housenumber: "8", street: "Calle Mayor", city: "Madrid", country_code: "es" }] })!.address_line).toBe("8 Calle Mayor");
+  });
+  it("ville : préfixes City/Town/Village of retirés aux US seulement", () => {
+    const city = (c: string, cc: string) => extractAddress({ results: [{ street: "Main Street", city: c, country_code: cc }] })!.city;
+    expect(city("Village of Massapequa Park", "us")).toBe("Massapequa Park");
+    expect(city("Town of Waterford", "us")).toBe("Waterford");
+    expect(city("City of Corning", "us")).toBe("Corning");
+    expect(city("New York", "us")).toBe("New York");
+    expect(city("Town of", "us")).toBe("Town of");
+    expect(city("City of Lyon", "fr")).toBe("City of Lyon");
+    expect(city("Village of Sevilla", "es")).toBe("Village of Sevilla");
   });
   it("hamlet : ville uniquement aux US", () => {
     expect(extractAddress({ results: [{ street: "Main Street", hamlet: "Wading River", country_code: "us" }] })!.city).toBe("Wading River");

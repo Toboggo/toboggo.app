@@ -41,6 +41,15 @@ export function abbreviateUsStreet(street: string | null): string | null {
   return words.join(" ");
 }
 
+// États-Unis : « Village of Massapequa Park » → « Massapequa Park ». Miroir EXACT de
+// `scripts/osm/address.py::normalize_us_city` (préfixe « City/Town/Village of » en tête
+// uniquement, suivi d'un nom ; sinon valeur inchangée).
+export function normalizeUsCity(city: string | null): string | null {
+  if (!city) return city;
+  const stripped = city.trim().replace(/^(?:city|town|village)\s+of\s+(?=\S)/i, "").trim();
+  return stripped || city;
+}
+
 /** Coordonnées WGS84 valides (hors « Null Island »), sinon `null`. Seules `lat`
  * et `lng` sont lues : aucun autre champ du corps n'a d'effet. */
 export function parseCoordinates(body: unknown): { lat: number; lng: number } | null {
@@ -71,7 +80,9 @@ export function extractAddress(data: unknown): StructuredAddress | null {
   const result: StructuredAddress = {
     address_line,
     postal_code: str(r.postcode),
-    city: str(r.city) ?? str(r.town) ?? str(r.village) ?? (isUs ? str(r.hamlet) : null),
+    city: isUs
+      ? normalizeUsCity(str(r.city) ?? str(r.town) ?? str(r.village) ?? str(r.hamlet))
+      : str(r.city) ?? str(r.town) ?? str(r.village),
     admin_area_1: str(r.state),
     admin_area_2: str(r.county) ?? str(r.state_district),
     country_code,

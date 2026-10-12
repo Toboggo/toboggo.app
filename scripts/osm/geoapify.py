@@ -21,7 +21,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from address import abbreviate_us_street
+from address import abbreviate_us_street, normalize_us_city
 
 GEOAPIFY_BASE_URL = "https://api.geoapify.com/v1/geocode/reverse"
 DEFAULT_TIMEOUT_S = 10
@@ -151,6 +151,13 @@ class GeoapifyClient:
         city = r.get("city") or r.get("town") or r.get("village")
         if is_us and not city:
             city = r.get("hamlet")      # NY : de nombreux lieux sont des « hamlets »
+        # US : « Village of Massapequa Park » → « Massapequa Park ». La valeur brute
+        # reste disponible (`city_raw`, provenance uniquement) si elle a été modifiée.
+        city_raw = None
+        if is_us and city:
+            normalized = normalize_us_city(city)
+            if normalized != city:
+                city_raw, city = city, normalized
         postal_code = r.get("postcode")
         admin_area_1 = r.get("state")
         admin_area_2 = r.get("county") or r.get("state_district")
@@ -185,6 +192,7 @@ class GeoapifyClient:
             "country_code": country_code,
             "neighbourhood": neighbourhood,
             "state_code": state_code,
+            "city_raw": city_raw,
         }
         if not any([result["address_line"], result["postal_code"], result["city"]]):
             return None

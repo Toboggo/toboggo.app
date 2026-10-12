@@ -177,6 +177,22 @@ def abbreviate_us_street(street):
     return " ".join(words)
 
 
+_US_MUNICIPALITY_PREFIX = re.compile(r"^(?:city|town|village)\s+of\s+(?=\S)", re.IGNORECASE)
+
+
+def normalize_us_city(city):
+    """« Village of Massapequa Park » → « Massapequa Park » (idem « City of », « Town of »).
+
+    Geoapify renvoie parfois le statut administratif OSM dans `city`. Seul un préfixe
+    EN TÊTE suivi d'un nom est retiré (« City of » seul reste intact) ; « New York »,
+    « Rochester », les hamlets ou un nom contenant « of » plus loin sont inchangés.
+    La valeur brute est conservée en provenance (`city_raw`) par l'appelant."""
+    if not city:
+        return city
+    stripped = _US_MUNICIPALITY_PREFIX.sub("", city.strip(), count=1).strip()
+    return stripped or city
+
+
 def build_us_formatted_address(d):
     """« 123 W 42nd St, New York, NY 10036 » — aucune pièce absente n'est inventée."""
     state_zip = " ".join(filter(None, [us_state_abbr(d.get("admin_area_1")), d.get("postal_code")]))

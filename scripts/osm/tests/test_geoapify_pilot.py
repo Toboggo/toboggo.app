@@ -101,6 +101,8 @@ class TestAddressQualityFlags(unittest.TestCase):
         self.assertIn("etat_non_reconnu", chk.flags_for(dict(ok, admin_area_1="Atlantis")))
         self.assertIn("zip_invalide", chk.flags_for(dict(ok, postal_code="1003")))
         self.assertIn("sans_ville", chk.flags_for(dict(ok, city=None)))
+        self.assertIn("ville_prefixe_administratif", chk.flags_for(dict(ok, city="Town of Waterford")))
+        self.assertNotIn("ville_prefixe_administratif", chk.flags_for(ok))
         self.assertIn("sans_rue", chk.flags_for(dict(ok, address_line=None)))
         self.assertIn("rue_ressemble_a_un_POI", chk.flags_for(dict(ok, address_line="Prospect Park")))
 

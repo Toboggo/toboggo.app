@@ -490,7 +490,7 @@ def main():
         # inchangée (mêmes 5 clés ⇒ comparaison d'idempotence inchangée).
         provenance = dict(value)
         if (result.get("country_code") or "").upper() == "US":
-            for extra in ("neighbourhood", "state_code"):
+            for extra in ("neighbourhood", "state_code", "city_raw"):
                 if result.get(extra):
                     provenance[extra] = result[extra]
         formatted = address_lib.build_formatted_address(value, result.get("country_code"))

@@ -9,6 +9,7 @@ const CARD_FIELDS = `_id,
   excerpt,
   publishedAt,
   updatedAt,
+  _updatedAt,
   "category": category->{ title, "slug": slug.current },
   "author": author->{ name, role },
   "cover": coverImage ${IMAGE}`;
@@ -18,7 +19,6 @@ const FULL = `{
   ${CARD_FIELDS},
   seoTitle,
   seoDescription,
-  _updatedAt,
   "body": body[]{
     ...,
     _type == "image" => { ..., "url": asset->url, "width": asset->metadata.dimensions.width, "height": asset->metadata.dimensions.height }

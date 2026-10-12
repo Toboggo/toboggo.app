@@ -12,6 +12,8 @@ export interface ArticleCard {
   excerpt: string;
   publishedAt: string;
   updatedAt?: string | null;
+  /** Dernière modification dans Sanity (document publié) : base de dateModified et du lastmod du sitemap. */
+  _updatedAt: string;
   category?: { title: string; slug: string } | null;
   author?: { name: string; role?: string | null } | null;
   cover?: BlogImage | null;
@@ -20,6 +22,5 @@ export interface ArticleCard {
 export interface Article extends ArticleCard {
   seoTitle?: string | null;
   seoDescription?: string | null;
-  _updatedAt: string;
   body: unknown[];
 }

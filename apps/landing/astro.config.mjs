@@ -28,10 +28,12 @@ for (const key of ["SANITY_PROJECT_ID", "SANITY_DATASET", "SANITY_API_READ_TOKEN
   if (allEnv[key] && !process.env[key]) process.env[key] = allEnv[key];
 }
 const { getArticles } = await import("./src/lib/blog/articles.ts");
+const { articleModifiedAt } = await import("./src/lib/blog/seo.ts");
 const articles = await getArticles();
 // Tant qu'aucun article n'est publié, /guides/ est noindex (voir guides/index.astro) donc hors sitemap.
 if (articles.length === 0) SHELL_ONLY_PATHS.push("/guides");
-const lastmodByPath = new Map(articles.map((a) => [`/guides/${a.slug}`, a.updatedAt ?? a.publishedAt]));
+// lastmod = même date que `dateModified` (_updatedAt, repli publishedAt) ; la date affichée (champ éditorial updatedAt) est indépendante.
+const lastmodByPath = new Map(articles.map((a) => [`/guides/${a.slug}`, articleModifiedAt(a)]));
 
 // @astrojs/vercel 11 : le bundle serveur embarque des constantes de dist/index.js dont les imports « effet de bord »
 // (`import "rolldown"`, `import "@vercel/routing-utils"`) survivent au tree-shaking. rolldown charge alors son binding

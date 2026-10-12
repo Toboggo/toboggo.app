@@ -38,7 +38,7 @@
 /* Carte blanche : coins 20 px, ombre légère. */
 .card {
   background: var(--color-surface);
-  border-radius: 20px;
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
 }

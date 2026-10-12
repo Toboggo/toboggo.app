@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSupabase } from "../supabaseClient";
-import { getOrganization, listOrganizationsWithCounts } from "./team";
+import { getOrganization, inviteTeamMember, listOrganizationsWithCounts } from "./team";
 import { makeFakeSupabase } from "../testUtils/fakeSupabase";
 
 vi.mock("../supabaseClient", () => ({ getSupabase: vi.fn() }));
@@ -98,5 +98,51 @@ describe("getOrganization — fiche Collectivité 360 (Admin-UI-3C)", () => {
     vi.mocked(getSupabase).mockReturnValue(client as never);
 
     await expect(getOrganization("org-lyon")).rejects.toEqual(dbError);
+  });
+});
+
+describe("inviteTeamMember — origine du lien d’invitation (SPLIT-04B)", () => {
+  const INPUT = { communeId: "org-lyon", name: "Jean", email: "jean@lyon.fr", role: "gestionnaire" as const, invitedBy: "u1" };
+
+  function fakeClient(otpError: unknown = null) {
+    const signInWithOtp = vi.fn().mockResolvedValue({ error: otpError });
+    const insert = vi.fn();
+    const single = vi.fn().mockResolvedValue({ data: { id: "m1", organization_id: "org-lyon", name: "Jean", email: "jean@lyon.fr", role: "gestionnaire" }, error: null });
+    insert.mockReturnValue({ select: () => ({ single }) });
+    const client = { auth: { signInWithOtp }, from: vi.fn(() => ({ insert })) };
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    return { signInWithOtp, insert };
+  }
+
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("le lien d’invitation revient sur l’origine courante (admin ou collectivités), sans domaine codé en dur", async () => {
+    for (const origin of ["https://admin.example.test", "https://collectivites.example.test", "http://localhost:5176"]) {
+      vi.stubGlobal("window", { location: { origin } });
+      const { signInWithOtp } = fakeClient();
+      await inviteTeamMember(INPUT);
+      expect(signInWithOtp).toHaveBeenCalledWith({ email: "jean@lyon.fr", options: { emailRedirectTo: origin } });
+    }
+  });
+
+  it("hors navigateur (pas de window) : pas de emailRedirectTo, comportement historique", async () => {
+    const { signInWithOtp } = fakeClient();
+    await inviteTeamMember(INPUT);
+    expect(signInWithOtp).toHaveBeenCalledWith({ email: "jean@lyon.fr", options: { emailRedirectTo: undefined } });
+  });
+
+  it("n’insère la ligne team_members qu’une fois l’e-mail accepté ; une erreur d’envoi est propagée", async () => {
+    const { insert } = fakeClient({ message: "rate limit" });
+    await expect(inviteTeamMember(INPUT)).rejects.toEqual({ message: "rate limit" });
+    expect(insert).not.toHaveBeenCalled();
+  });
+
+  it("insère le membre invité (user_id nul, rattaché à l’organisation) une fois l’e-mail parti", async () => {
+    const { insert } = fakeClient();
+    await inviteTeamMember(INPUT);
+    expect(insert).toHaveBeenCalledWith(
+      expect.objectContaining({ organization_id: "org-lyon", email: "jean@lyon.fr", role: "gestionnaire", invited_by: "u1", user_id: null }),
+    );
   });
 });

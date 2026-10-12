@@ -39,24 +39,43 @@
   flex: none;
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: 6px;
 }
 .zonePill {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border: none;
+  position: relative;
+  /* Même bordure (1.5 px) neutre ou verte : aucun décalage entre les états. */
+  border: 1.5px solid var(--color-border-neutral);
   border-radius: var(--radius-pill);
-  background: var(--color-primary-tint);
-  color: var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-text);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 12.5px;
   white-space: nowrap;
-  padding: 6px 10px 6px 12px;
+  padding: 4.5px 9px 4.5px 11px;
   cursor: pointer;
 }
+.zonePill::before {
+  content: "";
+  position: absolute;
+  inset: -9px 0;
+}
+/* Zone modifiée (≠ valeur par défaut) : même style que les filtres appliqués. */
+.zonePill[data-active="1"] {
+  border-color: var(--color-primary);
+  background: var(--color-primary-tint);
+  color: var(--color-primary-hover);
+}
+.expandBtn::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
 .expandBtn {
+  position: relative;
   width: 32px;
   height: 32px;
   border: none;
@@ -85,7 +104,10 @@
 .chips {
   display: flex;
   gap: var(--space-2);
-  padding: 0 var(--space-4) var(--space-2);
+  /* Marge intérieure pour la zone tactile des puces (overflow-x rogne aussi en vertical),
+   * compensée pour ne pas changer la hauteur de la rangée. */
+  padding: 9px var(--space-4) 17px;
+  margin: -9px 0 -9px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -93,16 +115,22 @@
   display: none;
 }
 .chip {
+  position: relative;
   flex: none;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-neutral);
   border-radius: var(--radius-pill);
-  background: var(--color-surface);
+  background: var(--color-surface-neutral);
   color: var(--color-text);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13px;
   padding: 5px 14px;
   cursor: pointer;
+}
+.chip::before {
+  content: "";
+  position: absolute;
+  inset: -9px 0;
 }
 .chip[data-on="1"] {
   background: var(--color-primary);

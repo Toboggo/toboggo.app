@@ -77,6 +77,11 @@
   font-size: 13px;
   white-space: nowrap;
 }
+/* Valeur affichée mais non modifiée (plage d'âge complète) : neutre, pas « appliquée ». */
+.countPill[data-default="1"] {
+  background: var(--color-surface-neutral);
+  color: var(--color-text);
+}
 .header .countPill {
   margin-right: 8px;
 }
@@ -208,7 +213,7 @@ section > .sectionTitle {
   gap: 6px;
   min-height: 84px;
   padding: 10px 6px 8px;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid var(--color-border-neutral);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text-muted);
@@ -300,7 +305,7 @@ section > .sectionTitle {
   min-height: 48px;
   margin-top: 14px;
   padding: 0 14px;
-  border: 1.5px solid var(--color-border);
+  border: 1.5px solid var(--color-border-neutral);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   color: var(--color-text-muted);

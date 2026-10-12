@@ -70,7 +70,8 @@
 .filterRow {
   display: flex;
   gap: 8px;
-  padding: 4px 16px 14px;
+  padding: 8px 16px 18px;
+  margin-top: -4px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -82,14 +83,21 @@
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13px;
-  color: var(--color-text-muted);
-  background: var(--color-surface-alt);
+  position: relative;
+  color: var(--color-text);
+  background: var(--color-surface-neutral);
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   padding: 8px 14px;
   cursor: pointer;
   white-space: nowrap;
   min-height: 36px;
+}
+/* Zone tactile ≥ 44 px (36 + 4 + 4), sans changer la taille visible. */
+.filterChip::before {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
 }
 .filterChip[aria-pressed="true"] {
   background: var(--color-primary);

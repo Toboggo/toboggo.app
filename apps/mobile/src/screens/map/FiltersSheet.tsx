@@ -229,7 +229,7 @@ export function FiltersSheet({ open, onClose }: { open: boolean; onClose: () => 
                   <h3 className={styles.sectionTitle} id="filters-age">
                     {t("filters.ageRange")}
                   </h3>
-                  <span className={styles.countPill} aria-live="polite">
+                  <span className={styles.countPill} data-default={ageLow === 0 && ageHigh >= AGE_MAX ? "1" : undefined} aria-live="polite">
                     {ageValue}
                   </span>
                 </div>

@@ -33,7 +33,17 @@ export async function inviteTeamMember(input: {
   invitedBy: string;
 }): Promise<TeamMember> {
   const supabase = getSupabase();
-  const { error: authError } = await supabase.auth.signInWithOtp({ email: input.email });
+  // Without `emailRedirectTo` the invitation e-mail always links to the Supabase
+  // project's single Site URL — i.e. the wrong back office once Admin and
+  // Collectivités live on separate origins. The inviter is on the right app by
+  // construction (each back office only invites its own kind of member), so the
+  // current origin is the one to come back to — no domain is hard-coded. The
+  // origin must still be allowed in the Supabase Auth redirect URLs (same
+  // requirement as `signUp` / `signInWithGoogle` in auth.ts).
+  const { error: authError } = await supabase.auth.signInWithOtp({
+    email: input.email,
+    options: { emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
+  });
   if (authError) throw authError;
   const { data, error } = await supabase
     .from("team_members")

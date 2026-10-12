@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { getParkDisplayName, haversineMeters, incrementParkViews, respondToReport, type ActiveReport, type ReportResponse } from "@toboggo/shared";
-import { Icon } from "@toboggo/design-system";
+import { Button, Icon } from "@toboggo/design-system";
 import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { presentPlayCodes } from "../../lib/parkEquipment";
 import { ParkGlyph } from "../../components/addPark/ParkGlyph";
@@ -322,9 +322,9 @@ export default function ParkDetail() {
           {equip.length === 0 ? (
             <div className={styles.emptyCard}>
               <span>{t("equipment.unavailable")}</span>
-              <button type="button" onClick={() => navigate(`/contribute/edit?park=${park.id}`)}>
+              <Button variant="secondary" size="sm" onClick={() => navigate(`/contribute/edit?park=${park.id}`)}>
                 {t("equipment.complete")}
-              </button>
+              </Button>
             </div>
           ) : (
             <div className={styles.equipRow}>

@@ -522,3 +522,11 @@
   outline: 3px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* Jeux & équipements non renseignés : texte puis action secondaire (bouton partagé). */
+.emptyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}

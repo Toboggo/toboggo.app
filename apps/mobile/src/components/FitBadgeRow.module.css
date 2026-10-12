@@ -1,0 +1,14 @@
+/* Une seule ligne, jamais de retour à la ligne ni de défilement : le composant
+ * calcule combien de badges tiennent et résume le reste en « +N ». */
+.row {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.item {
+  flex: none;
+  display: inline-flex;
+}

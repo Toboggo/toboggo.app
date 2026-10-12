@@ -19,6 +19,7 @@ export function ParkBadge({
   icon,
   iconOnly = false,
   size = "sm",
+  accessibleLabel,
 }: {
   variant: ParkBadgeVariant;
   label: string;
@@ -28,6 +29,8 @@ export function ParkBadge({
   /** Compact sizes of the summaries: `sm` lists / Favorites, `md` compact panel,
    * `lg` full page (the paddings those surfaces had before the shared badge). */
   size?: "sm" | "md" | "lg";
+  /** Spoken name when the visible text is terse (« +2 »). */
+  accessibleLabel?: string;
 }) {
   const asIcon = iconOnly && icon != null;
   return (
@@ -36,8 +39,8 @@ export function ParkBadge({
       data-variant={variant}
       data-size={size}
       data-icon-only={asIcon ? "1" : undefined}
-      role={asIcon ? "img" : undefined}
-      aria-label={asIcon ? label : undefined}
+      role={asIcon || accessibleLabel ? "img" : undefined}
+      aria-label={asIcon ? label : accessibleLabel}
       title={asIcon ? label : undefined}
     >
       {icon && <Icon name={icon} size={asIcon ? 13 : 12} />}

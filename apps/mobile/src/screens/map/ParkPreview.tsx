@@ -8,6 +8,7 @@ import { useSession } from "../../lib/session";
 import { hasRating } from "../../lib/parkDisplay";
 import { serviceEntry } from "../../lib/parkAmenities";
 import { AmenityBadge, ParkBadge } from "../../components/ParkBadge";
+import { FitBadgeRow } from "../../components/FitBadgeRow";
 import { useFormat } from "../../i18n/useFormat";
 import { useDirections } from "../../lib/directions";
 import { DirectionsSheet } from "../../components/DirectionsSheet";
@@ -113,10 +114,13 @@ export function ParkPreview({
 
           {hasCriteria && (
             <div className={styles.chips}>
-              {ageRangeLabel && <ParkBadge variant="age" label={ageRangeLabel} size="md" />}
-              {presentServices.map((e) => (
-                <AmenityBadge key={e.code} entry={e} size="md" />
-              ))}
+              <FitBadgeRow
+                pinned={ageRangeLabel ? 1 : 0}
+                items={[
+                  ...(ageRangeLabel ? [{ key: "age", node: <ParkBadge variant="age" label={ageRangeLabel} size="md" /> }] : []),
+                  ...presentServices.map((e) => ({ key: e.code, node: <AmenityBadge entry={e} size="md" /> })),
+                ]}
+              />
             </div>
           )}
         </div>

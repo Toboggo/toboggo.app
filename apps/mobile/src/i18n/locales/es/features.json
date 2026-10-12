@@ -94,6 +94,8 @@
       "benches": "Bancos",
       "water": "Fuente",
       "parking": "Parking"
-    }
+    },
+    "more_one": "{{count}} característica más en la ficha",
+    "more_other": "{{count}} características más en la ficha"
   }
 }

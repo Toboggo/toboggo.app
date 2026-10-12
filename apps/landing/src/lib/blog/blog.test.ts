@@ -2,7 +2,7 @@ import { evaluate, parse } from "groq-js";
 import { describe, expect, it } from "vitest";
 import { createPreviewCookieValue, isValidPreviewCookie, safePreviewRedirect } from "./previewSession";
 import { renderBody } from "./portableText";
-import { articleJsonLd, articleMeta } from "./seo";
+import { articleJsonLd, articleMeta, articleModifiedAt, authorLd, isEditorialAuthor } from "./seo";
 import { BY_SLUG_QUERY, LIST_QUERY } from "./queries";
 import type { Article } from "./types";
 
@@ -41,6 +41,19 @@ describe("requêtes GROQ du blog", () => {
     expect(await run(BY_SLUG_QUERY, { slug: "brouillon" })).toBeNull();
     expect(await run(BY_SLUG_QUERY, { slug: "futur" })).toBeNull();
     expect(((await run(BY_SLUG_QUERY, { slug: "publie" })) as { title: string }).title).toBe("T a1");
+  });
+});
+
+describe("requête de détail : champs nécessaires au JSON-LD", () => {
+  it("renvoie _updatedAt (Sanity), publishedAt et l'auteur", async () => {
+    const withMeta = [
+      { _id: "au1", _type: "author", name: "Équipe Toboggo" },
+      { ...doc("a9", "avec-meta", past), _updatedAt: "2026-06-07T12:00:00Z", author: { _type: "reference", _ref: "au1" } },
+    ];
+    const res = (await (await evaluate(parse(BY_SLUG_QUERY, { params: { slug: "avec-meta" } }), { dataset: withMeta, params: { slug: "avec-meta" } })).get()) as Record<string, any>;
+    expect(res._updatedAt).toBe("2026-06-07T12:00:00Z");
+    expect(res.publishedAt).toBe(past);
+    expect(res.author).toEqual({ name: "Équipe Toboggo", role: null });
   });
 });
 
@@ -91,7 +104,7 @@ describe("contenu riche", () => {
 describe("SEO article", () => {
   const article: Article = {
     _id: "a1",
-    _updatedAt: past,
+    _updatedAt: "2026-03-04T10:00:00Z",
     title: "Mon titre",
     slug: "mon-titre",
     excerpt: "Un résumé suffisamment long.",
@@ -112,8 +125,31 @@ describe("SEO article", () => {
     const ld = articleJsonLd(article) as Record<string, any>;
     expect(ld["@type"]).toBe("Article");
     expect(ld.datePublished).toBe("2026-01-02T08:00:00Z");
-    expect(ld.dateModified).toBe("2026-02-03T08:00:00Z");
-    expect(ld.author.name).toBe("Équipe Toboggo");
+    expect(ld.dateModified).toBe("2026-03-04T10:00:00Z");
+    expect(ld.author).toEqual({ "@type": "Organization", name: "Toboggo", url: "https://toboggo-website.vercel.app" });
     expect(ld.mainEntityOfPage["@id"]).toMatch(/\/guides\/mon-titre\/$/);
+  });
+  it("dateModified : _updatedAt, repli sur publishedAt, jamais avant datePublished ; datePublished reste publishedAt", () => {
+    const base = { publishedAt: "2026-01-02T08:00:00Z" };
+    expect(articleModifiedAt({ ...base, _updatedAt: "2026-05-06T09:00:00Z" })).toBe("2026-05-06T09:00:00Z");
+    expect(articleModifiedAt({ ...base, _updatedAt: undefined as unknown as string })).toBe(base.publishedAt);
+    expect(articleModifiedAt({ ...base, _updatedAt: "pas-une-date" })).toBe(base.publishedAt);
+    expect(articleModifiedAt({ ...base, _updatedAt: "2025-12-01T00:00:00Z" })).toBe(base.publishedAt);
+    // le champ éditorial updatedAt n'influence plus dateModified
+    const ld = articleJsonLd({ ...article, updatedAt: "2030-01-01T00:00:00Z", _updatedAt: "2026-05-06T09:00:00Z" }) as Record<string, any>;
+    expect(ld.dateModified).toBe("2026-05-06T09:00:00Z");
+    expect(ld.datePublished).toBe(article.publishedAt);
+    expect(articleMeta({ ...article, _updatedAt: "2026-05-06T09:00:00Z" }).article.modifiedTime).toBe("2026-05-06T09:00:00Z");
+  });
+  it("auteur : Organization pour la signature Toboggo, Person pour un individu", () => {
+    for (const name of ["Toboggo", "Équipe Toboggo", "equipe toboggo", "  ÉQUIPE TOBOGGO "]) expect(isEditorialAuthor(name)).toBe(true);
+    for (const name of ["Camille Dupont", "Toboggo Dupont", "Équipe Toboggo Paris", "Marie"]) expect(isEditorialAuthor(name)).toBe(false);
+    expect(authorLd({ name: "Équipe Toboggo" })["@type"]).toBe("Organization");
+    expect(authorLd({ name: "Camille Dupont" })).toEqual({ "@type": "Person", name: "Camille Dupont" });
+    const ld = articleJsonLd({ ...article, author: { name: "Camille Dupont" } }) as Record<string, any>;
+    expect(ld.author).toEqual({ "@type": "Person", name: "Camille Dupont" });
+  });
+  it("sans auteur : pas de propriété author", () => {
+    expect(articleJsonLd({ ...article, author: null })).not.toHaveProperty("author");
   });
 });

@@ -7,7 +7,7 @@
   --auth-muted: #6b7280;
   --auth-field: #f3f4f6;
   --auth-line: #d1d5db;
-  --auth-green: #2fa37c;
+  --auth-green: var(--color-primary);
 
   min-height: 100vh;
   min-height: 100dvh;
@@ -178,7 +178,7 @@
 .ok {
   margin: 0;
   font-size: 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-callout);
   padding: 10px 12px;
 }
 .error {
@@ -193,7 +193,7 @@
 .submit {
   margin-top: 8px;
   height: 52px;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   border: none;
   background: var(--auth-green);
   color: #fff;
@@ -243,7 +243,7 @@
 
 .social {
   height: 52px;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--auth-line);
   background: #fff;
   display: flex;

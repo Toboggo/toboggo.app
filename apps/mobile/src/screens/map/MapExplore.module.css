@@ -94,7 +94,7 @@
 .iconBtn[data-on="1"] {
   background: var(--color-primary-tint);
   border-color: var(--color-primary);
-  color: var(--color-primary-hover);
+  color: var(--color-primary-on-tint);
 }
 .badge {
   position: absolute;

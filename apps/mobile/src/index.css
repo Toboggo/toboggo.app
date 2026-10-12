@@ -8,6 +8,29 @@
   --app-shell-width: 560px;
 }
 
+/* ── Cohérence mobile (portée app mobile uniquement) ─────────────────────────
+ * Le design system partage ses tokens avec les backoffices et la landing ; les
+ * valeurs ci-dessous ne s'appliquent qu'ici. Thème clair seulement : le bloc
+ * [data-theme="dark"] de tokens.css garde ses propres valeurs.
+ *  - neutres : bordures et fonds gris (plus de beige) ;
+ *  - --color-primary-on-tint : vert de texte plus sombre (≥ 4,5:1) sur le fond
+ *    vert léger --color-primary-tint ;
+ *  - rayons : un token par famille de forme (carte / encart). */
+:root:not([data-theme="dark"]) {
+  --color-border: var(--color-border-neutral);
+  --color-border-strong: #ebebe8;
+  --color-surface-alt: var(--color-surface-neutral);
+  --color-bg-alt: var(--color-surface-neutral);
+  --color-primary-on-tint: #1b7254;
+}
+:root[data-theme="dark"] {
+  --color-primary-on-tint: var(--color-primary);
+}
+:root {
+  --radius-card: var(--radius-md);
+  --radius-callout: 12px;
+}
+
 html,
 body {
   height: 100%;

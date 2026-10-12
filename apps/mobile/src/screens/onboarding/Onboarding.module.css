@@ -87,7 +87,7 @@
 }
 .infoBanner {
   background: var(--color-primary-tint);
-  color: var(--color-primary-hover);
+  color: var(--color-primary-on-tint);
   padding: 12px 14px;
   border-radius: var(--radius-sm);
   font-size: 13.5px;

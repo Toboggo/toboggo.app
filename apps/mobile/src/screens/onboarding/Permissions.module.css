@@ -55,7 +55,7 @@
   align-items: center;
   gap: 14px;
   background: var(--color-surface);
-  border-radius: 18px;
+  border-radius: var(--radius-card);
   padding: 14px 16px;
   border: 1.5px solid var(--color-border);
   cursor: pointer;
@@ -68,7 +68,7 @@
 .zoneTile {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: var(--radius-callout);
   background: var(--color-primary-tint);
   color: var(--color-primary);
   display: flex;
@@ -129,7 +129,7 @@
 }
 .iosAlert {
   background: #f2f2f2;
-  border-radius: 14px;
+  border-radius: var(--radius-callout);
   width: 100%;
   max-width: 270px;
   overflow: hidden;

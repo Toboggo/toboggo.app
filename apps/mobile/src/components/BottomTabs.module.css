@@ -59,7 +59,7 @@
   line-height: 1;
 }
 .tab[data-active="1"] {
-  color: var(--color-primary);
+  color: var(--color-primary-on-tint);
   font-weight: 600;
 }
 .tabIcon {

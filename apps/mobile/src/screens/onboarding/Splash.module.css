@@ -79,14 +79,14 @@
 .primary,
 .secondary {
   height: 52px;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   font-weight: 600;
   font-size: 16px;
   cursor: pointer;
 }
 .primary {
   border: none;
-  background: #2fa37c;
+  background: var(--color-primary);
   color: #fff;
 }
 .primary:active {

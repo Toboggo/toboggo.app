@@ -67,7 +67,7 @@
 .zonePill[data-active="1"] {
   border-color: var(--color-primary);
   background: var(--color-primary-tint);
-  color: var(--color-primary-hover);
+  color: var(--color-primary-on-tint);
 }
 .expandBtn::before {
   content: "";
@@ -140,7 +140,7 @@
 .contextEmpty {
   margin: 0 var(--space-4) var(--space-4);
   padding: var(--space-4);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-callout);
   background: var(--color-surface-alt);
   font-size: 13px;
   color: var(--color-text-muted);

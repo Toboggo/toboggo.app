@@ -7,7 +7,7 @@
   --auth-text: #111827;
   --auth-muted: #6b7280;
   --auth-field: #f3f4f6;
-  --auth-green: #2fa37c;
+  --auth-green: var(--color-primary);
 
   min-height: 100vh;
   min-height: 100dvh;
@@ -111,7 +111,7 @@
 .error {
   margin: 0;
   font-size: 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-callout);
   padding: 10px 12px;
   color: var(--color-error);
   background: var(--color-error-tint);
@@ -120,7 +120,7 @@
 .submit {
   margin-top: 6px;
   height: 52px;
-  border-radius: 14px;
+  border-radius: var(--radius-pill);
   border: none;
   background: var(--auth-green);
   color: #fff;

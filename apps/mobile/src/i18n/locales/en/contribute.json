@@ -498,7 +498,7 @@
     "statusAria": "Status: {{status}}"
   },
   "history": {
-    "title": "Your contributions",
+    "title": "My additions",
     "subtitle": "All your actions to keep parks up to date.",
     "filters": {
       "type": {

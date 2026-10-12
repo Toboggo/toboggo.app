@@ -43,7 +43,15 @@
   font-size: 16px; /* prevents iOS Safari auto-zoom on focus */
   cursor: pointer;
 }
-.chip:focus-within {
+/* Le <select> invisible ne porte aucun contour (le global :focus-visible le
+ * dessinerait carré, décalé de 2 px autour de la puce). Le contour est posé sur
+ * la puce, qui suit son arrondi, et seulement au focus clavier — pas après un
+ * simple appui ou clic (ce qui était le cas avec :focus-within). */
+.select:focus,
+.select:focus-visible {
+  outline: none;
+}
+.chip:has(.select:focus-visible) {
   outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+  outline-offset: 2px;
 }

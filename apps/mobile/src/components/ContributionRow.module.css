@@ -1,9 +1,9 @@
-/* Une seule rangée : miniature | picto | nom du parc + type | pastille statut + date | chevron. */
+/* Une seule rangée, alignée en haut : miniature | picto | nom + type + date | statut | chevron / « ⋯ ». */
 .rowWrap {
   position: relative;
   display: grid;
-  grid-template-columns: auto auto minmax(0, 1fr) var(--status-w, 78px) 16px;
-  align-items: center;
+  grid-template-columns: auto auto minmax(0, 1fr) var(--cell, 32px) var(--cell, 32px);
+  align-items: start;
   column-gap: 8px;
   padding: 10px 0;
 }
@@ -87,46 +87,43 @@
   overflow-wrap: anywhere;
 }
 
-/* Colonne statut + date : largeur commune, pastille centrée, date dessous. */
-.trailing {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 0;
+.meta {
+  margin-top: 2px;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: var(--color-text-faint);
+  overflow-wrap: anywhere;
 }
 
-.meta {
-  font-size: 11.5px;
-  line-height: 1.2;
-  color: var(--color-text-faint);
-  text-align: center;
+/* Colonnes de droite : largeur constante, calées sur la hauteur de la miniature. */
+.status,
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--cell, 32px);
+  height: 32px;
 }
 
 .chevron {
   display: flex;
-  justify-content: flex-end;
 }
 
-/* « ⋯ » d'un avis modifiable : prend la place du chevron (aucune colonne en plus). */
+/* « ⋯ » d'un avis modifiable : même case que le chevron. */
 .menu {
-  position: absolute;
+  position: relative;
   z-index: 2;
-  right: -6px;
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
 }
 .menu button {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
 }
 
 @media (max-width: 359px) {
   .rowWrap {
-    --status-w: 72px;
+    --cell: 28px;
     column-gap: 6px;
-    grid-template-columns: auto auto minmax(0, 1fr) var(--status-w) 12px;
   }
   .thumb {
     width: 34px;
@@ -138,5 +135,13 @@
   }
   .meta {
     font-size: 10.5px;
+  }
+  .status,
+  .action,
+  .menu button {
+    height: 28px;
+  }
+  .menu button {
+    width: 28px;
   }
 }

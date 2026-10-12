@@ -24,6 +24,17 @@
   transform: none;
 }
 
+/* Contour de focus clavier suivant l'arrondi du bouton ; rien après un appui tactile. */
+.btn:focus-visible,
+.icon:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+.btn:focus:not(:focus-visible),
+.icon:focus:not(:focus-visible) {
+  outline: none;
+}
+
 .block {
   width: 100%;
 }
@@ -32,8 +43,10 @@
   background: var(--color-primary);
   color: var(--color-on-primary);
 }
-.primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
+@media (hover: hover) {
+  .primary:hover:not(:disabled) {
+    background: var(--color-primary-hover);
+  }
 }
 .primary:active:not(:disabled) {
   background: var(--color-primary-pressed);
@@ -44,7 +57,12 @@
   color: var(--color-text);
   border: 1.5px solid var(--color-border-strong);
 }
-.secondary:hover:not(:disabled) {
+@media (hover: hover) {
+  .secondary:hover:not(:disabled) {
+    background: var(--color-bg-alt);
+  }
+}
+.secondary:active:not(:disabled) {
   background: var(--color-bg-alt);
 }
 
@@ -53,7 +71,12 @@
   color: var(--color-primary);
   padding: 10px 14px;
 }
-.ghost:hover:not(:disabled) {
+@media (hover: hover) {
+  .ghost:hover:not(:disabled) {
+    background: var(--color-primary-tint);
+  }
+}
+.ghost:active:not(:disabled) {
   background: var(--color-primary-tint);
 }
 
@@ -61,7 +84,13 @@
   background: var(--color-error-tint);
   color: var(--color-error);
 }
-.danger:hover:not(:disabled) {
+@media (hover: hover) {
+  .danger:hover:not(:disabled) {
+    background: var(--color-error);
+    color: white;
+  }
+}
+.danger:active:not(:disabled) {
   background: var(--color-error);
   color: white;
 }

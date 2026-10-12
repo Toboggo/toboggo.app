@@ -69,40 +69,12 @@
 
 .filterRow {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  padding: 8px 16px 18px;
-  margin-top: -4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.filterRow::-webkit-scrollbar {
-  display: none;
+  padding: 4px 16px 14px;
 }
 .filterChip {
-  flex: none;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 13px;
-  position: relative;
-  color: var(--color-text);
-  background: var(--color-surface-neutral);
-  border: 1px solid transparent;
-  border-radius: var(--radius-pill);
-  padding: 8px 14px;
-  cursor: pointer;
-  white-space: nowrap;
-  min-height: 36px;
-}
-/* Zone tactile ≥ 44 px (36 + 4 + 4), sans changer la taille visible. */
-.filterChip::before {
-  content: "";
-  position: absolute;
-  inset: -4px 0;
-}
-.filterChip[aria-pressed="true"] {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
+  composes: chip from "../../components/ControlChip.module.css";
 }
 
 .body {

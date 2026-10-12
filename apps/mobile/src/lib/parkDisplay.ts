@@ -42,6 +42,14 @@ export function keyAttributes(
 
 const SERVICE_KEYS = ["wc", "shade", "fenced", "pmr", "benches", "water", "parking"] as const;
 
+/** `keyAttributes` codes → service keys (`parkAmenities`). */
+export const ATTR_TO_SERVICE = {
+  fenced: "fenced",
+  shaded: "shade",
+  toilets: "wc",
+  accessible: "pmr",
+} as const;
+
 export interface EquipmentChip {
   /** Raw catalogue code (`park.play_equipment` entry or service key) — resolve
    * to a label via `useFeatureLabel()`. */

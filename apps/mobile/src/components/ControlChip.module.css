@@ -1,0 +1,38 @@
+/* Capsule de contrôle commune — onglets, tris et filtres indépendants
+ * (« À proximité / Favoris / Pour mes enfants », « Proximité / Mieux notés /
+ * Récents », filtres de Favoris). Même hauteur, rayon, bordure et espacement
+ * partout ; consommée via `composes`. Sélectionné : data-on="1" ou
+ * aria-pressed="true". Zone tactile ≥ 44 px par prolongement vertical de 4 px
+ * (la rangée garde ≥ 8 px entre lignes : pas de chevauchement). */
+.chip {
+  position: relative;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--color-border-neutral);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-neutral);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chip::before {
+  content: "";
+  position: absolute;
+  inset: -4px 0;
+}
+.chip[data-on="1"],
+.chip[aria-pressed="true"] {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-on-primary);
+}

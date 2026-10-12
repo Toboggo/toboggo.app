@@ -103,39 +103,12 @@
 }
 .chips {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--space-2);
-  /* Marge intérieure pour la zone tactile des puces (overflow-x rogne aussi en vertical),
-   * compensée pour ne pas changer la hauteur de la rangée. */
-  padding: 9px var(--space-4) 17px;
-  margin: -9px 0 -9px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.chips::-webkit-scrollbar {
-  display: none;
+  padding: 0 var(--space-4) var(--space-2);
 }
 .chip {
-  position: relative;
-  flex: none;
-  border: 1px solid var(--color-border-neutral);
-  border-radius: var(--radius-pill);
-  background: var(--color-surface-neutral);
-  color: var(--color-text);
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 13px;
-  padding: 5px 14px;
-  cursor: pointer;
-}
-.chip::before {
-  content: "";
-  position: absolute;
-  inset: -9px 0;
-}
-.chip[data-on="1"] {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
+  composes: chip from "../../components/ControlChip.module.css";
 }
 .contextEmpty {
   margin: 0 var(--space-4) var(--space-4);

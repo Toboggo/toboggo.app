@@ -109,18 +109,18 @@ export function ParkList({
                 {t(`sort.${value}`)}
               </button>
             ))}
+            {childAges.length > 0 && (
+              <button
+                type="button"
+                className={styles.childChip}
+                data-on={forChildren ? "1" : undefined}
+                onClick={() => handleSetForChildren(!forChildren)}
+              >
+                <Icon name="ic-star" size={12} />
+                {t("sort.forChildren")}
+              </button>
+            )}
           </div>
-          {childAges.length > 0 && (
-            <button
-              type="button"
-              className={styles.childChip}
-              data-on={forChildren ? "1" : undefined}
-              onClick={() => handleSetForChildren(!forChildren)}
-            >
-              <Icon name="ic-star" size={12} />
-              {t("sort.forChildren")}
-            </button>
-          )}
         </div>
       </div>
 

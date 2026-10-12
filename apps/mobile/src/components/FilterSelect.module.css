@@ -46,12 +46,12 @@
 /* Le <select> invisible ne porte aucun contour (le global :focus-visible le
  * dessinerait carré, décalé de 2 px autour de la puce). Le contour est posé sur
  * la puce, qui suit son arrondi, et seulement au focus clavier — pas après un
- * simple appui ou clic (ce qui était le cas avec :focus-within). */
+ * simple appui ou clic (data-pointer, posé par FilterSelect.tsx). */
 .select:focus,
 .select:focus-visible {
   outline: none;
 }
-.chip:has(.select:focus-visible) {
+.chip:not([data-pointer]):has(.select:focus-visible) {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }

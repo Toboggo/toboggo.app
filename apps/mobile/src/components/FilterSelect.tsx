@@ -1,3 +1,4 @@
+import { useState } from "react";
 import styles from "./FilterSelect.module.css";
 
 export interface FilterSelectOption {
@@ -25,15 +26,27 @@ export function FilterSelect({
   ariaLabel: string;
 }) {
   const active = options.length > 0 && value !== options[0]?.value;
+  // Chrome/Edge matent :focus-visible sur un <select> même après un clic : on
+  // coupe l'anneau tant que l'interaction vient du pointeur (appui, clic) et on
+  // le rend dès qu'une touche est utilisée.
+  const [pointer, setPointer] = useState(false);
   const current = options.find((o) => o.value === value) ?? options[0];
 
   return (
-    <span className={styles.chip} data-active={active ? "1" : undefined}>
+    <span className={styles.chip} data-active={active ? "1" : undefined} data-pointer={pointer ? "1" : undefined}>
       <span aria-hidden>{current?.label}</span>
       <svg className={styles.chevron} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
         <path d="M6 9l6 6 6-6" />
       </svg>
-      <select className={styles.select} aria-label={ariaLabel} value={value} onChange={(e) => onChange(e.target.value)}>
+      <select
+        className={styles.select}
+        aria-label={ariaLabel}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onPointerDown={() => setPointer(true)}
+        onKeyDown={() => setPointer(false)}
+        onBlur={() => setPointer(false)}
+      >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
             {o.label}

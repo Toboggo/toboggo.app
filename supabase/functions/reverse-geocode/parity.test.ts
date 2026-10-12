@@ -24,6 +24,8 @@ const FIXTURES: unknown[] = [
   { results: [{ housenumber: "10", street: "Park Avenue", city: "Albany", country_code: "us" }] },
   { results: [{ housenumber: "1", street: "West Street", city: "Buffalo", country_code: "us" }] },
   { results: [{ housenumber: "9", street: "Broadway", city: "Brooklyn", country_code: "us" }] },
+  // rue blanche (jamais émise par Geoapify) : repli sur address_line1 des deux côtés
+  { results: [{ housenumber: "374", street: "  ", address_line1: "Parc X", country_code: "us", city: "New York" }] },
   // FR/ES : jamais d'abréviation (« Avenue » reste « Avenue »)
   { results: [{ housenumber: "8", street: "Avenue du Parc", city: "Lyon", country_code: "fr" }] },
   { results: [{ housenumber: "8", street: "Calle Norte Avenida", city: "Madrid", country_code: "es" }] },

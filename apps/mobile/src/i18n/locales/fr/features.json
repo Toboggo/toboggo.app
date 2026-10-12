@@ -94,6 +94,8 @@
       "benches": "Bancs",
       "water": "Point d’eau",
       "parking": "Parking"
-    }
+    },
+    "more_one": "{{count}} autre caractéristique dans la fiche",
+    "more_other": "{{count}} autres caractéristiques dans la fiche"
   }
 }

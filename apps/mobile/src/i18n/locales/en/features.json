@@ -94,6 +94,8 @@
       "benches": "Benches",
       "water": "Water point",
       "parking": "Parking"
-    }
+    },
+    "more_one": "{{count}} more feature in the full page",
+    "more_other": "{{count}} more features in the full page"
   }
 }

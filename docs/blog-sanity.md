@@ -26,7 +26,7 @@ Prévisualisation : Studio ─(secret court)─▶ /api/preview/enable/ ─(cook
 - **Contenu dans le HTML** : tout est généré au build ; aucune requête Sanity depuis le navigateur.
 - **SEO** : `<title>` / description = champs « SEO » (repli : titre / résumé), canonical sur `SITE_URL`, Open Graph
   `article` + `article:*`, `summary_large_image` (couverture recadrée 1200×630), JSON-LD `Article` + `BreadcrumbList`,
-  `lastmod` dans le sitemap.
+  `lastmod` dans le sitemap. `datePublished` = `publishedAt` ; `dateModified` et `article:modified_time` = `_updatedAt` de Sanity (repli `publishedAt`, jamais antérieure à la publication) ; auteur `Organization` pour « Toboggo » / « Équipe Toboggo », `Person` pour un auteur individuel.
 - **URL conservées** : `/guides/` existait déjà (page « à venir ») et garde la même URL. Il n'existait **aucun article** à
   migrer (3 sujets « à venir » sans contenu) : rien n'a été perdu. Tant qu'aucun article n'est publié, `/guides/` reste
   `noindex` et hors sitemap, avec les 3 sujets « à venir » ; dès le premier article publié il devient indexable.

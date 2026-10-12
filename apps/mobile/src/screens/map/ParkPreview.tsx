@@ -113,9 +113,9 @@ export function ParkPreview({
 
           {hasCriteria && (
             <div className={styles.chips}>
-              {ageRangeLabel && <ParkBadge variant="age" label={ageRangeLabel} />}
+              {ageRangeLabel && <ParkBadge variant="age" label={ageRangeLabel} size="md" />}
               {presentServices.map((e) => (
-                <AmenityBadge key={e.code} entry={e} />
+                <AmenityBadge key={e.code} entry={e} size="md" />
               ))}
             </div>
           )}

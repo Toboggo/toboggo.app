@@ -80,6 +80,20 @@
     },
     "absentGame": "Sin {{item}}",
     "unknownGame": "{{item}} por confirmar",
-    "verified": "Verificado"
+    "verified": "Verificado",
+    "short": {
+      "present": "Disponible",
+      "absent": "No disponible",
+      "unknown": "Por confirmar"
+    },
+    "name": {
+      "wc": "Aseos",
+      "shade": "Sombra",
+      "fenced": "Valla",
+      "pmr": "Accesible",
+      "benches": "Bancos",
+      "water": "Fuente",
+      "parking": "Parking"
+    }
   }
 }

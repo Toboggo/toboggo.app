@@ -18,21 +18,23 @@ export function ParkBadge({
   label,
   icon,
   iconOnly = false,
-  suffix,
+  size = "sm",
 }: {
   variant: ParkBadgeVariant;
   label: string;
   icon?: IconName;
   /** Icon in a round pill; the label becomes the accessible name. */
   iconOnly?: boolean;
-  /** Secondary text after the label (e.g. « Vérifié », only with proof). */
-  suffix?: string;
+  /** Compact sizes of the summaries: `sm` lists / Favorites, `md` compact panel,
+   * `lg` full page (the paddings those surfaces had before the shared badge). */
+  size?: "sm" | "md" | "lg";
 }) {
   const asIcon = iconOnly && icon != null;
   return (
     <span
       className={styles.badge}
       data-variant={variant}
+      data-size={size}
       data-icon-only={asIcon ? "1" : undefined}
       role={asIcon ? "img" : undefined}
       aria-label={asIcon ? label : undefined}
@@ -40,7 +42,6 @@ export function ParkBadge({
     >
       {icon && <Icon name={icon} size={asIcon ? 13 : 12} />}
       {!asIcon && label}
-      {!asIcon && suffix && <span className={styles.verified}>· {suffix}</span>}
     </span>
   );
 }
@@ -72,16 +73,15 @@ export function amenityIcon(e: AmenityEntry): IconName | undefined {
 }
 
 /** Badge for one amenity entry in the variant matching its state. */
-export function AmenityBadge({ entry, iconOnly = false }: { entry: AmenityEntry; iconOnly?: boolean }) {
-  const { t } = useTranslation("features");
+export function AmenityBadge({
+  entry,
+  iconOnly = false,
+  size,
+}: {
+  entry: AmenityEntry;
+  iconOnly?: boolean;
+  size?: "sm" | "md" | "lg";
+}) {
   const label = useAmenityLabel()(entry);
-  return (
-    <ParkBadge
-      variant={entry.state}
-      label={label}
-      icon={amenityIcon(entry)}
-      iconOnly={iconOnly}
-      suffix={entry.verified ? t("state.verified") : undefined}
-    />
-  );
+  return <ParkBadge variant={entry.state} label={label} icon={amenityIcon(entry)} iconOnly={iconOnly} size={size} />;
 }

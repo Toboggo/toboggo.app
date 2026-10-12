@@ -163,10 +163,10 @@ export default function ParkDetail() {
   const ageClause = f.ageClause(park.age_min, park.age_max);
   const rated = hasRating(park);
   const ageLabel = f.ageRange(park.age_min, park.age_max);
-  // Full page: present AND explicitly-absent key services; unknown ones are listed under "Voir tout".
+  // Summary: PRESENT key services only, short labels. Absent / unknown / verification live under "Voir tout".
   const serviceBadges = (["fenced", "shade", "wc", "water"] as const)
     .map((key) => serviceEntry(park, key))
-    .filter((e) => e.state !== "unknown");
+    .filter((e) => e.state === "present");
 
   return (
     <div className={styles.wrap}>
@@ -256,9 +256,9 @@ export default function ParkDetail() {
         </div>
 
         <div className={styles.chips}>
-          <ParkBadge variant="age" label={ageLabel} />
+          <ParkBadge variant="age" label={ageLabel} size="lg" />
           {serviceBadges.map((e) => (
-            <AmenityBadge key={e.code} entry={e} />
+            <AmenityBadge key={e.code} entry={e} size="lg" />
           ))}
         </div>
 

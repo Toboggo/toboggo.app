@@ -80,6 +80,20 @@
     },
     "absentGame": "Sans {{item}}",
     "unknownGame": "{{item}} à confirmer",
-    "verified": "Vérifié"
+    "verified": "Vérifié",
+    "short": {
+      "present": "Présent",
+      "absent": "Absent",
+      "unknown": "À confirmer"
+    },
+    "name": {
+      "wc": "WC",
+      "shade": "Ombrage",
+      "fenced": "Clôture",
+      "pmr": "Accès PMR",
+      "benches": "Bancs",
+      "water": "Point d’eau",
+      "parking": "Parking"
+    }
   }
 }

@@ -31,11 +31,9 @@ describe("AmenityBadge — trois états", () => {
     expect(container.querySelector("s, del, [style*='line-through']")).toBeNull();
   });
 
-  it("« Vérifié » seulement quand l'entrée est vérifiée", () => {
-    const { container, rerender } = render(<AmenityBadge entry={entry({ state: "absent" })} />);
-    expect(container.textContent).not.toContain("Vérifié");
-    rerender(<AmenityBadge entry={entry({ state: "absent", verified: true })} />);
-    expect(container.textContent).toContain("Vérifié");
+  it("le badge de résumé ne porte jamais « Vérifié » (réservé à la page Équipements)", () => {
+    const { container } = render(<AmenityBadge entry={entry({ state: "present", verified: true })} />);
+    expect(container.textContent).toBe("Clôturé");
   });
 });
 

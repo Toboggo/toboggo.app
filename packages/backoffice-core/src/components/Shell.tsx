@@ -3,9 +3,10 @@ import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import clsx from "clsx";
 import { Icon, Logo, type IconName } from "@toboggo/design-system";
-import { listParkEdits, listParks, listPendingMedia, listReports } from "@toboggo/shared";
+import { getParkStatusCounts, listReports } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
+import { usePendingEditsAdmin, usePendingMedia } from "../lib/sharedQueries";
 import { useScopedPark } from "../lib/useScopedPark";
 import { AppHeader } from "./AppHeader";
 import styles from "./Shell.module.css";
@@ -129,26 +130,34 @@ export function Shell({ children }: { children: ReactNode }) {
   const navRef = useRef<HTMLElement>(null);
   const isFirstRender = useRef(true);
 
+  // Sidebar badges. Pending parks is an exact server-side `count` (head
+  // request, no row transferred) — it used to download every pending park with
+  // all its columns just to read `.length`. Pending media / pending edits share
+  // their query (and cache entry) with the dashboards via `sharedQueries`, and
+  // opt in to a refetch on tab focus (the app default is off) so a badge never
+  // stays stale for a whole session.
   const { data: pendingParks = 0 } = useQuery({
     queryKey: ["shell-pending-parks", communeId, isAdmin],
-    queryFn: async () => (await listParks({ communeId, status: ["pending"] })).length,
+    queryFn: async () => (await getParkStatusCounts(["pending"], { communeId })).pending ?? 0,
+    refetchOnWindowFocus: true,
   });
   const { data: openReports = 0 } = useQuery({
     queryKey: ["shell-open-reports", communeId, isAdmin],
     queryFn: async () => (await listReports({ communeId, status: ["open"] })).length,
+    refetchOnWindowFocus: true,
   });
-  const { data: pendingMedia = 0 } = useQuery({
-    queryKey: ["shell-pending-media", communeId, isAdmin],
-    queryFn: async () => (await listPendingMedia({ communeId })).length,
+  const { data: pendingMedia = 0 } = usePendingMedia(communeId, {
+    select: (rows) => rows.length,
+    refetchOnWindowFocus: true,
   });
   // File de validation : Admin uniquement pour ce lot (Admin-3B-1 §11) — même
   // mécanisme que les 3 badges ci-dessus, pas de nouvelle architecture de
   // fetching. `enabled: isAdmin` seul (contrairement aux autres) car aucune
   // UI collectivité n'existe encore pour cette file.
-  const { data: pendingEdits = 0 } = useQuery({
-    queryKey: ["shell-pending-edits", isAdmin],
-    queryFn: async () => (await listParkEdits({ status: ["pending"] })).length,
+  const { data: pendingEdits = 0 } = usePendingEditsAdmin({
+    select: (rows) => rows.length,
     enabled: isAdmin,
+    refetchOnWindowFocus: true,
   });
 
   const groups = buildNavGroups({ isAdmin, pendingParks, openReports, pendingMedia, pendingEdits });

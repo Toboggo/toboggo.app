@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { getParkStatusCounts, listParks } from "@toboggo/shared";
 import { Shell } from "./Shell";
 
 // `buildNavGroups` (the pure logic) is covered by Shell.test.ts. This file
@@ -13,6 +14,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
   return {
     ...actual,
     listParks: vi.fn().mockResolvedValue([]),
+    getParkStatusCounts: vi.fn().mockResolvedValue({ pending: 6783 }),
     listReports: vi.fn().mockResolvedValue([]),
     listPendingMedia: vi.fn().mockResolvedValue([]),
     listParkEdits: vi.fn().mockResolvedValue([]),
@@ -66,5 +68,27 @@ describe("Shell — Admin-UI-7C (bo-shell-admin scoping)", () => {
     const el = container.querySelector(".bo-shell");
     expect(el?.className).toContain("bo-shell");
     expect(el?.className).not.toContain("bo-shell-admin");
+  });
+});
+
+describe("Shell — Lot P1 (badge « parcs en attente »)", () => {
+  it("uses an exact server-side count instead of downloading every pending park", async () => {
+    scope.isAdmin = true;
+    scope.communeId = undefined;
+    vi.mocked(getParkStatusCounts).mockClear();
+    vi.mocked(listParks).mockClear();
+    const { findByText } = renderShell();
+    await waitFor(() => expect(getParkStatusCounts).toHaveBeenCalledWith(["pending"], { communeId: undefined }));
+    expect(listParks).not.toHaveBeenCalled();
+    // Real total shown (not capped at PostgREST's max_rows).
+    expect(await findByText("6783")).toBeTruthy();
+  });
+
+  it("scopes the count to the commune for a Collectivité session", async () => {
+    scope.isAdmin = false;
+    scope.communeId = "c1";
+    vi.mocked(getParkStatusCounts).mockClear();
+    renderShell();
+    await waitFor(() => expect(getParkStatusCounts).toHaveBeenCalledWith(["pending"], { communeId: "c1" }));
   });
 });

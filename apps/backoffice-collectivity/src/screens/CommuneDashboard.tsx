@@ -6,7 +6,6 @@ import {
   listReports,
   listReviews,
   listActivity,
-  listPendingMedia,
   listMaintenance,
   listPendingParkEditsForOrg,
   type Maintenance,
@@ -14,6 +13,7 @@ import {
 } from "@toboggo/shared";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
 import { useOrgSession } from "@toboggo/backoffice-core/lib/orgSession";
+import { usePendingMedia } from "@toboggo/backoffice-core/lib/sharedQueries";
 import { ReportsInsightPanel } from "./dashboard/ReportsInsightPanel";
 import { MiniParkMap } from "./dashboard/MiniParkMap";
 import { RecentReportsPanel } from "./dashboard/RecentReportsPanel";
@@ -73,7 +73,7 @@ export default function CommuneDashboard() {
   const reportsQ = useQuery({ queryKey: ["dash-reports", communeId], queryFn: () => listReports({ communeId }) });
   const reviewsQ = useQuery({ queryKey: ["dash-reviews", communeId], queryFn: () => listReviews({ communeId }) });
   const activityQ = useQuery({ queryKey: ["dash-activity", communeId, false], queryFn: () => listActivity(communeId!), enabled: !!communeId });
-  const pendingMediaQ = useQuery({ queryKey: ["dash-pending-media", communeId], queryFn: () => listPendingMedia({ communeId }) });
+  const pendingMediaQ = usePendingMedia(communeId);
   const maintenanceQ = useQuery({
     queryKey: ["dash-maintenance", communeId],
     queryFn: () => listMaintenance(communeId!),

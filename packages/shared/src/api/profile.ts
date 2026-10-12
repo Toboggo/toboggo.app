@@ -70,6 +70,16 @@ export async function listAllUsers(): Promise<Profile[]> {
   return data as Profile[];
 }
 
+/** Exact number of profiles — `{ count: "exact", head: true }`, no row transferred.
+ * For callers that only display a total (Admin dashboard KPI), instead of
+ * downloading every profile with `listAllUsers()` just to read `.length`. */
+export async function countAllUsers(): Promise<number> {
+  const supabase = getSupabase();
+  const { count, error } = await supabase.from("profiles").select("id", { count: "exact", head: true });
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function setUserSuspended(userId: string, suspended: boolean) {
   const supabase = getSupabase();
   const { error } = await supabase.from("profiles").update({ suspended }).eq("id", userId);

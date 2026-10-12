@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { getParkCountryDistribution, listAllParksForExport, listCommunes, listParksPage } from "@toboggo/shared";
+import { getParkCountryDistribution, listAllParksForExport, listOrganizationsWithCounts, listParksPage } from "@toboggo/shared";
 import { AdminParks } from "./AdminParks";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
@@ -13,7 +13,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listParksPage: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 }),
     listParks: vi.fn().mockResolvedValue([]),
     listAllParksForExport: vi.fn().mockResolvedValue([]),
-    listCommunes: vi.fn().mockResolvedValue([]),
+    listOrganizationsWithCounts: vi.fn().mockResolvedValue([]),
     // Admin-UI-8D — sinon la vraie implémentation (Supabase réel) tourne dans
     // les tests Admin dès que le filtre Pays est monté (`enabled: isAdmin`).
     getParkCountryDistribution: vi.fn().mockResolvedValue([]),
@@ -133,7 +133,7 @@ describe("Parks — Admin-UI-5B (colonne/filtre Source, filtre Collectivité)", 
       pageSize: 25,
       pageCount: 1,
     });
-    vi.mocked(listCommunes).mockClear().mockResolvedValue([]);
+    vi.mocked(listOrganizationsWithCounts).mockClear().mockResolvedValue([]);
   });
 
   it("affiche la colonne Source avec un libellé lisible, et un tiret quand la donnée est absente", async () => {
@@ -165,13 +165,13 @@ describe("Parks — Admin-UI-5B (colonne/filtre Source, filtre Collectivité)", 
     renderParks();
     await waitFor(() => expect(listParksPage).toHaveBeenCalled());
     expect(screen.queryByLabelText("Collectivité")).toBeNull();
-    expect(listCommunes).not.toHaveBeenCalled();
+    expect(listOrganizationsWithCounts).not.toHaveBeenCalled();
   });
 
   it("le filtre Collectivité apparaît côté admin et transmet l'organizationId choisi à listParksPage", async () => {
     scope.isAdmin = true;
     scope.communeId = undefined;
-    vi.mocked(listCommunes).mockResolvedValue([
+    vi.mocked(listOrganizationsWithCounts).mockResolvedValue([
       { id: "org-lyon", name: "Ville de Lyon" },
       { id: "org-nice", name: "Ville de Nice" },
     ] as never);
@@ -194,7 +194,7 @@ describe("Parks — Admin-UI-8B (l'export CSV utilise les filtres réellement ac
     scope.communeId = undefined;
     vi.mocked(listParksPage).mockClear().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 });
     vi.mocked(listAllParksForExport).mockClear().mockResolvedValue([]);
-    vi.mocked(listCommunes).mockClear().mockResolvedValue([
+    vi.mocked(listOrganizationsWithCounts).mockClear().mockResolvedValue([
       { id: "org-lyon", name: "Ville de Lyon" },
     ] as never);
     vi.mocked(getParkCountryDistribution).mockClear().mockResolvedValue([{ country_code: "FR", count: 2189 }] as never);
@@ -320,7 +320,7 @@ describe("Parks — Admin-UI-8D (colonnes Pays/Collectivité, filtre Pays, secon
       pageSize: 25,
       pageCount: 1,
     });
-    vi.mocked(listCommunes).mockClear().mockResolvedValue([{ id: "org-lyon", name: "Ville de Lyon" }] as never);
+    vi.mocked(listOrganizationsWithCounts).mockClear().mockResolvedValue([{ id: "org-lyon", name: "Ville de Lyon" }] as never);
     // Ordre volontairement "France avant Espagne" par volume — le tri du
     // <select> doit reclasser par libellé (Espagne < France), pas reprendre
     // cet ordre tel quel.
@@ -345,11 +345,11 @@ describe("Parks — Admin-UI-8D (colonnes Pays/Collectivité, filtre Pays, secon
     expect(within(row).getByText("ZZ")).toBeTruthy();
   });
 
-  it("résout la Collectivité depuis les organisations déjà chargées pour le filtre — un seul appel listCommunes, aucune requête par ligne", async () => {
+  it("résout la Collectivité depuis les organisations déjà chargées pour le filtre — un seul appel listOrganizationsWithCounts, aucune requête par ligne", async () => {
     renderParks();
     const row = (await screen.findByText("Parc Lyon")).closest("tr")!;
     expect(within(row).getByText("Ville de Lyon")).toBeTruthy();
-    await waitFor(() => expect(listCommunes).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(listOrganizationsWithCounts).toHaveBeenCalledTimes(1));
   });
 
   it("affiche un tiret discret quand le parc n'est rattaché à aucune collectivité", async () => {

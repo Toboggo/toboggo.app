@@ -17,6 +17,15 @@
   background: var(--color-primary-tint);
   color: var(--color-primary);
 }
+/* Zone tactile étendue à 44 px sans changer la taille visible. */
+.pill::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+.pill {
+  position: relative;
+}
 .pill[data-tone="green"] {
   background: var(--color-primary);
   color: var(--color-on-primary);

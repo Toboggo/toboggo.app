@@ -23,13 +23,21 @@ describe("ContributionRow — une seule rangée", () => {
     const wraps = container.querySelectorAll('[class*="rowWrap"]');
     expect(wraps).toHaveLength(3);
     for (const w of wraps) {
-      for (const col of ["thumb", "typeIcon", "body", "trailing", "chevron"]) {
+      for (const col of ["thumb", "typeIcon", "body", "status", "action"]) {
         expect(w.querySelectorAll(`[class*="${col}"]`)).toHaveLength(1);
       }
     }
     expect(wraps[0]!.querySelectorAll('[class*="menu"] button')).toHaveLength(1); // avis : menu
     expect(wraps[1]!.querySelectorAll('[class*="menu"]')).toHaveLength(0);
     expect(wraps[2]!.querySelectorAll('[class*="menu"]')).toHaveLength(0);
+  });
+
+  it("la date est sous la description, dans le bloc texte", () => {
+    const { container } = render(<ContributionRow item={EDIT} onClick={() => {}} />);
+    const body = container.querySelector('[class*="body"]')!;
+    const meta = body.querySelector('[class*="meta"]')!;
+    expect(meta).toBeTruthy();
+    expect(body.lastElementChild).toBe(meta);
   });
 
   it("le nom complet du parc est affiché en premier, sans troncature", () => {

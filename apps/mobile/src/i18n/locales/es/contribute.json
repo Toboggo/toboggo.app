@@ -498,7 +498,7 @@
     "statusAria": "Estado: {{status}}"
   },
   "history": {
-    "title": "Tus contribuciones",
+    "title": "Mis aportaciones",
     "subtitle": "Todas tus acciones para mantener los parques al día.",
     "filters": {
       "type": {

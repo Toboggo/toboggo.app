@@ -498,7 +498,7 @@
     "statusAria": "Statut : {{status}}"
   },
   "history": {
-    "title": "Vos contributions",
+    "title": "Mes ajouts",
     "subtitle": "Toutes vos actions pour des parcs toujours à jour.",
     "filters": {
       "type": {

@@ -43,11 +43,15 @@ export function ContributionRow({
   const kindTitle = item.parkName ? title : null;
   const kindRest = [detail, rating, item.city].filter(Boolean).join(" · ");
   const statusLabel = t(status.labelKey);
+  const date = `${f.relativeDate(item.createdAt)}${
+    item.type === "review" && item.editedAt ? ` · ${t("review.editedOn", { date: f.date(item.editedAt) })}` : ""
+  }`;
 
   // One horizontal row, same columns on every entry:
-  // miniature | pictogramme (carré pastel) | nom du parc + type | pastille statut + date | chevron.
-  // The row's click target is the text block (stretched over the whole row); the status pill
-  // is a separate control above it. « Modifier mon avis » takes the chevron's slot on editable reviews.
+  // miniature | pictogramme (carré pastel) | nom du parc + type + date | pastille statut | chevron.
+  // Everything is top-aligned; the status and action columns have a constant width. The row's click
+  // target is the text block (stretched over the whole row); the status pill is a separate control
+  // above it. « Modifier mon avis » takes the chevron's slot on editable reviews.
   return (
     <div className={styles.rowWrap}>
       <span className={styles.thumb} style={photo ? { backgroundImage: `url(${photo})` } : undefined} aria-hidden>
@@ -66,26 +70,24 @@ export function ContributionRow({
             {kindRest}
           </span>
         )}
+        <span className={styles.meta}>{date}</span>
       </button>
 
-      <span className={styles.trailing}>
+      <span className={styles.status}>
         <StatusPill label={statusLabel} visual={getStatusVisual(status.labelKey)} />
-        <span className={styles.meta}>
-          {f.relativeDate(item.createdAt)}
-          {item.type === "review" && item.editedAt && ` · ${t("review.editedOn", { date: f.date(item.editedAt) })}`}
-        </span>
       </span>
 
-      <span className={styles.chevron} aria-hidden>
-        {!canEdit && (
-          <Icon name="ic-back" size={14} style={{ color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
+      <span className={styles.action}>
+        {canEdit ? (
+          <span className={styles.menu}>
+            <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />
+          </span>
+        ) : (
+          <span aria-hidden className={styles.chevron}>
+            <Icon name="ic-back" size={14} style={{ color: "var(--color-text-faint)", transform: "rotate(180deg)" }} />
+          </span>
         )}
       </span>
-      {canEdit && (
-        <span className={styles.menu}>
-          <ReviewMenu onEdit={() => onEditReview(item)} parkName={item.parkName} />
-        </span>
-      )}
     </div>
   );
 }

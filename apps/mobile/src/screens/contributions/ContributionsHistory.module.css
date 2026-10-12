@@ -46,7 +46,7 @@
   min-width: 0;
   height: 42px;
   border-radius: var(--radius-lg);
-  border: 1.5px solid var(--color-border-strong);
+  border: 1.5px solid var(--color-border-neutral);
   background: var(--color-surface);
   padding: 0 14px;
   font-size: 14px;

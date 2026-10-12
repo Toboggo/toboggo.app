@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useFormat } from "../../i18n/useFormat";
-import { SUGGESTION_RADIUS_KM, type RadiusKm } from "../../lib/nearbyRadius";
+import { DEFAULT_RADIUS_KM, SUGGESTION_RADIUS_KM, type RadiusKm } from "../../lib/nearbyRadius";
 import { ParkCarousel } from "./ParkCarousel";
 import { BinocularsIcon, ChevronIcon, CompassIcon, SearchIcon } from "./nearbyIcons";
 import type { NearbyContext, NearbySelection } from "./nearbySelection";
@@ -44,6 +44,7 @@ export function NearbyHeader({
         <button
           type="button"
           className={styles.zonePill}
+          data-active={radiusKm !== DEFAULT_RADIUS_KM ? "1" : undefined}
           onClick={onOpenZone}
           aria-label={t("nearby.zoneAria", { distance })}
           aria-haspopup="dialog"

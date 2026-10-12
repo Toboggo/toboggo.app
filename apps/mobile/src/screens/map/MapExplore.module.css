@@ -58,7 +58,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  background: var(--color-surface-alt);
+  background: var(--color-surface-neutral);
   border-radius: var(--radius-pill);
   padding: 8px 11px;
   font-size: 12.5px;
@@ -76,8 +76,8 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-xs);
-  border: none;
-  background: var(--color-surface-alt);
+  border: 1.5px solid transparent;
+  background: var(--color-surface-neutral);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -85,9 +85,16 @@
   flex: none;
   cursor: pointer;
 }
+.iconBtn::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+}
+/* Filtres appliqués : même style que les autres filtres appliqués. */
 .iconBtn[data-on="1"] {
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+  background: var(--color-primary-tint);
+  border-color: var(--color-primary);
+  color: var(--color-primary-hover);
 }
 .badge {
   position: absolute;

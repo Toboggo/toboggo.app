@@ -70,6 +70,10 @@
    * doivent rester strictement neutres (back-office, COLL-02B). Additif :
    * ne remplace --color-border nulle part. */
   --color-border-neutral: #e4e4e1;
+  /* Fond neutre gris très clair des contrôles non sélectionnés (onglets, tris,
+   * puces) — pendant de --color-border-neutral, sans la teinte beige de
+   * --color-surface-alt. Additif. */
+  --color-surface-neutral: #f1f1ef;
 
   /* Vert Toboggo très sombre et désaturé, réservé au fond de la sidebar
    * back-office — jamais de noir pur (docs/DESIGN-SYSTEM.md, COLL-02B §2).
@@ -260,6 +264,7 @@
   --color-accent-tint: #3a2917;
 
   --color-border-neutral: #384039;
+  --color-surface-neutral: #2a312c;
   --color-sidebar-bg: #132921;
 
   --color-info: #7eb8ef;

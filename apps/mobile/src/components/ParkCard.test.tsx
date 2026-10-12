@@ -247,8 +247,8 @@ describe("ParkCard favorite variant", () => {
   }
   const meta = (card: HTMLElement) => norm(card.querySelector('[class*="_favMeta_"]')?.textContent);
   const factLabels = (card: HTMLElement) =>
-    Array.from(card.querySelectorAll('[class*="_favFact_"]')).map((el) => el.getAttribute("aria-label"));
-  const chipTexts = (card: HTMLElement) => Array.from(card.querySelectorAll('[class*="_chip_"]')).map((el) => norm(el.textContent));
+    Array.from(card.querySelectorAll('[data-variant="present"][data-icon-only="1"]')).map((el) => el.getAttribute("aria-label"));
+  const chipTexts = (card: HTMLElement) => Array.from(card.querySelectorAll('[data-variant="age"]')).map((el) => norm(el.textContent));
 
   const full = park({
     name: "Parc Voltaire",

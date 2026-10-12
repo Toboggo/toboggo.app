@@ -7,6 +7,8 @@ import { usePark, useParkReviews } from "../../lib/parksQuery";
 import { presentPlayCodes } from "../../lib/parkEquipment";
 import { ParkGlyph } from "../../components/addPark/ParkGlyph";
 import { hasRating } from "../../lib/parkDisplay";
+import { serviceEntry } from "../../lib/parkAmenities";
+import { AmenityBadge, ParkBadge } from "../../components/ParkBadge";
 import { useFeatureLabel } from "../../lib/featureLabel";
 import { useFormat } from "../../i18n/useFormat";
 import { requireAccount, useSession } from "../../lib/session";
@@ -50,7 +52,6 @@ export default function ParkDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation("detail");
-  const { t: tf } = useTranslation("features");
   const f = useFormat();
   const featureLabel = useFeatureLabel();
   const gameLabel = (code: string) => tContribute(`addPark.game.${code}`, { defaultValue: featureLabel(code) });
@@ -161,12 +162,11 @@ export default function ParkDetail() {
 
   const ageClause = f.ageClause(park.age_min, park.age_max);
   const rated = hasRating(park);
-  const chips: string[] = [f.ageRange(park.age_min, park.age_max)];
-
-  if (park.fenced) chips.push(tf("attr.fenced"));
-  if (park.shade) chips.push(tf("attr.shaded"));
-  if (park.wc) chips.push(tf("attr.toilets"));
-  if (park.water) chips.push(tf("attr.water"));
+  const ageLabel = f.ageRange(park.age_min, park.age_max);
+  // Full page: present AND explicitly-absent key services; unknown ones are listed under "Voir tout".
+  const serviceBadges = (["fenced", "shade", "wc", "water"] as const)
+    .map((key) => serviceEntry(park, key))
+    .filter((e) => e.state !== "unknown");
 
   return (
     <div className={styles.wrap}>
@@ -255,15 +255,12 @@ export default function ParkDetail() {
           )}
         </div>
 
-        {chips.length > 0 && (
-          <div className={styles.chips}>
-            {chips.map((c) => (
-              <span key={c} className={styles.chip}>
-                {c}
-              </span>
-            ))}
-          </div>
-        )}
+        <div className={styles.chips}>
+          <ParkBadge variant="age" label={ageLabel} />
+          {serviceBadges.map((e) => (
+            <AmenityBadge key={e.code} entry={e} />
+          ))}
+        </div>
 
         {park.has_score && (
           <button type="button" className={styles.scoreCard} onClick={() => navigate(`/park/${park.id}/score`)}>

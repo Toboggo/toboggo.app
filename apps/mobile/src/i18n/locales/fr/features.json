@@ -44,5 +44,42 @@
     "mixed": "Mixte",
     "unknown": "Non précisé",
     "non_precise": "Non précisé"
+  },
+  "state": {
+    "titles": {
+      "present": "Présents",
+      "absent": "Absents",
+      "unknown": "À confirmer"
+    },
+    "present": {
+      "wc": "WC",
+      "shade": "Ombragé",
+      "fenced": "Clôturé",
+      "pmr": "PMR",
+      "benches": "Bancs",
+      "water": "Point d’eau",
+      "parking": "Parking"
+    },
+    "absent": {
+      "wc": "Pas de WC",
+      "shade": "Pas d’ombre",
+      "fenced": "Pas de clôture",
+      "pmr": "Non accessible PMR",
+      "benches": "Pas de bancs",
+      "water": "Pas de point d’eau",
+      "parking": "Pas de parking"
+    },
+    "unknown": {
+      "wc": "WC à confirmer",
+      "shade": "Ombrage à confirmer",
+      "fenced": "Clôture à confirmer",
+      "pmr": "Accessibilité PMR à confirmer",
+      "benches": "Bancs à confirmer",
+      "water": "Point d’eau à confirmer",
+      "parking": "Parking à confirmer"
+    },
+    "absentGame": "Sans {{item}}",
+    "unknownGame": "{{item}} à confirmer",
+    "verified": "Vérifié"
   }
 }

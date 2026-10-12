@@ -1,0 +1,66 @@
+/* Badge descriptif d'un parc (âge, équipement, service). Jamais interactif :
+ * pas de survol, pas d'état « appuyé », pas de bordure de sélection — pour ne
+ * pas être pris pour un filtre. Toutes les variantes ont la même boîte
+ * (bordure 1 px, transparente quand elle ne sert pas) : aucune différence de
+ * taille entre états. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.badge > svg {
+  flex: none;
+}
+
+/* Âge (hors photo) : gris neutre, texte sombre. */
+.badge[data-variant="age"] {
+  background: var(--color-surface-neutral);
+  color: var(--color-text);
+}
+
+/* Présent : fond vert léger commun, icône + texte vert foncé accessible. */
+.badge[data-variant="present"] {
+  background: var(--color-primary-tint);
+  color: var(--color-primary-on-tint);
+}
+
+/* Absent explicitement renseigné : neutre + bordure grise discrète. */
+.badge[data-variant="absent"] {
+  background: var(--color-surface-neutral);
+  border-color: var(--color-border-neutral);
+  color: var(--color-text);
+}
+
+/* Inconnu : neutre + bordure grise en pointillés. */
+.badge[data-variant="unknown"] {
+  background: var(--color-surface);
+  border-style: dashed;
+  border-color: var(--color-text-faint);
+  color: var(--color-text);
+}
+
+/* Pastille icône seule (listes compactes) : cercle de même hauteur. */
+.badge[data-icon-only="1"] {
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+}
+
+.verified {
+  font-weight: 600;
+  opacity: 0.8;
+}

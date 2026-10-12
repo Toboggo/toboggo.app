@@ -6,6 +6,8 @@ import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkCover } from "../../components/ParkCover";
 import { useSession } from "../../lib/session";
 import { hasRating } from "../../lib/parkDisplay";
+import { serviceEntry } from "../../lib/parkAmenities";
+import { AmenityBadge, ParkBadge } from "../../components/ParkBadge";
 import { useFormat } from "../../i18n/useFormat";
 import { useDirections } from "../../lib/directions";
 import { DirectionsSheet } from "../../components/DirectionsSheet";
@@ -26,7 +28,6 @@ export function ParkPreview({
 }) {
   const navigate = useNavigate();
   const { t } = useTranslation("detail");
-  const { t: tf } = useTranslation("features");
   const f = useFormat();
   const favorites = useSession((s) => s.profile?.favorites ?? []);
   const isFav = favorites.includes(park.id);
@@ -36,11 +37,11 @@ export function ParkPreview({
   const { openDirections, directionsSheetProps } = useDirections();
 
   const ageRangeLabel = f.ageRangeOrNull(park.age_min, park.age_max);
-  const criteria: string[] = [];
-  if (ageRangeLabel) criteria.push(ageRangeLabel);
-  if (park.fenced) criteria.push(tf("attr.fenced"));
-  if (park.shade) criteria.push(tf("attr.shaded"));
-  if (park.wc) criteria.push(tf("attr.toilets"));
+  // Compact panel: age + the PRESENT key services only (absent / unknown are on the full page).
+  const presentServices = (["fenced", "shade", "wc"] as const)
+    .map((key) => serviceEntry(park, key))
+    .filter((e) => e.state === "present");
+  const hasCriteria = Boolean(ageRangeLabel) || presentServices.length > 0;
 
   const gallery = (park.photos ?? []).slice(0, 6);
 
@@ -110,12 +111,11 @@ export function ParkPreview({
             <span className={styles.walk}>{f.walk(walkMinutes(dist))} · {f.distance(dist)}</span>
           </div>
 
-          {criteria.length > 0 && (
+          {hasCriteria && (
             <div className={styles.chips}>
-              {criteria.map((c) => (
-                <span key={c} className={styles.chip}>
-                  {c}
-                </span>
+              {ageRangeLabel && <ParkBadge variant="age" label={ageRangeLabel} />}
+              {presentServices.map((e) => (
+                <AmenityBadge key={e.code} entry={e} />
               ))}
             </div>
           )}

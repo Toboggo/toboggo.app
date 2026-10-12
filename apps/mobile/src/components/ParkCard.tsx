@@ -1,20 +1,15 @@
 import type { KeyboardEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Icon, StarRating, type IconName } from "@toboggo/design-system";
+import { Icon, StarRating } from "@toboggo/design-system";
 import { getParkDisplayName, walkMinutes, type Park } from "@toboggo/shared";
 import { ParkCover } from "./ParkCover";
-import { equipmentChips, hasRating, keyAttributes } from "../lib/parkDisplay";
+import { ATTR_TO_SERVICE, equipmentChips, hasRating, keyAttributes } from "../lib/parkDisplay";
+import { serviceEntry } from "../lib/parkAmenities";
+import { AmenityBadge, ParkBadge } from "./ParkBadge";
 import { useFeatureLabel } from "../lib/featureLabel";
 import { useFormat } from "../i18n/useFormat";
 import styles from "./ParkCard.module.css";
-
-const ATTR_ICON: Record<ReturnType<typeof keyAttributes>[number], IconName> = {
-  fenced: "ic-fence",
-  shaded: "ic-shade",
-  toilets: "ic-toilets",
-  accessible: "ic-pmr",
-};
 
 function CompactRating({ park }: { park: Park }) {
   const f = useFormat();
@@ -151,8 +146,10 @@ export function ParkCard({
   }
 
   if (variant === "list") {
-    const attrs = keyAttributes(park);
-    const chips = [...(ageBand ? [ageBand] : []), ...attrs.map((a) => t(`attr.${a}`))];
+    // Compact summary: age + at most two PRESENT attributes — absent / unknown
+    // ones live on the full page ("Voir tout"), not on every card.
+    const attrs = keyAttributes(park).map((a) => serviceEntry(park, ATTR_TO_SERVICE[a]));
+    const hasChips = Boolean(ageBand) || attrs.length > 0;
     return (
       <div className={styles.listCard} {...activate}>
         <ParkCover park={park} className={styles.listPhoto} markSize={26} />
@@ -163,12 +160,11 @@ export function ParkCard({
           </div>
           <CompactRating park={park} />
           <div className={styles.listDist}>{walkDistance}</div>
-          {chips.length > 0 && (
+          {hasChips && (
             <div className={styles.listChips}>
-              {chips.map((c) => (
-                <span key={c} className={styles.chip}>
-                  {c}
-                </span>
+              {ageBand && <ParkBadge variant="age" label={ageBand} />}
+              {attrs.map((e) => (
+                <AmenityBadge key={e.code} entry={e} />
               ))}
             </div>
           )}
@@ -181,7 +177,7 @@ export function ParkCard({
     // Location and distance can both be shown at once here (unlike `row`,
     // which picks one) — that's the richer Favorites layout.
     const metaBits = [location || null, distanceM != null ? f.distance(distanceM) : null].filter(Boolean);
-    const chips = equipmentChips(park);
+    const chips = equipmentChips(park); // present only (compact summary)
     const shownChips = chips.slice(0, 3);
     const extraCount = chips.length - shownChips.length;
     return (
@@ -195,16 +191,11 @@ export function ParkCard({
           {metaBits.length > 0 && <div className={styles.favMeta}>{metaBits.join(" · ")}</div>}
           {(ageBand || shownChips.length > 0) && (
             <div className={styles.favChips}>
-              {ageBand && <span className={styles.chip}>{ageBand}</span>}
-              {shownChips.map((c) => {
-                const label = featureLabel(c.code);
-                return (
-                  <span key={c.code} className={styles.favFact} role="img" aria-label={label} title={label}>
-                    <Icon name={c.icon} size={13} />
-                  </span>
-                );
-              })}
-              {extraCount > 0 && <span className={styles.chip}>{`+${extraCount}`}</span>}
+              {ageBand && <ParkBadge variant="age" label={ageBand} />}
+              {shownChips.map((c) => (
+                <ParkBadge key={c.code} variant="present" label={featureLabel(c.code)} icon={c.icon} iconOnly />
+              ))}
+              {extraCount > 0 && <ParkBadge variant="age" label={`+${extraCount}`} />}
             </div>
           )}
           <CompactRating park={park} />

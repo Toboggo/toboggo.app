@@ -57,6 +57,19 @@ describe("requête de détail : champs nécessaires au JSON-LD", () => {
   });
 });
 
+describe("requête de liste : champs nécessaires au sitemap", () => {
+  it("renvoie _updatedAt, publishedAt et updatedAt (lastmod du sitemap = articleModifiedAt)", async () => {
+    const data = [{ ...doc("a8", "pour-sitemap", past), _updatedAt: "2026-07-08T10:00:00Z", updatedAt: "2026-01-01T00:00:00Z" }];
+    const res = (await (await evaluate(parse(LIST_QUERY), { dataset: data })).get()) as Record<string, any>[];
+    expect(res).toHaveLength(1);
+    expect(res[0]._updatedAt).toBe("2026-07-08T10:00:00Z");
+    expect(res[0].updatedAt).toBe("2026-01-01T00:00:00Z");
+    // lastmod : _updatedAt (pas le champ éditorial), jamais avant publishedAt
+    expect(articleModifiedAt(res[0] as { publishedAt: string; _updatedAt: string })).toBe("2026-07-08T10:00:00Z");
+    expect(articleModifiedAt({ publishedAt: "2026-09-01T00:00:00Z", _updatedAt: "2026-07-08T10:00:00Z" })).toBe("2026-09-01T00:00:00Z");
+  });
+});
+
 describe("session de prévisualisation", () => {
   const key = "jeton-de-test";
   it("accepte un cookie valide, refuse falsifié, expiré ou sans clé", () => {

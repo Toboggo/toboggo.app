@@ -1,16 +1,16 @@
 import { SITE_NAME, SITE_URL } from "../../config/site";
 import { sanityImage } from "./images";
-import type { Article } from "./types";
+import type { Article, ArticleCard } from "./types";
 
 const clip = (text: string, max: number) => (text.length <= max ? text : `${text.slice(0, max - 1).trimEnd()}…`);
 
 /**
  * Date de dernière modification de l'article publié : `_updatedAt` (Sanity, mis à jour à chaque publication),
  * `publishedAt` en secours. Jamais antérieure à `publishedAt` (article antidaté ou programmé), car
- * `dateModified` < `datePublished` serait invalide. Le champ éditorial `updatedAt` ne sert qu'à l'affichage
+ * `dateModified` < `datePublished` serait invalide. Même valeur pour le `lastmod` du sitemap. Le champ éditorial `updatedAt` ne sert qu'à l'affichage
  * (« Mis à jour le … »).
  */
-export function articleModifiedAt(article: Pick<Article, "publishedAt" | "_updatedAt">): string {
+export function articleModifiedAt(article: Pick<ArticleCard, "publishedAt" | "_updatedAt">): string {
   const updated = article._updatedAt;
   if (!updated || Number.isNaN(Date.parse(updated))) return article.publishedAt;
   return Date.parse(updated) < Date.parse(article.publishedAt) ? article.publishedAt : updated;

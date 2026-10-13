@@ -51,8 +51,11 @@ export function BottomTabs() {
   };
 
   return (
-    <nav className={styles.wrap}>
-      {TABS.map(renderTab)}
-    </nav>
+    <>
+      <div className={styles.backdrop} aria-hidden="true" />
+      <nav className={styles.wrap}>
+        {TABS.map(renderTab)}
+      </nav>
+    </>
   );
 }

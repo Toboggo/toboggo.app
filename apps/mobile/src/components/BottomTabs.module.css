@@ -98,3 +98,33 @@
 :global([data-theme="dark"]) .tab[data-active="1"] {
   color: var(--color-primary);
 }
+
+/* Shared lower-screen backdrop, behind the floating navigation.
+   Pointer events pass through to the page or map. */
+.backdrop {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: var(--app-shell-width, 560px);
+  margin: 0 auto;
+  height: calc(
+    var(--bottom-nav-content-h) +
+    var(--bottom-nav-gap) +
+    var(--safe-bottom) +
+    20px
+  );
+  pointer-events: none;
+  z-index: calc(var(--z-nav, 50) - 1);
+  background: var(--color-surface, #fff);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
+  mask-image: linear-gradient(to bottom, transparent, #000 20px);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .backdrop {
+    background: color-mix(in srgb, var(--color-surface) 65%, transparent);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+}

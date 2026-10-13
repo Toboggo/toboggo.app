@@ -1,5 +1,5 @@
 import { getSupabase } from "../supabaseClient";
-import { listOrgParkIds } from "./parks";
+import { orgParkScopeSelect, ORG_PARK_SCOPE_PATH } from "./parks";
 import type { AgeBand, Review, ReviewSubRatings } from "../types";
 import type { TablesInsert, TablesUpdate } from "../types/database.types";
 
@@ -63,16 +63,19 @@ export async function listReviewsForPark(parkId: string): Promise<Review[]> {
 
 export async function listReviews(opts: { communeId?: string } = {}): Promise<Review[]> {
   const supabase = getSupabase();
-  let query = supabase.from("reviews").select("*, parks!inner(name)").order("created_at", { ascending: false });
-  if (opts.communeId) {
-    const ids = await listOrgParkIds(opts.communeId);
-    query = query.in("park_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
-  }
+  // Périmètre de collectivité : jointure serveur `parks → organization_parks` (pas de liste d'ids).
+  const select: string = `*, parks!inner(name${orgParkScopeSelect(opts.communeId)})`;
+  let query = supabase
+    .from("reviews")
+    .select(select)
+    .order("created_at", { ascending: false });
+  if (opts.communeId) query = query.eq(`parks.${ORG_PARK_SCOPE_PATH}`, opts.communeId);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map((row) => {
+  return ((data ?? []) as unknown as Parameters<typeof hydrate>[0][]).map((row) => {
     const h = hydrate(row) as Review & { parks?: { name: string } };
-    h.parks = (row as { parks?: { name: string } }).parks;
+    const parks = (row as { parks?: { name: string } }).parks;
+    h.parks = parks ? { name: parks.name } : parks;
     return h;
   }) as unknown as Review[];
 }

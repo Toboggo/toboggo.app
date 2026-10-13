@@ -3,14 +3,14 @@ import { render, screen, fireEvent, waitFor, within } from "@testing-library/rea
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ToastProvider } from "@toboggo/design-system";
-import { getParkCountryDistribution, listAllParksForExport, listOrganizationsWithCounts, listParksPage } from "@toboggo/shared";
+import { ExportTooLargeError, getParkCountryDistribution, listAllParksForExport, listOrganizationsWithCounts, listParksPage } from "@toboggo/shared";
 import { AdminParks } from "./AdminParks";
 
 vi.mock("@toboggo/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@toboggo/shared")>();
   return {
     ...actual,
-    listParksPage: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 }),
+    listParksPage: vi.fn().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1, truncatedDepth: false }),
     listParks: vi.fn().mockResolvedValue([]),
     listAllParksForExport: vi.fn().mockResolvedValue([]),
     listOrganizationsWithCounts: vi.fn().mockResolvedValue([]),
@@ -132,6 +132,7 @@ describe("Parks — Admin-UI-5B (colonne/filtre Source, filtre Collectivité)", 
       page: 1,
       pageSize: 25,
       pageCount: 1,
+      truncatedDepth: false,
     });
     vi.mocked(listOrganizationsWithCounts).mockClear().mockResolvedValue([]);
   });
@@ -192,12 +193,40 @@ describe("Parks — Admin-UI-8B (l'export CSV utilise les filtres réellement ac
     perms.canImportParksCsv = false;
     scope.isAdmin = true;
     scope.communeId = undefined;
-    vi.mocked(listParksPage).mockClear().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1 });
+    vi.mocked(listParksPage).mockClear().mockResolvedValue({ rows: [], total: 0, page: 1, pageSize: 25, pageCount: 1, truncatedDepth: false });
     vi.mocked(listAllParksForExport).mockClear().mockResolvedValue([]);
     vi.mocked(listOrganizationsWithCounts).mockClear().mockResolvedValue([
       { id: "org-lyon", name: "Ville de Lyon" },
     ] as never);
     vi.mocked(getParkCountryDistribution).mockClear().mockResolvedValue([{ country_code: "FR", count: 2189 }] as never);
+  });
+
+  it("Lot A — export trop volumineux : message clair « affinez les filtres », pas d'échec générique", async () => {
+    vi.mocked(listAllParksForExport).mockRejectedValueOnce(new ExportTooLargeError(120_000, 50_000));
+    renderParks();
+    await waitFor(() => expect(listParksPage).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: "Exporter CSV" }));
+    expect(await screen.findByText(/Export limité à .*50.*000 parcs.*120.*000.*Affinez les filtres/s)).toBeTruthy();
+    expect(screen.queryByText("L'export CSV a échoué.")).toBeNull();
+  });
+
+  it("Lot A — pagination profonde plafonnée : la page affichée est celle réellement servie, avec l'invite à affiner", async () => {
+    vi.mocked(listParksPage).mockResolvedValue({ rows: [], total: 80_000, page: 400, pageSize: 25, pageCount: 400, truncatedDepth: true });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ToastProvider>
+          <MemoryRouter initialEntries={["/parks?page=9999&status=all"]}>
+            <Routes>
+              <Route path="/parks" element={<AdminParks />} />
+            </Routes>
+          </MemoryRouter>
+        </ToastProvider>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText(/Page 400 \/ 400/)).toBeTruthy();
+    expect(screen.getByText(/affinez les filtres pour voir la suite/)).toBeTruthy();
+    expect(listParksPage).toHaveBeenCalledWith(expect.objectContaining({ page: 9999 }));
   });
 
   it("n'appelle jamais listParks() (non paginée) pour l'export — seulement listAllParksForExport", async () => {
@@ -319,6 +348,7 @@ describe("Parks — Admin-UI-8D (colonnes Pays/Collectivité, filtre Pays, secon
       page: 1,
       pageSize: 25,
       pageCount: 1,
+      truncatedDepth: false,
     });
     vi.mocked(listOrganizationsWithCounts).mockClear().mockResolvedValue([{ id: "org-lyon", name: "Ville de Lyon" }] as never);
     // Ordre volontairement "France avant Espagne" par volume — le tri du
@@ -465,6 +495,7 @@ describe("Parks — Admin-UI-8D (vue Collectivité non cassée)", () => {
       page: 1,
       pageSize: 25,
       pageCount: 1,
+      truncatedDepth: false,
     });
     vi.mocked(getParkCountryDistribution).mockClear();
   });

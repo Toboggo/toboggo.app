@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getPark, listOrgParkIds } from "@toboggo/shared";
+import { getPark, isParkInOrganization } from "@toboggo/shared";
 import { useOrgScope } from "./orgScope";
 
 /** Thrown when a collectivité asks for a park that is not linked to it. */
@@ -28,8 +28,7 @@ export function useScopedPark(id: string) {
     queryKey: ["park", id, communeId ?? "all"],
     queryFn: async () => {
       if (communeId) {
-        const ids = await listOrgParkIds(communeId);
-        if (!ids.includes(id)) throw new ParkOutOfScopeError();
+        if (!(await isParkInOrganization(communeId, id))) throw new ParkOutOfScopeError();
       }
       return getPark(id);
     },

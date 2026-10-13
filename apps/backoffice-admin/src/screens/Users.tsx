@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, Button, Input, Segmented } from "@toboggo/design-system";
-import { listAllUsers, listParks, listReviews, setUserSuspended, toCsv, downloadCsv } from "@toboggo/shared";
+import { countParksByCreator, listAllUsers, listReviews, setUserSuspended, toCsv, downloadCsv } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { queryClient } from "@toboggo/backoffice-core/lib/queryClient";
 
@@ -12,7 +12,9 @@ export default function Users() {
   const [tab, setTab] = useState<TabValue>("all");
 
   const { data: users = [] } = useQuery({ queryKey: ["bo-users"], queryFn: listAllUsers });
-  const { data: parks = [] } = useQuery({ queryKey: ["bo-parks-all"], queryFn: () => listParks({}) });
+  // Compteurs « parcs par utilisateur » : lots keyset bornés sur `id,created_by` des seuls parcs
+  // créés par un utilisateur — plus de `listParks({})` (tronqué à 1000, vue complète).
+  const { data: parkCounts } = useQuery({ queryKey: ["bo-parks-by-creator"], queryFn: () => countParksByCreator() });
   const { data: reviews = [] } = useQuery({ queryKey: ["bo-reviews-all"], queryFn: () => listReviews({}) });
 
   const filtered = users
@@ -21,7 +23,7 @@ export default function Users() {
 
   function counts(userId: string) {
     return {
-      parks: parks.filter((p) => p.created_by === userId).length,
+      parks: parkCounts?.counts.get(userId) ?? 0,
       reviews: reviews.filter((r: any) => r.user_id === userId).length,
     };
   }
@@ -79,7 +81,7 @@ export default function Users() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>{u.name}</div>
                   <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
-                    {u.email} · {c.parks} parcs · {c.reviews} avis
+                    {u.email} · {c.parks}{parkCounts && !parkCounts.complete ? "+" : ""} parcs · {c.reviews} avis
                   </div>
                 </div>
                 <span style={{ fontSize: 12, color: u.suspended ? "var(--color-error)" : "var(--color-primary)" }}>{u.suspended ? "Suspendu" : "Actif"}</span>

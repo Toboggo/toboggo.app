@@ -203,21 +203,96 @@ export async function getPark(id: string): Promise<Park> {
   return data as unknown as Park;
 }
 
+// ── Lot A — listes bornées, filtres d'organisation côté serveur ──────────
+// Principes (voir docs/audit/admin-parks-pagination.md) :
+//  • PostgREST plafonne chaque réponse à `max_rows` (1000). Aucune fonction de
+//    ce fichier ne suppose « une requête = tout » : tout chargement multiple
+//    est séquentiel, par lots ≤ 1000, avec un PLAFOND dur (jamais illimité).
+//  • Le périmètre d'une collectivité n'est JAMAIS transmis sous forme d'une
+//    liste `id=in.(…)` (URL trop longue au-delà de ~300 parcs, 1000 ids max) :
+//    c'est une jointure `organization_parks!inner` filtrée côté serveur. Elle
+//    passe par la RLS de l'appelant : aucun accès élargi.
+
+/** Taille de lot alignée sur `max_rows` PostgREST — ne jamais dépasser. */
+export const FETCH_BATCH_SIZE = 1000;
+/** Plafond d'un chargement complet (`listParks`) : au-delà, résultat tronqué ET signalé. */
+export const LIST_PARKS_HARD_CAP = 10_000;
+/** Plafond d'un export CSV : au-delà, l'export est refusé (message « affinez les filtres »). */
+export const EXPORT_MAX_ROWS = 50_000;
+/** Profondeur maximale de la pagination par pages (OFFSET) : au-delà, affiner les filtres. */
+export const MAX_DEEP_OFFSET = 10_000;
+/** Plafond de sécurité du nombre de pays distincts parcourus. */
+const MAX_COUNTRIES = 300;
+/** Plafond de sécurité des identifiants d'une organisation (`listOrgParkIds`). */
+const ORG_IDS_HARD_CAP = 100_000;
+/** Requêtes de comptage simultanées (jamais « tout en parallèle »). */
+const COUNT_CONCURRENCY = 4;
+
+/** Exécute `tasks` avec au plus `limit` en vol (ordre des résultats conservé). */
+async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+/** Chemin du filtre de périmètre quand la table liée EMBARQUE `parks` (reports, reviews, park_media,
+ * park_edits) : `.eq("parks.organization_parks.organization_id", id)` avec le fragment ci-dessous. */
+export const ORG_PARK_SCOPE_PATH = "organization_parks.organization_id";
+
+/** Fragment de `select` (à placer DANS l'embed `parks!inner(...)`/`park:parks!inner(...)`) —
+ * jointure interne vers `organization_parks`, vide si aucun périmètre. */
+export function orgParkScopeSelect(organizationId?: string): string {
+  return organizationId ? ", organization_parks!inner(organization_id)" : "";
+}
+
+/** `communeId` = périmètre de session ; `organizationId` = filtre « Collectivité » (Admin). */
+interface OrgScope {
+  communeId?: string;
+  organizationId?: string;
+}
+
+const SCOPE_ALIAS = { communeId: "scope_c", organizationId: "scope_o" } as const;
+const EMBED_KEYS = ["park_sources", "src_filter", "scope_c", "scope_o"] as const;
+
+/** Fragment de `select` : une jointure interne par périmètre actif (alias distincts). */
+function orgScopeSelect(scope: OrgScope): string {
+  let s = "";
+  if (scope.communeId) s += `, ${SCOPE_ALIAS.communeId}:organization_parks!inner(organization_id)`;
+  if (scope.organizationId) s += `, ${SCOPE_ALIAS.organizationId}:organization_parks!inner(organization_id)`;
+  return s;
+}
+
+// `query` est le builder PostgREST : son type générique dépend du `select`
+// (chaîne dynamique) — on le manipule via une interface minimale.
+interface FilterableQuery {
+  eq(column: string, value: string): this;
+}
+
+function applyOrgScope<Q extends FilterableQuery>(query: Q, scope: OrgScope): Q {
+  let q = query;
+  if (scope.communeId) q = q.eq(`${SCOPE_ALIAS.communeId}.organization_id`, scope.communeId);
+  if (scope.organizationId) q = q.eq(`${SCOPE_ALIAS.organizationId}.organization_id`, scope.organizationId);
+  return q;
+}
+
+function stripEmbeds<T extends object>(row: T): Omit<T, (typeof EMBED_KEYS)[number]> {
+  const copy = { ...(row as Record<string, unknown>) };
+  for (const k of EMBED_KEYS) delete copy[k];
+  return copy as never;
+}
+
 /**
- * Park ids linked to an organisation via `organization_parks` — the canonical
- * V2 rattachement. `listReports` / `listReviews` already resolved this inline;
- * centralised here so every commune-scoped read (parks / reports / reviews /
- * pending media) uses the same source of truth instead of the legacy V1
- * `parks.commune_id` column, which `createPark` never populates.
- *
- * Screens routinely call several of `listParks`/`listReports`/`listReviews`/
- * `listPendingMedia` in parallel for the same organisation (e.g. the
- * dashboard, or the sidebar badge counts) — each would otherwise re-run this
- * same lookup. In-flight calls for the same `organizationId` are coalesced
- * into a single request; the cache entry is cleared as soon as it settles
- * (success or failure), so this never serves stale data across renders or
- * after a mutation invalidates a query — only truly concurrent callers share
- * a request.
+ * Identifiants des parcs d'une organisation — **paginés** (keyset sur `park_id`,
+ * lots de 1000, séquentiels, plafond dur). Conservé pour compatibilité ; les
+ * lectures de la collectivité n'en dépendent plus (jointure serveur). Les appels
+ * concurrents pour une même organisation partagent une requête en vol.
  */
 const inFlightOrgParkIds = new Map<string, Promise<string[]>>();
 
@@ -227,12 +302,24 @@ export function listOrgParkIds(organizationId: string): Promise<string[]> {
 
   const promise = (async () => {
     const supabase = getSupabase();
-    const { data, error } = await supabase
-      .from("organization_parks")
-      .select("park_id")
-      .eq("organization_id", organizationId);
-    if (error) throw error;
-    return (data ?? []).map((r: { park_id: string }) => r.park_id);
+    const ids: string[] = [];
+    let last: string | null = null;
+    while (ids.length < ORG_IDS_HARD_CAP) {
+      let q = supabase
+        .from("organization_parks")
+        .select("park_id")
+        .eq("organization_id", organizationId)
+        .order("park_id", { ascending: true })
+        .limit(FETCH_BATCH_SIZE);
+      if (last) q = q.gt("park_id", last);
+      const { data, error } = await q;
+      if (error) throw error;
+      const batch = (data ?? []) as { park_id: string }[];
+      for (const r of batch) ids.push(r.park_id);
+      if (batch.length < FETCH_BATCH_SIZE) break;
+      last = batch[batch.length - 1].park_id;
+    }
+    return ids;
   })();
 
   const tracked = promise.finally(() => {
@@ -242,56 +329,92 @@ export function listOrgParkIds(organizationId: string): Promise<string[]> {
   return tracked;
 }
 
-/** `.in("id", ids)` with an empty list matches every row (Postgres/PostgREST
- * treats `IN ()` as always-false only when at least one value is given) — a
- * commune with 0 linked parks must see 0 rows, not everything. Callers pass
- * this sentinel, matching the pattern already used by `listReports`/`listReviews`. */
-const NO_MATCH_SENTINEL = "00000000-0000-0000-0000-000000000000";
-
-export async function listParks(opts: { communeId?: string; status?: ParkStatus[] } = {}): Promise<Park[]> {
+/** Ce parc appartient-il à cette organisation ? Une seule requête sur la clé primaire
+ * `(organization_id, park_id)` — remplace `listOrgParkIds(...).includes(id)`. */
+export async function isParkInOrganization(organizationId: string, parkId: string): Promise<boolean> {
   const supabase = getSupabase();
-  let query = supabase.from("park_public").select(PARK_COLS).order("created_at", { ascending: false });
-  if (opts.communeId) {
-    const ids = await listOrgParkIds(opts.communeId);
-    query = query.in("id", ids.length ? ids : [NO_MATCH_SENTINEL]);
-  }
-  if (opts.status?.length) query = query.in("moderation_status", opts.status);
-  const { data, error } = await query;
+  const { count, error } = await supabase
+    .from("organization_parks")
+    .select("park_id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("park_id", parkId);
   if (error) throw error;
-  return data as unknown as Park[];
+  return (count ?? 0) > 0;
+}
+
+export interface ListParksResult {
+  rows: Park[];
+  /** `true` si le plafond (`LIST_PARKS_HARD_CAP`) a été atteint : il existe d'autres parcs. */
+  truncated: boolean;
 }
 
 /**
- * Admin-UI-7D-C — exact per-status counts, never "download every park and
- * `.length` the array". `listParks()` above has no `.limit()`/pagination, so
- * on a catalog bigger than PostgREST's `max_rows` (`supabase/config.toml` —
- * 1000 locally) it silently truncates; a `.filter().length` on its result is
- * therefore wrong past that size (confirmed locally: 2201 real parks, the
- * Dashboard's "Parcs actifs" KPI showed exactly 1000). `{ count: "exact",
- * head: true }` asks PostgREST for a real `SELECT count(*)` with no rows
- * transferred at all — unaffected by `max_rows`, correct at any scale, and
- * cheaper than the array it replaces. One request per requested status,
- * fired in parallel (`ParkStatus` is a small closed enum, so this is safe —
- * unlike country codes below, which are open-ended).
+ * Chargement complet BORNÉ d'un périmètre : lots de 1000 séquentiels (keyset sur `id`,
+ * stable et sans doublon), arrêt au plafond `LIST_PARKS_HARD_CAP` avec `truncated`.
+ * Résultat trié `created_at desc, id` (comportement historique de `listParks`).
+ */
+export async function listParksCapped(
+  opts: { communeId?: string; status?: ParkStatus[]; cap?: number } = {},
+): Promise<ListParksResult> {
+  const supabase = getSupabase();
+  const cap = opts.cap ?? LIST_PARKS_HARD_CAP;
+  const rows: Park[] = [];
+  let last: string | null = null;
+  let truncated = false;
+  for (;;) {
+    // `cap + 1` lignes au total suffisent à savoir s'il en existe davantage.
+    const want = Math.min(FETCH_BATCH_SIZE, cap + 1 - rows.length);
+    let q = supabase
+      .from("park_public")
+      .select(`${PARK_COLS}${orgScopeSelect({ communeId: opts.communeId })}`)
+      .order("id", { ascending: true })
+      .limit(want);
+    q = applyOrgScope(q, { communeId: opts.communeId });
+    if (opts.status?.length) q = q.in("moderation_status", opts.status);
+    if (last) q = q.gt("id", last);
+    const { data, error } = await q;
+    if (error) throw error;
+    const batch = (data ?? []) as unknown as (Park & Record<string, unknown>)[];
+    for (const r of batch) rows.push(stripEmbeds(r) as unknown as Park);
+    if (rows.length > cap) {
+      rows.length = cap;
+      truncated = true;
+      break;
+    }
+    if (batch.length < want) break;
+    last = batch[batch.length - 1].id;
+  }
+  rows.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : a.id < b.id ? -1 : 1));
+  return { rows, truncated };
+}
+
+/** Voir `listParksCapped` : même résultat sans l'indicateur (un avertissement console si tronqué). */
+export async function listParks(opts: { communeId?: string; status?: ParkStatus[] } = {}): Promise<Park[]> {
+  const { rows, truncated } = await listParksCapped(opts);
+  if (truncated) console.warn(`[listParks] plafond de ${LIST_PARKS_HARD_CAP} parcs atteint : liste tronquée.`);
+  return rows;
+}
+
+/**
+ * Admin-UI-7D-C — exact per-status counts (`count: "exact", head: true`, aucune ligne
+ * transférée). `ParkStatus` est un enum fermé : une requête par statut. Le périmètre de
+ * collectivité est une jointure serveur (plus de liste d'ids).
  */
 export async function getParkStatusCounts(
   statuses: ParkStatus[],
   opts: { communeId?: string } = {},
 ): Promise<Partial<Record<ParkStatus, number>>> {
   const supabase = getSupabase();
-  const idFilter = opts.communeId ? await listOrgParkIds(opts.communeId) : null;
-  const entries = await Promise.all(
-    statuses.map(async (status) => {
-      let query = supabase
-        .from("park_public")
-        .select("id", { count: "exact", head: true })
-        .eq("moderation_status", status);
-      if (idFilter) query = query.in("id", idFilter.length ? idFilter : [NO_MATCH_SENTINEL]);
-      const { count, error } = await query;
-      if (error) throw error;
-      return [status, count ?? 0] as const;
-    }),
-  );
+  const entries = await mapWithConcurrency(statuses, COUNT_CONCURRENCY, async (status) => {
+    let query = supabase
+      .from("park_public")
+      .select(`id${orgScopeSelect({ communeId: opts.communeId })}`, { count: "exact", head: true })
+      .eq("moderation_status", status);
+    query = applyOrgScope(query, { communeId: opts.communeId });
+    const { count, error } = await query;
+    if (error) throw error;
+    return [status, count ?? 0] as const;
+  });
   return Object.fromEntries(entries);
 }
 
@@ -300,67 +423,120 @@ export interface ParkCountryCount {
   count: number;
 }
 
-// One page of `country_code` only (skinny payload — a few KB even at several
-// thousand parks) per request; PostgREST's own `max_rows` already caps a page
-// at this size, so this stays aligned with it rather than fighting it.
-const COUNTRY_PAGE_SIZE = 1000;
-
 /**
- * Admin-UI-7D-C — real répartition du catalogue par `country_code`, fiable
- * au-delà de `max_rows` (voir `getParkStatusCounts`). `country_code` est un
- * champ OUVERT (pas un enum fermé comme `ParkStatus`/`SourceType`) : on ne
- * peut donc pas précalculer la liste des valeurs à interroger comme pour ces
- * deux-là. Solution : un `count` exact (rapide, aucune ligne transférée) pour
- * connaître le total, puis une pagination exhaustive mais SEULEMENT sur la
- * colonne `country_code` (jamais le tableau `Park` complet), en parallèle vu
- * que le nombre de pages est connu à l'avance. Un pays qui n'existe pas
- * encore dans le catalogue apparaît automatiquement dès qu'un parc l'utilise
- * — aucune liste de pays codée en dur.
+ * Répartition réelle par `country_code`, fiable à toute échelle et **stable** :
+ *  1. découverte des pays DISTINCTS par « saut » d'index — une requête par pays
+ *     (`order country_code`, `limit 1`, `country_code > dernier`), au lieu de
+ *     parcourir tout le catalogue (500 requêtes à 500 000 parcs) ;
+ *  2. un `count` exact par pays (4 simultanés au plus).
+ * Aucune pagination sans `ORDER BY` : plus de doublons ni de manques possibles.
+ * Un pays nouveau apparaît dès qu'un parc l'utilise (aucune liste codée en dur).
  */
 export async function getParkCountryDistribution(): Promise<ParkCountryCount[]> {
   const supabase = getSupabase();
-  const { count, error: countError } = await supabase
-    .from("park_public")
-    .select("id", { count: "exact", head: true });
-  if (countError) throw countError;
-  const total = count ?? 0;
-  if (total === 0) return [];
-
-  const pageCount = Math.ceil(total / COUNTRY_PAGE_SIZE);
-  const pages = await Promise.all(
-    Array.from({ length: pageCount }, (_, i) => {
-      const from = i * COUNTRY_PAGE_SIZE;
-      return supabase
-        .from("park_public")
-        .select("country_code")
-        .range(from, from + COUNTRY_PAGE_SIZE - 1);
-    }),
-  );
-
-  const counts = new Map<string, number>();
-  for (const page of pages) {
-    if (page.error) throw page.error;
-    for (const row of (page.data ?? []) as { country_code: string }[]) {
-      counts.set(row.country_code, (counts.get(row.country_code) ?? 0) + 1);
-    }
+  const codes: string[] = [];
+  let last: string | null = null;
+  while (codes.length < MAX_COUNTRIES) {
+    let q = supabase
+      .from("park_public")
+      .select("country_code")
+      .not("country_code", "is", null)
+      .order("country_code", { ascending: true })
+      .limit(1);
+    if (last !== null) q = q.gt("country_code", last);
+    const { data, error } = await q;
+    if (error) throw error;
+    const code = (data as { country_code: string }[] | null)?.[0]?.country_code;
+    if (!code) break;
+    codes.push(code);
+    last = code;
   }
-  return [...counts.entries()]
-    .map(([country_code, count]) => ({ country_code, count }))
-    .sort((a, b) => b.count - a.count);
+  const counted = await mapWithConcurrency(codes, COUNT_CONCURRENCY, async (country_code) => {
+    const { count, error } = await supabase
+      .from("park_public")
+      .select("id", { count: "exact", head: true })
+      .eq("country_code", country_code);
+    if (error) throw error;
+    return { country_code, count: count ?? 0 };
+  });
+  return counted
+    .filter((c) => c.count > 0)
+    .sort((a, b) => b.count - a.count || (a.country_code < b.country_code ? -1 : 1));
 }
 
-// ── Server-paginated management list (BO Lot 3A) ──────────────────────────
-// Separate from `listParks` (which stays an unpaginated array, still used by
-// the dashboard / map / sidebar counts) — this one adds page/sort/search/
-// verification filtering server-side so `/parks` scales past a few hundred
-// rows. `park_public.photos` is already the aggregated list of *approved*
-// media URLs, so the photo count is `row.photos.length` — no extra query.
+/**
+ * Parcs créés par des utilisateurs (`created_by` non nul), comptés par créateur : lots
+ * keyset de 1000 sur `id`, colonnes `id,created_by` seulement, plafond dur. Remplace
+ * `listParks({})` + `.filter(created_by).length` (tronqué à 1000, vue complète).
+ * `complete` = `false` si le plafond a été atteint (compteurs alors minorés).
+ */
+export async function countParksByCreator(
+  cap = LIST_PARKS_HARD_CAP,
+): Promise<{ counts: Map<string, number>; complete: boolean }> {
+  const supabase = getSupabase();
+  const counts = new Map<string, number>();
+  let seen = 0;
+  let last: string | null = null;
+  for (;;) {
+    let q = supabase
+      .from("park_public")
+      .select("id,created_by")
+      .not("created_by", "is", null)
+      .order("id", { ascending: true })
+      .limit(FETCH_BATCH_SIZE);
+    if (last) q = q.gt("id", last);
+    const { data, error } = await q;
+    if (error) throw error;
+    const batch = (data ?? []) as { id: string; created_by: string }[];
+    for (const r of batch) counts.set(r.created_by, (counts.get(r.created_by) ?? 0) + 1);
+    seen += batch.length;
+    if (batch.length < FETCH_BATCH_SIZE) return { counts, complete: true };
+    if (seen >= cap) return { counts, complete: false };
+    last = batch[batch.length - 1].id;
+  }
+}
+
+const ILIKE_SPECIALS = /[\\%_]/g;
+
+/**
+ * Doublon à l'import CSV : un parc de même nom ET de même adresse existe-t-il dans le
+ * périmètre ? Requête ciblée (nom exact, insensible à la casse, via l'index trigramme)
+ * au lieu de charger tout le catalogue ; comparaison finale STRICTE sur nom et adresse
+ * (sémantique historique). Parcourt au plus `MAX_DUP_PAGES` lots d'homonymes.
+ */
+const MAX_DUP_PAGES = 5;
+
+export async function parkExistsWithNameAndAddress(
+  name: string,
+  address: string,
+  opts: { communeId?: string } = {},
+): Promise<boolean> {
+  const supabase = getSupabase();
+  let last: string | null = null;
+  for (let page = 0; page < MAX_DUP_PAGES; page++) {
+    let q = supabase
+      .from("park_public")
+      .select(`id,name,formatted_address${orgScopeSelect({ communeId: opts.communeId })}`)
+      .ilike("name", name.replace(ILIKE_SPECIALS, "\\$&"))
+      .order("id", { ascending: true })
+      .limit(FETCH_BATCH_SIZE);
+    q = applyOrgScope(q, { communeId: opts.communeId });
+    if (last) q = q.gt("id", last);
+    const { data, error } = await q;
+    if (error) throw error;
+    const batch = (data ?? []) as unknown as { id: string; name: string; formatted_address: string | null }[];
+    if (batch.some((p) => p.name === name && p.formatted_address === address)) return true;
+    if (batch.length < FETCH_BATCH_SIZE) return false;
+    last = batch[batch.length - 1].id;
+  }
+  return false;
+}
+
+// ── Server-paginated management list (BO Lot 3A, Lot A) ──────────────────
 
 export const PARKS_PAGE_SIZE = 25;
 
-/** Columns the list can sort on server-side. `name`/`created_at`/`updated_at`
- * are real `parks` columns; computed cells (photo count, open-report flag)
- * are intentionally not sortable. */
+/** Columns the list can sort on server-side. */
 export type ParksSortKey = "name" | "created_at" | "updated_at";
 
 export interface ListParksPageOpts {
@@ -369,16 +545,10 @@ export interface ListParksPageOpts {
   q?: string;
   status?: ParkStatus[];
   verification?: VerificationStatus[];
-  /** `park_sources.source_type` — a park matches when its (first) source row
-   * is one of these values. */
+  /** Source d'ORIGINE (`park_sources.source_type`), filtre par jointure serveur. */
   sourceTypes?: SourceType[];
-  /** Restricts to parks linked to this organisation via `organization_parks`
-   * (Admin-UI-5B "Collectivité" filter — distinct from `communeId`, which
-   * scopes the whole screen for a commune-role session). */
+  /** Filtre « Collectivité » (Admin) — distinct de `communeId` (périmètre de session). */
   organizationId?: string;
-  /** `park_public.country_code`, exact match (Admin-UI-7D-C — Dashboard
-   * "Couverture géographique" → synthèse → détail). A plain column, unlike
-   * `sourceTypes` above (no join needed). */
   countryCode?: string;
   sort?: ParksSortKey;
   order?: "asc" | "desc";
@@ -387,24 +557,85 @@ export interface ListParksPageOpts {
   pageSize?: number;
 }
 
-/** A page row plus its provenance — `null` when the park has no `park_sources`
- * row at all (never observed today, but not assumed impossible). */
-export type ParkWithSource = Park & { source_type: SourceType | null };
+/**
+ * Colonnes réellement lues par les listes (Admin + export) — la vue `park_public` calcule
+ * chaque colonne sélectionnée par des sous-requêtes corrélées (features, scores, noms
+ * traduits…) : ne pas les demander évite ce coût sur chaque ligne.
+ */
+const LIST_COLS =
+  "id,name,country_code,latitude,longitude,lat,lng,min_age,max_age,moderation_status,status," +
+  "verification_status,has_open_report,created_at,updated_at,formatted_address,organization_id,commune_id,photos";
+
+export type ParkListRow = Pick<
+  Park,
+  | "id"
+  | "name"
+  | "country_code"
+  | "latitude"
+  | "longitude"
+  | "lat"
+  | "lng"
+  | "min_age"
+  | "max_age"
+  | "moderation_status"
+  | "status"
+  | "verification_status"
+  | "has_open_report"
+  | "created_at"
+  | "updated_at"
+  | "formatted_address"
+  | "organization_id"
+  | "commune_id"
+  | "photos"
+>;
+
+/** Une ligne de liste et sa provenance : `source_type` = source d'ORIGINE (déterministe),
+ * `enrichment_sources` = enrichissements (ex. `reverse_geocode`), jamais confondus. */
+export type ParkWithSource = ParkListRow & { source_type: SourceType | null; enrichment_sources: string[] };
 
 export interface ParksPage {
   rows: ParkWithSource[];
   total: number;
+  /** Page effectivement servie (ramenée dans la profondeur atteignable). */
   page: number;
   pageSize: number;
+  /** Nombre de pages ATTEIGNABLES (≤ `MAX_DEEP_OFFSET / pageSize`). */
   pageCount: number;
+  /** `true` si `total` dépasse la profondeur atteignable : affiner les filtres pour voir la suite. */
+  truncatedDepth: boolean;
+}
+
+/** Sources d'enrichissement (valeurs d'enum DB absentes de `SourceType`) : jamais une origine. */
+const ENRICHMENT_SOURCES: ReadonlySet<string> = new Set(["reverse_geocode"]);
+
+/** Priorité des origines — miroir de `source_priority()` (migration 0024). */
+const ORIGIN_PRIORITY: Record<string, number> = {
+  toboggo: 100,
+  municipality: 90,
+  open_data: 80,
+  partner: 70,
+  osm: 50,
+  user: 40,
+  other: 10,
+};
+
+/**
+ * Source d'origine d'un parc, déterministe (indépendante de l'ordre de la jointure) :
+ * priorité la plus haute parmi les ORIGINES ; `reverse_geocode` n'est jamais l'origine
+ * (s'il est la seule source connue, `source` est `null` et l'enrichissement reste exposé
+ * dans `enrichments`).
+ */
+export function pickPrimarySource(types: readonly string[]): { source: SourceType | null; enrichments: string[] } {
+  const enrichments = [...new Set(types.filter((t) => ENRICHMENT_SOURCES.has(t)))].sort();
+  const origins = [...new Set(types.filter((t) => !ENRICHMENT_SOURCES.has(t)))];
+  origins.sort((a, b) => (ORIGIN_PRIORITY[b] ?? 0) - (ORIGIN_PRIORITY[a] ?? 0) || (a < b ? -1 : 1));
+  const source = (origins[0] ?? null) as SourceType | null;
+  return { source, enrichments };
 }
 
 /**
- * Batched `park_sources` lookup for a known set of park ids — one request
- * regardless of how many ids, reusing the fetch-plus-`Map` pattern already
- * used by `listOrganizationsWithCounts` to avoid a per-row query. A park with
- * more than one `park_sources` row (not expected in practice, see
- * `getParkSourceDistribution`) keeps its first one.
+ * Batched `park_sources` lookup for a known set of park ids — one request. Source = origine
+ * déterministe (`pickPrimarySource`).
  */
 export async function listParkSourcesByIds(parkIds: string[]): Promise<Map<string, SourceType>> {
   const map = new Map<string, SourceType>();
@@ -412,155 +643,150 @@ export async function listParkSourcesByIds(parkIds: string[]): Promise<Map<strin
   const supabase = getSupabase();
   const { data, error } = await supabase.from("park_sources").select("park_id, source_type").in("park_id", parkIds);
   if (error) throw error;
-  for (const row of (data ?? []) as { park_id: string; source_type: SourceType }[]) {
-    if (!map.has(row.park_id)) map.set(row.park_id, row.source_type);
+  const byPark = new Map<string, string[]>();
+  for (const row of (data ?? []) as { park_id: string; source_type: string }[]) {
+    byPark.set(row.park_id, [...(byPark.get(row.park_id) ?? []), row.source_type]);
+  }
+  for (const [id, types] of byPark) {
+    const { source } = pickPrimarySource(types);
+    if (source) map.set(id, source);
   }
   return map;
 }
 
-type RowWithEmbeddedSource = Park & { park_sources: { source_type: SourceType }[] | null };
+type RowWithEmbeddedSource = ParkListRow & { park_sources: { source_type: string }[] | null };
 
 function mapParkRows(data: unknown): ParkWithSource[] {
   const rows = (data ?? []) as unknown as RowWithEmbeddedSource[];
-  return rows.map(({ park_sources, ...park }) => ({
-    ...park,
-    source_type: park_sources?.[0]?.source_type ?? null,
-  }));
+  return rows.map((raw) => {
+    const sources = (raw.park_sources ?? []).map((s) => s.source_type);
+    const park = stripEmbeds(raw) as unknown as ParkListRow;
+    const { source, enrichments } = pickPrimarySource(sources);
+    return { ...park, source_type: source, enrichment_sources: enrichments };
+  });
+}
+
+/** Valeur citée pour une expression `or=(…)` PostgREST (virgules/parenthèses/guillemets). */
+function quoteFilterValue(v: string): string {
+  return `"${v.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
 }
 
 /**
- * `communeId` (session scope) and `organizationId` ("Collectivité" filter)
- * both resolve to their own id list, intersected into a single restriction —
- * naturally bounded (one organisation's parks), shared by `listParksPage` and
- * `listAllParksForExport` so this resolution never drifts between the two.
+ * Curseur keyset : la ligne suivante dans l'ordre `(sort, id asc)`. Évite l'OFFSET profond
+ * (coût linéaire) pour les parcours séquentiels (export). `last` = dernière ligne reçue.
  */
-async function resolveIdRestriction(opts: { communeId?: string; organizationId?: string }): Promise<string[] | null> {
-  const idLists: string[][] = [];
-  if (opts.communeId) idLists.push(await listOrgParkIds(opts.communeId));
-  if (opts.organizationId) idLists.push(await listOrgParkIds(opts.organizationId));
-  if (!idLists.length) return null;
-  return idLists.reduce((a, b) => a.filter((id) => b.includes(id)));
+function keysetCondition(
+  sort: ParksSortKey,
+  ascending: boolean,
+  last: { value: string; id: string },
+): string {
+  const op = ascending ? "gt" : "lt";
+  const v = quoteFilterValue(last.value);
+  return `${sort}.${op}.${v},and(${sort}.eq.${v},id.gt.${quoteFilterValue(last.id)})`;
 }
 
 /**
- * Every filter shared by `listParksPage` and `listAllParksForExport`, applied
- * to a fresh (unpaginated) `park_public` query — the single place these two
- * callers' filtering logic can diverge is if one of them stops calling this.
- * `idRestriction` is resolved separately (`resolveIdRestriction`, async)
- * since a query builder itself can't await.
+ * Filtres communs à `listParksPage` et `listAllParksForExport` (une seule implémentation,
+ * l'export ne peut pas diverger de la liste). Les périmètres d'organisation sont des
+ * jointures serveur. Le filtre « source » est une jointure DISTINCTE (`src_filter`) de
+ * l'embed d'affichage : afficher la source d'origine reste possible même filtré.
  */
 function buildParksQuery(
   supabase: ReturnType<typeof getSupabase>,
-  opts: Pick<ListParksPageOpts, "q" | "status" | "verification" | "sourceTypes" | "countryCode" | "sort" | "order">,
-  idRestriction: string[] | null,
+  opts: Pick<
+    ListParksPageOpts,
+    "q" | "status" | "verification" | "sourceTypes" | "countryCode" | "sort" | "order" | "communeId" | "organizationId"
+  >,
+  settings: { cols: string; withCount: boolean },
 ) {
   const sort: ParksSortKey = opts.sort ?? "updated_at";
   const ascending = (opts.order ?? "desc") === "asc";
-
-  // `park_sources` is embedded directly in the select (PostgREST resource
-  // embedding), so every row's Source column comes from this one request —
-  // no follow-up per-page query. Filtering by source switches the embed to
-  // `!inner`, turning it into a real SQL join that restricts rows server-side
-  // via `.in("park_sources.source_type", …)`. This is deliberate: unlike
-  // `idRestriction` below (always a small, one-organisation id set), a source
-  // type can match most of the catalog (e.g. "osm" matches 2201/2201 parks
-  // locally) — collecting every matching id client-side and sending
-  // `id=in.(…)` would build a multi-hundred-KB URL and fail outright
-  // (confirmed locally: PostgREST/the browser reject it). The join has no such
-  // limit. A park with more than one matching `park_sources` row (not expected
-  // in practice, see `getParkSourceDistribution`) would appear twice under an
-  // active source filter — an accepted, pre-existing edge case, not a crash.
   const sourceFilterActive = !!opts.sourceTypes?.length;
-  const sourceEmbed = sourceFilterActive ? "park_sources!inner(source_type)" : "park_sources(source_type)";
+  const select =
+    `${settings.cols}, park_sources(source_type)` +
+    (sourceFilterActive ? ", src_filter:park_sources!inner(source_type)" : "") +
+    orgScopeSelect(opts);
 
   let query = supabase
     .from("park_public")
-    .select(`${PARK_COLS}, ${sourceEmbed}`, { count: "exact" })
+    .select(select, settings.withCount ? { count: "exact" } : undefined)
     .order(sort, { ascending })
-    // Stable tiebreaker so a row never straddles two pages when the sort
-    // column has duplicate values (e.g. a bulk import sharing a timestamp).
+    // Départage stable : une ligne n'apparaît jamais sur deux pages.
     .order("id", { ascending: true });
 
-  if (sourceFilterActive) {
-    query = query.in("park_sources.source_type", opts.sourceTypes!);
-  }
-  if (idRestriction) {
-    query = query.in("id", idRestriction.length ? idRestriction : [NO_MATCH_SENTINEL]);
-  }
+  if (sourceFilterActive) query = query.in("src_filter.source_type", opts.sourceTypes!);
+  query = applyOrgScope(query, opts);
   if (opts.status?.length) query = query.in("moderation_status", opts.status);
   if (opts.verification?.length) query = query.in("verification_status", opts.verification);
   if (opts.countryCode) query = query.eq("country_code", opts.countryCode);
   const q = opts.q?.trim();
   if (q) query = query.ilike("name", `%${q}%`);
 
-  return query;
+  return { query, sort, ascending };
 }
 
 export async function listParksPage(opts: ListParksPageOpts = {}): Promise<ParksPage> {
   const supabase = getSupabase();
-  const page = Math.max(1, Math.trunc(opts.page ?? 1));
   const pageSize = Math.max(1, Math.trunc(opts.pageSize ?? PARKS_PAGE_SIZE));
+  const maxPage = Math.max(1, Math.floor(MAX_DEEP_OFFSET / pageSize));
+  // Une page demandée au-delà de la profondeur atteignable est ramenée à la dernière
+  // atteignable (URL ancienne / saisie manuelle) : jamais d'OFFSET > MAX_DEEP_OFFSET.
+  const page = Math.min(maxPage, Math.max(1, Math.trunc(opts.page ?? 1)));
 
-  const idRestriction = await resolveIdRestriction(opts);
   const from = (page - 1) * pageSize;
-  const query = buildParksQuery(supabase, opts, idRestriction).range(from, from + pageSize - 1);
-
-  const { data, error, count } = await query;
+  const { query } = buildParksQuery(supabase, opts, { cols: LIST_COLS, withCount: true });
+  const { data, error, count } = await query.range(from, from + pageSize - 1);
   if (error) throw error;
   const total = count ?? 0;
+  const realPages = Math.max(1, Math.ceil(total / pageSize));
   return {
     rows: mapParkRows(data),
     total,
     page,
     pageSize,
-    pageCount: Math.max(1, Math.ceil(total / pageSize)),
+    pageCount: Math.min(realPages, maxPage),
+    truncatedDepth: realPages > maxPage,
   };
 }
 
-// Server-side page size for `listAllParksForExport` below — deliberately
-// aligned with PostgREST's own `max_rows` (`supabase/config.toml`, 1000
-// locally, same reasoning as `COUNTRY_PAGE_SIZE`) rather than fighting it: a
-// `.range()` request for more rows than `max_rows` is silently truncated to
-// it, which is exactly the bug this function exists to avoid (confirmed:
-// `exportCsv` used to call the unbounded `listParks()`, capped at 1000 rows
-// out of 2201+ real local parks). Never raise this above `max_rows`.
-const EXPORT_PAGE_SIZE = 1000;
-
 export type ListAllParksOpts = Omit<ListParksPageOpts, "page" | "pageSize">;
 
+/** Export refusé : trop de résultats pour un export navigateur. */
+export class ExportTooLargeError extends Error {
+  constructor(
+    readonly total: number,
+    readonly limit: number,
+  ) {
+    super(`Export trop volumineux : ${total} parcs (maximum ${limit}). Affinez les filtres.`);
+    this.name = "ExportTooLargeError";
+  }
+}
+
 /**
- * Admin-UI-8B — every `park_public` row matching the given filters, fetched
- * in full regardless of catalog size: never `listParks()` (unbounded,
- * silently truncated past `max_rows`) and never a single `.range()`/`.limit()`
- * bigger than `max_rows` (same truncation, just moved). Reuses
- * `buildParksQuery`/`resolveIdRestriction` — the exact same filter logic as
- * `listParksPage` — so the CSV export can never drift from what the list
- * itself would show for the same filters. The first page's exact `count`
- * (PostgREST `{ count: "exact" }`, real `SELECT count(*)`, not a `.length`)
- * tells us how many more pages are needed; those are then fetched in
- * parallel (their number is already known), mirroring
- * `getParkCountryDistribution`'s pattern.
+ * Tous les parcs correspondant aux filtres, par lots keyset de 1000 **séquentiels** (jamais
+ * `Promise.all` sur N pages, jamais d'OFFSET profond). Le total exact est connu dès le premier
+ * lot : au-delà de `EXPORT_MAX_ROWS`, `ExportTooLargeError` est levée AVANT tout autre lot.
+ * Mêmes filtres que `listParksPage` (`buildParksQuery`).
  */
 export async function listAllParksForExport(opts: ListAllParksOpts = {}): Promise<ParkWithSource[]> {
   const supabase = getSupabase();
-  const idRestriction = await resolveIdRestriction(opts);
-
-  const first = await buildParksQuery(supabase, opts, idRestriction).range(0, EXPORT_PAGE_SIZE - 1);
-  if (first.error) throw first.error;
-  const total = first.count ?? 0;
-  const rows = mapParkRows(first.data);
-  if (total <= EXPORT_PAGE_SIZE) return rows;
-
-  const pageCount = Math.ceil(total / EXPORT_PAGE_SIZE);
-  const rest = await Promise.all(
-    Array.from({ length: pageCount - 1 }, (_, i) => {
-      const from = (i + 1) * EXPORT_PAGE_SIZE;
-      return buildParksQuery(supabase, opts, idRestriction).range(from, from + EXPORT_PAGE_SIZE - 1);
-    }),
-  );
-  for (const page of rest) {
-    if (page.error) throw page.error;
-    rows.push(...mapParkRows(page.data));
+  const rows: ParkWithSource[] = [];
+  let last: { value: string; id: string } | null = null;
+  let total = 0;
+  for (let first = true; ; first = false) {
+    const { query, sort, ascending } = buildParksQuery(supabase, opts, { cols: LIST_COLS, withCount: first });
+    const q = last ? query.or(keysetCondition(sort, ascending, last)) : query;
+    const res = await q.limit(FETCH_BATCH_SIZE);
+    if (res.error) throw res.error;
+    if (first) {
+      total = res.count ?? 0;
+      if (total > EXPORT_MAX_ROWS) throw new ExportTooLargeError(total, EXPORT_MAX_ROWS);
+    }
+    const batch = (res.data ?? []) as unknown as (ParkListRow & Record<string, unknown>)[];
+    rows.push(...mapParkRows(batch));
+    if (batch.length < FETCH_BATCH_SIZE || rows.length >= total) break;
+    const tail = batch[batch.length - 1];
+    last = { value: String(tail[sort]), id: tail.id };
   }
   return rows;
 }

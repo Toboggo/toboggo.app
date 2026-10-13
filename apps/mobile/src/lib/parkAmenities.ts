@@ -16,8 +16,10 @@ import { canonicalFeatureCode } from "./featureLabel";
  *  - value-based projections (`fenced`, `shade`) are computed from the recorded
  *    value: `false` = a value is recorded and it is not fenced / shaded (explicit
  *    absence), `null` = nothing recorded.
- * `temporarily_unavailable` is neither present nor permanently absent, so it is
- * kept as unknown.
+ * `temporarily_unavailable` is neither present nor permanently absent nor
+ * unknown: it is its own `temporary` state, read from the detailed status
+ * BEFORE the aggregated flags (so it never falls into « unknown » nor into the
+ * present summaries).
  *
  * `verified` is true only when the feature row carries a `verified_at`: a plain
  * `false` is not proof of a verification.
@@ -26,7 +28,7 @@ import { canonicalFeatureCode } from "./featureLabel";
  * mentioned, so only games that exist in `features` are listed as present /
  * absent / unknown — the catalogue is never enumerated as « to confirm ».
  */
-export type AmenityState = "present" | "absent" | "unknown";
+export type AmenityState = "present" | "absent" | "unknown" | "temporary";
 
 export interface AmenityEntry {
   /** Raw code: service key (`wc`) or catalogue play code (`slide`). */
@@ -45,6 +47,7 @@ type ParkAmenityInput = Partial<Pick<Park, "features" | "play_equipment">> & Ser
 export function stateFromStatus(status: FeatureStatus | undefined): AmenityState {
   if (status === "available") return "present";
   if (status === "unavailable") return "absent";
+  if (status === "temporarily_unavailable") return "temporary";
   return "unknown";
 }
 
@@ -52,6 +55,8 @@ export function stateFromStatus(status: FeatureStatus | undefined): AmenityState
 const VALUE_BASED: readonly ServiceKey[] = ["fenced", "shade"];
 
 function serviceState(flat: boolean | null | undefined, view: { status: FeatureStatus } | undefined, key: ServiceKey): AmenityState {
+  // Detailed status first: a temporary closure wins over any aggregated flag.
+  if (view?.status === "temporarily_unavailable") return "temporary";
   if (flat === true) return "present";
   if (VALUE_BASED.includes(key)) {
     if (flat === false) return "absent";
@@ -71,8 +76,8 @@ export function serviceEntries(park: ParkAmenityInput): AmenityEntry[] {
   return SERVICE_KEYS.map((key) => serviceEntry(park, key));
 }
 
-/** Games recorded on the park: present (available), absent (unavailable) or
- * unknown (row exists with an unknown / temporary status). Legacy
+/** Games recorded on the park: present (available), absent (unavailable),
+ * temporary (temporarily unavailable) or unknown (row exists, status unknown). Legacy
  * `play_equipment` codes count as present. */
 export function playEntries(park: ParkAmenityInput): AmenityEntry[] {
   const out = new Map<string, AmenityEntry>();

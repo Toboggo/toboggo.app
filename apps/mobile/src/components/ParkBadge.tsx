@@ -4,10 +4,10 @@ import { useFeatureLabel } from "../lib/featureLabel";
 import type { AmenityEntry } from "../lib/parkAmenities";
 import styles from "./ParkBadge.module.css";
 
-export type ParkBadgeVariant = "age" | "present" | "absent" | "unknown";
+export type ParkBadgeVariant = "age" | "present" | "absent" | "temporary" | "unknown";
 
 /**
- * Descriptive badge of a park (age, equipment, service). One component, four
+ * Descriptive badge of a park (age, equipment, service). One component, five
  * explicit variants, used on every surface (Explorer lists, Favorites, compact
  * panel, full page) so the look cannot drift page by page. It is a plain
  * `<span>`: never a control, never styled like a selectable filter. (Age on top
@@ -59,6 +59,7 @@ export function useAmenityLabel() {
     const item = featureLabel(e.code);
     if (e.state === "present") return item;
     if (e.state === "absent") return t("state.absentGame", { item: item.toLocaleLowerCase(i18n.language) });
+    if (e.state === "temporary") return t("state.temporaryGame", { item: item.toLocaleLowerCase(i18n.language) });
     return t("state.unknownGame", { item });
   };
 }

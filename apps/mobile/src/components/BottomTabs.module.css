@@ -32,7 +32,8 @@
 }
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .wrap {
-    background: rgba(255, 255, 255, 0.75);
+    /* 75 % de la surface du thème (blanc en clair, vert très sombre en sombre). */
+    background: color-mix(in srgb, var(--color-surface) 75%, transparent);
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
   }
@@ -91,7 +92,8 @@
 }
 
 :global([data-theme="dark"]) .tab {
-  color: var(--color-text-faint);
+  /* faint (#7c857d) = 3,9:1 sur la surface sombre : trop bas pour 10 px. */
+  color: var(--color-text-muted);
 }
 :global([data-theme="dark"]) .tab[data-active="1"] {
   color: var(--color-primary);

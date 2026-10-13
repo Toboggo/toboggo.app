@@ -49,7 +49,8 @@
     "titles": {
       "present": "Present",
       "absent": "Not available",
-      "unknown": "To confirm"
+      "temporary": "Temporarily unavailable",
+      "unknown": "Not specified"
     },
     "present": {
       "wc": "Toilets",
@@ -78,13 +79,24 @@
       "water": "Water point to confirm",
       "parking": "Parking to confirm"
     },
+    "temporary": {
+      "wc": "Toilets temporarily unavailable",
+      "shade": "Shade temporarily unavailable",
+      "fenced": "Fence temporarily unavailable",
+      "pmr": "Accessibility temporarily unavailable",
+      "benches": "Benches temporarily unavailable",
+      "water": "Water point temporarily unavailable",
+      "parking": "Parking temporarily unavailable"
+    },
     "absentGame": "No {{item}}",
+    "temporaryGame": "{{item}} temporarily unavailable",
     "unknownGame": "{{item}} to confirm",
     "verified": "Verified",
     "short": {
       "present": "Present",
       "absent": "Not available",
-      "unknown": "To confirm"
+      "temporary": "Temporarily unavailable",
+      "unknown": "Not specified"
     },
     "name": {
       "wc": "Toilets",
@@ -95,7 +107,7 @@
       "water": "Water point",
       "parking": "Parking"
     },
-    "more_one": "{{count}} more feature in the full page",
-    "more_other": "{{count}} more features in the full page"
+    "more_one": "{{count}} more feature in the park details",
+    "more_other": "{{count}} more features in the park details"
   }
 }

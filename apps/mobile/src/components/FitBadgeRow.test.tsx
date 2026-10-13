@@ -28,7 +28,7 @@ describe("FitBadgeRow", () => {
     mockLayout(140, 50);
     const { container, getByRole } = render(<FitBadgeRow pinned={1} items={items} />);
     expect(container.textContent).toBe("1–12 ans+3");
-    expect(getByRole("img", { name: /3 autres caractéristiques/ })).toBeTruthy();
+    expect(getByRole("img", { name: /3 caractéristiques supplémentaires dans la fiche/ })).toBeTruthy();
   });
 
   it("une partie tient → badges visibles puis « +N » du reste", () => {
@@ -41,6 +41,6 @@ describe("FitBadgeRow", () => {
     mockLayout(90, 50);
     const { container, getByRole } = render(<FitBadgeRow pinned={1} items={items.slice(0, 2)} />);
     expect(container.textContent).toBe("1–12 ans+1");
-    expect(getByRole("img", { name: /1 autre caractéristique/ })).toBeTruthy();
+    expect(getByRole("img", { name: /^1 caractéristique supplémentaire dans la fiche$/ })).toBeTruthy();
   });
 });

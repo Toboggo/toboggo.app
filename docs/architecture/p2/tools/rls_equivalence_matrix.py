@@ -14,6 +14,9 @@ USERS=[("staff_super_admin","authenticated","a0000000-0000-0000-0000-00000000000
 ("no_organization","authenticated","a0000000-0000-0000-0000-000000000007"),
 ("dual_staff_plus_gestionnaire","authenticated","5df27eca-2ef3-4d63-9a1d-68610cd76597"),
 ("authenticated_unknown_uid","authenticated","ffffffff-ffff-ffff-ffff-ffffffffffff"),
+("v1_only_row_org_null","authenticated","a0000000-0000-0000-0000-000000000008"),
+("v2_only_contributeur","authenticated","a0000000-0000-0000-0000-000000000009"),
+("multi_org_support_plus_gestionnaire","authenticated","a0000000-0000-0000-0000-00000000000a"),
 ("anon","anon",None)]
 TABLES=["parks","park_public","park_sources","park_features","park_names","park_scores","external_ids","park_equipment","park_entrances","park_zones","park_opening_hours","park_attribute_sources","park_media","organization_parks","reports"]
 def cell(role,uid,t):

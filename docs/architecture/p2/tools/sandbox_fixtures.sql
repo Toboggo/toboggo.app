@@ -47,4 +47,20 @@ update parks set moderation_status='pending'   where id in (select park_id from 
 update parks set moderation_status='published' where id in (select park_id from organization_parks where organization_id='00000000-0000-0000-0000-000000000001' order by park_id desc limit 3);
 
 reset session_replication_role;
+-- Profils limites ajoutés à la matrice (rls_equivalence_matrix.py) : ligne staff « organization_id NULL + commune_id »,
+-- V2 seul (organisation sans commune_id), multi-organisations (support Lyon + gestionnaire Bordeaux).
+set session_replication_role = replica;
+insert into auth.users (id, instance_id, aud, role, email, encrypted_password, created_at, updated_at, raw_app_meta_data, raw_user_meta_data) values
+ ('a0000000-0000-0000-0000-000000000008','00000000-0000-0000-0000-000000000000','authenticated','authenticated','v1only@p2.test','x',now(),now(),'{}','{}'),
+ ('a0000000-0000-0000-0000-000000000009','00000000-0000-0000-0000-000000000000','authenticated','authenticated','v2only@p2.test','x',now(),now(),'{}','{}'),
+ ('a0000000-0000-0000-0000-00000000000a','00000000-0000-0000-0000-000000000000','authenticated','authenticated','multiorg@p2.test','x',now(),now(),'{}','{}')
+on conflict (id) do nothing;
+delete from team_members where user_id::text in ('a0000000-0000-0000-0000-000000000008','a0000000-0000-0000-0000-000000000009','a0000000-0000-0000-0000-00000000000a');
+insert into team_members (id,user_id,role,organization_id,commune_id,name,email) values
+ (gen_random_uuid(),'a0000000-0000-0000-0000-000000000008','gestionnaire',null,'00000000-0000-0000-0000-000000000002','v1only','v1@p2.test'),
+ (gen_random_uuid(),'a0000000-0000-0000-0000-000000000009','contributeur','00000000-0000-0000-0000-000000000001',null,'v2only','v2@p2.test'),
+ (gen_random_uuid(),'a0000000-0000-0000-0000-00000000000a','support','00000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','multi1','m1@p2.test'),
+ (gen_random_uuid(),'a0000000-0000-0000-0000-00000000000a','gestionnaire','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000002','multi2','m2@p2.test');
+reset session_replication_role;
+
 analyze;

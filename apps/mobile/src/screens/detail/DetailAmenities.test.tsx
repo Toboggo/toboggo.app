@@ -13,6 +13,7 @@ const park = {
   features: {
     toilets: view("unavailable", { verified_at: "2026-09-01" }),
     benches: view("unknown"),
+    parking: view("temporarily_unavailable"),
     slide: view("available", { category: "play" }),
   },
   play_equipment: [],
@@ -29,12 +30,12 @@ function setup() {
   );
 }
 
-describe("DetailAmenities — grille en deux colonnes, trois états", () => {
-  it("groupe présents / absents / à confirmer dans des listes en grille", () => {
+describe("DetailAmenities — grille en deux colonnes, quatre états", () => {
+  it("groupe présents / absents / temporairement indisponibles / non renseignés dans des listes en grille", () => {
     const { container } = setup();
     const titles = [...container.querySelectorAll("section h2")].map((h) => h.textContent);
-    expect(titles).toEqual(["Présents", "Absents", "À confirmer"]);
-    expect(container.querySelectorAll("ul")).toHaveLength(3);
+    expect(titles).toEqual(["Présents", "Absents", "Temporairement indisponibles", "Non renseigné"]);
+    expect(container.querySelectorAll("ul")).toHaveLength(4);
     expect(container.querySelectorAll("li")[0]?.getAttribute("data-state")).toBe("present");
   });
 
@@ -48,6 +49,14 @@ describe("DetailAmenities — grille en deux colonnes, trois états", () => {
     expect(benches?.getAttribute("data-state")).toBe("unknown");
     expect(benches?.textContent).not.toContain("Vérifié");
     expect(cells.filter((c) => c.textContent?.includes("Vérifié"))).toHaveLength(1);
+  });
+
+  it("temporarily_unavailable : état distinct, jamais « Non renseigné »", () => {
+    const { container } = setup();
+    const parking = [...container.querySelectorAll("li")].find((c) => c.textContent?.includes("Parking"));
+    expect(parking?.getAttribute("data-state")).toBe("temporary");
+    expect(parking?.textContent).toContain("Temporairement indisponible");
+    expect(container.textContent).not.toContain("À confirmer");
   });
 
   it("une cellule présente n'a pas de ligne de statut", () => {

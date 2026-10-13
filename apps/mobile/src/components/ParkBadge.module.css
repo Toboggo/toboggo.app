@@ -44,6 +44,13 @@
   color: var(--color-text);
 }
 
+/* Temporairement indisponible : fond d'alerte discret, bordure continue. */
+.badge[data-variant="temporary"] {
+  background: var(--color-warning-bg);
+  border-color: var(--color-accent);
+  color: var(--color-warning-text);
+}
+
 /* Inconnu : neutre + bordure grise en pointillés. */
 .badge[data-variant="unknown"] {
   background: var(--color-surface);

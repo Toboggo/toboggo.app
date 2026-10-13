@@ -16,7 +16,7 @@ describe("serviceEntry — null ≠ false", () => {
   it("availability flags: the features map tells unavailable / unknown apart", () => {
     expect(serviceEntry({ wc: false, features: { toilets: view("unavailable") } }, "wc").state).toBe("absent");
     expect(serviceEntry({ wc: false, features: { toilets: view("unknown") } }, "wc").state).toBe("unknown");
-    expect(serviceEntry({ wc: false, features: { toilets: view("temporarily_unavailable") } }, "wc").state).toBe("unknown");
+    expect(serviceEntry({ wc: false, features: { toilets: view("temporarily_unavailable") } }, "wc").state).toBe("temporary");
     expect(serviceEntry({ features: { toilets: view("available") } }, "wc").state).toBe("present");
   });
 
@@ -48,6 +48,13 @@ describe("playEntries", () => {
     });
     const byCode = Object.fromEntries(entries.map((e) => [e.code, e.state]));
     expect(byCode).toEqual({ slide: "present", swing: "absent", sandbox: "unknown", springer: "present" });
+  });
+
+  it("temporarily_unavailable is read before the aggregated flags, for services and games", () => {
+    expect(serviceEntry({ wc: true, features: { toilets: view("temporarily_unavailable") } }, "wc").state).toBe("temporary");
+    expect(serviceEntry({ fenced: false, features: { fence_status: view("temporarily_unavailable") } }, "fenced").state).toBe("temporary");
+    const play = playEntries({ features: { slide: view("temporarily_unavailable", { category: "play" }) } });
+    expect(play[0]?.state).toBe("temporary");
   });
 
   it("does not enumerate the catalogue as unknown", () => {

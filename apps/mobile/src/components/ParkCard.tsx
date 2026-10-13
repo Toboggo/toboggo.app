@@ -55,7 +55,7 @@ function FavButton({
         fill={favorite ? "currentColor" : "none"}
         stroke="currentColor"
         strokeWidth="2"
-        style={{ color: favorite ? activeColor : "var(--color-text-faint)" }}
+        style={favorite ? { color: activeColor } : undefined}
         aria-hidden
       >
         <path d="M12 21s-7.5-4.6-10-9.3C.5 7.8 2.7 4 6.5 4c2 0 3.5 1.2 5.5 3.3C14 5.2 15.5 4 17.5 4c3.8 0 6 3.8 4.5 7.7C19.5 16.4 12 21 12 21z" />

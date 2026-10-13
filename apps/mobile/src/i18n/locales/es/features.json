@@ -49,7 +49,8 @@
     "titles": {
       "present": "Disponibles",
       "absent": "No disponibles",
-      "unknown": "Por confirmar"
+      "temporary": "Temporalmente no disponibles",
+      "unknown": "Sin información"
     },
     "present": {
       "wc": "Aseos",
@@ -78,13 +79,24 @@
       "water": "Fuente por confirmar",
       "parking": "Aparcamiento por confirmar"
     },
+    "temporary": {
+      "wc": "Aseos temporalmente no disponibles",
+      "shade": "Sombra temporalmente no disponible",
+      "fenced": "Valla temporalmente no disponible",
+      "pmr": "Accesibilidad temporalmente no disponible",
+      "benches": "Bancos temporalmente no disponibles",
+      "water": "Fuente temporalmente no disponible",
+      "parking": "Aparcamiento temporalmente no disponible"
+    },
     "absentGame": "Sin {{item}}",
+    "temporaryGame": "{{item}} temporalmente no disponible",
     "unknownGame": "{{item}} por confirmar",
     "verified": "Verificado",
     "short": {
       "present": "Disponible",
       "absent": "No disponible",
-      "unknown": "Por confirmar"
+      "temporary": "Temporalmente no disponible",
+      "unknown": "Sin información"
     },
     "name": {
       "wc": "Aseos",

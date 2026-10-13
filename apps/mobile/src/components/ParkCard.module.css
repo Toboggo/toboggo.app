@@ -50,6 +50,16 @@
   padding: var(--space-1);
 }
 
+/* Cœur inactif : faint en clair (inchangé) ; en sombre, faint (#7c857d) ne
+ * donne que 3,9:1 sur la surface — muted tient ≥ 3:1 y compris sur le disque
+ * posé sur une photo. */
+.favBtn svg {
+  color: var(--color-text-faint);
+}
+:global([data-theme="dark"]) .favBtn svg {
+  color: var(--color-text-muted);
+}
+
 /* ── list variant — richer horizontal item for the Explore results ── */
 .listCard {
   display: flex;

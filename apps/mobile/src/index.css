@@ -27,6 +27,17 @@
   --color-primary-on-tint: var(--color-primary);
 }
 :root {
+  /* Éléments superposés à une photo : paires fond/icône FIXES, identiques en
+   * clair et en sombre (une photo ne change pas avec le thème), donc jamais
+   * dérivées de --color-text / --color-surface qui s'inversent.
+   *  - bouton rond : fond blanc 92 % + icône #24303a (≥ 12:1) ; cœur actif
+   *    #ef4444 (≥ 3:1 sur le blanc) ;
+   *  - voile + texte : fond noir 55 % + blanc (≥ 4,5:1 même sur photo claire). */
+  --color-photo-btn-bg: rgba(255, 255, 255, 0.92);
+  --color-photo-btn-fg: #24303a;
+  --color-photo-btn-heart: #ef4444;
+  --color-photo-scrim: rgba(0, 0, 0, 0.55);
+  --color-photo-on-scrim: #ffffff;
   --radius-card: var(--radius-md);
   --radius-callout: 12px;
 }

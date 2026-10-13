@@ -7,10 +7,10 @@ import { useFeatureLabel } from "../../lib/featureLabel";
 import { amenityEntries, type AmenityState } from "../../lib/parkAmenities";
 import styles from "./DetailAmenities.module.css";
 
-const STATES: AmenityState[] = ["present", "absent", "unknown"];
+const STATES: AmenityState[] = ["present", "absent", "temporary", "unknown"];
 
 /** « Voir tout » : everything the park says about its equipment and services,
- * grouped by state — present, explicitly absent, to confirm — in a regular
+ * grouped by state — present, explicitly absent, temporarily unavailable, not specified — in a regular
  * two-column grid (pictogram, short name, then a discreet status line). Unknown
  * is never shown as absent; « Vérifié » only appears with a verification date. */
 export default function DetailAmenities() {

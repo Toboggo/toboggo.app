@@ -34,8 +34,8 @@
   .wrap {
     /* 75 % de la surface du thème (blanc en clair, vert très sombre en sombre). */
     background: color-mix(in srgb, var(--color-surface) 75%, transparent);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
   }
 }
 .tab {
@@ -111,20 +111,17 @@
   height: calc(
     var(--bottom-nav-content-h) +
     var(--bottom-nav-gap) +
-    var(--safe-bottom) +
-    20px
+    var(--safe-bottom)
   );
   pointer-events: none;
   z-index: calc(var(--z-nav, 50) - 1);
   background: var(--color-surface, #fff);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20px);
-  mask-image: linear-gradient(to bottom, transparent, #000 20px);
 }
 
 @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
   .backdrop {
-    background: color-mix(in srgb, var(--color-surface) 65%, transparent);
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
+    background: color-mix(in srgb, var(--color-surface) 20%, transparent);
+    -webkit-backdrop-filter: blur(1px);
+    backdrop-filter: blur(1px);
   }
 }

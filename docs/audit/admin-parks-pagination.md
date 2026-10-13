@@ -79,9 +79,9 @@ RLS (fuite de pending US si RPC mal gardée), dérive STAGING/PROD, changement d
 |---|---|---|
 | Périmètre collectivité | `listOrgParkIds` (cap 1000, silencieux) + `id=in.(…)` (URL > ~300 parcs) | jointure serveur `organization_parks!inner` (alias `scope_c` / `scope_o`), passe par la RLS de l'appelant ; reports, reviews, médias, propositions idem (`parks!inner(organization_parks!inner)`) |
 | `listOrgParkIds` | 1 requête, 1000 ids max | keyset 1000/lot, séquentiel, plafond 100 000 (conservé, plus utilisé par les lectures) ; `isParkInOrganization` (1 requête PK) remplace `.includes(id)` |
-| `listParks` | tout d'un coup, tronqué à 1000 | lots keyset séquentiels, **plafond 10 000** (`listParksCapped` → `truncated`) |
+| `listParks` | tout d'un coup, tronqué à 1000 | lots keyset séquentiels ; **au-delà de 10 000 : `ListTruncatedError`** (jamais une liste tronquée présentée comme complète) ; `listParksCapped` pour gérer la troncature explicitement |
 | Compteurs par utilisateur | `listParks({})` (1000 premiers, vue complète) | `countParksByCreator` : `id,created_by` des seuls parcs créés par un utilisateur, lots 1000, plafond ; « N+ » si minoré |
-| Doublons import CSV | `listParks` entier | `parkExistsWithNameAndAddress` : nom exact (ilike échappé, index trigramme) + comparaison stricte nom/adresse, scopé |
+| Doublons import CSV | `listParks` entier | `parkExistsWithNameAndAddress` : nom (ilike échappé, index trigramme) ET adresse (`formatted_address`, égalité) filtrés CÔTÉ SERVEUR, scopé ; contrôle final strict du nom ; ≥ 1000 candidats sans correspondance stricte → erreur explicite |
 | Source d'un parc | `park_sources[0]` (ordre arbitraire) | `pickPrimarySource` : priorité d'origine (miroir `source_priority`), `reverse_geocode` = enrichissement (`enrichment_sources`), jamais l'origine ; filtre « source » = jointure dédiée `src_filter` |
 | Répartition par pays | N pages `.range()` sans ORDER BY | saut d'index par pays distinct (`order country_code limit 1 … gt dernier`) + 1 count/pays (4 simultanés max) |
 | Compteurs par statut | tous en parallèle | 4 simultanés max, périmètre par jointure |
@@ -114,6 +114,12 @@ Sur PROD le temps est dominé par la RLS de `parks` (≈ 1,4 s même pour un `co
 2. **Filtre « source »** : la jointure `park_sources!inner` sur la vue sous RLS reste lente (46 s sur STAGING, 5,3 s sur PROD) — nécessite un index `park_sources (source_type, park_id)` et/ou une RPC.
 3. **Index** `parks (moderation_status, updated_at desc, id)` etc. : tri encore complet sur le filtre.
 4. **Compteurs** : exacts mais coûteux (RLS) — RPC `admin_park_counts()`.
-5. **Collectivités > 10 000 parcs** : `listParks` tronque (signalé) ; cartes/statistiques devront paginer côté serveur ou agréger.
+5. **Collectivités > 10 000 parcs** : `listParks` lève `ListTruncatedError` (les écrans carte/statistiques/export passent en erreur plutôt que d'afficher une liste incomplète) ; ils devront paginer côté serveur ou agréger.
 6. `reviews` / `reports` / `listAllUsers` / `listParkEditsWithDetails` restent des listes non paginées (volumes faibles aujourd'hui, hors périmètre parcs).
 7. Source `reverse_geocode` absente du type TS `SourceType` (exposée via `enrichment_sources`, non filtrable dans l'UI).
+
+## Revue finale (PR #174) — correctifs
+- `listParks` : erreur explicite au-delà de 10 000 (plus de troncature silencieuse) ; idem `listOrgParkIds` (100 000) et le nombre de pays (300).
+- Doublons CSV : l'ancienne boucle (5 lots) pouvait conclure « pas de doublon » avec > 5 000 homonymes (6 778 « Playground » US) → filtre d'adresse côté serveur.
+- Intégration : isolation réelle entre collectivités A/B/C pour signalements, avis, photos à modérer et propositions (staff = chaque périmètre ne renvoie que ses objets ; membre de A ne lit rien de B) ; doublons avec 1 100 homonymes.
+- Compatibilité lot B : les fonctions publiques (`listParksPage`, `listAllParksForExport`, `getParkStatusCounts`, `getParkCountryDistribution`, `listParks*`) gardent leur signature ; le lot B peut les réimplémenter derrière une RPC sans toucher aux écrans. Dépendances à préserver : `park_public.id` issu de `parks.id` (embed `organization_parks` / `park_sources` par FK inférée), lecture de `organization_parks` par les membres.

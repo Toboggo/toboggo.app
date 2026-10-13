@@ -116,15 +116,24 @@ describe("curseur keyset de l'export — valeurs citées", () => {
   });
 });
 
-describe("détection de doublon à l'import : caractères spéciaux", () => {
+describe("détection de doublon à l'import : requête serveur", () => {
   beforeEach(() => vi.mocked(getSupabase).mockReset());
-  it("échappe % _ \\ dans le nom (ilike exact) ; comparaison finale stricte", async () => {
+  it("échappe % _ \\ dans le nom, filtre l'adresse côté serveur, contrôle final strict", async () => {
     const { client, queriesByTable } = makeFakeSupabase({
       park_public: { data: [{ id: "1", name: "50%_Parc", formatted_address: "1 rue A" }, { id: "2", name: "50%_parc", formatted_address: "1 rue A" }], error: null },
     });
     vi.mocked(getSupabase).mockReturnValue(client as never);
     expect(await parkExistsWithNameAndAddress("50%_Parc", "1 rue A")).toBe(true);
-    expect(await parkExistsWithNameAndAddress("50%_PARC", "1 rue A")).toBe(false); // casse différente ≠ doublon strict
-    expect(queriesByTable["park_public"][0].calls.find((c) => c.method === "ilike")?.args).toEqual(["name", "50\\%\\_Parc"]);
+    expect(await parkExistsWithNameAndAddress("50%_PARC", "1 rue A")).toBe(false);
+    const calls = queriesByTable["park_public"][0].calls;
+    expect(calls.find((c) => c.method === "ilike")?.args).toEqual(["name", "50\\%\\_Parc"]);
+    expect(calls).toContainEqual({ method: "eq", args: ["formatted_address", "1 rue A"] });
+  });
+
+  it("1000 résultats sans correspondance stricte : erreur explicite, jamais « pas de doublon » à tort", async () => {
+    const full = Array.from({ length: 1000 }, (_, i) => ({ id: `p${i}`, name: "parc", formatted_address: "1 rue A" }));
+    const { client } = makeFakeSupabase({ park_public: { data: full, error: null } });
+    vi.mocked(getSupabase).mockReturnValue(client as never);
+    await expect(parkExistsWithNameAndAddress("PARC", "1 rue A")).rejects.toThrow(/incomplète/);
   });
 });

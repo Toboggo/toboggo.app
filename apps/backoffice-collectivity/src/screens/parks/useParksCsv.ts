@@ -4,6 +4,7 @@ import {
   createPark,
   downloadCsv,
   isValidCoordinate,
+  ListTruncatedError,
   listParks,
   parkExistsWithNameAndAddress,
   logActivity,
@@ -53,8 +54,12 @@ export function useParksCsv() {
           ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Photos"],
         );
         downloadCsv("toboggo-parcs.csv", csv);
-      } catch {
-        toast.error("L'export CSV a échoué.");
+      } catch (err) {
+        toast.error(
+          err instanceof ListTruncatedError
+            ? "Export impossible : trop de parcs pour un export complet. Contactez le support."
+            : "L'export CSV a échoué.",
+        );
       }
     })();
   }

@@ -228,6 +228,15 @@ const ORG_IDS_HARD_CAP = 100_000;
 /** Requêtes de comptage simultanées (jamais « tout en parallèle »). */
 const COUNT_CONCURRENCY = 4;
 
+/** Résultat incomplet : un plafond de lecture a été atteint. Levée plutôt que de renvoyer une
+ * liste tronquée qui serait présentée comme complète. */
+export class ListTruncatedError extends Error {
+  constructor(readonly what: string, readonly limit: number) {
+    super(`${what} : plus de ${limit} éléments, la liste serait incomplète.`);
+    this.name = "ListTruncatedError";
+  }
+}
+
 /** Exécute `tasks` avec au plus `limit` en vol (ordre des résultats conservé). */
 async function mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
@@ -304,7 +313,8 @@ export function listOrgParkIds(organizationId: string): Promise<string[]> {
     const supabase = getSupabase();
     const ids: string[] = [];
     let last: string | null = null;
-    while (ids.length < ORG_IDS_HARD_CAP) {
+    for (;;) {
+      if (ids.length >= ORG_IDS_HARD_CAP) throw new ListTruncatedError("Parcs de l'organisation", ORG_IDS_HARD_CAP);
       let q = supabase
         .from("organization_parks")
         .select("park_id")
@@ -388,10 +398,14 @@ export async function listParksCapped(
   return { rows, truncated };
 }
 
-/** Voir `listParksCapped` : même résultat sans l'indicateur (un avertissement console si tronqué). */
+/**
+ * Liste COMPLÈTE d'un périmètre, ou erreur : au-delà de `LIST_PARKS_HARD_CAP` parcs, lève
+ * `ListTruncatedError` plutôt que de renvoyer une liste tronquée présentée comme complète
+ * (cartes, statistiques, exports). Utiliser `listParksCapped` pour gérer la troncature soi-même.
+ */
 export async function listParks(opts: { communeId?: string; status?: ParkStatus[] } = {}): Promise<Park[]> {
   const { rows, truncated } = await listParksCapped(opts);
-  if (truncated) console.warn(`[listParks] plafond de ${LIST_PARKS_HARD_CAP} parcs atteint : liste tronquée.`);
+  if (truncated) throw new ListTruncatedError("Liste des parcs", LIST_PARKS_HARD_CAP);
   return rows;
 }
 
@@ -436,7 +450,8 @@ export async function getParkCountryDistribution(): Promise<ParkCountryCount[]> 
   const supabase = getSupabase();
   const codes: string[] = [];
   let last: string | null = null;
-  while (codes.length < MAX_COUNTRIES) {
+  for (;;) {
+    if (codes.length >= MAX_COUNTRIES) throw new ListTruncatedError("Pays distincts", MAX_COUNTRIES);
     let q = supabase
       .from("park_public")
       .select("country_code")
@@ -499,37 +514,35 @@ export async function countParksByCreator(
 const ILIKE_SPECIALS = /[\\%_]/g;
 
 /**
- * Doublon à l'import CSV : un parc de même nom ET de même adresse existe-t-il dans le
- * périmètre ? Requête ciblée (nom exact, insensible à la casse, via l'index trigramme)
- * au lieu de charger tout le catalogue ; comparaison finale STRICTE sur nom et adresse
- * (sémantique historique). Parcourt au plus `MAX_DUP_PAGES` lots d'homonymes.
+ * Doublon à l'import CSV : un parc de même nom ET de même adresse existe-t-il dans le périmètre ?
+ * La comparaison d'adresse est faite CÔTÉ SERVEUR (`formatted_address` de la vue, égalité stricte)
+ * combinée au nom (ilike exact via l'index trigramme) : le résultat est minuscule même s'il existe
+ * des milliers d'homonymes (6 778 « Playground » à New York) — aucune pagination à tronquer.
+ * Un dernier contrôle STRICT sur le nom écarte les variantes de casse.
  */
-const MAX_DUP_PAGES = 5;
-
 export async function parkExistsWithNameAndAddress(
   name: string,
   address: string,
   opts: { communeId?: string } = {},
 ): Promise<boolean> {
   const supabase = getSupabase();
-  let last: string | null = null;
-  for (let page = 0; page < MAX_DUP_PAGES; page++) {
-    let q = supabase
-      .from("park_public")
-      .select(`id,name,formatted_address${orgScopeSelect({ communeId: opts.communeId })}`)
-      .ilike("name", name.replace(ILIKE_SPECIALS, "\\$&"))
-      .order("id", { ascending: true })
-      .limit(FETCH_BATCH_SIZE);
-    q = applyOrgScope(q, { communeId: opts.communeId });
-    if (last) q = q.gt("id", last);
-    const { data, error } = await q;
-    if (error) throw error;
-    const batch = (data ?? []) as unknown as { id: string; name: string; formatted_address: string | null }[];
-    if (batch.some((p) => p.name === name && p.formatted_address === address)) return true;
-    if (batch.length < FETCH_BATCH_SIZE) return false;
-    last = batch[batch.length - 1].id;
+  let q = supabase
+    .from("park_public")
+    .select(`id,name,formatted_address${orgScopeSelect({ communeId: opts.communeId })}`)
+    .ilike("name", name.replace(ILIKE_SPECIALS, "\\$&"))
+    .eq("formatted_address", address)
+    .order("id", { ascending: true })
+    .limit(FETCH_BATCH_SIZE);
+  q = applyOrgScope(q, { communeId: opts.communeId });
+  const { data, error } = await q;
+  if (error) throw error;
+  const batch = (data ?? []) as unknown as { name: string; formatted_address: string | null }[];
+  if (batch.length >= FETCH_BATCH_SIZE) {
+    // Plus de 1000 parcs de même adresse ET de même nom (à la casse près) : on ne peut pas affirmer
+    // l'absence de doublon exact sans lire la suite — refuser plutôt que créer un doublon.
+    if (!batch.some((p) => p.name === name)) throw new ListTruncatedError("Homonymes à la même adresse", FETCH_BATCH_SIZE);
   }
-  return false;
+  return batch.some((p) => p.name === name && p.formatted_address === address);
 }
 
 // ── Server-paginated management list (BO Lot 3A, Lot A) ──────────────────

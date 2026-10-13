@@ -8,6 +8,7 @@ import {
   getParkCountryDistribution,
   getParkStatusCounts,
   LIST_PARKS_HARD_CAP,
+  ListTruncatedError,
   listAllParksForExport,
   listOrgParkIds,
   listParks,
@@ -114,10 +115,14 @@ describe.each([10_000, 100_000, 500_000])("listes admin / collectivités — %i 
     expect(res.truncated).toBe(true);
   });
 
-  it("listParks (compat.) : même résultat, jamais plus que le plafond", async () => {
+  it("listParks : liste complète ou erreur explicite — jamais une liste tronquée présentée comme complète", async () => {
     const rows = await listParks({ communeId: SMALL_ORG });
     expect(rows).toHaveLength(40);
-    expect(rows.every((r) => r.id)).toBe(true);
+    if (bigOrgSize > LIST_PARKS_HARD_CAP) {
+      await expect(listParks({ communeId: BIG_ORG })).rejects.toBeInstanceOf(ListTruncatedError);
+    } else {
+      expect(await listParks({ communeId: BIG_ORG })).toHaveLength(bigOrgSize);
+    }
   });
 
   it("listOrgParkIds : paginé (keyset), complet au-delà de 1000", async () => {
@@ -164,12 +169,18 @@ describe.each([10_000, 100_000, 500_000])("listes admin / collectivités — %i 
     expect(sim.stats.maxRowsReturned).toBeLessThanOrEqual(FETCH_BATCH_SIZE);
   });
 
-  it("détection de doublon à l'import : requête ciblée, jamais le catalogue entier", async () => {
+  it("détection de doublon à l'import : exact / homonyme / autre adresse, une requête, même avec des milliers d'homonymes", async () => {
     const target = catalog.find((p) => p.orgs.includes(SMALL_ORG))!;
-    expect(await parkExistsWithNameAndAddress(target.name, target.formatted_address!, { communeId: SMALL_ORG })).toBe(true);
-    expect(await parkExistsWithNameAndAddress(target.name, "adresse inconnue", { communeId: SMALL_ORG })).toBe(false);
+    expect(await parkExistsWithNameAndAddress(target.name, target.formatted_address!, { communeId: SMALL_ORG })).toBe(true); // doublon exact
+    expect(await parkExistsWithNameAndAddress(target.name, "adresse inconnue", { communeId: SMALL_ORG })).toBe(false); // homonyme, autre adresse
+    expect(await parkExistsWithNameAndAddress(target.name.toUpperCase(), target.formatted_address!, { communeId: SMALL_ORG })).toBe(false); // casse différente = pas un doublon strict
     expect(sim.stats.maxRowsReturned).toBeLessThanOrEqual(FETCH_BATCH_SIZE);
     expect(sim.stats.urlTooLong).toBe(0);
+    // Admin (sans périmètre) : ~size/97 homonymes « Playground N » — la dernière ligne du catalogue est trouvée
+    const last = catalog[catalog.length - 1];
+    sim.stats.requests = 0;
+    expect(await parkExistsWithNameAndAddress(last.name, last.formatted_address!)).toBe(true);
+    expect(sim.stats.requests).toBe(1);
   });
 });
 

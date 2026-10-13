@@ -9,6 +9,7 @@ import {
   listAllParksForExport,
   listParksCapped,
   listParksPage,
+  parkExistsWithNameAndAddress,
 } from "./parks";
 import { listReports } from "./reports";
 import { listReviews } from "./reviews";
@@ -42,6 +43,8 @@ const up = await localStackUp();
 const PREFIX = "LOTA-TEST";
 const ORG_A = "aaaaaaaa-0000-4000-8000-00000000000a";
 const ORG_B = "bbbbbbbb-0000-4000-8000-00000000000b";
+const ORG_C = "cccccccc-0000-4000-8000-00000000000c";
+const N_DUP = 1100; // homonymes > 1000 (même nom, adresses différentes)
 const N_A = 1200; // > max_rows
 const N_B = 30;
 const TRICKY = [`${PREFIX} Parc "Les Pins", (nord) \\ test`, `${PREFIX} 50%_ Parc`, `${PREFIX} Parc, virgule`];
@@ -51,6 +54,8 @@ describe.skipIf(!up)("intégration PostgREST + RLS (pile locale)", () => {
   const anon: SupabaseClient = createClient(URL_LOCAL, ANON, { auth: { persistSession: false } });
   let member: SupabaseClient;
   let staff: SupabaseClient;
+  let parkA = "";
+  let parkB = "";
   const userIds: string[] = [];
   const use = (c: SupabaseClient) => vi.mocked(getSupabase).mockReturnValue(c as never);
 
@@ -70,10 +75,11 @@ describe.skipIf(!up)("intégration PostgREST + RLS (pile locale)", () => {
   beforeAll(async () => {
     await cleanup();
     // `communes` = miroir V1 de `organizations` (même uuid) exigé par la FK de team_members.commune_id
-    await svc.from("communes").insert([{ id: ORG_A, name: `${PREFIX} A` }, { id: ORG_B, name: `${PREFIX} B` }]).throwOnError();
+    await svc.from("communes").insert([{ id: ORG_A, name: `${PREFIX} A` }, { id: ORG_B, name: `${PREFIX} B` }, { id: ORG_C, name: `${PREFIX} C` }]).throwOnError();
     await svc.from("organizations").insert([
       { id: ORG_A, name: `${PREFIX} A`, type: "municipality" },
       { id: ORG_B, name: `${PREFIX} B`, type: "municipality" },
+      { id: ORG_C, name: `${PREFIX} C`, type: "municipality" },
     ]).throwOnError();
     const mk = (i: number, name: string) => ({
       name, latitude: 45 + i / 10_000, longitude: 4 + i / 10_000, country_code: "FR", timezone: "Europe/Paris",
@@ -88,15 +94,35 @@ describe.skipIf(!up)("intégration PostgREST + RLS (pile locale)", () => {
         await svc.from("organization_parks").insert(data!.map((p) => ({ organization_id: org, park_id: p.id }))).throwOnError();
       }
     }
+    const rowsC = Array.from({ length: N_DUP }, (_, i) => ({ ...mk(9000 + i, `${PREFIX} Dup`), address_line: `${i} Rue Test`, postal_code: "69001", city: "Lyon" }));
+    for (let i = 0; i < rowsC.length; i += 300) {
+      const { data } = await svc.from("parks").insert(rowsC.slice(i, i + 300)).select("id").throwOnError();
+      await svc.from("organization_parks").insert(data!.map((p) => ({ organization_id: ORG_C, park_id: p.id }))).throwOnError();
+    }
     member = await mkUser("lota-member@example.test", "gestionnaire", ORG_A);
     staff = await mkUser("lota-staff@example.test", "super_admin", null);
-  }, 120_000);
+    // Objets rattachés à UN parc de A et UN parc de B : signalement, avis, photo à modérer, proposition
+    const pick = async (org: string) =>
+      (await svc.from("organization_parks").select("park_id").eq("organization_id", org).limit(1).single().throwOnError()).data!.park_id as string;
+    parkA = await pick(ORG_A);
+    parkB = await pick(ORG_B);
+    const staffId = userIds[userIds.length - 1];
+    for (const pid of [parkA, parkB]) {
+      await svc.from("reports").insert({ park_id: pid, reported_by_name: `${PREFIX}`, reason: "safety", category: "safety" }).throwOnError();
+      await svc.from("reviews").insert({ park_id: pid, user_id: staffId, author_name: PREFIX, stars: 4, rating: 4 }).throwOnError();
+      await svc.from("park_media").insert({ park_id: pid, url: `https://example.test/${PREFIX}-${pid}.jpg`, status: "pending" }).throwOnError();
+      await svc.from("park_edits").insert({ park_id: pid, changes: { name: PREFIX }, status: "pending" }).throwOnError();
+    }
+  }, 180_000);
 
   async function cleanup() {
+    await svc.from("reports").delete().eq("reported_by_name", PREFIX);
+    await svc.from("reviews").delete().eq("author_name", PREFIX);
+    await svc.from("park_edits").delete().eq("changes->>name", PREFIX);
     await svc.from("parks").delete().like("name", `${PREFIX}%`);
     await svc.from("team_members").delete().like("email", "lota-%@example.test");
-    await svc.from("organizations").delete().in("id", [ORG_A, ORG_B]);
-    await svc.from("communes").delete().in("id", [ORG_A, ORG_B]);
+    await svc.from("organizations").delete().in("id", [ORG_A, ORG_B, ORG_C]);
+    await svc.from("communes").delete().in("id", [ORG_A, ORG_B, ORG_C]);
     for (const e of ["lota-member@example.test", "lota-staff@example.test"]) {
       const { data } = await svc.auth.admin.listUsers({ perPage: 200 });
       const u = data?.users.find((x) => x.email === e);
@@ -181,11 +207,43 @@ describe.skipIf(!up)("intégration PostgREST + RLS (pile locale)", () => {
     expect(complete).toBe(true);
   });
 
-  it("requêtes de collectivité (reports / reviews / médias / propositions) : syntaxe de jointure acceptée par PostgREST", async () => {
+  it("ISOLATION entre collectivités — signalements, avis, photos, propositions : chaque périmètre ne renvoie QUE ses objets", async () => {
+    use(staff);
+    const ids = async <T extends { park_id?: string | null }>(rows: Promise<T[]>) => (await rows).map((r) => r.park_id).sort();
+    expect(await ids(listReports({ communeId: ORG_A }) as never)).toEqual([parkA]);
+    expect(await ids(listReports({ communeId: ORG_B }) as never)).toEqual([parkB]);
+    expect(await ids(listReviews({ communeId: ORG_A }) as never)).toEqual([parkA]);
+    expect(await ids(listReviews({ communeId: ORG_B }) as never)).toEqual([parkB]);
+    expect(await ids(listPendingMedia({ communeId: ORG_A }) as never)).toEqual([parkA]);
+    expect(await ids(listPendingMedia({ communeId: ORG_B }) as never)).toEqual([parkB]);
+    expect(await ids(listPendingParkEditsForOrg(ORG_A) as never)).toEqual([parkA]);
+    expect(await ids(listPendingParkEditsForOrg(ORG_B) as never)).toEqual([parkB]);
+    expect(await ids(listReports({ communeId: ORG_C }) as never)).toEqual([]);
+    // sans périmètre (Admin) : les deux
+    expect((await listReports()).filter((r) => r.park_id === parkA || r.park_id === parkB)).toHaveLength(2);
+  });
+
+  it("ISOLATION — un membre de A ne lit jamais les objets de B, même en demandant le périmètre de B", async () => {
     use(member);
-    await expect(listReports({ communeId: ORG_A })).resolves.toBeDefined();
-    await expect(listReviews({ communeId: ORG_A })).resolves.toBeDefined();
-    await expect(listPendingMedia({ communeId: ORG_A })).resolves.toBeDefined();
-    await expect(listPendingParkEditsForOrg(ORG_A)).resolves.toBeDefined();
+    const seen = async <T extends { park_id?: string | null }>(rows: Promise<T[]>) => (await rows).map((r) => r.park_id);
+    for (const pid of [parkB]) {
+      expect(await seen(listReports({ communeId: ORG_B }) as never)).not.toContain(pid);
+      expect(await seen(listReviews({ communeId: ORG_B }) as never)).not.toContain(pid);
+      expect(await seen(listPendingMedia({ communeId: ORG_B }) as never)).not.toContain(pid);
+      expect(await seen(listPendingParkEditsForOrg(ORG_B) as never)).not.toContain(pid);
+    }
+    expect(await seen(listReports({ communeId: ORG_A }) as never)).not.toContain(parkB);
+  });
+
+  it("import CSV — doublons : exact, homonyme/autre adresse, casse, et plus de 1000 homonymes", async () => {
+    use(staff);
+    // 1100 parcs « LOTA-TEST Dup » : adresses « i Rue Test, 69001 Lyon »
+    const addr = (i: number) => `${i} Rue Test, 69001 Lyon`;
+    expect(await parkExistsWithNameAndAddress(`${PREFIX} Dup`, addr(0), { communeId: ORG_C })).toBe(true);
+    expect(await parkExistsWithNameAndAddress(`${PREFIX} Dup`, addr(N_DUP - 1), { communeId: ORG_C })).toBe(true); // au-delà de la 1000e ligne
+    expect(await parkExistsWithNameAndAddress(`${PREFIX} Dup`, addr(N_DUP), { communeId: ORG_C })).toBe(false); // autre adresse
+    expect(await parkExistsWithNameAndAddress(`${PREFIX} Dup`.toUpperCase(), addr(5), { communeId: ORG_C })).toBe(false); // casse ≠ strict
+    expect(await parkExistsWithNameAndAddress(`${PREFIX} Dup`, addr(5), { communeId: ORG_A })).toBe(false); // autre périmètre
+    expect(await parkExistsWithNameAndAddress(`${PREFIX} Dup`, addr(N_DUP - 1))).toBe(true); // sans périmètre (Admin)
   });
 });

@@ -78,9 +78,7 @@ export function FakeMap({
             aria-label={getParkDisplayName(p, t)}
           >
             <span className={styles.dot}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                <path d="M4 20c3 0 4-2 5-5l7-9M14 4l4 3M9 15l4 1M3 20h4" />
-              </svg>
+              <img src="/map-symbol-T-white.svg" width={10} height={10} alt="" aria-hidden="true" />
             </span>
             {rated && f.rating(p.rating)}
           </button>

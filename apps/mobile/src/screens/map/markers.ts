@@ -47,7 +47,7 @@ function ensureStyles() {
   display: flex; align-items: center; justify-content: center;
   color: var(--color-on-primary); flex: none;
 }
-.tbg-pin__dot svg { width: 10px; height: 10px; display: block; }
+.tbg-pin__dot img { width: 10px; height: 10px; display: block; }
 .tbg-pin__inner [data-note]:empty { display: none; }
 .tbg-pin__inner:not(:has([data-note]:not(:empty))) { padding-right: 5px; }
 .tbg-pin[data-selected="1"] { z-index: 3; }
@@ -76,9 +76,7 @@ function ensureStyles() {
   document.head.appendChild(style);
 }
 
-// A slide glyph (matches the sprite's ic-slide silhouette) so the pin reads as
-// "playground" without depending on the runtime sprite injection.
-const SLIDE_PATH = "M4 20c3 0 4-2 5-5l7-9M14 4l4 3M9 15l4 1M3 20h4";
+// Official brand symbol, copied unchanged from the v3 kit.
 
 export function buildParkMarker(label: string): HTMLButtonElement {
   ensureStyles();
@@ -93,7 +91,7 @@ export function buildParkMarker(label: string): HTMLButtonElement {
 
   const dot = document.createElement("span");
   dot.className = "tbg-pin__dot";
-  dot.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${SLIDE_PATH}"/></svg>`;
+  dot.innerHTML = `<img src="/map-symbol-T-white.svg" width="10" height="10" alt="" aria-hidden="true" />`;
 
   const note = document.createElement("span");
   note.dataset.note = "1";

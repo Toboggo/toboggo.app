@@ -207,6 +207,7 @@
     "deleteError": "La suppression de votre compte n’a pas abouti. Réessayez dans quelques instants."
   },
   "accountScreen": {
+    "emailLabel": "Adresse e-mail",
     "signOutHint": "Vous pourrez vous reconnecter à tout moment.",
     "deleteHint": "Supprime définitivement votre compte et vos données personnelles.",
     "deleteConfirmDetail": "Cette action est définitive. Votre profil, vos avis, vos enfants renseignés, vos favoris et vos notifications seront supprimés. Les parcs, photos, signalements et modifications que vous avez proposés peuvent être conservés de façon anonyme.",

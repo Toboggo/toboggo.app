@@ -11,6 +11,8 @@ import LoginMethodRedirect from "./screens/onboarding/LoginMethodRedirect";
 import AuthForm from "./screens/onboarding/AuthForm";
 import Permissions from "./screens/onboarding/Permissions";
 import ChooseUsername from "./screens/onboarding/ChooseUsername";
+import ForgotPassword from "./screens/onboarding/ForgotPassword";
+import ResetPassword from "./screens/onboarding/ResetPassword";
 
 import MapExplore from "./screens/map/MapExplore";
 import ParkDetail from "./screens/detail/ParkDetail";
@@ -85,6 +87,9 @@ export default function App() {
   const userId = useSession((s) => s.userId);
   // Pseudo pas encore choisi (`name_confirmed_at` explicitement NULL — jamais
   // `undefined`, cas d'une base non migrée) : première connexion e-mail/Google.
+  const recovery = useSession((s) => s.recovery);
+  const linkError = useSession((s) => s.linkError);
+  const clearLinkError = useSession((s) => s.clearLinkError);
   const needsUsername = useSession((s) => s.profile?.name_confirmed_at === null);
   const navigate = useNavigate();
   const location = useLocation();
@@ -120,23 +125,36 @@ export default function App() {
   // just-in-time auth flow (which, for Google OAuth, is a full-page redirect).
   // Once authenticated, return to that flow to finish the send.
   useEffect(() => {
-    if (!userId || needsUsername) return; // pseudo d'abord : ChooseUsername reprend la route
+    if (!userId || needsUsername || recovery) return; // pseudo d'abord : ChooseUsername reprend la route
     const route = takeResumeRoute();
     if (route) navigate(route, { replace: true });
-  }, [userId, needsUsername, navigate]);
+  }, [userId, needsUsername, recovery, navigate]);
 
   // Propose l'écran « Choisissez votre pseudo » UNE fois par compte et par
   // chargement (pas un verrou : naviguer ailleurs reste possible ; l'écran
   // revient au prochain chargement tant que le pseudo n'est pas choisi).
   // `next` = page interrompue, pour y revenir (ex. /permissions après inscription).
   useEffect(() => {
-    if (!userId || !needsUsername || usernamePromptedFor.current === userId) return;
+    if (!userId || !needsUsername || recovery || usernamePromptedFor.current === userId) return;
     usernamePromptedFor.current = userId;
     if (location.pathname === "/choose-username") return;
     navigate("/choose-username", { replace: true, state: { next: location.pathname + location.search } });
-  }, [userId, needsUsername, location.pathname, location.search, navigate]);
+  }, [userId, needsUsername, recovery, location.pathname, location.search, navigate]);
+
+  // Lien de récupération expiré / déjà utilisé / invalide : on explique et on
+  // propose un nouvel e-mail (une seule fois — l'erreur est consommée).
+  useEffect(() => {
+    if (!linkError) return;
+    navigate(`/forgot-password?reason=${linkError}`, { replace: true });
+    clearLinkError();
+  }, [linkError, clearLinkError, navigate]);
 
   if (loading) return null;
+
+  // Session de récupération : seul /reset-password est accessible (jamais l'accueil/la carte).
+  if (recovery && location.pathname !== "/reset-password") {
+    return <Navigate to="/reset-password" replace />;
+  }
 
   return (
     <>
@@ -146,6 +164,8 @@ export default function App() {
       {/* Ancienne URL (écran de choix de méthode supprimé) → formulaire de connexion. */}
       <Route path="/login-method" element={<LoginMethodRedirect />} />
       <Route path="/login" element={<AuthForm />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/permissions" element={<Permissions />} />
       <Route path="/choose-username" element={<ChooseUsername />} />
 

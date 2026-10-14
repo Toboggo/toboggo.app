@@ -1,19 +1,18 @@
 import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { signIn, signUp, sendPasswordReset } from "@toboggo/shared";
+import { signIn, signUp } from "@toboggo/shared";
 import { LogoMark } from "@toboggo/design-system";
 import { useToastStore } from "../../lib/toast";
 import { takeResumeRoute } from "../../lib/resumeRoute";
 import { trackEvent } from "../../lib/analytics";
 import { markWelcomeSeen } from "../../lib/welcomeSeen";
 import { clearGoogleLoginMarker, startGoogleLogin } from "../../lib/googleLogin";
+import { MIN_PASSWORD_LENGTH } from "../../lib/passwordPolicy";
 import { ChevronLeft, EyeIcon, GoogleIcon } from "./authIcons";
 import styles from "./AuthForm.module.css";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-/** Règle réelle : minimum Supabase (`minimum_password_length`), aucune autre exigence. */
-const MIN_PASSWORD_LENGTH = 6;
 
 export default function AuthForm() {
   const [params] = useSearchParams();
@@ -22,9 +21,11 @@ export default function AuthForm() {
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resetSent, setResetSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Posé par /reset-password après un changement réussi (affiché une fois).
+  const passwordChanged = (location.state as { passwordChanged?: boolean } | null)?.passwordChanged === true;
   const { t } = useTranslation("onboarding");
   const { t: tErr } = useTranslation("errors");
   const { t: tCommon } = useTranslation("common");
@@ -100,18 +101,10 @@ export default function AuthForm() {
     }
   }
 
-  async function forgotPassword() {
-    if (!EMAIL_RE.test(email)) {
-      setError(tErr("auth.emailForReset"));
-      return;
-    }
-    try {
-      await sendPasswordReset(email);
-      setError(null);
-      setResetSent(true);
-    } catch {
-      setError(tErr("auth.generic"));
-    }
+  // L'écran dédié gère l'envoi, ses erreurs et le message de confirmation ;
+  // l'adresse déjà saisie est transmise par l'état de navigation (jamais l'URL).
+  function forgotPassword() {
+    navigate("/forgot-password", { state: { email: EMAIL_RE.test(email) ? email : "" } });
   }
 
   const continueWithGoogle = async () => {
@@ -136,7 +129,6 @@ export default function AuthForm() {
   const toggleMode = () => {
     setMode(isSignup ? "login" : "signup");
     setError(null);
-    setResetSent(false);
   };
 
   const fieldClass = `${styles.field} ${error ? styles.fieldError : ""}`;
@@ -212,8 +204,8 @@ export default function AuthForm() {
         </div>
 
         {error && <p className={styles.error} role="alert">{error}</p>}
-        {resetSent && (
-          <p className={styles.ok} role="status">{t("auth.resetSent", { email })}</p>
+        {passwordChanged && !error && (
+          <p className={styles.ok} role="status">{t("auth.passwordChanged")}</p>
         )}
 
         <button type="submit" className={styles.submit} disabled={loading} aria-busy={loading}>

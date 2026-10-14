@@ -13,6 +13,7 @@ import {
 import { identifyAnalyticsUser, registerIsAuthenticated, resetAnalyticsIdentity, trackEvent } from "./analytics";
 import { clearGoogleLoginMarker, consumeGoogleLoginMarker, isNewAccount } from "./googleLogin";
 import { hasPendingResumeRoute } from "./resumeRoute";
+import { initialAuthLink, isRecoveryPending, setRecoveryPending, type RecoveryLinkError } from "./recoveryLink";
 
 // Retour OAuth Google : émis une seule fois, uniquement si le marqueur posé par
 // `startGoogleLogin()` existe (jamais sur restauration de session ni
@@ -36,6 +37,17 @@ interface SessionState {
   profile: Profile | null;
   loading: boolean;
   guestMode: boolean;
+  /**
+   * Session technique de récupération de mot de passe en cours (lien e-mail
+   * valide). Tant que c'est vrai, l'utilisateur est « connecté » côté Supabase
+   * mais ne doit PAS entrer dans l'app : App.tsx le garde sur /reset-password.
+   */
+  recovery: boolean;
+  /** Lien de récupération refusé (expiré / déjà utilisé) à signaler une fois. */
+  linkError: RecoveryLinkError | null;
+  clearLinkError: () => void;
+  /** Fin de la récupération (après fermeture de session) — sans effet sur userId. */
+  endRecovery: () => void;
   /** Stashed callback to resume a contribution action after a just-in-time login (requireAccount pattern). */
   pendingResume: (() => void) | null;
   init: () => void;
@@ -53,6 +65,13 @@ export const useSession = create<SessionState>((set, get) => ({
   profile: null,
   loading: true,
   guestMode: false,
+  recovery: initialAuthLink.recovery || isRecoveryPending(),
+  linkError: initialAuthLink.error,
+  clearLinkError: () => set({ linkError: null }),
+  endRecovery: () => {
+    setRecoveryPending(false);
+    set({ recovery: false });
+  },
   pendingResume: null,
   init: () => {
     if (!isSupabaseConfigured()) {
@@ -62,6 +81,8 @@ export const useSession = create<SessionState>((set, get) => ({
     getSession()
       .then((session) => {
         if (session?.user) {
+          // Lien de récupération (ou rechargement pendant la récupération) : session technique.
+          if (get().recovery) setRecoveryPending(true);
           // Restauration / retour OAuth : identité analytics AVANT tout
           // événement auth, pour que signup/login_completed lui soient rattachés.
           identifyAnalyticsUser(session.user.id);
@@ -70,13 +91,28 @@ export const useSession = create<SessionState>((set, get) => ({
         } else {
           // OAuth échoué/abandonné : le marqueur ne doit pas survivre.
           clearGoogleLoginMarker();
+          // Lien de récupération annoncé mais aucune session créée : il n'est pas utilisable.
+          if (get().recovery) {
+            // Drapeau périmé (session déjà fermée) : pas un lien refusé, simple retour à la normale.
+            const stale = !initialAuthLink.recovery;
+            set({ recovery: false, linkError: stale ? get().linkError : (get().linkError ?? "invalid") });
+          }
+          setRecoveryPending(false);
           set({ loading: false });
         }
       })
       .catch(() => set({ loading: false }));
 
-    onAuthStateChange((userId) => {
+    onAuthStateChange((userId, event) => {
       const current = get().userId;
+
+      // Retour du lien « Mot de passe oublié » : supabase-js ouvre une session
+      // technique. Marquée avant tout le reste (y compris le cas « même
+      // utilisateur déjà connecté » filtré plus bas) pour que l'app ne l'accueille pas.
+      if (event === "PASSWORD_RECOVERY" && userId) {
+        setRecoveryPending(true);
+        set({ recovery: true });
+      }
 
       // Identité analytics, synchrone et en premier : cet appel s'exécute
       // pendant `signIn()`/`signUp()`, donc avant le `trackEvent` de l'écran.
@@ -95,7 +131,8 @@ export const useSession = create<SessionState>((set, get) => ({
 
       if (!userId) {
         clearGoogleLoginMarker();
-        set({ userId: null, profile: null, loading: false });
+        setRecoveryPending(false);
+        set({ userId: null, profile: null, loading: false, recovery: false });
         return;
       }
 

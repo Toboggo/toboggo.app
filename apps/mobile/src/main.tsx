@@ -1,3 +1,4 @@
+import "./lib/recoveryLink"; // instantané du lien Supabase : AVANT toute lecture/nettoyage de l'URL
 import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

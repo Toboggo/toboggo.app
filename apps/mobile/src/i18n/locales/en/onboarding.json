@@ -29,7 +29,6 @@
     "passwordPlaceholderLogin": "Your password",
     "showPassword": "Show password",
     "forgotPassword": "Forgot password?",
-    "resetSent": "Reset link sent to {{email}}. Check your inbox.",
     "continueGoogle": "Continue with Google",
     "haveAccount": "Already have an account?",
     "noAccount": "No account yet?",
@@ -41,7 +40,37 @@
     "topHaveAccount": "Already have an account?",
     "topNoAccount": "No account?",
     "legalTerms": "Terms of use",
-    "legalPrivacy": "Privacy"
+    "legalPrivacy": "Privacy",
+    "forgot": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email address and we'll send you a link to choose a new password.",
+      "submit": "Send the link",
+      "submitting": "Sending...",
+      "sentTitle": "Check your inbox",
+      "sent": "If a Toboggo account is associated with this address, you will receive an email to reset your password. Also check your spam folder.",
+      "fixEmail": "Correct my address",
+      "createAccount": "Create an account",
+      "backToLogin": "Back to sign in",
+      "linkInvalid": "This reset link is invalid, expired or has already been used. Request a new email below."
+    },
+    "reset": {
+      "title": "New password",
+      "subtitle": "Choose a new password for {{email}}.",
+      "subtitleNoEmail": "Choose a new password for your Toboggo account.",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm password",
+      "submit": "Save password",
+      "submitting": "Saving...",
+      "cancel": "Cancel",
+      "mismatch": "The two passwords don't match.",
+      "tooShort": "The password must be at least {{min}} characters long.",
+      "samePassword": "The new password must be different from the old one.",
+      "sessionLost": "This link is no longer valid. Request a new reset email.",
+      "signOutFailed": "Your password was changed, but we couldn't close the recovery session.",
+      "retrySignOut": "Try again",
+      "continueToLogin": "Go to sign in"
+    },
+    "passwordChanged": "Your password has been changed"
   },
   "permissions": {
     "title": "Who are you looking for parks for? 🛝",

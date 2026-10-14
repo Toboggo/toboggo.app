@@ -11,16 +11,16 @@ import type { Profile } from "@toboggo/shared";
  */
 
 const authMock = vi.hoisted(() => {
-  let cb: ((userId: string | null) => void) | null = null;
+  let cb: ((userId: string | null, event?: string) => void) | null = null;
   return {
-    register(fn: (userId: string | null) => void) {
+    register(fn: (userId: string | null, event?: string) => void) {
       cb = fn;
       return () => {
         cb = null;
       };
     },
-    emit(userId: string | null) {
-      cb?.(userId);
+    emit(userId: string | null, event?: string) {
+      cb?.(userId, event);
     },
     reset() {
       cb = null;
@@ -59,7 +59,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     ...actual,
     isSupabaseConfigured: () => true,
     getSession: vi.fn(async () => supa.session),
-    onAuthStateChange: (fn: (userId: string | null) => void) => authMock.register(fn),
+    onAuthStateChange: (fn: (userId: string | null, event?: string) => void) => authMock.register(fn),
     getOrCreateProfile: vi.fn(async (userId: string, name: string, email: string) => {
       supa.profileCalls += 1;
       return { id: userId, name, email, dark_mode: false } as unknown as Awaited<
@@ -470,5 +470,29 @@ describe("analytics identity wiring", () => {
     expect(analyticsMock.resetAnalyticsIdentity.mock.invocationCallOrder[0]).toBeLessThan(
       analyticsMock.identifyAnalyticsUser.mock.invocationCallOrder[1],
     );
+  });
+});
+
+describe("useSession — récupération de mot de passe", () => {
+  it("PASSWORD_RECOVERY marque la session technique ; la déconnexion la lève", async () => {
+    useSession.setState({ recovery: false });
+    useSession.getState().init();
+    await flush();
+    supa.session = SESSION;
+    authMock.emit("user-1", "PASSWORD_RECOVERY");
+    await flush();
+    expect(useSession.getState().recovery).toBe(true);
+    authMock.emit(null, "SIGNED_OUT");
+    expect(useSession.getState().recovery).toBe(false);
+    expect(useSession.getState().userId).toBeNull();
+  });
+
+  it("PASSWORD_RECOVERY pour l'utilisateur déjà connecté est aussi pris en compte", async () => {
+    supa.session = SESSION;
+    useSession.setState({ recovery: false });
+    useSession.getState().init();
+    await flush();
+    authMock.emit("user-1", "PASSWORD_RECOVERY");
+    expect(useSession.getState().recovery).toBe(true);
   });
 });

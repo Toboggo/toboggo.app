@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { deleteOwnAccount, signOut, purgeDraftsForPrincipal } from "@toboggo/shared";
+import { getSession, deleteOwnAccount, signOut, purgeDraftsForPrincipal } from "@toboggo/shared";
 import { Button, Dialog, Icon } from "@toboggo/design-system";
 import { TopBar } from "../../components/TopBar";
 import { useSession } from "../../lib/session";
@@ -16,6 +16,25 @@ import styles from "./Profile.module.css";
 export default function Account() {
   const navigate = useNavigate();
   const { t } = useTranslation("profile");
+  const userId = useSession((s) => s.userId);
+  const [accountEmail, setAccountEmail] = useState<{ userId: string; email: string } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setAccountEmail(null);
+    if (userId) {
+      void getSession()
+        .then((session) => {
+          if (!cancelled && session?.user.id === userId && session.user.email) {
+            setAccountEmail({ userId, email: session.user.email });
+          }
+        })
+        .catch(() => {});
+    }
+    return () => { cancelled = true; };
+  }, [userId]);
+
+  const email = accountEmail?.userId === userId ? accountEmail.email : null;
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteFailed, setDeleteFailed] = useState(false);
@@ -53,6 +72,14 @@ export default function Account() {
       <div style={{ padding: "0 20px" }}>
         <h6 className={`${styles.kicker} ${styles.hubKicker}`}>{t("accountScreen.infoKicker")}</h6>
         <div className={`${styles.group} ${styles.hubCard}`}>
+          {email && (
+            <div className={`${styles.groupRow} ${styles.accountEmail}`}>
+              <span className={styles.actionText}>
+                <span>{t("accountScreen.emailLabel")}</span>
+                <span className={styles.actionHint}>{email}</span>
+              </span>
+            </div>
+          )}
           <button type="button" className={styles.groupRow} onClick={() => navigate("/profile/edit")}>
             <span>{t("editProfile.title")}</span>
           </button>

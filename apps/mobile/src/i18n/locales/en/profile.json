@@ -207,6 +207,7 @@
     "deleteError": "We couldn’t delete your account. Please try again in a moment."
   },
   "accountScreen": {
+    "emailLabel": "Email address",
     "signOutHint": "You can sign back in at any time.",
     "deleteHint": "Permanently deletes your account and personal data.",
     "deleteConfirmDetail": "This action is permanent. Your profile, reviews, children you added, favorites and notifications will be deleted. Parks, photos, reports and edits you suggested may be kept anonymously.",

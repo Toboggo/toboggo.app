@@ -12,8 +12,12 @@
   "auth": {
     "invalidCredentials": "Correo electrónico o contraseña incorrectos.",
     "invalidForm": "Introduce un correo electrónico y una contraseña válidos (mínimo 6 caracteres).",
-    "emailForReset": "Introduce tu correo electrónico para recibir el enlace",
     "googleUnavailable": "Inicio de sesión con Google no disponible por ahora",
-    "generic": "El inicio de sesión ha fallado. Inténtalo de nuevo."
+    "generic": "El inicio de sesión ha fallado. Inténtalo de nuevo.",
+    "rateLimit": "Demasiadas solicitudes. Espera unos minutos antes de volver a intentarlo.",
+    "network": "No se puede conectar. Comprueba tu red e inténtalo de nuevo.",
+    "resetFailed": "El envío ha fallado. Inténtalo de nuevo.",
+    "weakPassword": "Esta contraseña es demasiado débil. Elige otra.",
+    "invalidEmail": "Introduce un correo electrónico válido."
   }
 }

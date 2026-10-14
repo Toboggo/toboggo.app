@@ -1,4 +1,8 @@
+import type { AuthChangeEvent } from "@supabase/supabase-js";
 import { getSupabase } from "../supabaseClient";
+
+/** Chemin (relatif à l'origine de l'app) où atterrit le lien « Mot de passe oublié ». */
+export const PASSWORD_RECOVERY_PATH = "/reset-password";
 
 export async function signUp(email: string, password: string) {
   const supabase = getSupabase();
@@ -56,11 +60,31 @@ export async function signOut() {
   if (error) throw error;
 }
 
+/** Fermeture de session locale uniquement (n'appelle pas le serveur) : repli si `signOut()` échoue. */
+export async function signOutLocal() {
+  const supabase = getSupabase();
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  if (error) throw error;
+}
+
+/**
+ * Envoie l'e-mail de récupération. Le lien ramène sur `/reset-password` (qui doit
+ * figurer dans Auth → URL Configuration → Redirect URLs). Supabase ne révèle pas
+ * si l'adresse existe : un succès ici ne prouve rien sur l'existence du compte.
+ */
 export async function sendPasswordReset(email: string) {
   const supabase = getSupabase();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+    redirectTo:
+      typeof window !== "undefined" ? `${window.location.origin}${PASSWORD_RECOVERY_PATH}` : undefined,
   });
+  if (error) throw error;
+}
+
+/** Définit le nouveau mot de passe de l'utilisateur de la session courante (session de récupération). */
+export async function updatePassword(newPassword: string) {
+  const supabase = getSupabase();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) throw error;
 }
 
@@ -70,10 +94,10 @@ export async function getSession() {
   return data.session;
 }
 
-export function onAuthStateChange(cb: (userId: string | null) => void) {
+export function onAuthStateChange(cb: (userId: string | null, event: AuthChangeEvent) => void) {
   const supabase = getSupabase();
-  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-    cb(session?.user.id ?? null);
+  const { data } = supabase.auth.onAuthStateChange((event, session) => {
+    cb(session?.user.id ?? null, event);
   });
   return () => data.subscription.unsubscribe();
 }

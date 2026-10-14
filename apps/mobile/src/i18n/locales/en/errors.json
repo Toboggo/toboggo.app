@@ -12,8 +12,12 @@
   "auth": {
     "invalidCredentials": "Incorrect email or password.",
     "invalidForm": "Enter a valid email and password (6 characters min).",
-    "emailForReset": "Enter your email to receive the link",
     "googleUnavailable": "Google sign-in unavailable right now",
-    "generic": "Sign-in failed. Please try again."
+    "generic": "Sign-in failed. Please try again.",
+    "rateLimit": "Too many requests. Please wait a few minutes before trying again.",
+    "network": "Can't connect. Check your network and try again.",
+    "resetFailed": "Sending failed. Please try again.",
+    "weakPassword": "This password is too weak. Choose another one.",
+    "invalidEmail": "Enter a valid email address."
   }
 }

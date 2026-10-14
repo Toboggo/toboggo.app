@@ -54,3 +54,28 @@ describe("App — garde « Choisissez votre pseudo »", () => {
     expect(screen.queryByRole("heading", { name: "Choisissez votre pseudo" })).toBeNull();
   });
 });
+
+describe("App — session de récupération de mot de passe", () => {
+  beforeEach(() => {
+    useSession.setState({ userId: null, profile: null, loading: false, recovery: false, linkError: null });
+  });
+
+  it("garde l'utilisateur sur /reset-password (jamais l'accueil/la carte) et saute « pseudo »", () => {
+    useSession.setState({
+      userId: "u1",
+      profile: profile({ name_confirmed_at: null }),
+      loading: false,
+      recovery: true,
+    });
+    renderAt("/map");
+    expect(screen.getByRole("heading", { name: "Nouveau mot de passe" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Choisissez votre pseudo" })).toBeNull();
+  });
+
+  it("lien expiré → écran « nouvel e-mail » avec explication", async () => {
+    useSession.setState({ linkError: "expired" });
+    renderAt("/");
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/invalide, expiré ou a déjà été utilisé/));
+    expect(useSession.getState().linkError).toBeNull();
+  });
+});

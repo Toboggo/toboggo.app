@@ -29,7 +29,6 @@
     "passwordPlaceholderLogin": "Tu contraseña",
     "showPassword": "Mostrar la contraseña",
     "forgotPassword": "¿Has olvidado la contraseña?",
-    "resetSent": "Enlace de restablecimiento enviado a {{email}}. Revisa tu correo electrónico.",
     "continueGoogle": "Continuar con Google",
     "haveAccount": "¿Ya tienes una cuenta?",
     "noAccount": "¿Aún no tienes cuenta?",
@@ -41,7 +40,37 @@
     "topHaveAccount": "¿Ya tienes una cuenta?",
     "topNoAccount": "¿Sin cuenta?",
     "legalTerms": "Condiciones de uso",
-    "legalPrivacy": "Privacidad"
+    "legalPrivacy": "Privacidad",
+    "forgot": {
+      "title": "¿Has olvidado la contraseña?",
+      "subtitle": "Introduce tu correo electrónico y te enviaremos un enlace para elegir una nueva contraseña.",
+      "submit": "Enviar el enlace",
+      "submitting": "Enviando...",
+      "sentTitle": "Revisa tu bandeja de entrada",
+      "sent": "Si hay una cuenta de Toboggo asociada a esta dirección, recibirás un correo para restablecer tu contraseña. Revisa también la carpeta de spam.",
+      "fixEmail": "Corregir mi dirección",
+      "createAccount": "Crear una cuenta",
+      "backToLogin": "Volver al inicio de sesión",
+      "linkInvalid": "Este enlace de restablecimiento no es válido, ha caducado o ya se ha utilizado. Solicita un nuevo correo a continuación."
+    },
+    "reset": {
+      "title": "Nueva contraseña",
+      "subtitle": "Elige una nueva contraseña para {{email}}.",
+      "subtitleNoEmail": "Elige una nueva contraseña para tu cuenta de Toboggo.",
+      "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar la contraseña",
+      "submit": "Guardar la contraseña",
+      "submitting": "Guardando...",
+      "cancel": "Cancelar",
+      "mismatch": "Las dos contraseñas no coinciden.",
+      "tooShort": "La contraseña debe tener al menos {{min}} caracteres.",
+      "samePassword": "La nueva contraseña debe ser distinta de la anterior.",
+      "sessionLost": "Este enlace ya no es válido. Solicita un nuevo correo de restablecimiento.",
+      "signOutFailed": "Tu contraseña se ha modificado, pero no hemos podido cerrar la sesión de recuperación.",
+      "retrySignOut": "Reintentar",
+      "continueToLogin": "Ir al inicio de sesión"
+    },
+    "passwordChanged": "Tu contraseña se ha modificado"
   },
   "permissions": {
     "title": "¿Para quién buscas parques? 🛝",

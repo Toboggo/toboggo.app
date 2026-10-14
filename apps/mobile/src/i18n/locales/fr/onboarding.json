@@ -29,7 +29,6 @@
     "passwordPlaceholderLogin": "Votre mot de passe",
     "showPassword": "Afficher le mot de passe",
     "forgotPassword": "Mot de passe oublié ?",
-    "resetSent": "Lien de réinitialisation envoyé à {{email}}. Consultez votre boîte mail.",
     "continueGoogle": "Continuer avec Google",
     "haveAccount": "Vous avez déjà un compte ?",
     "noAccount": "Pas encore de compte ?",
@@ -41,7 +40,37 @@
     "topHaveAccount": "Déjà un compte ?",
     "topNoAccount": "Pas de compte ?",
     "legalTerms": "Conditions d'utilisation",
-    "legalPrivacy": "Confidentialité"
+    "legalPrivacy": "Confidentialité",
+    "forgot": {
+      "title": "Mot de passe oublié",
+      "subtitle": "Entrez votre adresse e-mail : nous vous enverrons un lien pour choisir un nouveau mot de passe.",
+      "submit": "Envoyer le lien",
+      "submitting": "Envoi...",
+      "sentTitle": "Vérifiez votre boîte mail",
+      "sent": "Si un compte Toboggo est associé à cette adresse, vous recevrez un email pour réinitialiser votre mot de passe. Vérifiez aussi vos spams.",
+      "fixEmail": "Corriger mon adresse",
+      "createAccount": "Créer un compte",
+      "backToLogin": "Retour à la connexion",
+      "linkInvalid": "Ce lien de réinitialisation est invalide, expiré ou a déjà été utilisé. Demandez un nouvel email ci-dessous."
+    },
+    "reset": {
+      "title": "Nouveau mot de passe",
+      "subtitle": "Choisissez un nouveau mot de passe pour {{email}}.",
+      "subtitleNoEmail": "Choisissez un nouveau mot de passe pour votre compte Toboggo.",
+      "newPassword": "Nouveau mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "submit": "Enregistrer le mot de passe",
+      "submitting": "Enregistrement...",
+      "cancel": "Annuler",
+      "mismatch": "Les deux mots de passe ne sont pas identiques.",
+      "tooShort": "Le mot de passe doit contenir au moins {{min}} caractères.",
+      "samePassword": "Le nouveau mot de passe doit être différent de l'ancien.",
+      "sessionLost": "Ce lien n'est plus valide. Demandez un nouvel email de réinitialisation.",
+      "signOutFailed": "Votre mot de passe a été modifié, mais nous n'avons pas pu fermer la session de récupération.",
+      "retrySignOut": "Réessayer",
+      "continueToLogin": "Aller à la connexion"
+    },
+    "passwordChanged": "Votre mot de passe a été modifié"
   },
   "permissions": {
     "title": "Pour qui cherchez-vous des parcs ? 🛝",

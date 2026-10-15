@@ -94,6 +94,81 @@ describe("createPark — bug B1 (no placeholder coordinates)", () => {
   });
 });
 
+describe("createPark — garde-fou de modération (migration 0055)", () => {
+  beforeEach(() => vi.mocked(getSupabase).mockReset());
+
+  const base = { name: "Parc Test", formatted_address: "1 rue Test", latitude: 45.764043, longitude: 4.835659 };
+  const methods = (q: { calls: { method: string }[] }) => q.calls.map((c) => c.method);
+
+  function setup(overrides: Record<string, { data: unknown; error: unknown }> = {}) {
+    const fake = makeFakeSupabase({
+      parks: { data: { id: "new-park-id" }, error: null },
+      organization_parks: { data: null, error: null },
+      park_public: { data: { id: "new-park-id" }, error: null },
+      ...overrides,
+    });
+    vi.mocked(getSupabase).mockReturnValue(fake.client as never);
+    return fake;
+  }
+
+  it("organisation + statut publié : INSERT en pending, lien, puis UPDATE du statut (dans cet ordre)", async () => {
+    const { queriesByTable } = setup();
+    await createPark({ ...base, organization_id: "org-1", status: "published" });
+
+    const parks = queriesByTable["parks"];
+    const insert = parks[0].calls.find((c) => c.method === "insert");
+    expect(insert!.args[0]).not.toHaveProperty("moderation_status");
+    expect(queriesByTable["organization_parks"][0].calls.find((c) => c.method === "upsert")).toBeDefined();
+    const update = parks[1].calls.find((c) => c.method === "update");
+    expect(update!.args[0]).toEqual({ moderation_status: "published" });
+    expect(parks[1].calls.find((c) => c.method === "eq")!.args).toEqual(["id", "new-park-id"]);
+    expect(methods(parks[0])).toContain("insert");
+    expect(methods(parks[1])).toContain("update");
+  });
+
+  it("compat V1 (commune_id) : même comportement en deux temps", async () => {
+    const { queriesByTable } = setup();
+    await createPark({ ...base, commune_id: "org-1", status: "published" });
+    expect(queriesByTable["parks"][0].calls.find((c) => c.method === "insert")!.args[0]).not.toHaveProperty("moderation_status");
+    expect(queriesByTable["parks"][1].calls.find((c) => c.method === "update")!.args[0]).toEqual({ moderation_status: "published" });
+  });
+
+  it("organisation + pending (contributeur, mobile) : un seul INSERT, aucun UPDATE de statut", async () => {
+    const { queriesByTable } = setup();
+    await createPark({ ...base, organization_id: "org-1", status: "pending" });
+    expect(queriesByTable["parks"]).toHaveLength(1);
+    expect(queriesByTable["parks"][0].calls.find((c) => c.method === "insert")!.args[0]).toMatchObject({ moderation_status: "pending" });
+  });
+
+  it("sans statut ni organisation (mobile) : inchangé, un seul INSERT", async () => {
+    const { queriesByTable } = setup();
+    await createPark({ ...base, status: "pending" });
+    expect(queriesByTable["parks"]).toHaveLength(1);
+    expect(queriesByTable["organization_parks"]).toBeUndefined();
+  });
+
+  it("sans organisation (staff Admin) : le statut demandé est envoyé tel quel à l'INSERT", async () => {
+    const { queriesByTable } = setup();
+    await createPark({ ...base, status: "published" });
+    expect(queriesByTable["parks"]).toHaveLength(1);
+    expect(queriesByTable["parks"][0].calls.find((c) => c.method === "insert")!.args[0]).toMatchObject({ moderation_status: "published" });
+  });
+
+  it("échec du passage au statut demandé : erreur explicite, le parc reste en attente", async () => {
+    let parksCall = 0;
+    const fake = makeFakeSupabase({
+      parks: () => (++parksCall === 1 ? { data: { id: "new-park-id" }, error: null } : { data: null, error: { message: "permission denied" } }),
+      organization_parks: { data: null, error: null },
+      park_public: { data: { id: "new-park-id" }, error: null },
+    });
+    vi.mocked(getSupabase).mockReturnValue(fake.client as never);
+
+    await expect(createPark({ ...base, organization_id: "org-1", status: "published" })).rejects.toThrow(
+      /Parc créé mais non publié.*en attente de modération/,
+    );
+  });
+});
+
 describe("listParks — bug B2 (collectivité scoping via organization_parks)", () => {
   beforeEach(() => vi.mocked(getSupabase).mockReset());
 

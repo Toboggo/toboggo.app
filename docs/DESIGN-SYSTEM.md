@@ -22,7 +22,7 @@
 | `docs/identite-visuelle-formats.md` | « À quoi ressemble l'identité officielle ? Quel fichier / format pour quel usage ? » | **Identité visuelle validée** : logos + variantes, couleurs de marque, pictogrammes, formats & assets (icône d'app, favicon, splash, Open Graph) |
 | **`docs/DESIGN-SYSTEM.md`** (ce fichier) | « Comment utiliser cette identité dans une UI ? » | **Utilisation UI** : tokens, composants, tailles, espacements, navigation, règles de placement des logos / pictogrammes, décisions fondateur, feuille de route du chantier design |
 | `packages/design-system/` | « Comment c'est implémenté ? » | **Implémentation exécutable** : tokens CSS + primitives + `Logo` + sprite d'icônes |
-| `docs/brand-assets/` | — | Fichiers logo / icône d'app d'origine (PNG ~270 px + « SVG » = PNG encapsulés) |
+| **`docs/brand-kit-v3/`** | « Quel fichier de logo / icône / favicon utiliser ? » | **Source officielle unique** des assets de marque (kit v3) + README (variantes, usages, couleurs). `docs/brand-assets/` = v1 **obsolète**, ne pas utiliser. |
 | `docs/Toboggo-Brand-Guidelines.pdf` | — | Présentation éditoriale (à montrer, pas à coder depuis). Non tracké. |
 | Artifact Cowork « Brand kit » `1de5ba03-434f-45f3-a84e-6c280984f93f` | — | Bibliothèque visuelle vivante, **non connectée** à Claude Code |
 | Artifact « Brand Guidelines » `b93e1fc5-26a7-4e22-970c-cd31546678e1` | — | Présentation éditoriale, **non connectée** |
@@ -168,7 +168,7 @@ Ne jamais improviser un padding / rayon / ombre en dur : utiliser ces variables.
 - **`apps/landing`** (HTML statique, sans build) : le même SVG est dupliqué en
   dur dans `index.html` (nav + footer). Si le logo change, mettre à jour les
   deux copies.
-- **Fichiers sources** (`docs/brand-assets/`) : `02-wordmark-toboggo`,
+- **Fichiers sources** (⚠️ v1 obsolète, voir `docs/brand-kit-v3/` pour les assets actuels) (`docs/brand-assets/`) : `02-wordmark-toboggo`,
   `03-t-monogram`, `05-app-icon-square`, `08-favicon-circle`,
   `01-playground-logo` (variante illustrée — splash / onboarding / marketing,
   jamais favicon). PNG ~270 px : **suffisant web/favicon, insuffisant pour un

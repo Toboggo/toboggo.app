@@ -1,5 +1,5 @@
 import { getSupabase } from "../supabaseClient";
-import { listOrgParkIds } from "./parks";
+import { orgParkScopeSelect, ORG_PARK_SCOPE_PATH } from "./parks";
 import type { EditStatus, Json, ParkEdit, ParkEditReviewDecision, ParkEditReviewResult, ParkEditWithDetails } from "../types";
 
 /**
@@ -56,16 +56,23 @@ export async function listMyParkEdits(
 /**
  * Pending change-request proposals ("infos à vérifier") for a collectivité's
  * own parks. `park_edits` has no `organization_id`-scoped read policy of its
- * own to rely on client-side, so this cross-references `listOrgParkIds` (the
- * same organisation → park-id resolution used for parks/reports/reviews/
- * pending media since Lot 1) rather than trusting `park_edits.organization_id`,
+ * own to rely on client-side, so this joins `organization_parks` server-side (the
+ * same organisation → park resolution used for parks/reports/reviews/
+ * pending media) rather than trusting `park_edits.organization_id`,
  * which is optional and not always set at submission time.
  */
 export async function listPendingParkEditsForOrg(organizationId: string): Promise<ParkEdit[]> {
-  const parkIds = await listOrgParkIds(organizationId);
-  if (!parkIds.length) return [];
-  const pending = await listParkEdits({ status: ["pending"] });
-  return pending.filter((edit) => edit.park_id != null && parkIds.includes(edit.park_id));
+  // Jointure serveur `park_edits → parks → organization_parks` (filtre d'organisation côté
+  // serveur, sous RLS) : plus de liste d'ids (URL / `max_rows`) ni de filtrage client.
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from("park_edits")
+    .select(`*, parks!inner(id${orgParkScopeSelect(organizationId)})`)
+    .eq("status", "pending")
+    .eq(`parks.${ORG_PARK_SCOPE_PATH}`, organizationId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return ((data ?? []) as unknown as (ParkEdit & { parks?: unknown })[]).map(({ parks: _parks, ...edit }) => edit as ParkEdit);
 }
 
 /**

@@ -9,7 +9,7 @@ import {
   getParkHistory,
   listFeatures,
   listMedia,
-  listOrgParkIds,
+  isParkInOrganization,
   listParkEditsWithDetails,
   listParkFeatures,
   listReportsForPark,
@@ -36,7 +36,7 @@ vi.mock("@toboggo/shared", async (importOriginal) => {
     listExternalIds: vi.fn().mockResolvedValue([]),
     listSources: vi.fn().mockResolvedValue([]),
     // COLL-03C — garde de périmètre collectivité (`useScopedPark`).
-    listOrgParkIds: vi.fn().mockResolvedValue(["p1"]),
+    isParkInOrganization: vi.fn().mockResolvedValue(true),
     // Admin-UI-9B — Collectivité dans l'entête : requête ciblée par id.
     getOrganization: vi.fn().mockResolvedValue(null),
     setParkStatus: vi.fn().mockResolvedValue(undefined),
@@ -137,7 +137,7 @@ describe("ParkDetail — /parks/:id", () => {
     perms.canResolveReport = true;
     scope.isAdmin = false;
     scope.communeId = "org-1";
-    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue(["p1"]);
+    vi.mocked(isParkInOrganization).mockReset().mockResolvedValue(true);
     vi.mocked(getPark).mockReset().mockResolvedValue(makePark() as never);
     vi.mocked(getParkHistory).mockReset().mockResolvedValue([]);
     vi.mocked(listSources).mockReset().mockResolvedValue([]);
@@ -565,7 +565,7 @@ describe("ParkDetail — périmètre collectivité & état du parc (COLL-03C)", 
     perms.canResolveReport = true;
     scope.isAdmin = false;
     scope.communeId = "org-1";
-    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue(["p1"]);
+    vi.mocked(isParkInOrganization).mockReset().mockResolvedValue(true);
     vi.mocked(getPark).mockReset().mockResolvedValue(makePark() as never);
     vi.mocked(listSources).mockReset().mockResolvedValue([]);
     vi.mocked(listReviewsForPark).mockReset().mockResolvedValue([]);
@@ -587,7 +587,7 @@ describe("ParkDetail — périmètre collectivité & état du parc (COLL-03C)", 
   });
 
   it("treats a park outside the organisation like an unknown id — and loads nothing about it", async () => {
-    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue(["autre-parc"]);
+    vi.mocked(isParkInOrganization).mockReset().mockResolvedValue(false);
     renderDetail();
     expect(await screen.findByText("Parc introuvable")).toBeTruthy();
     expect(screen.getByText(/n'existe pas ou n'est pas accessible/i)).toBeTruthy();
@@ -603,10 +603,10 @@ describe("ParkDetail — périmètre collectivité & état du parc (COLL-03C)", 
   it("does not apply the organisation guard to the admin, who has no « État du parc » block", async () => {
     scope.isAdmin = true;
     scope.communeId = undefined;
-    vi.mocked(listOrgParkIds).mockReset().mockResolvedValue([]);
+    vi.mocked(isParkInOrganization).mockReset().mockResolvedValue(false);
     renderDetail();
     expect(await screen.findByRole("heading", { name: "Parc des Sources" })).toBeTruthy();
-    expect(listOrgParkIds).not.toHaveBeenCalled();
+    expect(isParkInOrganization).not.toHaveBeenCalled();
     expect(screen.queryByText("État du parc")).toBeNull();
   });
 

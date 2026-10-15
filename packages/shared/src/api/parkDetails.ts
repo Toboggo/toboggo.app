@@ -1,5 +1,5 @@
 import { getSupabase } from "../supabaseClient";
-import { listOrgParkIds } from "./parks";
+import { orgParkScopeSelect, ORG_PARK_SCOPE_PATH } from "./parks";
 import { deleteParkPhotoFile } from "../utils/storage";
 import type {
   ExternalId,
@@ -279,15 +279,13 @@ async function withUploaderNames<T extends ParkMedia>(rows: T[]): Promise<(T & {
  * moderated by its own collectivité from the moment it exists. */
 export async function listPendingMedia(opts: { communeId?: string } = {}): Promise<PendingMedia[]> {
   const supabase = getSupabase();
+  const scoped = !!opts.communeId;
   let query = supabase
     .from("park_media")
-    .select("*, park:parks!park_media_park_id_fkey(id, name)")
+    .select(`*, park:parks!park_media_park_id_fkey${scoped ? "!inner" : ""}(id, name${orgParkScopeSelect(opts.communeId)})`)
     .eq("status", "pending")
     .order("created_at", { ascending: true });
-  if (opts.communeId) {
-    const ids = await listOrgParkIds(opts.communeId);
-    query = query.in("park_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
-  }
+  if (opts.communeId) query = query.eq(`park.${ORG_PARK_SCOPE_PATH}`, opts.communeId);
   const { data, error } = await query;
   if (error) throw error;
   return withUploaderNames((data ?? []) as unknown as (ParkMedia & { park: { id: string; name: string } | null })[]);
@@ -308,15 +306,13 @@ export async function listPendingMedia(opts: { communeId?: string } = {}): Promi
  */
 export async function listProcessedMedia(opts: { communeId?: string } = {}): Promise<PendingMedia[]> {
   const supabase = getSupabase();
+  const scoped = !!opts.communeId;
   let query = supabase
     .from("park_media")
-    .select("*, park:parks!park_media_park_id_fkey(id, name)")
+    .select(`*, park:parks!park_media_park_id_fkey${scoped ? "!inner" : ""}(id, name${orgParkScopeSelect(opts.communeId)})`)
     .in("status", ["approved", "rejected"])
     .order("created_at", { ascending: false });
-  if (opts.communeId) {
-    const ids = await listOrgParkIds(opts.communeId);
-    query = query.in("park_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]);
-  }
+  if (opts.communeId) query = query.eq(`park.${ORG_PARK_SCOPE_PATH}`, opts.communeId);
   const { data, error } = await query;
   if (error) throw error;
   return withUploaderNames((data ?? []) as unknown as (ParkMedia & { park: { id: string; name: string } | null })[]);

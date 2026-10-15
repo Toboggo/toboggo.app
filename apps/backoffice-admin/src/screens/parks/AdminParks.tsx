@@ -17,7 +17,8 @@ import {
 import {
   isValidCoordinate,
   listAllParksForExport,
-  listParks,
+  parkExistsWithNameAndAddress,
+  ExportTooLargeError,
   listParksPage,
   setParkStatus,
   toCsv,
@@ -28,6 +29,7 @@ import {
   PARKS_PAGE_SIZE,
   type Organization,
   type Park,
+  type ParkListRow,
   type ParkStatus,
   type ParksSortKey,
   type ParkWithSource,
@@ -103,7 +105,7 @@ function parseSort(raw: string | null): { key: ParksSortKey; order: "asc" | "des
   return SORT_KEYS.includes(key) ? { key, order } : { key: "updated_at", order: "desc" };
 }
 
-function parkMeta(park: Park): string | null {
+function parkMeta(park: ParkListRow): string | null {
   if (park.formatted_address) return park.formatted_address;
   if (park.min_age != null || park.max_age != null) {
     if (park.min_age != null && park.max_age != null) return `de ${park.min_age} à ${park.max_age} ans`;
@@ -125,7 +127,7 @@ export function AdminParks() {
 
   const csvInputRef = useRef<HTMLInputElement>(null);
 
-  function openPark(park: Park) {
+  function openPark(park: ParkListRow) {
     const qs = searchParams.toString();
     navigate(`/parks/${park.id}${qs ? `?${qs}` : ""}`);
   }
@@ -155,7 +157,7 @@ export function AdminParks() {
   // volontairement minimal, cf. Admin-UI-7D-C §5).
   const country = searchParams.get("country") ?? "all";
   const q = searchParams.get("q")?.trim() ?? "";
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const requestedPage = Math.max(1, Number(searchParams.get("page")) || 1);
   const sort = parseSort(searchParams.get("sort"));
 
   const hasActiveFilters =
@@ -219,7 +221,7 @@ export function AdminParks() {
   }
 
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, source, organizationId, country, page, sort }],
+    queryKey: ["bo-parks-page", { communeId, isAdmin, q, status, verification, source, organizationId, country, page: requestedPage, sort }],
     queryFn: () =>
       listParksPage({
         communeId,
@@ -231,14 +233,17 @@ export function AdminParks() {
         countryCode: country === "all" ? undefined : country,
         sort: sort.key,
         order: sort.order,
-        page,
+        page: requestedPage,
       }),
     placeholderData: keepPreviousData,
   });
 
+  // Page réellement servie (ramenée dans la profondeur atteignable par `listParksPage`).
+  const page = data?.page ?? requestedPage;
   const rows = data?.rows ?? [];
   const total = data?.total ?? 0;
   const pageCount = data?.pageCount ?? 1;
+  const truncatedDepth = data?.truncatedDepth ?? false;
 
   // Admin-UI-8B — mêmes options que la requête `listParksPage` ci-dessus
   // (mêmes variables `status`/`verification`/`source`/`organizationId`/
@@ -276,8 +281,14 @@ export function AdminParks() {
           ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Source", "Photos"],
         );
         downloadCsv("toboggo-parcs.csv", csv);
-      } catch {
-        toast.error("L'export CSV a échoué.");
+      } catch (err) {
+        if (err instanceof ExportTooLargeError) {
+          toast.error(
+            `Export limité à ${err.limit.toLocaleString("fr-FR")} parcs (${err.total.toLocaleString("fr-FR")} correspondent). Affinez les filtres.`,
+          );
+        } else {
+          toast.error("L'export CSV a échoué.");
+        }
       }
     })();
   }
@@ -289,7 +300,6 @@ export function AdminParks() {
     async (file: File) => {
       const text = await file.text();
       const csvRows = parseCsv(text);
-      const existing = await listParks({ communeId });
       let imported = 0;
       let skipped = 0;
       let failed = 0;
@@ -302,7 +312,7 @@ export function AdminParks() {
           skipped++;
           continue;
         }
-        const dup = existing.some((p) => p.name === name && p.formatted_address === address);
+        const dup = await parkExistsWithNameAndAddress(name, address, { communeId });
         if (dup) {
           skipped++;
           continue;
@@ -347,7 +357,7 @@ export function AdminParks() {
   }
 
   const { run: runStatus, pending: statusPending } = useAsyncAction(
-    async (park: Park, next: ParkStatus, label: string) => {
+    async (park: ParkListRow, next: ParkStatus, label: string) => {
       await setParkStatus(park.id, next, label);
       for (const key of [["bo-parks-page"], ["bo-parks"], ["dash-parks"], ["shell-pending-parks"]]) {
         void queryClient.invalidateQueries({ queryKey: key });
@@ -356,7 +366,7 @@ export function AdminParks() {
     { successMessage: "Statut du parc mis à jour." },
   );
 
-  function statusActions(park: Park): { label: string; run: () => void }[] {
+  function statusActions(park: ParkListRow): { label: string; run: () => void }[] {
     if (!canEditPark) return [];
     return parkStatusTransitions(park.status).map((t) => ({
       label: t.label,
@@ -695,6 +705,7 @@ export function AdminParks() {
           </button>
           <span>
             Page {page} / {pageCount}
+            {truncatedDepth && " — affinez les filtres pour voir la suite"}
           </span>
           <button
             type="button"

@@ -34,6 +34,18 @@ export class FakeQuery implements PromiseLike<FakeQueryResult> {
   in(...args: unknown[]) {
     return this.record("in", args);
   }
+  gt(...args: unknown[]) {
+    return this.record("gt", args);
+  }
+  lt(...args: unknown[]) {
+    return this.record("lt", args);
+  }
+  not(...args: unknown[]) {
+    return this.record("not", args);
+  }
+  limit(...args: unknown[]) {
+    return this.record("limit", args);
+  }
   or(...args: unknown[]) {
     return this.record("or", args);
   }

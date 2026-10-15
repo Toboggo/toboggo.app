@@ -9,15 +9,10 @@ vi.mock("../supabaseClient", () => ({ getSupabase: vi.fn() }));
 describe("listPendingParkEditsForOrg — dashboard \"infos à vérifier\" count (Lot 2)", () => {
   beforeEach(() => vi.mocked(getSupabase).mockReset());
 
-  it("keeps only pending edits whose park belongs to the organisation", async () => {
-    const { client } = makeFakeSupabase({
-      organization_parks: { data: [{ park_id: "park-1" }, { park_id: "park-2" }], error: null },
+  it("filters pending edits by organisation with a server-side join (no id list, no client filtering)", async () => {
+    const { client, queriesByTable } = makeFakeSupabase({
       park_edits: {
-        data: [
-          { id: "e1", park_id: "park-1", status: "pending" },
-          { id: "e2", park_id: "park-3", status: "pending" }, // different org's park
-          { id: "e3", park_id: null, status: "pending" }, // no park attribution
-        ],
+        data: [{ id: "e1", park_id: "park-1", status: "pending", parks: { id: "park-1" } }],
         error: null,
       },
     });
@@ -25,19 +20,12 @@ describe("listPendingParkEditsForOrg — dashboard \"infos à vérifier\" count 
 
     const result = await listPendingParkEditsForOrg("org-1");
 
-    expect(result.map((e) => e.id)).toEqual(["e1"]);
-  });
-
-  it("does not query park_edits at all for an organisation with zero parks", async () => {
-    const { client, queriesByTable } = makeFakeSupabase({
-      organization_parks: { data: [], error: null },
-    });
-    vi.mocked(getSupabase).mockReturnValue(client as never);
-
-    const result = await listPendingParkEditsForOrg("org-empty");
-
-    expect(result).toEqual([]);
-    expect(queriesByTable["park_edits"]).toBeUndefined();
+    expect(result).toEqual([{ id: "e1", park_id: "park-1", status: "pending" }]); // join key stripped
+    expect(queriesByTable["organization_parks"]).toBeUndefined();
+    const q = queriesByTable["park_edits"][0];
+    expect(q.calls.find((c) => c.method === "select")?.args[0]).toContain("parks!inner(id, organization_parks!inner(organization_id))");
+    expect(q.calls).toContainEqual({ method: "eq", args: ["parks.organization_parks.organization_id", "org-1"] });
+    expect(q.calls).toContainEqual({ method: "eq", args: ["status", "pending"] });
   });
 });
 

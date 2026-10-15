@@ -4,7 +4,9 @@ import {
   createPark,
   downloadCsv,
   isValidCoordinate,
+  ListTruncatedError,
   listParks,
+  parkExistsWithNameAndAddress,
   logActivity,
   parseCsv,
   toCsv,
@@ -52,8 +54,12 @@ export function useParksCsv() {
           ["Nom", "Adresse", "Latitude", "Longitude", "Statut", "Vérification", "Photos"],
         );
         downloadCsv("toboggo-parcs.csv", csv);
-      } catch {
-        toast.error("L'export CSV a échoué.");
+      } catch (err) {
+        toast.error(
+          err instanceof ListTruncatedError
+            ? "Export impossible : trop de parcs pour un export complet. Contactez le support."
+            : "L'export CSV a échoué.",
+        );
       }
     })();
   }
@@ -65,7 +71,6 @@ export function useParksCsv() {
     async (file: File) => {
       const text = await file.text();
       const csvRows = parseCsv(text);
-      const existing = await listParks({ communeId });
       let imported = 0;
       let skipped = 0;
       let failed = 0;
@@ -78,7 +83,7 @@ export function useParksCsv() {
           skipped++;
           continue;
         }
-        const dup = existing.some((p) => p.name === name && p.formatted_address === address);
+        const dup = await parkExistsWithNameAndAddress(name, address, { communeId });
         if (dup) {
           skipped++;
           continue;

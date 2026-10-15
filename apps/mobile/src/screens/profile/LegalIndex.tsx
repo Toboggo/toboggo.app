@@ -27,6 +27,7 @@ export default function LegalIndex() {
         {docs.map((d) => (
           <NavRow key={d.doc} label={t(d.labelKey)} onClick={() => navigate(`/legal/${d.doc}`)} />
         ))}
+        <NavRow label={t("dataSources.title")} onClick={() => navigate("/about/data-sources")} />
       </SettingsSection>
     </SettingsPage>
   );

@@ -58,6 +58,7 @@ import Help from "./screens/profile/Help";
 import Contact from "./screens/profile/Contact";
 import AppFeedback from "./screens/profile/AppFeedback";
 import About from "./screens/profile/About";
+import DataSources from "./screens/profile/DataSources";
 
 // Legacy intro path for "Donner un avis": the wizard canonique (Parc → Avis →
 // Commentaire) est auto-porteur, comme AddPark. Redirige vers /rate en
@@ -230,6 +231,7 @@ export default function App() {
       <Route path="/help" element={<Help />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/about" element={<About />} />
+      <Route path="/about/data-sources" element={<DataSources />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

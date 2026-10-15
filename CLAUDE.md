@@ -197,6 +197,10 @@ design/UI). Formats et export d'assets (icône d'app,
 favicon, splash, Open Graph) → **`docs/identite-visuelle-formats.md`** (source de
 vérité **uniquement** pour ce périmètre). Ne pas dupliquer leur contenu ici.
 
+- **Assets de marque officiels : `docs/brand-kit-v3/`** (kit v3 + `README.md` :
+  logos, variantes, usages, couleurs). Tout travail visuel (UI, e-mails,
+  marketing, exports) le consulte d'abord ; **ne jamais redessiner** un logo ou
+  une icône, et **ne jamais réutiliser** `docs/brand-assets/` (v1 obsolète).
 - Ne pas réinventer logo, teintes de marque ou pictogrammes : réutiliser
   l'existant.
 - **Toujours passer par les tokens CSS** (`var(--color-*)`, `--space-*`,
@@ -249,6 +253,8 @@ vérité **uniquement** pour ce périmètre). Ne pas dupliquer leur contenu ici.
 | Décisions **produit / fonctionnelles** | **Notion** |
 | État **réellement implémenté** | le **repo + Supabase** |
 | Chantier DB V2, interdictions, checkpoint | `docs/architecture/database-migration.md` |
+| Assets de marque officiels (logos, icônes, favicons, couleurs) | `docs/brand-kit-v3/` (+ `README.md`) |
+| E-mails Supabase Auth (modèles HTML FR) | `supabase/templates/` — **éditer `build.mjs`, puis `npm run email:build`** |
 | Design / UI et son implémentation | `docs/DESIGN-SYSTEM.md` |
 | Formats & export d'assets uniquement | `docs/identite-visuelle-formats.md` |
 | Photographie technique **datée du 30/08/2026** (constat, non contractuel — pas une spécification permanente) | `docs/RECONCILIATION-2026-08-30.md` *(non tracké)* |

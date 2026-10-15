@@ -15,7 +15,9 @@
 
 ## Fichiers sources réels (29/08/2026)
 
-Les vrais fichiers de marque (dossier `Logos & icons` du founder) sont maintenant copiés et versionnés dans le repo sous **`docs/brand-assets/`** — ce sont eux la référence, plus une reconstitution :
+> ⚠️ **Mise à jour 15/10/2026 : la référence actuelle est `docs/brand-kit-v3/`** (kit officiel v3, README avec variantes/usages/couleurs). Le tableau ci-dessous décrit l'ancien jeu v1 `docs/brand-assets/`, **obsolète**, conservé pour l'historique.
+
+Les fichiers de marque v1 (dossier `Logos & icons` du founder) étaient copiés sous `docs/brand-assets/` :
 
 | Fichier | Usage |
 |---|---|

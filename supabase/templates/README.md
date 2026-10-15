@@ -9,7 +9,7 @@ Générés par `npm run email:build` (source : `build.mjs`), contrôlés par `np
 
 ## Logo
 
-- Source : kit officiel v3, `logo/toboggo-color-2400.png` (logo horizontal couleur), réduit
+- Source : kit officiel v3 versionné dans `docs/brand-kit-v3/`, `logo/toboggo-color-2400.png` (logo horizontal couleur), réduit
   sans déformation à 360×94 px (affiché 180×47 px, soit 2× pour les écrans HD).
 - Fichier : `apps/mobile/public/email/toboggo-logo-email.png` (copié tel quel dans `dist/email/` au build).
 - URL utilisée : `https://toboggo-app.vercel.app/email/toboggo-logo-email.png` (domaine public déjà
@@ -26,8 +26,24 @@ Générés par `npm run email:build` (source : `build.mjs`), contrôlés par `np
 | `invite.html` | Invite user | Vous êtes invité(e) à rejoindre Toboggo | `{{ .ConfirmationURL }}` |
 | `magic_link.html` | Magic link | Votre lien de connexion Toboggo | `{{ .ConfirmationURL }}` |
 | `reauthentication.html` | Reauthentication | Votre code de confirmation Toboggo | `{{ .Token }}` |
-| `notification_password_changed.html` | Notifications → Password changed | Votre mot de passe Toboggo a été modifié | `{{ .Email }}` |
-| `notification_email_changed.html` | Notifications → Email address changed | L'adresse e-mail de votre compte Toboggo a été modifiée | `{{ .OldEmail }}`, `{{ .NewEmail }}` |
+| `notification_password_changed.html` | Notifications → Password changed | Votre mot de passe Toboggo a été modifié | aucune (non documentée) |
+| `notification_email_changed.html` | Notifications → Email address changed | L'adresse e-mail de votre compte Toboggo a été modifiée | `{{ .OldEmail }}`, `{{ .Email }}` |
+
+## Modifier un modèle
+
+**Éditer `build.mjs` (source), jamais les `.html` directement**, puis `npm run email:build` et
+commiter source + HTML ; `npm run email:check` échoue si un HTML diverge du générateur.
+
+## Variables — vérifiées dans la doc officielle Supabase (15/10/2026)
+
+Source : <https://supabase.com/docs/guides/auth/auth-email-templates>.
+
+- `{{ .ConfirmationURL }}` : confirmation, invitation, magic link, reset, changement d'e-mail ; `{{ .Token }}` : OTP 6 chiffres (réauthentification).
+- `{{ .NewEmail }}` : **uniquement** le modèle « Change email address » (corrigé : je l'utilisais à tort dans la notification).
+- Notification « Email address changed » : `{{ .OldEmail }}` et `{{ .Email }}`.
+- Notification « Password changed » : aucune variable documentée → le modèle n'en utilise aucune.
+- `{{ .Email }}` dans « Change email address » : adresse d'origine (général) ; la doc n'a pas de matrice par modèle.
+- Les notifications ne partent que si la notification correspondante est **activée** au niveau du projet.
 
 ## À vérifier avant installation (non faisable depuis le repo)
 
@@ -35,9 +51,9 @@ Générés par `npm run email:build` (source : `build.mjs`), contrôlés par `np
    accessibles depuis le repo (`config.toml` n'en versionne aucun). Les textes ici sont des
    propositions françaises ; relire les modèles existants (et leurs éventuelles variables
    personnalisées) avant de les remplacer.
-2. **Variables des notifications** : `{{ .Email }}`, `{{ .OldEmail }}`, `{{ .NewEmail }}` à confirmer
-   dans la doc Supabase / l'aperçu du dashboard pour les deux notifications (les notifications
-   doivent aussi être activées côté dashboard).
+2. **Notifications** : vérifier dans le dashboard que « Email address changed » et « Password changed » sont
+   activées et que l'éditeur accepte `{{ .OldEmail }}`/`{{ .Email }}` (la doc ne précise pas si `{{ .Email }}` y est
+   l'ancienne ou la nouvelle adresse : lire l'aperçu/envoi test — sinon retirer `{{ .Email }}` de ce modèle).
 3. **Logo public** : après déploiement de cette PR, ouvrir l'URL du logo en navigation privée
    (HTTP 200, `image/png`, 360×94) *avant* d'installer les modèles.
 4. **Rendu clients réels** : envoyer un test (Gmail web/mobile, Apple Mail, Outlook) ; aperçu Chrome

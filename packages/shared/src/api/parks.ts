@@ -877,6 +877,16 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
     country_code: locale.country_code,
     timezone: locale.timezone,
   };
+  // The DB moderation guard (migration 0055) only lets Toboggo staff INSERT a park that is
+  // already published/blocked/rejected; a collectivité manager is recognised through the
+  // `organization_parks` link, which can only exist AFTER the INSERT. So when the caller targets
+  // an organisation and asks for a non-pending status, insert as `pending` (the column default),
+  // link the organisation, then move the park to the requested status (an UPDATE the guard allows
+  // for a gestionnaire of that organisation). Without an organisation the status is sent as-is
+  // (staff only; anyone else gets a clear permission error from the DB).
+  const requestedStatus = insertRow.moderation_status;
+  const publishAfterLink = !!orgId && requestedStatus != null && requestedStatus !== "pending";
+  if (publishAfterLink) delete insertRow.moderation_status;
   const { data, error } = await supabase
     .from("parks")
     // `lat`/`lng`/`formatted_address` are re-derived by parks_v1_compat (see splitParkInput).
@@ -895,6 +905,17 @@ export async function createPark(input: Partial<Park>): Promise<Park> {
       { onConflict: "organization_id,park_id" },
     );
     if (orgLinkError) throw orgLinkError;
+  }
+  if (publishAfterLink) {
+    const { error: statusError } = await supabase
+      .from("parks")
+      .update({ moderation_status: requestedStatus })
+      .eq("id", parkId);
+    if (statusError) {
+      throw new Error(
+        `Parc créé mais non ${requestedStatus === "published" ? "publié" : "passé au statut demandé"} : ${statusError.message}. Il reste en attente de modération.`,
+      );
+    }
   }
   return getPark(parkId);
 }

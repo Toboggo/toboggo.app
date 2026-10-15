@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { mapStyleUrl, formatRating, getParkDisplayName } from "@toboggo/shared";
@@ -7,6 +7,7 @@ import { useTranslation } from "react-i18next";
 import { useLocale } from "../../i18n/useLocale";
 import { hasRating } from "../../lib/parkDisplay";
 import { FakeMap } from "./FakeMap";
+import styles from "./MapCanvas.module.css";
 import { ratingTierColor, buildParkMarker, buildUserMarker, buildClusterMarker } from "./markers";
 import { buildClusterIndex, queryDisplayFeatures, clusterExpansionZoom, RATING_VISIBLE_MIN_ZOOM } from "./clustering";
 
@@ -62,6 +63,8 @@ export function MapCanvas({
   viewport = null,
   showUser = false,
   insets,
+  attributionBottom = 0,
+  attributionHidden = false,
   onBackgroundTap,
 }: {
   lat: number;
@@ -75,10 +78,17 @@ export function MapCanvas({
   showUser?: boolean;
   /** Pixels hidden by the floating header (top) and the bottom sheet (bottom). */
   insets?: { top: number; bottom: number };
+  /** Distance (px) between the bottom of the map and the attribution control, so
+   * it sits above the bottom sheet and the floating nav instead of under them. */
+  attributionBottom?: number;
+  /** True while the sheet covers the whole map: the control is then hidden, not squeezed. */
+  attributionHidden?: boolean;
   /** Fires on a tap that lands on the map background, not on a marker. */
   onBackgroundTap?: () => void;
 }) {
   const { t } = useTranslation("map");
+  const tRef = useRef(t);
+  tRef.current = t;
   const { intlLocale } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -119,13 +129,43 @@ export function MapCanvas({
       style: STYLE_URL,
       center: [lng, lat],
       zoom: DEFAULT_ZOOM,
+      // Single attribution: the default control (bottom-right, hidden under the
+      // sheet/nav on Explorer) is replaced by one placed bottom-left, lifted above
+      // the sheet via `--map-attrib-bottom` (see MapCanvas.module.css).
+      attributionControl: false,
+      locale: {
+        "AttributionControl.ToggleAttribution": tRef.current("a11y.toggleAttribution"),
+        "AttributionControl.MapFeedback": tRef.current("a11y.mapFeedback"),
+      },
     });
     mapRef.current = map;
     markersRef.current = {};
     userMarkerRef.current = null;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
+    // MapLibre opens the compact attribution by itself once the style (and so the
+    // credit text) is loaded — at an unpredictable time (slow network). Fold it
+    // back to the ⓘ pill the first time that happens, so its text never sits on
+    // the controls while browsing; after that it is the user's to open.
+    const attribEl = container.querySelector(".maplibregl-ctrl-attrib");
+    const collapseAttribution = () => {
+      attribEl?.classList.remove("maplibregl-compact-show");
+      attribEl?.removeAttribute("open");
+    };
+    collapseAttribution();
+    let attribObserver: MutationObserver | null = null;
+    if (attribEl) {
+      attribObserver = new MutationObserver(() => {
+        if (attribEl.classList.contains("maplibregl-compact-show") || attribEl.hasAttribute("open")) {
+          collapseAttribution();
+          attribObserver?.disconnect();
+        }
+      });
+      attribObserver.observe(attribEl, { attributes: true, attributeFilter: ["class", "open"] });
+    }
     setMapEpoch((n) => n + 1);
     return () => {
+      attribObserver?.disconnect();
       map.remove();
       if (mapRef.current === map) mapRef.current = null;
       markersRef.current = {};
@@ -354,5 +394,12 @@ export function MapCanvas({
     );
   }
 
-  return <div ref={containerRef} style={{ position: "absolute", inset: 0 }} />;
+  return (
+    <div
+      ref={containerRef}
+      className={styles.canvas}
+      data-attribution-hidden={attributionHidden ? "" : undefined}
+      style={{ position: "absolute", inset: 0, "--map-attrib-bottom": `${Math.round(attributionBottom)}px` } as CSSProperties}
+    />
+  );
 }

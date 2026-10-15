@@ -123,6 +123,8 @@
     "contribute": "Contribute",
     "userLocation": "Your location",
     "clusterCount_one": "{{count}} park in this area, tap to zoom in",
-    "clusterCount_other": "{{count}} parks in this area, tap to zoom in"
+    "clusterCount_other": "{{count}} parks in this area, tap to zoom in",
+    "toggleAttribution": "Show map attribution",
+    "mapFeedback": "Map feedback"
   }
 }

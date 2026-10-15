@@ -1,0 +1,43 @@
+/* Attribution de la carte (contrôle MapLibre unique, en bas à gauche).
+   `--map-attrib-bottom` = barre de navigation + feuille (voir attributionLayout.ts) :
+   le contrôle flotte au-dessus d'elles. Les boutons flottants (recentrer / ajouter)
+   sont à droite ; le contrôle replié (pastille ⓘ) ne les recouvre jamais, et déplié
+   sa largeur est bornée pour rester à gauche de leur colonne. */
+.canvas :global(.maplibregl-ctrl-bottom-left) {
+  bottom: var(--map-attrib-bottom, 0px);
+  left: env(safe-area-inset-left, 0px);
+  max-width: calc(100% - 88px - env(safe-area-inset-left, 0px));
+}
+
+/* Replié : pastille ⓘ de 36 px (cible tactile ; 24 px par défaut dans MapLibre). */
+.canvas :global(.maplibregl-ctrl-attrib.maplibregl-compact) {
+  max-width: 100%;
+  min-height: 36px;
+  padding: 0 36px 0 0;
+  border-radius: 18px;
+}
+
+/* Déplié : la pastille reste à gauche, le texte passe à la ligne si besoin. */
+.canvas :global(.maplibregl-ctrl-attrib.maplibregl-compact-show) {
+  min-height: 20px;
+  padding: 8px 12px 8px 40px;
+}
+
+.canvas :global(.maplibregl-ctrl-attrib-button) {
+  width: 36px;
+  height: 36px;
+  background-size: 24px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+.canvas :global(.maplibregl-ctrl-attrib-inner) {
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+/* Carte entièrement couverte par la feuille (dernier cran) : le contrôle est masqué
+   (et sorti de l'ordre de tabulation) plutôt qu'écrasé sous l'en-tête. */
+.canvas[data-attribution-hidden] :global(.maplibregl-ctrl-bottom-left) {
+  visibility: hidden;
+}

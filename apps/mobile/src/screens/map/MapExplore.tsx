@@ -23,6 +23,7 @@ import { useNearbyParks } from "../../lib/parksQuery";
 import { useNearbyRadius } from "../../lib/nearbyRadius";
 import { useWeather } from "../../lib/weather";
 import { useSession } from "../../lib/session";
+import { attributionLayout } from "./attributionLayout";
 import styles from "./MapExplore.module.css";
 
 // Peek height (px, panel above the nav): the handle strip + the compact
@@ -349,6 +350,10 @@ export default function MapExplore() {
     [headerBottom, sheetHeight, navH],
   );
 
+  // Attribution lifted above the nav + sheet; hidden while the sheet covers the
+  // whole map (top snap) — see attributionLayout.ts.
+  const attribution = attributionLayout({ navH, sheetHeight, viewportH: vpH, headerBottom });
+
   function renderSheet() {
     if (selectedPark) {
       return (
@@ -512,6 +517,8 @@ export default function MapExplore() {
         viewport={viewport}
         showUser={permission === "granted"}
         insets={mapInsets}
+        attributionBottom={attribution.bottom}
+        attributionHidden={attribution.hidden}
       />
 
       <div className={styles.searchBar} ref={headerRef}>

@@ -123,6 +123,8 @@
     "contribute": "Contribuir",
     "userLocation": "Tu ubicación",
     "clusterCount_one": "{{count}} parque en esta zona, toca para acercar",
-    "clusterCount_other": "{{count}} parques en esta zona, toca para acercar"
+    "clusterCount_other": "{{count}} parques en esta zona, toca para acercar",
+    "toggleAttribution": "Mostrar la atribución del mapa",
+    "mapFeedback": "Comentarios sobre el mapa"
   }
 }

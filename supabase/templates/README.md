@@ -27,7 +27,7 @@ Générés par `npm run email:build` (source : `build.mjs`), contrôlés par `np
 | `magic_link.html` | Magic link | Votre lien de connexion Toboggo | `{{ .ConfirmationURL }}` |
 | `reauthentication.html` | Reauthentication | Votre code de confirmation Toboggo | `{{ .Token }}` |
 | `notification_password_changed.html` | Notifications → Password changed | Votre mot de passe Toboggo a été modifié | aucune (non documentée) |
-| `notification_email_changed.html` | Notifications → Email address changed | L'adresse e-mail de votre compte Toboggo a été modifiée | `{{ .OldEmail }}`, `{{ .Email }}` |
+| `notification_email_changed.html` | Notifications → Email address changed | L'adresse e-mail de votre compte Toboggo a été modifiée | aucune (texte générique) |
 
 ## Modifier un modèle
 
@@ -40,7 +40,7 @@ Source : <https://supabase.com/docs/guides/auth/auth-email-templates>.
 
 - `{{ .ConfirmationURL }}` : confirmation, invitation, magic link, reset, changement d'e-mail ; `{{ .Token }}` : OTP 6 chiffres (réauthentification).
 - `{{ .NewEmail }}` : **uniquement** le modèle « Change email address » (corrigé : je l'utilisais à tort dans la notification).
-- Notification « Email address changed » : `{{ .OldEmail }}` et `{{ .Email }}`.
+- Notification « Email address changed » : la doc expose `{{ .OldEmail }}` et `{{ .Email }}` sans préciser leur sens ; le modèle est donc **générique, sans variable**.
 - Notification « Password changed » : aucune variable documentée → le modèle n'en utilise aucune.
 - `{{ .Email }}` dans « Change email address » : adresse d'origine (général) ; la doc n'a pas de matrice par modèle.
 - Les notifications ne partent que si la notification correspondante est **activée** au niveau du projet.
@@ -51,9 +51,7 @@ Source : <https://supabase.com/docs/guides/auth/auth-email-templates>.
    accessibles depuis le repo (`config.toml` n'en versionne aucun). Les textes ici sont des
    propositions françaises ; relire les modèles existants (et leurs éventuelles variables
    personnalisées) avant de les remplacer.
-2. **Notifications** : vérifier dans le dashboard que « Email address changed » et « Password changed » sont
-   activées et que l'éditeur accepte `{{ .OldEmail }}`/`{{ .Email }}` (la doc ne précise pas si `{{ .Email }}` y est
-   l'ancienne ou la nouvelle adresse : lire l'aperçu/envoi test — sinon retirer `{{ .Email }}` de ce modèle).
+2. **Notifications** : vérifier qu'elles sont activées au niveau du projet (« Email address changed », « Password changed »).
 3. **Logo public** : après déploiement de cette PR, ouvrir l'URL du logo en navigation privée
    (HTTP 200, `image/png`, 360×94) *avant* d'installer les modèles.
 4. **Rendu clients réels** : envoyer un test (Gmail web/mobile, Apple Mail, Outlook) ; aperçu Chrome

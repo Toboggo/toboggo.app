@@ -56,9 +56,10 @@ export const templates = [
   { file: "notification_password_changed.html", kind: "Auth → Email Templates → Notifications → Password changed", subject: "Votre mot de passe Toboggo a été modifié", preheader: "Le mot de passe de votre compte Toboggo vient d’être modifié.", required: [],
     // Doc Supabase : aucune variable listée pour cette notification → aucune utilisée.
     body: [p("Bonjour,"), p("Le mot de passe de votre compte Toboggo vient d’être modifié."), small("Si c’est bien vous, aucune action n’est nécessaire. Sinon, réinitialisez votre mot de passe depuis l’écran de connexion («&nbsp;Mot de passe oublié&nbsp;?&nbsp;») et contactez-nous.")] },
-  { file: "notification_email_changed.html", kind: "Auth → Email Templates → Notifications → Email address changed", subject: "L’adresse e-mail de votre compte Toboggo a été modifiée", preheader: "L’adresse e-mail de votre compte Toboggo vient d’être modifiée.", // Doc Supabase : cette notification expose {{ .OldEmail }} et {{ .Email }} ; {{ .NewEmail }} est réservé au modèle « Change email address ».
-    required: ["{{ .OldEmail }}", "{{ .Email }}"],
-    body: [p("Bonjour,"), p("L’adresse e-mail de votre compte Toboggo est passée de <strong>{{ .OldEmail }}</strong> à <strong>{{ .Email }}</strong>."), small("Si c’est bien vous, aucune action n’est nécessaire. Sinon, réinitialisez votre mot de passe et contactez-nous sans attendre.")] },
+  { file: "notification_email_changed.html", kind: "Auth → Email Templates → Notifications → Email address changed", subject: "L’adresse e-mail de votre compte Toboggo a été modifiée", preheader: "L’adresse e-mail de votre compte Toboggo vient d’être modifiée.", required: [],
+    // Texte volontairement générique, sans variable : la doc Supabase ne précise pas le sens de
+    // {{ .Email }} / {{ .OldEmail }} dans cette notification, donc aucune adresse n'est affichée.
+    body: [p("Bonjour,"), p("L’adresse e-mail de votre compte Toboggo vient d’être modifiée."), small("Si c’est bien vous, aucune action n’est nécessaire. Sinon, réinitialisez votre mot de passe depuis l’écran de connexion («&nbsp;Mot de passe oublié&nbsp;?&nbsp;») et contactez-nous sans attendre.")] },
 ];
 
 export function render(t) {
@@ -103,7 +104,7 @@ export function problems(t, html) {
   if (!html.includes('alt="Toboggo"')) out.push("logo sans alt");
   if (!html.includes(LOGO_URL)) out.push("URL du logo absente");
   if ((html.match(/\{\{/g) ?? []).length !== (html.match(/\}\}/g) ?? []).length) out.push("accolades déséquilibrées");
-  if (t.file.startsWith("notification_") && html.includes("{{ .NewEmail }}")) out.push("{{ .NewEmail }} interdit dans les notifications");
+  if (t.file.startsWith("notification_") && /\{\{ \./.test(html)) out.push("aucune variable autorisée dans les notifications");
   if (/<script|\bvar\(--/.test(html)) out.push("script ou variable CSS interdits en e-mail");
   return out;
 }

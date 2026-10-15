@@ -33,6 +33,8 @@
     "osm:backfill:local": "python3 scripts/osm/backfill-addresses.py --env local",
     "osm:backfill:staging": "python3 scripts/osm/backfill-addresses.py --env staging",
     "osm:backfill:prod": "python3 scripts/osm/backfill-addresses.py --env prod",
+    "email:build": "node supabase/templates/build.mjs",
+    "email:check": "node supabase/templates/build.mjs --check",
     "osm:test": "python3 -m unittest discover -s scripts/osm/tests -p \"test_*.py\"",
     "captures:marketing": "node scripts/marketing-captures/capture-website2.mjs",
     "install:studio": "npm install --prefix apps/studio",

@@ -1,0 +1,28 @@
+.links {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--color-primary-pressed);
+  font-size: 13.5px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+/* `.docSection p` (SettingsKit) a une spécificité de 0,1,1 : on la dépasse pour
+   que le crédit reste lisible et détaché du paragraphe. */
+section p.credit {
+  margin: 12px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}

@@ -221,7 +221,9 @@
     "title": "About Toboggo",
     "tagline": "Thousands of parks rated\nby parents like you.",
     "version": "Version {{version}}",
-    "build": "Build {{build}}"
+    "build": "Build {{build}}",
+    "dataSources": "Data sources",
+    "dataCreditLabel": "Park data:"
   },
   "group": {
     "title": "Group outing",
@@ -290,5 +292,19 @@
     "tooLong": "Your username can't exceed {{max}} characters.",
     "invalidChars": "Please avoid the characters @, < and >.",
     "generic": "Couldn't save. Please try again."
+  },
+  "dataSources": {
+    "title": "Data sources",
+    "intro": "Toboggo relies on open data and on contributions from its users.",
+    "parks": {
+      "heading": "Park data",
+      "body": "Some parks and their details (location, name, equipment) come from OpenStreetMap. This information may be completed or corrected by Toboggo and its users.",
+      "copyright": "OpenStreetMap copyright page",
+      "license": "ODbL licence (Open Database License)"
+    },
+    "map": {
+      "heading": "Base map",
+      "body": "The base map comes from a separate service, with its own attribution. Current provider: OpenFreeMap, whose OpenMapTiles tiles are derived from OpenStreetMap data."
+    }
   }
 }

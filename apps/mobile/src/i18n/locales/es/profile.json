@@ -221,7 +221,9 @@
     "title": "Acerca de Toboggo",
     "tagline": "Miles de parques valorados\npor padres y madres como tú.",
     "version": "Versión {{version}}",
-    "build": "Compilación {{build}}"
+    "build": "Compilación {{build}}",
+    "dataSources": "Fuentes de datos",
+    "dataCreditLabel": "Datos de los parques:"
   },
   "group": {
     "title": "Salida en grupo",
@@ -290,5 +292,19 @@
     "tooLong": "Tu apodo no puede superar los {{max}} caracteres.",
     "invalidChars": "Evita los caracteres @, < y >.",
     "generic": "No se pudo guardar. Inténtalo de nuevo."
+  },
+  "dataSources": {
+    "title": "Fuentes de datos",
+    "intro": "Toboggo se basa en datos abiertos y en las contribuciones de sus usuarios.",
+    "parks": {
+      "heading": "Datos de los parques",
+      "body": "Una parte de los parques y de su información (ubicación, nombre, equipamiento) procede de OpenStreetMap. Esta información puede ser completada o corregida por Toboggo y sus usuarios.",
+      "copyright": "Página de copyright de OpenStreetMap",
+      "license": "Licencia ODbL (Open Database License)"
+    },
+    "map": {
+      "heading": "Mapa base",
+      "body": "El mapa base procede de un servicio distinto, con su propia atribución. Proveedor actual: OpenFreeMap, cuyas teselas OpenMapTiles derivan de datos de OpenStreetMap."
+    }
   }
 }

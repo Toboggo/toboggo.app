@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { LogoMark } from "@toboggo/design-system";
+import { ODBL_LABEL, ODBL_URL, OSM_COPYRIGHT_URL, OSM_CREDIT } from "../../lib/dataAttribution";
 import { TopBar } from "../../components/TopBar";
 import styles from "./Profile.module.css";
 
@@ -39,7 +40,25 @@ export default function About() {
             <span>{t("privacyScreen.title")}</span>
             <Chevron />
           </button>
+          <button type="button" className={styles.groupRow} onClick={() => navigate("/about/data-sources")}>
+            <span>{t("about.dataSources")}</span>
+            <Chevron />
+          </button>
         </div>
+
+        {/* Attribution visible sans naviguer : données de parcs (OSM). Le fond de
+            carte porte sa propre attribution sur la carte. */}
+        <p style={{ fontSize: 12, color: "var(--color-text-faint)", lineHeight: 1.6, textAlign: "center", margin: "16px 0 0" }}>
+          {t("about.dataCreditLabel")}{" "}
+          <a href={OSM_COPYRIGHT_URL} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary-pressed)", textDecoration: "underline" }}>
+            {OSM_CREDIT}
+          </a>{" "}
+          (
+          <a href={ODBL_URL} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary-pressed)", textDecoration: "underline" }}>
+            {ODBL_LABEL}
+          </a>
+          )
+        </p>
       </div>
     </div>
   );

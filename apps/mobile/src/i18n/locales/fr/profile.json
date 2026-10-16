@@ -221,7 +221,9 @@
     "title": "À propos de Toboggo",
     "tagline": "Des milliers de parcs notés\npar des parents comme vous.",
     "version": "Version {{version}}",
-    "build": "Build {{build}}"
+    "build": "Build {{build}}",
+    "dataSources": "Sources des données",
+    "dataCreditLabel": "Données des parcs :"
   },
   "group": {
     "title": "Sortie de groupe",
@@ -290,5 +292,19 @@
     "tooLong": "Votre pseudo ne peut pas dépasser {{max}} caractères.",
     "invalidChars": "Évitez les caractères @, < et >.",
     "generic": "Enregistrement impossible. Réessayez."
+  },
+  "dataSources": {
+    "title": "Sources des données",
+    "intro": "Toboggo s’appuie sur des données ouvertes et sur les contributions de ses utilisateurs.",
+    "parks": {
+      "heading": "Données des parcs",
+      "body": "Une partie des parcs et de leurs informations (position, nom, équipements) provient d’OpenStreetMap. Ces informations peuvent être complétées ou corrigées par Toboggo et ses utilisateurs.",
+      "copyright": "Page copyright d’OpenStreetMap",
+      "license": "Licence ODbL (Open Database License)"
+    },
+    "map": {
+      "heading": "Fond de carte",
+      "body": "Le fond de carte est fourni par un service distinct, avec sa propre attribution. Fournisseur actuel : OpenFreeMap, dont les tuiles OpenMapTiles sont issues des données OpenStreetMap."
+    }
   }
 }

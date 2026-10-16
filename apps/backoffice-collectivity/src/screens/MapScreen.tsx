@@ -8,16 +8,14 @@ import { ParkModal } from "../components/ParkModal";
 import { ReportModal } from "@toboggo/backoffice-core/components/ReportModal";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
 import { usePermissions } from "@toboggo/backoffice-core/lib/permissions";
+import { PIN_COLORS, parkPinColor } from "@toboggo/backoffice-core/lib/mapPalette";
 
 // Fond de carte : URL de style MapLibre configurée via VITE_MAP_STYLE_URL
 // (OpenFreeMap au démarrage, cf. packages/shared/src/map.ts).
 const STYLE_URL = mapStyleUrl();
 
 function pinColor(park: Park) {
-  if (park.status === "blocked") return "#7c1405";
-  if (park.has_open_report) return "#ef4444";
-  if (park.status === "draft" || park.status === "pending") return "#f08a2e";
-  return "#16a34a";
+  return parkPinColor(park);
 }
 
 export default function MapScreen() {
@@ -75,10 +73,10 @@ export default function MapScreen() {
     <div>
       <PageHeader title="Carte" subtitle="Parcs rattachés à votre collectivité par géolocalisation (adresse dans le périmètre communal)." />
       <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 12.5 }}>
-        <Legend color="#16a34a" label="OK" />
-        <Legend color="#f08a2e" label="Brouillon" />
-        <Legend color="#ef4444" label="Signalement" />
-        <Legend color="#7c1405" label="Bloqué" />
+        <Legend color={PIN_COLORS.ok} label="OK" />
+        <Legend color={PIN_COLORS.pending} label="Brouillon" />
+        <Legend color={PIN_COLORS.report} label="Signalement" />
+        <Legend color={PIN_COLORS.blocked} label="Bloqué" />
       </div>
       <div style={{ position: "relative", height: "60vh", borderRadius: 16, overflow: "hidden", background: "var(--color-bg-alt)" }}>
         {STYLE_URL ? (

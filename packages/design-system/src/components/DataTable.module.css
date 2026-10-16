@@ -2,23 +2,24 @@
   width: 100%;
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--card-radius, var(--radius-sm));
   background: var(--color-surface);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
 }
 
 .th {
   text-align: left;
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 11.5px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-family: var(--font-ui-label, var(--font-heading));
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: var(--th-transform, uppercase);
   color: var(--color-text-muted);
   padding: 10px 14px;
   border-bottom: 1px solid var(--color-border);
@@ -94,11 +95,11 @@
   cursor: pointer;
 }
 .row.clickable:hover {
-  background: var(--color-primary-tint);
+  background: var(--color-surface-alt);
 }
 
 .td {
-  padding: 10px 14px;
+  padding: 11px 14px;
   color: var(--color-text);
   vertical-align: middle;
 }
@@ -113,10 +114,10 @@
   padding: 0;
 }
 .stateInner {
-  padding: var(--space-6) var(--space-4);
+  padding: var(--space-8) var(--space-4);
   text-align: center;
   color: var(--color-text-muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* Loading skeleton — discret, pas un gros bloc */
@@ -147,26 +148,24 @@
    Admin-UI-8C — variant="admin": dense surface matching Card's
    variant="admin" (7B) — neutral admin border/radius instead of the
    warm-tinted default, denser row padding, a header with real contrast
-   (--color-bg-admin) rather than the beige --color-surface-alt, and a
+   (--color-bg) rather than the beige --color-surface-alt, and a
    neutral hover instead of the greenish --color-primary-tint (already the
    pattern used by Dashboard's own admin rows — orgRow/countryRow). Opt-in
    only: default (no variant) renders exactly as before, unaffected. ────── */
 .wrapAdmin {
-  border-color: var(--color-border-admin);
-  border-radius: var(--radius-xs);
+  border-color: var(--color-border);
 }
 .thAdmin {
-  background: var(--color-bg-admin);
-  border-bottom-color: var(--color-border-admin);
-  color: var(--color-text-muted-admin);
-  padding: 9px 14px;
+  background: var(--color-surface-alt);
+  border-bottom-color: var(--color-border);
+  color: var(--color-text-muted);
 }
 .rowAdmin {
-  border-bottom-color: var(--color-border-admin);
+  border-bottom-color: var(--color-border);
 }
 .rowAdmin.clickable:hover {
-  background: var(--color-bg-admin);
+  background: var(--color-surface-alt);
 }
 .tdAdmin {
-  padding: 8px 14px;
+  padding: 11px 14px;
 }

@@ -28,11 +28,6 @@
   gap: 8px;
 }
 
-.kpiStrip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--space-3);
-}
 .skeletonGap {
   margin-top: 12px;
 }
@@ -41,12 +36,6 @@
 }
 
 /* ── Filtres ─────────────────────────────────────────────────────────────── */
-.filterBar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 10px;
-}
 .search {
   width: 260px;
 }
@@ -79,8 +68,8 @@
 /* ── Cellules du tableau ─────────────────────────────────────────────────── */
 .parkName {
   display: block;
-  font-family: var(--font-heading);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 13.5px;
   color: var(--color-text);
   overflow: hidden;

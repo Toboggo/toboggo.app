@@ -53,7 +53,7 @@ export function Toggle({
   return (
     <div className={styles.toggleWrap}>
       <div>
-        <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>{label}</div>
+        <div style={{ fontFamily: "var(--font-ui-label, var(--font-heading))", fontWeight: 600, fontSize: 14 }}>{label}</div>
         {description && (
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginTop: 2 }}>{description}</div>
         )}

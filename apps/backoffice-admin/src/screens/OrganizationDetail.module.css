@@ -92,7 +92,7 @@
 }
 .statValue {
   font-family: var(--font-heading);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 20px;
   line-height: 1.1;
 }
@@ -147,8 +147,8 @@
 /* ── Cellule « Parc » (table) ─────────────────────────────────────────── */
 .parkName {
   display: block;
-  font-family: var(--font-heading);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 13.5px;
   color: var(--color-text);
   overflow: hidden;

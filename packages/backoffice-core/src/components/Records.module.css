@@ -1,0 +1,296 @@
+/* Brand Book v2 — langage commun des listes d'enregistrements (Photos, Avis,
+ * Utilisateurs, Entretien, Journal, Paramètres) : cartes blanches à bordure
+ * fine, sans ombre, texte UI en Nunito. Admin et Collectivité l'utilisent à
+ * l'identique. Présentation uniquement. */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius, var(--radius-md));
+  padding: 12px 14px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.meta {
+  font-size: 12.5px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.statusOk,
+.statusOff {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.statusOk {
+  color: var(--color-success-text);
+}
+.statusOff {
+  color: var(--color-error);
+}
+
+/* Action textuelle discrète (Supprimer / Retirer) — focus visible, cible 32px. */
+.linkAction,
+.linkDanger {
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  min-height: 32px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+.linkAction {
+  color: var(--color-link, var(--color-primary-hover));
+}
+.linkDanger {
+  color: var(--color-error);
+}
+.linkAction:hover:not(:disabled),
+.linkDanger:hover:not(:disabled) {
+  background: var(--color-bg-alt);
+}
+.linkAction:disabled,
+.linkDanger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+}
+.iconButton:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin: 0 0 14px;
+}
+
+.reply {
+  background: var(--color-bg-alt);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.replyForm {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.comment {
+  font-size: 13.5px;
+  margin: 6px 0 0;
+}
+
+.inlineLink {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Grille de cartes photo */
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+.mediaCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius, var(--radius-md));
+  overflow: hidden;
+}
+.mediaImg {
+  display: block;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  background: var(--color-bg-alt);
+}
+.mediaBody {
+  padding: 12px 14px 14px;
+}
+.mediaPark {
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--color-text);
+  text-decoration: none;
+}
+.mediaParkMuted {
+  color: var(--color-text-muted);
+}
+.mediaProv {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 2px 0 10px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Journal : fil d'activité */
+.feed {
+  display: flex;
+  flex-direction: column;
+}
+.feedItem {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.feedDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+.feedText {
+  font-size: 14px;
+}
+.feedMeta {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* Paramètres */
+.settingsGrid {
+  display: grid;
+  gap: 16px;
+  max-width: 640px;
+}
+.cardTitle {
+  font-size: 15px;
+  margin: 0 0 12px;
+}
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.cardHead .cardTitle {
+  margin: 0;
+}
+.memberRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.memberRow:last-child {
+  border-bottom: none;
+}
+.role {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.fieldStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Entretien : formulaire de planification */
+.planForm {
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius, var(--radius-md));
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+  max-width: 520px;
+}
+.check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-primary-hover);
+}
+.done {
+  font-size: 12px;
+  color: var(--color-success-text);
+  margin-top: 2px;
+}
+
+.empty {
+  color: var(--color-text-muted);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+/* Barre de filtres posée sous des onglets. */
+.afterTabs {
+  margin-top: 16px;
+}
+
+.planForm > label {
+  width: auto;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+.planForm > button {
+  flex: 0 0 auto;
+}
+.segWrap {
+  max-width: 560px;
+}

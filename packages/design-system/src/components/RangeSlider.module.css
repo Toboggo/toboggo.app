@@ -29,7 +29,7 @@
 }
 .label {
   text-align: center;
-  font-family: var(--font-heading);
+  font-family: var(--font-ui-label, var(--font-heading));
   font-weight: 600;
   font-size: 14px;
   color: var(--color-primary-hover);

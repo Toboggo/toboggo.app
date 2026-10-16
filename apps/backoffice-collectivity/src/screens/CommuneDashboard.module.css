@@ -5,10 +5,9 @@
  * - 2×28 padding ≈ 1168px de colonne, déjà sous le plafond) : pleine largeur
  * à 1280 et 1440, jamais écrasé. */
 .page {
-  max-width: 1220px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-4);
 }
 
 .header {
@@ -27,11 +26,6 @@
 }
 
 /* ── Bande KPI ──────────────────────────────────────────────────────────── */
-.kpiStrip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--space-3);
-}
 
 /* ── Grille "À traiter" + "Patrimoine" ─────────────────────────────────── */
 .grid {
@@ -112,7 +106,7 @@
   padding: 12px 18px;
 }
 .patrimonyTotal {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 13px;
   color: var(--color-text);
@@ -227,9 +221,9 @@
 }
 .rowThree {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
-  align-items: start;
+  align-items: stretch;
 }
 @media (max-width: 980px) {
   .rowTwo,
@@ -257,7 +251,7 @@
 }
 .sectionTitleCompact {
   font-family: var(--font-heading);
-  font-size: 12.5px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text-muted);
   margin-bottom: 8px;

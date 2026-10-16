@@ -11,7 +11,7 @@
   background: transparent;
   border-radius: var(--radius-pill);
   padding: 9px 12px;
-  font-family: var(--font-heading);
+  font-family: var(--font-ui-label, var(--font-heading));
   font-weight: 600;
   font-size: 13px;
   color: var(--color-text-muted);

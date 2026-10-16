@@ -1,6 +1,6 @@
 import { Navigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { DataTable, StarRating, StatCard, Tag, type DataTableColumn } from "@toboggo/design-system";
+import { DataTable, StarRating, StatCard, Tag, type DataTableColumn, FilterBar } from "@toboggo/design-system";
 import { getAppFeedbackSummary, listAppFeedback, type AppFeedbackEntry } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
@@ -71,7 +71,7 @@ export default function AppFeedback() {
   return (
     <div>
       <PageHeader title="Évaluations de l'app" />
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
+      <FilterBar>
         <StatCard
           icon="ic-star"
           tone="accent"
@@ -85,7 +85,7 @@ export default function AppFeedback() {
           label="Avis au total"
           hint="Historique inclus"
         />
-      </div>
+      </FilterBar>
       <DataTable
         caption="Évaluations de l'app Toboggo"
         columns={COLUMNS}

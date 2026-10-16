@@ -1,4 +1,5 @@
 @import "@toboggo/design-system/tokens.css";
+@import "./bo-theme.css";
 
 html,
 body,
@@ -14,15 +15,13 @@ body,
 .bo-content {
   flex: 1;
   min-width: 0;
-  padding: 20px 28px 56px;
+  padding: 24px 32px 64px;
+  background: var(--color-bg);
 }
 
-/* Admin-UI-7C — fond Admin clair/neutre (remplace le fond crème hérité de
- * <body>) : scoped à ".bo-shell-admin" (posé par Shell.tsx uniquement quand
- * isAdmin), donc sans effet sur le BO Collectivité ni sur l'app mobile. */
-.bo-shell-admin .bo-content {
-  background: var(--color-bg-admin);
-}
+/* Marqueur historique (Shell.tsx) : l'Admin et les Collectivités partagent
+ * désormais exactement les mêmes surfaces — conservé comme simple point
+ * d'ancrage, sans règle propre. */
 
 @media (max-width: 860px) {
   .bo-content {

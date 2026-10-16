@@ -11,17 +11,17 @@
  * plutôt que --radius-lg) pour un rendu SaaS plus sobre. */
 .neutralCard {
   background: var(--color-surface);
-  border: 1px solid var(--color-border-neutral);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius, var(--radius-md));
+  box-shadow: none;
+  padding: 16px 18px;
 }
 
 .sectionTitle {
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .countBadge {
@@ -33,8 +33,8 @@
   align-items: center;
   justify-content: center;
   background: var(--color-accent);
-  color: #fff;
-  font-family: var(--font-heading);
+  color: var(--color-on-accent, #fff);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 12px;
   border-radius: var(--radius-pill);
@@ -58,11 +58,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
   background: var(--color-bg-alt);
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -92,10 +92,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: var(--radius-sm);
   background: var(--color-primary-tint);
-  color: var(--color-primary);
+  color: var(--color-success);
   flex-shrink: 0;
 }

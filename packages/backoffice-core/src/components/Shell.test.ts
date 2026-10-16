@@ -124,11 +124,11 @@ describe("buildNavGroups — Lot 2 sidebar", () => {
     expect(adminByLabel["Collectivités"]).toBe("ic-building");
   });
 
-  it("Admin-UI-7E-B : NAV_ICON_GAPS ne liste plus /photos ni /organizations (résolus), mais garde /maintenance et /journal (toujours sans pictogramme sûr)", () => {
-    expect(NAV_ICON_GAPS["/photos"]).toBeUndefined();
-    expect(NAV_ICON_GAPS["/organizations"]).toBeUndefined();
-    expect(NAV_ICON_GAPS["/maintenance"]).toBeTruthy();
-    expect(NAV_ICON_GAPS["/journal"]).toBeTruthy();
+  it("Brand Book v2 : plus aucune entrée sans pictogramme — « Entretien » a ic-wrench, « Journal » a ic-clock", () => {
+    expect(Object.keys(NAV_ICON_GAPS)).toHaveLength(0);
+    const byLabel = Object.fromEntries(flatten({ isAdmin: false, ...base }).map((i) => [i.label, i.icon]));
+    expect(byLabel["Entretien"]).toBe("ic-wrench");
+    expect(byLabel["Journal"]).toBe("ic-clock");
   });
 });
 

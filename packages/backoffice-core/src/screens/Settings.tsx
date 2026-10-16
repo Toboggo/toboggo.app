@@ -4,6 +4,7 @@ import jsPDF from "jspdf";
 import { Avatar, Button, Card, Input, Toggle, useConfirm } from "@toboggo/design-system";
 import { listTeam, listCommunes, updateCommune, removeTeamMember, listParks, listReports, listReviews, type Commune } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
+import styles from "../components/Records.module.css";
 import { InviteModal } from "../components/InviteModal";
 import { useOrgSession } from "../lib/orgSession";
 import { useOrgScope } from "../lib/orgScope";
@@ -86,14 +87,14 @@ export default function Settings() {
     <div>
       <PageHeader title="Paramètres" />
 
-      <div style={{ display: "grid", gap: 20, maxWidth: 560 }}>
+      <div className={styles.settingsGrid}>
         <Card>
-          <h2 style={{ fontSize: 15, marginBottom: 12 }}>Mon compte</h2>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <h2 className={styles.cardTitle}>Mon compte</h2>
+          <div className={styles.row}>
             <Avatar name={userName} size={44} />
             <div>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600 }}>{userName}</div>
-              <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
+              <div className={styles.name}>{userName}</div>
+              <div className={styles.meta}>
                 {userEmail} · {currentRole()}
               </div>
             </div>
@@ -102,8 +103,8 @@ export default function Settings() {
 
         {!isAdmin && commune && (
           <Card>
-            <h2 style={{ fontSize: 15, marginBottom: 12 }}>Fiche collectivité</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <h2 className={styles.cardTitle}>Fiche collectivité</h2>
+            <div className={styles.fieldStack}>
               <Input label="Nom de la collectivité" value={draft.name} onChange={(e) => setCommuneDraft((d) => ({ ...d, name: e.target.value }))} disabled={!canEditCommuneSettings} />
               <Input label="Contact référent" type="email" value={draft.contact_email} onChange={(e) => setCommuneDraft((d) => ({ ...d, contact_email: e.target.value }))} disabled={!canEditCommuneSettings} />
               {canEditCommuneSettings && (
@@ -123,8 +124,8 @@ export default function Settings() {
 
         {!isAdmin && (
           <Card>
-            <h2 style={{ fontSize: 15, marginBottom: 6 }}>Rapport mensuel</h2>
-            <p style={{ fontSize: 13, color: "var(--color-text-muted)", marginBottom: 12 }}>
+            <h2 className={styles.cardTitle} style={{ marginBottom: 6 }}>Rapport mensuel</h2>
+            <p className={styles.note} style={{ marginBottom: 12 }}>
               Signalements traités, avis, fréquentation — pour vos élus.
             </p>
             <Button variant="secondary" onClick={generateReport}>
@@ -134,8 +135,8 @@ export default function Settings() {
         )}
 
         <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h2 style={{ fontSize: 15 }}>{isAdmin ? "Équipe et rôles" : "Équipe municipale"}</h2>
+          <div className={styles.cardHead}>
+            <h2 className={styles.cardTitle}>{isAdmin ? "Équipe et rôles" : "Équipe municipale"}</h2>
             {canManageTeam && (
               <Button size="sm" onClick={() => setInviteOpen(true)}>
                 + Inviter
@@ -143,19 +144,15 @@ export default function Settings() {
             )}
           </div>
           {team.map((m) => (
-            <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--color-border)" }}>
+            <div key={m.id} className={styles.memberRow}>
               <Avatar name={m.name} size={32} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13.5 }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{m.email}</div>
+              <div className={styles.grow}>
+                <div className={styles.name}>{m.name}</div>
+                <div className={styles.meta}>{m.email}</div>
               </div>
-              <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>{m.role}</span>
+              <span className={styles.role}>{m.role}</span>
               {canManageTeam && (
-                <button
-                  disabled={removingMember}
-                  onClick={() => onRemove(m.id, m.name)}
-                  style={{ background: "none", border: "none", color: "var(--color-error)", fontSize: 12, cursor: "pointer" }}
-                >
+                <button type="button" disabled={removingMember} onClick={() => onRemove(m.id, m.name)} className={styles.linkDanger}>
                   Retirer
                 </button>
               )}

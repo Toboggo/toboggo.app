@@ -61,9 +61,9 @@
   min-width: 0;
 }
 .groupTitle {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -128,8 +128,8 @@
 }
 .suggestionName {
   display: block;
-  font-family: var(--font-heading);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 13px;
   color: var(--color-text);
 }
@@ -164,9 +164,9 @@
   margin-bottom: 6px;
 }
 .summaryHead h4 {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--color-text-muted);

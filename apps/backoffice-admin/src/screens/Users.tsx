@@ -4,6 +4,8 @@ import { Avatar, Button, Input, Segmented } from "@toboggo/design-system";
 import { listAllUsers, listParks, listReviews, setUserSuspended, toCsv, downloadCsv } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { queryClient } from "@toboggo/backoffice-core/lib/queryClient";
+import { FilterBar } from "@toboggo/design-system";
+import styles from "@toboggo/backoffice-core/components/Records.module.css";
 
 type TabValue = "all" | "active" | "suspended";
 
@@ -52,7 +54,7 @@ export default function Users() {
           </Button>
         }
       />
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <FilterBar>
         <Segmented
           options={[
             { value: "all", label: "Tous" },
@@ -65,24 +67,24 @@ export default function Users() {
         <div style={{ maxWidth: 260 }}>
           <Input placeholder="Nom ou e-mail…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-      </div>
+      </FilterBar>
 
       {filtered.length === 0 ? (
-        <p style={{ color: "var(--color-text-muted)" }}>Aucun utilisateur ne correspond.</p>
+        <p className={styles.empty}>Aucun utilisateur ne correspond.</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className={styles.list}>
           {filtered.map((u) => {
             const c = counts(u.id);
             return (
-              <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: "var(--color-surface)", borderRadius: 12 }}>
+              <div key={u.id} className={`${styles.card} ${styles.row}`}>
                 <Avatar name={u.name} size={36} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>{u.name}</div>
+                <div className={styles.grow}>
+                  <div className={styles.name}>{u.name}</div>
                   <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
                     {u.email} · {c.parks} parcs · {c.reviews} avis
                   </div>
                 </div>
-                <span style={{ fontSize: 12, color: u.suspended ? "var(--color-error)" : "var(--color-primary)" }}>{u.suspended ? "Suspendu" : "Actif"}</span>
+                <span className={u.suspended ? styles.statusOff : styles.statusOk}>{u.suspended ? "Suspendu" : "Actif"}</span>
                 <Button size="sm" variant="secondary" onClick={() => toggleSuspend(u.id, u.suspended)}>
                   {u.suspended ? "Réactiver" : "Suspendre"}
                 </Button>

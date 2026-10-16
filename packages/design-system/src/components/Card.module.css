@@ -1,7 +1,8 @@
 .card {
   background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
+  border-radius: var(--card-radius, var(--radius-lg));
+  border: var(--card-border, none);
+  box-shadow: var(--card-shadow, var(--shadow-sm));
   padding: var(--space-4);
 }
 .flat {
@@ -13,12 +14,12 @@
 }
 
 /* Admin-UI-7B — surface nette pour la Visual Foundation cible : radius
- * resserré (10px au lieu de 26px), bordure neutre fine (--color-border-admin,
+ * resserré (10px au lieu de 26px), bordure neutre fine (--color-border,
  * pas --color-border qui a une teinte beige), pas d'ombre par défaut. Opt-in
  * via `variant="admin"` — n'affecte aucun usage existant de `.card`/`.flat`. */
 .admin {
   border-radius: var(--radius-xs);
-  border: 1px solid var(--color-border-admin);
+  border: 1px solid var(--color-border);
   box-shadow: none;
 }
 .adminShadow {

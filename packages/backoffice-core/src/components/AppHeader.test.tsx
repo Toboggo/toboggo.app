@@ -22,23 +22,21 @@ function renderHeader() {
   );
 }
 
-describe("AppHeader — Admin-UI-7C (admin-only topbar theming)", () => {
-  it("applies the admin header/search styling for an Admin session", () => {
-    scope.isAdmin = true;
-    renderHeader();
-    const header = screen.getByRole("banner");
-    expect(header.className).toMatch(/adminHeader/);
-    const search = screen.getByRole("searchbox", { name: "Rechercher un parc" });
-    expect(search.className).toMatch(/searchInputAdmin/);
-  });
+function renderFor(isAdmin: boolean) {
+  scope.isAdmin = isAdmin;
+  return render(
+    <MemoryRouter>
+      <AppHeader orgLabel={isAdmin ? "Toboggo Admin" : "Ma commune"} screenLabel="Tableau de bord" />
+    </MemoryRouter>,
+  );
+}
 
-  it("does not apply admin styling for a Collectivité session", () => {
-    scope.isAdmin = false;
-    render(
-      <MemoryRouter>
-        <AppHeader orgLabel="Ma commune" screenLabel="Tableau de bord" />
-      </MemoryRouter>,
-    );
+describe("AppHeader — Brand Book v2 (même header Admin / Collectivités)", () => {
+  it.each([
+    ["Admin", true],
+    ["Collectivité", false],
+  ])("renders the same header and search styling for a %s session (no per-surface variant)", (_label, isAdmin) => {
+    renderFor(isAdmin);
     const header = screen.getByRole("banner");
     expect(header.className).not.toMatch(/adminHeader/);
     const search = screen.getByRole("searchbox", { name: "Rechercher un parc" });
@@ -46,27 +44,19 @@ describe("AppHeader — Admin-UI-7C (admin-only topbar theming)", () => {
   });
 
   it("preserves existing functionality: breadcrumb, search input, and profile menu still render", () => {
-    scope.isAdmin = true;
-    renderHeader();
+    renderFor(true);
     expect(screen.getByText("Toboggo Admin")).toBeTruthy();
     expect(screen.getByText("Tableau de bord")).toBeTruthy();
     expect(screen.getByRole("searchbox", { name: "Rechercher un parc" })).toBeTruthy();
     expect(screen.getByRole("button", { name: /Menu utilisateur — Testeur/ })).toBeTruthy();
   });
 
-  it("Admin-UI-7E-B : la recherche Admin affiche l'icône ic-search — pas encore propagée à la Collectivité", () => {
-    scope.isAdmin = true;
-    const { container: adminContainer } = renderHeader();
-    const adminWrap = adminContainer.querySelector('input[type="search"]')?.parentElement?.parentElement;
-    expect(adminWrap?.querySelector("svg")).toBeTruthy();
-
-    scope.isAdmin = false;
-    const { container: communeContainer } = render(
-      <MemoryRouter>
-        <AppHeader orgLabel="Ma commune" screenLabel="Tableau de bord" />
-      </MemoryRouter>,
-    );
-    const communeWrap = communeContainer.querySelector('input[type="search"]')?.parentElement?.parentElement;
-    expect(communeWrap?.querySelector("svg")).toBeNull();
+  it.each([
+    ["Admin", true],
+    ["Collectivité", false],
+  ])("shows the ic-search icon in the search field for a %s session", (_label, isAdmin) => {
+    const { container } = renderFor(isAdmin);
+    const wrap = container.querySelector('input[type="search"]')?.parentElement?.parentElement;
+    expect(wrap?.querySelector("svg")).toBeTruthy();
   });
 });

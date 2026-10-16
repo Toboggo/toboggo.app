@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, DataTable, Input, Select, Tag, type DataTableColumn } from "@toboggo/design-system";
+import { Button, DataTable, Input, Select, Tag, type DataTableColumn, FilterBar } from "@toboggo/design-system";
 import { type OrganizationType, type OrganizationWithCounts } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { useOrganizations } from "@toboggo/backoffice-core/lib/sharedQueries";
@@ -129,7 +129,7 @@ export default function Organizations() {
         }
       />
 
-      <div className={styles.filterBar}>
+      <FilterBar>
         <Input
           className={styles.search}
           label="Rechercher"
@@ -160,7 +160,7 @@ export default function Organizations() {
             {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
           </span>
         )}
-      </div>
+      </FilterBar>
 
       <DataTable
         caption="Liste des collectivités partenaires"

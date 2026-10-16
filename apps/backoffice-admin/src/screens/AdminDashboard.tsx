@@ -23,6 +23,8 @@ import {
   type SourceType,
 } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
+import { KpiGrid } from "@toboggo/backoffice-core/components/KpiGrid";
+import { StatStrip } from "@toboggo/backoffice-core/components/StatStrip";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
 import {
   useOrganizations,
@@ -41,6 +43,9 @@ import styles from "./AdminDashboard.module.css";
 // ⇒ le bloc affiche le même message « Carte indisponible » que /map, jamais
 // une carte factice dessinée à la main.
 const STYLE_URL = mapStyleUrl();
+
+/** KPI de premier niveau (actionnables) ; les autres passent en bandeau secondaire. */
+const PRIMARY_KPI_KEYS = ["active", "pending", "reports", "media"];
 
 const UPCOMING_MAINTENANCE_WINDOW_DAYS = 7;
 
@@ -625,30 +630,57 @@ export default function AdminDashboard() {
         }
       />
 
+      {/* Niveau 1 : ce qui demande une action. Niveau 2 : totaux de contexte. */}
       <div className={styles.kpiGridAdmin}>
-        {stats.map((stat) => (
-          <StatCard
-            key={stat.key}
-            icon={stat.icon}
-            label={stat.label}
-            tone={stat.tint}
-            onClick={stat.onClick}
-            hint={stat.hint}
-            value={
-              stat.error ? (
-                <span title="Indisponible">—</span>
-              ) : stat.loading ? (
-                <Skeleton width={28} height={18} />
-              ) : (
-                stat.value
-              )
-            }
-          />
-        ))}
+        <KpiGrid>
+        {stats
+          .filter((stat) => PRIMARY_KPI_KEYS.includes(stat.key))
+          .map((stat) => (
+            <StatCard
+              key={stat.key}
+              icon={stat.icon}
+              label={stat.label}
+              tone={stat.tint}
+              onClick={stat.onClick}
+              hint={stat.hint}
+              value={
+                stat.error ? (
+                  <span title="Indisponible">—</span>
+                ) : stat.loading ? (
+                  <Skeleton width={28} height={18} />
+                ) : (
+                  stat.value
+                )
+              }
+            />
+          ))}
+        </KpiGrid>
+      </div>
+      <div className={styles.secondaryStats}>
+        <StatStrip
+          label="Totaux de la plateforme"
+          items={stats
+            .filter((stat) => !PRIMARY_KPI_KEYS.includes(stat.key))
+            .map((stat) => ({
+              key: stat.key,
+              label: stat.label,
+              value: stat.value,
+              icon: stat.icon,
+              onClick: stat.onClick,
+              loading: stat.loading,
+              error: stat.error,
+            }))}
+        />
       </div>
 
       <div className={styles.grid}>
+        {/* Colonne principale : action → tendance → contexte géographique. */}
         <div className={styles.mainCol}>
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>À traiter</h2>
+            {toTreatBody}
+          </Card>
+
           <Card variant="admin" padding="sm" className={styles.card}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Évolution de l'activité</h2>
@@ -660,18 +692,6 @@ export default function AdminDashboard() {
             </div>
             {!evolutionLoading && !evolutionError && <ActivityEvolutionChart series={evolutionSeries} days={evoDays} />}
             {activityListBody}
-          </Card>
-
-          <Card variant="admin" padding="sm" className={styles.card}>
-            <h2 ref={sourceRef} className={styles.sectionTitle}>Répartition des parcs par source</h2>
-            <SourceBreakdown
-              data={sourceQ.data}
-              isLoading={sourceLoading}
-              isError={sourceQ.isError}
-              onRetry={() => void sourceQ.refetch()}
-              onSelectSource={(source) => navigate(`/parks?source=${source}&status=all`)}
-              onViewAll={() => navigate("/parks?status=all")}
-            />
           </Card>
 
           <Card variant="admin" padding="sm" className={styles.card}>
@@ -687,6 +707,36 @@ export default function AdminDashboard() {
               onSelectCountry={(code) => navigate(`/parks?country=${code}&status=all`)}
             />
           </Card>
+        </div>
+
+        {/* Rail : raccourcis puis informations secondaires. */}
+        <div className={styles.sideCol}>
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 className={styles.sectionTitle}>Actions rapides</h2>
+            <div className={styles.quickActions}>
+              {QUICK_ACTIONS.map((a) => (
+                <button key={a.key} type="button" className={styles.quickAction} onClick={() => navigate(a.to)}>
+                  <span className={styles.quickActionIcon}>{a.icon && <Icon name={a.icon} size={14} />}</span>
+                  <span className={styles.quickActionLabel}>{a.label}</span>
+                  <span className={styles.quickActionChevron} aria-hidden="true">
+                    ›
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          <Card variant="admin" padding="sm" className={styles.card}>
+            <h2 ref={sourceRef} className={styles.sectionTitle}>Répartition des parcs par source</h2>
+            <SourceBreakdown
+              data={sourceQ.data}
+              isLoading={sourceLoading}
+              isError={sourceQ.isError}
+              onRetry={() => void sourceQ.refetch()}
+              onSelectSource={(source) => navigate(`/parks?source=${source}&status=all`)}
+              onViewAll={() => navigate("/parks?status=all")}
+            />
+          </Card>
 
           <Card variant="admin" padding="sm" className={styles.card}>
             <h2 className={styles.sectionTitle}>Top collectivités</h2>
@@ -698,28 +748,6 @@ export default function AdminDashboard() {
               onRetry={() => void orgsQ.refetch()}
               onOpen={(id) => navigate(`/organizations/${id}`)}
             />
-          </Card>
-        </div>
-
-        <div className={styles.sideCol}>
-          <Card variant="admin" padding="sm" className={styles.card}>
-            <h2 className={styles.sectionTitle}>À traiter</h2>
-            {toTreatBody}
-          </Card>
-
-          <Card variant="admin" padding="sm" className={styles.card}>
-            <h2 className={styles.sectionTitle}>Actions rapides</h2>
-            <div className={styles.quickActions}>
-              {QUICK_ACTIONS.map((a) => (
-                <button key={a.key} type="button" className={styles.quickAction} onClick={() => navigate(a.to)}>
-                  <span className={styles.quickActionIcon}>{a.icon && <Icon name={a.icon} size={13} />}</span>
-                  <span className={styles.quickActionLabel}>{a.label}</span>
-                  <span className={styles.quickActionChevron} aria-hidden="true">
-                    ›
-                  </span>
-                </button>
-              ))}
-            </div>
           </Card>
         </div>
       </div>

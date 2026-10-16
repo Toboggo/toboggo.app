@@ -25,7 +25,7 @@
 }
 
 /* ── En-tête identité (Admin-UI-9B) ───────────────────────────────────────
- * Bordure/radius admin (--color-border-admin/--radius-xs — 7B/8C/8D), pas le
+ * Bordure/radius admin (--color-border/--radius-xs — 7B/8C/8D), pas le
  * grand format beige pré-7B : compact, orienté gestion plutôt que fiche
  * marketing. */
 .header {
@@ -34,7 +34,7 @@
   align-items: flex-start;
   padding: 12px 14px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border-admin);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   margin-bottom: 16px;
 }
@@ -45,21 +45,21 @@
   height: 88px;
   border-radius: var(--radius-xs);
   object-fit: cover;
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
 }
 .coverEmpty {
   flex-shrink: 0;
   width: 132px;
   height: 88px;
   border-radius: var(--radius-xs);
-  background: var(--color-bg-admin);
-  border: 1px dashed var(--color-border-admin);
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
 }
 
 .identity {
@@ -68,8 +68,8 @@
 }
 .title {
   font-family: var(--font-heading);
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 600;
   margin: 0 0 6px;
 }
 .tags {
@@ -81,7 +81,7 @@
 }
 .secondary {
   font-size: 13px;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
   margin-bottom: 4px;
 }
 .headerMeta {
@@ -90,7 +90,7 @@
   align-items: center;
   gap: 6px;
   font-size: 12px;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
 }
 .headerActions {
   display: flex;
@@ -133,7 +133,7 @@
   min-width: 0;
 }
 .infoSectionTitle {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 700;
   margin: 0;
@@ -141,7 +141,7 @@
 /* Admin-UI-9E-B — même traitement que `.infoSectionTitle`/`.overviewCardTitle`
  * (titre de catégorie identifiable, pas d'étiquette majuscule à filet beige). */
 .sectionTitle {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 700;
   margin: 0;
@@ -187,7 +187,7 @@
   gap: 10px;
 }
 .overviewCardTitle {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 12.5px;
   font-weight: 700;
   margin: 0;
@@ -297,9 +297,9 @@
   max-width: 74ch;
 }
 .formGroupTitle {
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--color-text-muted);
@@ -386,7 +386,7 @@
   gap: 14px;
 }
 .photoCard {
-  border: 1px solid var(--color-border-admin);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   overflow: hidden;
   background: var(--color-surface);
@@ -400,12 +400,12 @@
   width: 100%;
   aspect-ratio: 4 / 3;
   object-fit: cover;
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
 }
 .photoBody {
   padding: 8px 10px;
   font-size: 11.5px;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
 }
 .photoMetaLine {
   overflow: hidden;
@@ -424,7 +424,7 @@
   padding: 0 10px 10px;
 }
 .uploadTile {
-  border: 1.5px dashed var(--color-border-admin);
+  border: 1.5px dashed var(--color-border);
   border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
@@ -432,13 +432,13 @@
   min-height: 150px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
   cursor: pointer;
   text-align: center;
   padding: 12px;
 }
 .uploadTile:hover {
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
 }
 
 /* ── Onglet Historique ─────────────────────────────────────────────────── */
@@ -519,7 +519,7 @@
 .reviewCard {
   padding: 14px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border-admin);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
 }
 .reviewHead {
@@ -539,7 +539,7 @@
 .reviewDate {
   margin-left: 8px;
   font-size: 12px;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
 }
 .reviewDeleteBtn {
   background: none;
@@ -556,7 +556,7 @@
 .reviewReply {
   margin-top: 10px;
   padding: 10px;
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
   border-radius: var(--radius-xs);
   font-size: 12.5px;
 }
@@ -584,7 +584,7 @@
 }
 .featCounter {
   font-size: 12.5px;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
 }
 .featGrid {
   display: grid;
@@ -628,7 +628,7 @@
   gap: 8px;
   text-align: center;
   font-size: 13px;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
 }
 .featEmptyTitle {
   font-family: var(--font-heading);
@@ -669,7 +669,7 @@
   }
 }
 .featEditGroup {
-  border: 1px solid var(--color-border-admin);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   margin-bottom: 10px;
   background: var(--color-surface);
@@ -682,11 +682,11 @@
   gap: 10px;
   padding: 10px 12px;
   cursor: pointer;
-  font-family: var(--font-heading);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 13.5px;
   list-style: none;
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
 }
 .featEditSummary::-webkit-details-marker {
   display: none;
@@ -706,10 +706,10 @@ details[open] > .featEditSummary::before {
   font-family: var(--font-body);
   font-weight: 600;
   font-size: 11.5px;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
 }
 .featEditRows {
-  border-top: 1px solid var(--color-border-admin);
+  border-top: 1px solid var(--color-border);
   padding: 6px 12px 10px;
   display: flex;
   flex-direction: column;
@@ -720,7 +720,7 @@ details[open] > .featEditSummary::before {
   justify-content: space-between;
   gap: 12px;
   padding: 7px 0;
-  border-bottom: 1px solid var(--color-border-admin);
+  border-bottom: 1px solid var(--color-border);
   font-size: 13px;
 }
 .featEditRow:last-child {
@@ -742,7 +742,7 @@ details[open] > .featEditSummary::before {
 .triState {
   display: inline-flex;
   flex-shrink: 0;
-  border: 1px solid var(--color-border-admin);
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-pill);
   overflow: hidden;
 }
@@ -750,12 +750,12 @@ details[open] > .featEditSummary::before {
   appearance: none;
   background: var(--color-surface);
   border: none;
-  border-left: 1px solid var(--color-border-admin);
+  border-left: 1px solid var(--color-border);
   padding: 3px 10px;
   min-height: 26px;
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--color-text-muted-admin);
+  color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -771,11 +771,11 @@ details[open] > .featEditSummary::before {
   outline-offset: -2px;
 }
 .triYes {
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-primary-hover);
+  color: var(--color-on-primary);
 }
 .triNo {
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
   color: var(--color-text);
 }
 /* Contextual 4th state — only rendered for a row already at
@@ -786,8 +786,8 @@ details[open] > .featEditSummary::before {
 }
 /* "Non renseigné" selected: neutral, never reads as a chosen answer */
 .triUnset {
-  background: var(--color-bg-admin);
-  color: var(--color-text-muted-admin);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
 }
 
 @media (max-width: 560px) {

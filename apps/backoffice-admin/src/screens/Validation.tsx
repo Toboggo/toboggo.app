@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button, DataTable, Input, Select, Tag, type DataTableColumn } from "@toboggo/design-system";
+import { Button, DataTable, Input, Select, Tag, type DataTableColumn, FilterBar } from "@toboggo/design-system";
 import { listParkEditsWithDetails, type EditStatus, type ParkEditWithDetails } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { ParkEditStatusTag } from "@toboggo/backoffice-core/components/StatusTag";
@@ -194,7 +194,7 @@ export default function Validation() {
         </button>
       </div>
 
-      <div className={styles.filterBar}>
+      <FilterBar>
         <Input
           className={styles.search}
           label="Rechercher"
@@ -239,7 +239,7 @@ export default function Validation() {
             {filtered.length} proposition{filtered.length > 1 ? "s" : ""}
           </span>
         )}
-      </div>
+      </FilterBar>
 
       <DataTable
         caption="File de validation des propositions de correction"

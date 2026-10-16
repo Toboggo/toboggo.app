@@ -1,20 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import {
-  Button,
-  Chip,
-  DataTable,
-  EmptyState,
-  Icon,
-  Input,
-  Menu,
-  MenuItem,
-  Select,
-  Skeleton,
-  StatCard,
-  Tag,
-  type DataTableColumn,
-} from "@toboggo/design-system";
+import { Button, Chip, DataTable, EmptyState, Icon, Input, Menu, MenuItem, Select, Skeleton, StatCard, Tag, type DataTableColumn, FilterBar } from "@toboggo/design-system";
 import { setParkStatus, type Park, type ParkStatus } from "@toboggo/shared";
 import { panelStyles } from "@toboggo/backoffice-core/components/Panel";
 import { ParkStatusTag, ParkVerificationTag } from "@toboggo/backoffice-core/components/StatusTag";
@@ -31,6 +17,7 @@ import {
   type ParkFilters,
   type ParkRow,
 } from "../../lib/communeParks";
+import { KpiGrid } from "@toboggo/backoffice-core/components/KpiGrid";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
 import { useOrgSession } from "@toboggo/backoffice-core/lib/orgSession";
 import { usePermissions } from "@toboggo/backoffice-core/lib/permissions";
@@ -305,7 +292,7 @@ export function CommuneParks() {
     return (
       <div className={styles.page} aria-busy="true">
         {header}
-        <div className={styles.kpiStrip}>
+        <KpiGrid>
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className={panelStyles.neutralCard}>
               <Skeleton width={90} height={12} />
@@ -314,7 +301,7 @@ export function CommuneParks() {
               </div>
             </div>
           ))}
-        </div>
+        </KpiGrid>
         <div className={panelStyles.neutralCard}>
           {Array.from({ length: 5 }).map((_, i) => (
             <div key={i} className={styles.skeletonRow}>
@@ -381,7 +368,7 @@ export function CommuneParks() {
     <div className={styles.page}>
       {header}
 
-      <div className={styles.kpiStrip}>
+      <KpiGrid>
         <StatCard
           layout="inline"
           value={`${summary.published} / ${summary.total}`}
@@ -434,9 +421,9 @@ export function CommuneParks() {
           }
           onClick={editsUnavailable ? undefined : () => toggle("edits", true)}
         />
-      </div>
+      </KpiGrid>
 
-      <div className={styles.filterBar}>
+      <FilterBar>
         {/* The design-system field wrapper is `width: 100%`: size it from outside. */}
         <div className={styles.search}>
           <Input
@@ -484,7 +471,7 @@ export function CommuneParks() {
         <span className={styles.count}>
           {active ? `${filtered.length} sur ${summary.total}` : `${summary.total}`} parc{plural(summary.total, "", "s")}
         </span>
-      </div>
+      </FilterBar>
 
       {narrow ? (
         filtered.length === 0 ? (

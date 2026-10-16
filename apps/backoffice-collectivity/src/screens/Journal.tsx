@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Input, Select } from "@toboggo/design-system";
+import { Input, Select, FilterBar } from "@toboggo/design-system";
 import { listActivity, listTeam } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
+import { PanelEmpty } from "@toboggo/backoffice-core/components/Panel";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
+import styles from "@toboggo/backoffice-core/components/Records.module.css";
 
 export default function Journal() {
   const { isAdmin, communeId } = useOrgScope();
@@ -20,7 +22,7 @@ export default function Journal() {
   return (
     <div>
       <PageHeader title="Journal" />
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
+      <FilterBar>
         <div style={{ maxWidth: 260 }}>
           <Input placeholder="Rechercher dans le journal…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
@@ -32,18 +34,18 @@ export default function Journal() {
             </option>
           ))}
         </Select>
-      </div>
+      </FilterBar>
 
       {filtered.length === 0 ? (
-        <p style={{ color: "var(--color-text-muted)" }}>Aucune activité.</p>
+        <PanelEmpty icon="ic-list" text="Aucune activité." />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <div className={styles.feed}>
           {filtered.map((a) => (
-            <div key={a.id} style={{ display: "flex", gap: 10, padding: "10px 0", borderBottom: "1px solid var(--color-border)" }}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--color-primary)", marginTop: 5, flexShrink: 0 }} />
+            <div key={a.id} className={styles.feedItem}>
+              <span className={styles.feedDot} aria-hidden="true" />
               <div>
-                <div style={{ fontSize: 13.5 }}>{a.text}</div>
-                <div style={{ fontSize: 11.5, color: "var(--color-text-faint)" }}>
+                <div className={styles.feedText}>{a.text}</div>
+                <div className={styles.feedMeta}>
                   {a.actor} · {new Date(a.created_at).toLocaleString("fr-FR")}
                 </div>
               </div>

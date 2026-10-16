@@ -5,15 +5,13 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { mapStyleUrl, type Park } from "@toboggo/shared";
 import { Button } from "@toboggo/design-system";
 import { Panel, PanelEmpty } from "@toboggo/backoffice-core/components/Panel";
+import { parkPinColor } from "@toboggo/backoffice-core/lib/mapPalette";
 import styles from "../CommuneDashboard.module.css";
 
 const STYLE_URL = mapStyleUrl();
 
 function pinColor(park: Park) {
-  if (park.status === "blocked") return "#7c1405";
-  if (park.has_open_report) return "#ef4444";
-  if (park.status === "draft" || park.status === "pending") return "#f08a2e";
-  return "#16a34a";
+  return parkPinColor(park);
 }
 
 /**

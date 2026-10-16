@@ -41,7 +41,7 @@ export function InviteModal({ communeId, onClose }: { communeId: string | null; 
         <Input label="Nom" value={name} onChange={(e) => setName(e.target.value)} placeholder="Prénom Nom" />
         <Input label="E-mail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="prenom.nom@mairie.fr" />
         <div>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Rôle</div>
+          <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Rôle</div>
           <Segmented options={roleOptions as any} value={role} onChange={(v) => setRole(v as TeamRole)} />
         </div>
         <Button block disabled={!name || !email} loading={saving} onClick={send}>

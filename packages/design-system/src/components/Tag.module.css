@@ -2,11 +2,11 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  font-family: var(--font-heading);
+  font-family: var(--font-ui-label, var(--font-heading));
   font-weight: 600;
-  font-size: 12px;
-  padding: 5px 12px;
-  border-radius: var(--radius-pill);
+  font-size: var(--tag-size, 12px);
+  padding: var(--tag-pad, 5px 12px);
+  border-radius: var(--tag-radius, var(--radius-pill));
   background: var(--color-bg-alt);
   color: var(--color-text-muted);
   white-space: nowrap;
@@ -17,7 +17,13 @@
 }
 .accent {
   background: var(--color-accent-tint);
-  color: var(--color-accent);
+  color: var(--color-accent-text, var(--color-accent));
+}
+/* Ton « succès » — sémantique explicite (neutral / success / warning / error /
+ * info). Sans surcharge, il retombe sur le rendu `primary` historique. */
+.success {
+  background: var(--color-success-tint);
+  color: var(--color-success-text, var(--color-primary-hover));
 }
 .info {
   background: var(--color-info-tint);

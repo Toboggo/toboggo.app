@@ -1,0 +1,61 @@
+.strip {
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius, var(--radius-md));
+  overflow: hidden;
+}
+.item {
+  flex: 1 1 140px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 18px;
+  background: none;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  text-align: left;
+  font-family: inherit;
+  color: var(--color-text);
+  min-width: 0;
+}
+.item:last-child {
+  border-right: none;
+}
+button.item {
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+button.item:hover {
+  background: var(--color-surface-alt);
+}
+button.item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-alt);
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+.value {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  min-width: 0;
+}

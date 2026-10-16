@@ -60,38 +60,48 @@
 }
 
 .statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   background: var(--color-surface);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius, var(--radius-md));
   padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   cursor: pointer;
-  border: none;
   text-align: left;
   font-family: inherit;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.statCard:hover {
+  border-color: var(--color-primary);
 }
 .statValue {
   font-family: var(--font-heading);
-  font-size: 26px;
-  font-weight: 700;
+  font-size: var(--kpi-size, 26px);
+  font-weight: var(--kpi-weight, 700);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 .statLabel {
   color: var(--color-text-muted);
   font-size: 13px;
-  margin-top: 2px;
+  font-weight: var(--kpi-label-weight, 400);
+  margin-top: 4px;
 }
 
 /* Admin-UI-7B — additions optionnelles (icône/tendance/tonalité), n'affectent
  * jamais les usages qui ne passent pas ces props (ex. Maintenance.tsx). */
 .statIcon {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
+  width: var(--kpi-icon, 24px);
+  height: var(--kpi-icon, 24px);
+  border-radius: var(--kpi-icon-radius, 50%);
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--color-bg-alt);
   color: var(--color-text-muted);
-  margin-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
 }
 .tone-primary .statIcon {
   background: var(--color-primary-tint);
@@ -152,7 +162,7 @@
 }
 .table th {
   text-align: left;
-  font-family: var(--font-heading);
+  font-family: var(--font-ui-label, var(--font-heading));
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
@@ -200,18 +210,18 @@
   align-items: center;
   gap: var(--space-3);
   background: var(--color-surface);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--card-radius, var(--radius-md));
   padding: var(--space-4);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   cursor: pointer;
-  border: none;
   text-align: left;
   font-family: inherit;
-  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
 }
 .inlineCard:not(:disabled):hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
 }
 .inlineCard:disabled {
   cursor: default;
@@ -220,9 +230,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
+  width: var(--kpi-icon-inline, 34px);
+  height: var(--kpi-icon-inline, 34px);
+  border-radius: var(--kpi-icon-radius, var(--radius-sm));
   background: var(--color-bg-alt);
   color: var(--color-text-muted);
   flex-shrink: 0;
@@ -246,14 +256,16 @@
 }
 .inlineValue {
   font-family: var(--font-heading);
-  font-size: 26px;
-  font-weight: 700;
+  font-size: var(--kpi-size, 26px);
+  font-weight: var(--kpi-weight, 700);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 .inlineCard.tone-warning .inlineValue {
   color: var(--color-warning-text);
 }
 .inlineCard.emphasized {
-  border: 1px solid var(--color-border-neutral);
+  border: 1px solid var(--color-border-strong);
   padding: 14px 16px;
 }
 .inlineCard.emphasized .inlineIcon {
@@ -267,10 +279,9 @@
 .inlineLabel {
   color: var(--color-text-muted);
   font-size: 13px;
+  font-weight: var(--kpi-label-weight, 400);
   margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
 }
 .inlineSecondary {
   color: var(--color-text-faint);

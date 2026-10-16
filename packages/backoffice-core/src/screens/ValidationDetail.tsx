@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Textarea, useConfirm, useToast } from "@toboggo/design-system";
+import { Button, Icon, Textarea, useConfirm, useToast } from "@toboggo/design-system";
 import { getParkEditWithDetails, getPark, reviewParkEdit, type ParkEditReviewResult } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
 import { ParkEditStatusTag, ParkEditItemResultTag } from "../components/StatusTag";
@@ -282,7 +282,8 @@ export default function ValidationDetail() {
                 )}
                 {preview?.result === "CONFLICT" && (
                   <div className={styles.conflictNote}>
-                    ⚠ Le parc a changé depuis la soumission — ce champ ne sera pas appliqué automatiquement.
+                    <Icon name="ic-warning" size={14} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>Le parc a changé depuis la soumission — ce champ ne sera pas appliqué automatiquement.</span>
                   </div>
                 )}
                 {preview?.result === "NOT_AUTOMATICALLY_APPLICABLE" && (

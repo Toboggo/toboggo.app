@@ -6,9 +6,9 @@
 
 .sectionTitle {
   font-family: var(--font-heading);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
 .card {
@@ -22,22 +22,26 @@
 .tint-primary {
   --tint-bg: var(--color-primary-tint);
   --tint-fg: var(--color-primary);
-  --tint-solid: var(--color-primary);
+  --tint-solid: var(--color-primary-hover);
+  --tint-on: var(--color-on-primary);
 }
 .tint-warning {
   --tint-bg: var(--color-warning-bg);
   --tint-fg: var(--color-warning-text);
   --tint-solid: var(--color-accent);
+  --tint-on: var(--color-on-accent);
 }
 .tint-error {
   --tint-bg: var(--color-error-tint);
   --tint-fg: var(--color-error);
   --tint-solid: var(--color-error);
+  --tint-on: var(--color-on-primary);
 }
 .tint-info {
   --tint-bg: var(--color-info-tint);
   --tint-fg: var(--color-info);
   --tint-solid: var(--color-info);
+  --tint-on: var(--color-on-primary);
 }
 
 /* ── KPI (bande compacte, remplace l'ancien bandeau à filets) ──────────────
@@ -80,7 +84,7 @@
 }
 .kpiValue {
   font-family: var(--font-heading);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 18px;
   line-height: 1.1;
 }
@@ -90,7 +94,7 @@
 }
 .statError {
   font-family: var(--font-heading);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 18px;
   line-height: 1.1;
   color: var(--color-text-faint);
@@ -99,7 +103,7 @@
 /* ── Composition principale : contenu + colonne secondaire (admin) ─────── */
 .grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 324px;
+  grid-template-columns: minmax(0, 1fr) 340px;
   gap: var(--space-4);
   align-items: start;
 }
@@ -127,14 +131,17 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 6px 0;
+  padding: 10px 8px;
   text-align: left;
   background: none;
   border: none;
   border-bottom: 1px solid var(--color-border);
-  font-size: 13px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-text);
   cursor: pointer;
+  transition: background-color 0.12s ease;
 }
 .actionRow:last-child {
   border-bottom: none;
@@ -143,7 +150,8 @@
   cursor: default;
 }
 .actionRow:hover:not(.static) {
-  color: var(--color-primary-hover);
+  background: var(--color-surface-alt);
+  color: var(--color-link);
 }
 .actionLabel {
   display: flex;
@@ -178,18 +186,19 @@
 }
 .countBadge {
   flex-shrink: 0;
-  min-width: 20px;
-  height: 18px;
-  padding: 0 6px;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 7px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: var(--tint-solid, var(--color-accent));
-  color: #fff;
-  font-family: var(--font-heading);
+  color: var(--tint-on, var(--color-on-accent));
+  font-family: var(--font-body);
   font-weight: 700;
-  font-size: 11.5px;
+  font-size: 12px;
   border-radius: var(--radius-pill);
+  font-variant-numeric: tabular-nums;
 }
 .countBadgeZero {
   flex-shrink: 0;
@@ -222,7 +231,7 @@
 }
 .donutTotalValue {
   font-family: var(--font-heading);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 22px;
   fill: var(--color-text);
 }
@@ -259,7 +268,7 @@
 }
 .donutLegendRow:hover,
 .donutLegendRow:focus-visible {
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
 }
 .viewAllLink {
   align-self: flex-start;
@@ -406,11 +415,11 @@
 
 /* KPI Admin = StatCard (7B), pas .kpiTile — grille un peu plus généreuse que
  * .kpiGrid pour laisser respirer icône/valeur/hint. */
+.secondaryStats {
+  margin-bottom: var(--space-5);
+}
 .kpiGridAdmin {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 /* ── En-tête de carte avec contrôle à droite (période) ────────────────────── */
@@ -436,7 +445,7 @@
   gap: 4px;
   padding-bottom: var(--space-3);
   margin-bottom: var(--space-2);
-  border-bottom: 1px solid var(--color-border-admin);
+  border-bottom: 1px solid var(--color-border);
 }
 .evoSvg {
   width: 100%;
@@ -444,7 +453,7 @@
   display: block;
 }
 .evoGrid {
-  stroke: var(--color-border-admin);
+  stroke: var(--color-border);
   stroke-width: 1;
 }
 .evoAxis {
@@ -470,7 +479,7 @@
 }
 .evoLegendItem strong {
   color: var(--color-text);
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
 }
 .evoLegendDot {
   width: 8px;
@@ -503,7 +512,7 @@
   cursor: pointer;
 }
 .orgRow:hover {
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
   color: var(--color-primary-hover);
 }
 .orgRank {
@@ -516,7 +525,7 @@
   border-radius: 50%;
   background: var(--color-primary-tint);
   color: var(--color-primary);
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-weight: 700;
   font-size: 10.5px;
 }
@@ -581,7 +590,7 @@
 }
 .countryRow:hover,
 .countryRow:focus-visible {
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
 }
 .countryHead {
   display: flex;
@@ -605,7 +614,7 @@
   width: 100%;
   height: 6px;
   border-radius: var(--radius-pill);
-  background: var(--color-bg-admin);
+  background: var(--color-bg);
   overflow: hidden;
 }
 .countryBarFill {

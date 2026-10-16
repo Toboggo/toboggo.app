@@ -14,6 +14,11 @@ Sur Explorer, le contrôle d'attribution MapLibre (par défaut en bas à droite,
 - Safe areas : le contrôle est au-dessus de la barre (déjà calée sur la safe area basse) ; marge gauche `env(safe-area-inset-left)`.
 - L'écran **Sources des données** et ses traductions FR/EN/ES sont conservés ; il reprend la mention du fond de carte (la carte reste l'attribution « en contexte », l'écran l'accès complet).
 
+## Empilement et langue (revue finale)
+- **Défaut reproduit** : un marqueur sélectionné (`z-index: 3`, `markers.ts`) passait au-dessus du contrôle MapLibre (`z-index: 2`) et interceptait le toucher : un marqueur posé (clone d'un vrai marqueur) exactement sous la pastille → `elementFromPoint` = `IMG`, contrôle replié ou déplié.
+- **Correctif** : `z-index: 10` sur le conteneur du contrôle (au-dessus des marqueurs, sous le header et les boutons flottants à 20 et sous la feuille). Après correctif, marqueur sélectionné ou non, contrôle replié ou déplié, aux crans bas (pastille 10,616→46,652) et intermédiaire (10,363→46,399) : `elementFromPoint` = `SUMMARY` du contrôle dans les 8 cas. Garde-fou : `MapCanvas.stacking.test.ts`.
+- **Langue** : le libellé du bouton (`aria-label` + `title`) est remis à jour à chaque changement de langue sans remonter la carte (même `<canvas>` avant/après ; fr → en → es → fr vérifiés via `i18n.changeLanguage`).
+
 ## Mesures (navigateur intégré, DOM réel)
 | Format | État | Contrôle (l,t,r,b) | Haut de la feuille | Écart | Atteignable (hit-test) | Chevauche FAB / nav / en-tête |
 |---|---|---|---|---|---|---|

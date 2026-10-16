@@ -4,6 +4,11 @@
    sont à droite ; le contrôle replié (pastille ⓘ) ne les recouvre jamais, et déplié
    sa largeur est bornée pour rester à gauche de leur colonne. */
 .canvas :global(.maplibregl-ctrl-bottom-left) {
+  /* Au-dessus de tous les marqueurs (le marqueur sélectionné est à z-index 3, voir
+     markers.ts ; MapLibre place les contrôles à 2) pour qu'aucun marqueur ne
+     recouvre ni n'intercepte la pastille. Reste sous le header, les boutons
+     flottants (z-index 20) et la feuille. */
+  z-index: 10;
   bottom: var(--map-attrib-bottom, 0px);
   left: env(safe-area-inset-left, 0px);
   max-width: calc(100% - 88px - env(safe-area-inset-left, 0px));

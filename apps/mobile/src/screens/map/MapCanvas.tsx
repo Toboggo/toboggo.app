@@ -382,6 +382,17 @@ export function MapCanvas({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewport?.id, mapEpoch]);
 
+  // Libellé accessible du bouton d'attribution : MapLibre le fige à la création de
+  // la carte (`locale`) ; on le remet à jour à chaque changement de langue, sans
+  // remonter la carte (`t` change d'identité avec la langue).
+  useEffect(() => {
+    const btn = containerRef.current?.querySelector(".maplibregl-ctrl-attrib-button");
+    if (!btn) return;
+    const label = t("a11y.toggleAttribution");
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
+  }, [t, mapEpoch]);
+
   if (!STYLE_URL) {
     return (
       <FakeMap

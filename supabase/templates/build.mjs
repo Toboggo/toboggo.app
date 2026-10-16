@@ -16,12 +16,12 @@ import { fileURLToPath } from "node:url";
 
 const dir = dirname(fileURLToPath(import.meta.url));
 
-// Domaine réellement déployé de l'app parents (cf. DEFAULT_PUBLIC_APP_URL dans
-// apps/mobile/src/components/ShareSheet.tsx). Fichier : apps/mobile/public/email/.
+// Domaine officiel du site : https://toboggo.com (site vitrine, apps/landing). Le PNG est servi depuis
+// apps/landing/public/email/ → /email/toboggo-logo-email.png.
 // Logo : dérivé de docs/brand-kit-v3/logo/toboggo-color-2400.png (kit officiel), 360×94 px.
-const LOGO_FILE = resolve(dir, "../../apps/mobile/public/email/toboggo-logo-email.png");
+const LOGO_FILE = resolve(dir, "../../apps/landing/public/email/toboggo-logo-email.png");
 const LOGO_SOURCE = resolve(dir, "../../docs/brand-kit-v3/logo/toboggo-color-2400.png");
-export const LOGO_URL = "https://toboggo-app.vercel.app/email/toboggo-logo-email.png";
+export const LOGO_URL = "https://toboggo.com/email/toboggo-logo-email.png";
 const C = { bg: "#f7f8f7", card: "#ffffff", border: "#ece6d8", text: "#24303a", muted: "#8a8578", primary: "#2fa37c", button: "#1f7d5f", tint: "#e6f5ee", accent: "#ffb020", accentTint: "#fff3dc" };
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
@@ -116,7 +116,8 @@ function pngSize(path) {
 }
 export function logoProblems() {
   const out = [];
-  if (!existsSync(LOGO_FILE)) return ["logo e-mail absent : apps/mobile/public/email/toboggo-logo-email.png"];
+  if (!LOGO_URL.startsWith("https://toboggo.com/email/") || !LOGO_URL.endsWith("/toboggo-logo-email.png")) out.push("URL du logo ≠ https://toboggo.com/email/toboggo-logo-email.png");
+  if (!existsSync(LOGO_FILE)) return ["logo e-mail absent : apps/landing/public/email/toboggo-logo-email.png"];
   const { w, h } = pngSize(LOGO_FILE);
   if (w !== 360 || h !== 94) out.push(`logo e-mail ${w}×${h} ≠ 360×94`);
   if (existsSync(LOGO_SOURCE)) {

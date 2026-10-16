@@ -12,12 +12,14 @@ export const SITE_NAME = "Toboggo";
 export const SITE_LOCALE = "fr_FR";
 
 /**
- * Image de partage par défaut : l'icône de marque réelle (512×512). Aucun
- * visuel 1200×630 dédié n'existe encore — d'où twitter:card "summary" et non
- * "summary_large_image". À remplacer par une vraie image OG quand elle existe.
+ * Image de partage par défaut : visuel officiel 1200×630 du kit v3
+ * (docs/brand-kit-v3/cover/og-1200x630-light.png, copie intacte) — d'où twitter:card
+ * "summary_large_image". Les pages sans couverture propre l'utilisent.
  */
-export const DEFAULT_OG_IMAGE = "/icon-512.png";
-export const DEFAULT_OG_IMAGE_ALT = "Logo Toboggo";
+export const DEFAULT_OG_IMAGE = "/og-default.png";
+export const DEFAULT_OG_IMAGE_ALT = "Toboggo";
+/** Icône de marque carrée 512×512 (kit v3), utilisée comme logo de l'Organization (JSON-LD). */
+export const BRAND_ICON_512 = "/icon-512.png";
 
 export const CONTACT_EMAIL = "contact@toboggo.app";
 

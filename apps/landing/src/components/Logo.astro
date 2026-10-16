@@ -1,36 +1,25 @@
 ---
 /**
- * Toboggo brand mark — port fidèle de
- * packages/design-system/src/components/Logo.tsx (seule source de vérité,
- * voir CLAUDE.md §9). Géométrie et couleurs copiées à l'identique : ne pas
- * improviser un tracé ou un dégradé ici. Corrige la dérive identifiée par
- * l'audit (#3DBE90 utilisé par erreur sur 4 des 5 pages historiques au lieu
- * du vrai #2FA37C).
+ * Logo officiel Toboggo — fichier du kit v3 servi tel quel (public/brand/*.svg, copies
+ * octet pour octet de docs/brand-kit-v3/logo/, vérifiées par src/lib/brand.test.ts).
+ * Aucun redessin, aucune recomposition : ne pas rétablir un badge, un dégradé ou un texte.
+ *
+ * `size` = hauteur du logo en px (le ratio 1424×370 du fichier est conservé).
+ * `variant` : "color" sur fond clair, "white" sur fond vert/photo sombre.
  */
 interface Props {
   size?: number;
-  wordmark?: boolean;
+  variant?: "color" | "white";
   class?: string;
 }
 
-const { size = 28, wordmark = true, class: className } = Astro.props;
-const gradientId = `tg-${crypto.randomUUID().slice(0, 8)}`;
+const { size = 40, variant = "color", class: className } = Astro.props;
+const RATIO = 1424 / 370;
+const width = Math.round(size * RATIO);
 ---
 
 <a href="/" class:list={["brand", className]} aria-label="Toboggo — retour à l'accueil">
-  <svg width={size} height={size} viewBox="0 0 56 56" role="img" aria-hidden="true" style="display:block;flex:none;">
-    <defs>
-      <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#2FA37C"></stop>
-        <stop offset="1" stop-color="#1F7D5F"></stop>
-      </linearGradient>
-    </defs>
-    <rect width="56" height="56" rx="16" fill={`url(#${gradientId})`}></rect>
-    <path d="M17 15 L39 15 M28 15 L28 30" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"></path>
-    <path d="M28 30 C28 39 34 39 34 45" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"></path>
-    <circle cx="34" cy="45" r="4.2" fill="#FFB020"></circle>
-  </svg>
-  {wordmark && <span class="brand-word">Toboggo</span>}
+  <img src={`/brand/toboggo-${variant}.svg`} width={width} height={size} alt="" decoding="async" />
 </a>
 
 <style>
@@ -38,12 +27,13 @@ const gradientId = `tg-${crypto.randomUUID().slice(0, 8)}`;
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 20px;
-    color: var(--color-text);
     text-decoration: none;
+  }
+
+  .brand img {
+    display: block;
+    height: auto;
+    max-width: 100%;
   }
 
   /* zone cliquable ≥ 44px de haut, sans changer la mise en page */

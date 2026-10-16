@@ -11,10 +11,9 @@ Générés par `npm run email:build` (source : `build.mjs`), contrôlés par `np
 
 - Source : kit officiel v3 versionné dans `docs/brand-kit-v3/`, `logo/toboggo-color-2400.png` (logo horizontal couleur), réduit
   sans déformation à 360×94 px (affiché 180×47 px, soit 2× pour les écrans HD).
-- Fichier : `apps/mobile/public/email/toboggo-logo-email.png` (copié tel quel dans `dist/email/` au build).
-- URL utilisée : `https://toboggo-app.vercel.app/email/toboggo-logo-email.png` (domaine public déjà
-  utilisé par l'app, cf. `ShareSheet.tsx`). **Aucun domaine inventé** ; si un domaine personnalisé
-  est adopté, changer `LOGO_URL` dans `build.mjs` puis `npm run email:build`.
+- Fichier : `apps/landing/public/email/toboggo-logo-email.png` (copié tel quel dans `.vercel/output/static/email/` au build du site).
+- URL utilisée : `https://toboggo.com/email/toboggo-logo-email.png` (domaine officiel du site vitrine, fourni par le
+  fondateur). Pour changer de domaine, changer `LOGO_URL` dans `build.mjs` puis `npm run email:build`.
 
 ## Modèles → emplacement dashboard, objet, variables
 

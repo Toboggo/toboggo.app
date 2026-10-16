@@ -45,6 +45,6 @@ autorisés que là où les tokens sont impossibles (SVG exportés, **e-mails**).
 
 ## Dérivés dans le repo
 
-- `apps/mobile/public/email/toboggo-logo-email.png` — `logo/toboggo-color-2400.png` réduit à 360×94 px
+- `apps/landing/public/email/toboggo-logo-email.png` (servi sur `https://toboggo.com/email/…`) — `logo/toboggo-color-2400.png` réduit à 360×94 px
   (affiché 180 px). Contrôlé par `npm run email:check`.
 - `packages/design-system/src/assets/brand/app-icon*.svg` — icônes v3 (`LogoMark`).

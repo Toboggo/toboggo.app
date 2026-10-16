@@ -1,3 +1,5 @@
+/* Header — blanc, 56 px, bordure fine ; fil d'Ariane à gauche, recherche au
+ * centre, profil à droite. Identique Admin / Collectivités. */
 .header {
   position: sticky;
   top: 0;
@@ -5,25 +7,16 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
-  padding: 8px 20px;
+  padding: 0 32px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  min-height: var(--topbar-height, 48px);
+  min-height: var(--topbar-height, 56px);
 }
-/* Admin-UI-7C — bordure neutre (pas la teinte beige de --color-border) ;
- * le fond reste --color-surface (déjà blanc) pour les deux rôles. Scoped via
- * `isAdmin` côté composant, jamais appliqué à la Collectivité. */
-.adminHeader {
-  border-bottom-color: var(--color-border-admin);
-}
-
-/* Contexte discret : petite ligne « où suis-je », pas un titre — le <h1> du
- * PageHeader de chaque écran reste le titre dominant. */
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
+  gap: 6px;
+  font-size: 13px;
   color: var(--color-text-muted);
   flex: 1;
   min-width: 0;
@@ -34,18 +27,14 @@
   color: var(--color-text-faint);
 }
 .current {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* Recherche = repère visuel « recherche globale » de la topbar (maquette
- * Admin-UI-1), mais reste l'utilitaire réel existant (recherche parcs) —
- * élargie et recentrée, jamais un habillage vide. */
 .search {
   flex: 1 1 auto;
-  max-width: 420px;
+  max-width: 400px;
   margin: 0 auto;
 }
 .search :global(label) {
@@ -57,49 +46,43 @@
   align-items: center;
 }
 .searchInput {
-  padding: 7px 40px 7px 14px;
+  padding: 7px 44px 7px 34px;
   font-size: 13.5px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-sm);
   background: var(--color-surface-alt);
+  border-color: var(--color-border);
 }
-/* Admin-UI-7C — même recherche, fond neutre (pas la teinte beige de
- * --color-surface-alt) pour rester cohérent avec le reste de la topbar Admin.
- * Admin-UI-7E-B : marge gauche élargie pour laisser la place à `.searchIcon`
- * (Admin uniquement — la Collectivité n'affiche pas encore cette icône, voir
- * AppHeader.tsx). */
-.searchInputAdmin {
-  background: var(--color-bg-admin);
-  padding-left: 36px;
+.searchInput:focus {
+  background: var(--color-surface);
 }
 .searchIcon {
   position: absolute;
-  left: 12px;
+  left: 11px;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--color-text-faint);
+  color: var(--color-text-muted);
   pointer-events: none;
   display: flex;
 }
 .kbdHint {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--font-body);
   font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-faint);
+  font-weight: 700;
+  color: var(--color-text-muted);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xs);
   padding: 1px 6px;
   pointer-events: none;
 }
-
 .userTrigger {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
   padding: 4px 8px 4px 4px;
 }
@@ -112,29 +95,32 @@
 }
 .userName {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
-  max-width: 130px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .userRole {
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-text-muted);
-  max-width: 130px;
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .chevron {
-  color: var(--color-text-faint);
-  font-size: 12px;
-  flex-shrink: 0;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  line-height: 1;
 }
 
 @media (max-width: 860px) {
+  .header {
+    padding: 0 16px;
+  }
   .search {
     max-width: 260px;
   }
@@ -147,7 +133,8 @@
   .search {
     display: none;
   }
-  .userMeta {
+  .userMeta,
+  .chevron {
     display: none;
   }
 }

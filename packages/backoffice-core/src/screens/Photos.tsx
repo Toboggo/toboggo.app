@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Select, Tabs, TabPanel, Tag, useConfirm, useToast } from "@toboggo/design-system";
+import { Button, Input, Select, Tabs, TabPanel, Tag, useConfirm, useToast, FilterBar } from "@toboggo/design-system";
 import {
   deleteMedia,
   listProcessedMedia,
@@ -11,6 +11,8 @@ import {
   type SourceType,
 } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
+import { PanelEmpty } from "../components/Panel";
+import styles from "../components/Records.module.css";
 import { MediaStatusTag } from "../components/StatusTag";
 import { useOrgScope } from "../lib/orgScope";
 import { usePermissions } from "../lib/permissions";
@@ -137,14 +139,13 @@ export default function Photos() {
         ]}
       />
 
-      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 10, margin: "14px 0" }}>
+      <FilterBar className={styles.afterTabs}>
         <Input
           label="Rechercher"
           type="search"
           placeholder="Parc, auteur…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          style={{ minWidth: 220 }}
         />
         <Select label="Source" value={source} onChange={(e) => setSource(e.target.value as SourceType | "all")}>
           {SOURCE_VALUES.map((v) => (
@@ -164,10 +165,10 @@ export default function Photos() {
             <option value="rejected">Refusées</option>
           </Select>
         )}
-      </div>
+      </FilterBar>
 
       {!canModerateMedia && (
-        <p style={{ color: "var(--color-text-muted)", fontSize: 13, margin: "0 0 14px" }}>
+        <p className={styles.note}>
           Vous n'avez pas les droits pour modérer les photos — vue en lecture seule.
         </p>
       )}
@@ -182,31 +183,29 @@ export default function Photos() {
   );
 
   function renderGrid() {
-    if (isLoading) return <p style={{ color: "var(--color-text-muted)" }}>Chargement…</p>;
+    if (isLoading) return <p className={styles.empty}>Chargement…</p>;
     if (filtered.length === 0) {
       return (
-        <p style={{ color: "var(--color-text-muted)" }}>
-          {tab === "pending" ? "Aucune photo en attente. 🎉" : "Aucune photo traitée ne correspond à ces critères."}
-        </p>
+        <PanelEmpty
+          icon={tab === "pending" ? "ic-check" : "ic-camera"}
+          text={tab === "pending" ? "Aucune photo en attente." : "Aucune photo traitée ne correspond à ces critères."}
+        />
       );
     }
     return (
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
+      <div className={styles.mediaGrid}>
         {filtered.map((m) => {
           const prov = provenanceLine(m);
           return (
-            <div
-              key={m.id}
-              style={{ background: "var(--color-surface)", borderRadius: 14, overflow: "hidden", border: "1px solid var(--color-border)" }}
-            >
+            <div key={m.id} className={styles.mediaCard}>
               <a href={m.url} target="_blank" rel="noreferrer">
                 <img
                   src={m.url}
                   alt={`Photo proposée pour ${m.park?.name ?? "un parc"}`}
-                  style={{ display: "block", width: "100%", height: 200, objectFit: "cover", background: "var(--color-bg-alt)" }}
+                  className={styles.mediaImg}
                 />
               </a>
-              <div style={{ padding: 12 }}>
+              <div className={styles.mediaBody}>
                 <a
                   href={m.park ? `/parks/${m.park.id}` : undefined}
                   onClick={(e) => {
@@ -214,26 +213,19 @@ export default function Photos() {
                     e.preventDefault();
                     navigate(`/parks/${m.park.id}`);
                   }}
-                  style={{
-                    display: "block",
-                    fontWeight: 600,
-                    fontSize: 14,
-                    color: m.park ? "var(--color-text)" : "var(--color-text-muted)",
-                    textDecoration: "none",
-                    cursor: m.park ? "pointer" : "default",
-                  }}
+                  className={m.park ? styles.mediaPark : `${styles.mediaPark} ${styles.mediaParkMuted}`}
                 >
                   {m.park?.name ?? "Parc inconnu"}
                 </a>
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "6px 0 4px" }}>
-                  <Tag tone="primary">{SOURCE_LABEL[m.source ?? "other"] ?? "Provenance inconnue"}</Tag>
+                <div className={styles.chips} style={{ margin: "6px 0 4px" }}>
+                  <Tag tone="neutral">{SOURCE_LABEL[m.source ?? "other"] ?? "Provenance inconnue"}</Tag>
                   <MediaStatusTag status={m.status} />
                   <Tag>{dateFmt.format(new Date(m.created_at))}</Tag>
                 </div>
-                {prov && <div style={{ fontSize: 11.5, color: "var(--color-text-muted)", margin: "2px 0 10px" }}>{prov}</div>}
+                {prov && <div className={styles.mediaProv}>{prov}</div>}
 
                 {canModerateMedia && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: prov ? 0 : 10 }}>
+                  <div className={styles.actions} style={{ marginTop: prov ? 0 : 10 }}>
                     {tab === "pending" ? (
                       <>
                         <Button size="sm" disabled={!!busy} onClick={() => run(m.id, () => approve(m, false), "Photo approuvée.")}>

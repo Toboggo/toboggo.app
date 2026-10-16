@@ -37,7 +37,7 @@ export function StarRating({
         ))}
       </span>
       {showValue && (
-        <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: size === "sm" ? 12 : 13 }}>
+        <span style={{ fontFamily: "var(--font-ui-label, var(--font-heading))", fontWeight: 700, fontSize: size === "sm" ? 12 : 13 }}>
           {valueText ?? value.toFixed(1)}
         </span>
       )}

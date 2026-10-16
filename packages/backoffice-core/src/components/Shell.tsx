@@ -27,20 +27,12 @@ export interface NavGroup {
 }
 
 /**
- * Entrées de navigation sans icône de sprite adaptée (Lot 2 — audit §6 bis /
- * §20 ; Photos et Collectivités résolus en Admin-UI-7E-B via `ic-camera` /
- * `ic-building`, Lucide adapté au format Toboggo). Recherchées dans les
- * symboles existants avant d'écarter l'idée : aucun ne représente
- * raisonnablement une carte ou un journal d'activité sans dénaturer un
- * symbole déjà utilisé ailleurs dans le sprite pour un autre sens (l'entretien
- * a un équivalent Lucide plausible mais hors périmètre de ce lot — pas de
- * nouvelle icône ajoutée sans besoin identifié). Documenté ici plutôt que
- * masqué.
+ * Entrées de navigation sans icône de sprite adaptée. Vide depuis le Brand Book
+ * v2 : toutes les entrées ont un pictogramme (`ic-wrench` Entretien, `ic-clock`
+ * Journal, déjà présents dans le sprite). Conservé pour documenter tout futur
+ * manque plutôt que de le masquer.
  */
-export const NAV_ICON_GAPS: Record<string, string> = {
-  "/maintenance": "entretien (outil / clé) — aucun symbole du sprite ne convient",
-  "/journal": "journal d'activité — aucun symbole du sprite ne convient sans réutiliser ic-list (déjà « Parcs »)",
-};
+export const NAV_ICON_GAPS: Record<string, string> = {};
 
 export function buildNavGroups(opts: {
   isAdmin: boolean;
@@ -93,11 +85,11 @@ export function buildNavGroups(opts: {
         { to: "/photos", label: "Photos", icon: "ic-camera", badge: pendingMedia },
       ],
     },
-    { title: "Exploitation", items: [{ to: "/maintenance", label: "Entretien" }] },
+    { title: "Exploitation", items: [{ to: "/maintenance", label: "Entretien", icon: "ic-wrench" }] },
     {
       title: "Organisation",
       items: [
-        { to: "/journal", label: "Journal" },
+        { to: "/journal", label: "Journal", icon: "ic-clock" },
         { to: "/statistiques", label: "Statistiques", icon: "ic-chart" },
         { to: "/settings", label: "Équipe & Réglages", icon: "ic-settings" },
       ],
@@ -210,11 +202,16 @@ export function Shell({ children }: { children: ReactNode }) {
       </a>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <Logo size={24} tone="light" />
-          {isAdmin && <span className={styles.adminBadge}>Admin</span>}
+          <Logo size={26} tone="light" />
+          {isAdmin ? (
+            <span className={clsx(styles.contextBadge, styles.contextAdmin)}>Admin</span>
+          ) : (
+            <span className={clsx(styles.contextBadge, styles.contextCommune)}>Collectivité</span>
+          )}
         </div>
 
         <div className={styles.orgBlock}>
+          <div className={styles.orgCaption}>{isAdmin ? "Espace" : "Organisation"}</div>
           <div className={styles.orgLabel}>{orgLabel}</div>
           {(hasAdmin ? 1 : 0) + communeMemberships.length > 1 && (
             <select
@@ -250,7 +247,9 @@ export function Shell({ children }: { children: ReactNode }) {
                   >
                     <span className={styles.navLabel}>
                       {item.icon ? (
-                        <Icon name={item.icon} size={16} />
+                        <span className={styles.navIcon}>
+                          <Icon name={item.icon} size={17} />
+                        </span>
                       ) : (
                         <span className={styles.navIconSlot} aria-hidden="true" />
                       )}

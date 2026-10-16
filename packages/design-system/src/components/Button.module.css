@@ -3,12 +3,12 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  font-family: var(--font-heading);
-  font-weight: 600;
-  font-size: 15px;
+  font-family: var(--btn-font, var(--font-heading));
+  font-weight: var(--btn-weight, 600);
+  font-size: var(--btn-size, 15px);
   border: none;
-  border-radius: var(--radius-pill);
-  padding: 14px 22px;
+  border-radius: var(--btn-radius, var(--radius-pill));
+  padding: var(--btn-pad, 14px 22px);
   cursor: pointer;
   transition: transform 0.06s ease, background-color 0.15s ease, opacity 0.15s ease;
   white-space: nowrap;
@@ -40,22 +40,22 @@
 }
 
 .primary {
-  background: var(--color-primary);
+  background: var(--btn-primary-bg, var(--color-primary));
   color: var(--color-on-primary);
 }
 @media (hover: hover) {
   .primary:hover:not(:disabled) {
-    background: var(--color-primary-hover);
+    background: var(--btn-primary-bg-hover, var(--color-primary-hover));
   }
 }
 .primary:active:not(:disabled) {
-  background: var(--color-primary-pressed);
+  background: var(--btn-primary-bg-active, var(--color-primary-pressed));
 }
 
 .secondary {
   background: var(--color-surface);
   color: var(--color-text);
-  border: 1.5px solid var(--color-border-strong);
+  border: var(--btn-border, 1.5px solid var(--color-border-strong));
 }
 @media (hover: hover) {
   .secondary:hover:not(:disabled) {
@@ -68,8 +68,8 @@
 
 .ghost {
   background: transparent;
-  color: var(--color-primary);
-  padding: 10px 14px;
+  color: var(--color-link, var(--color-primary));
+  padding: var(--btn-pad-ghost, 10px 14px);
 }
 @media (hover: hover) {
   .ghost:hover:not(:disabled) {
@@ -96,8 +96,8 @@
 }
 
 .sm {
-  padding: 9px 16px;
-  font-size: 13px;
+  padding: var(--btn-pad-sm, 9px 16px);
+  font-size: var(--btn-size-sm, 13px);
 }
 
 .icon {
@@ -118,6 +118,6 @@
   transform: scale(0.94);
 }
 .icon.filled {
-  background: var(--color-primary);
+  background: var(--btn-primary-bg, var(--color-primary));
   color: var(--color-on-primary);
 }

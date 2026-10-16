@@ -50,7 +50,7 @@ export function EmptyState({
       ) : (
         icon && <div className={styles.emptyIcon}>{icon}</div>
       )}
-      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 15, color: "var(--color-text)" }}>
+      <div style={{ fontFamily: "var(--font-ui-label, var(--font-heading))", fontWeight: 600, fontSize: 15, color: "var(--color-text)" }}>
         {title}
       </div>
       {description && <div style={{ marginTop: 4, fontSize: 13 }}>{description}</div>}

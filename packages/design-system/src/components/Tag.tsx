@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, HTMLAttributes } from "react";
 import clsx from "clsx";
 import styles from "./Tag.module.css";
 
-type Tone = "neutral" | "primary" | "accent" | "info" | "error" | "warning";
+type Tone = "neutral" | "primary" | "success" | "accent" | "info" | "error" | "warning";
 
 export function Tag({
   tone = "neutral",

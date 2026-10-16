@@ -11,6 +11,8 @@ import {
   type Maintenance,
   type Park,
 } from "@toboggo/shared";
+import { KpiGrid } from "@toboggo/backoffice-core/components/KpiGrid";
+import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
 import { useOrgSession } from "@toboggo/backoffice-core/lib/orgSession";
 import { usePendingMedia } from "@toboggo/backoffice-core/lib/sharedQueries";
@@ -165,14 +167,12 @@ export default function CommuneDashboard() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.title}>{firstName ? `Bonjour ${firstName}` : "Tableau de bord"}</h1>
-          <p className={styles.subtitle}>Vue d'ensemble de votre collectivité</p>
-        </div>
-      </div>
+      <PageHeader
+        title={firstName ? `Bonjour ${firstName}` : "Tableau de bord"}
+        subtitle="Vue d'ensemble de votre collectivité"
+      />
 
-      <div className={styles.kpiStrip}>
+      <KpiGrid>
         {kpis.map((kpi) => (
           <StatCard
             key={kpi.key}
@@ -186,31 +186,34 @@ export default function CommuneDashboard() {
             secondary={kpi.secondary}
           />
         ))}
-      </div>
+      </KpiGrid>
 
       <>
-      <PatrimonyCard
-        compact
-        parks={parks}
-        published={published}
-        pending={pending}
-        blocked={blocked}
-        total={patrimonyTotal}
-        navigate={navigate}
-      />
-
-      <div className={styles.rowTwo}>
-        <ReportsInsightPanel reports={reports} />
-        <MiniParkMap parks={parks} />
-      </div>
-
+      {/* 1 · À traiter : ce qui demande une action (signalements, infos à
+          vérifier, entretien) passe avant les vues d'ensemble. */}
       <div className={styles.rowThree}>
         <RecentReportsPanel reports={reports} />
         <PendingEditsPanel edits={pendingEdits} parkById={parkById} />
         <UpcomingMaintenancePanel items={upcomingMaintenanceItems} parkById={parkById} />
       </div>
 
+      {/* 2 · Patrimoine et carte : l'état du parc géré. */}
       <div className={styles.rowTwo}>
+        <PatrimonyCard
+          compact
+          parks={parks}
+          published={published}
+          pending={pending}
+          blocked={blocked}
+          total={patrimonyTotal}
+          navigate={navigate}
+        />
+        <MiniParkMap parks={parks} />
+      </div>
+
+      {/* 3 · Suivi : tendance des signalements, avis, activité. */}
+      <div className={styles.rowThree}>
+        <ReportsInsightPanel reports={reports} />
         <RecentReviewsPanel reviews={reviews} lowCount={lowReviews} />
         <div className={`${panelStyles.neutralCard} ${styles.secondaryCard}`}>
           <div className={panelStyles.panelHeader}>
@@ -363,7 +366,7 @@ function DashboardSkeleton() {
         </div>
       </div>
 
-      <div className={styles.kpiStrip}>
+      <KpiGrid>
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className={`${panelStyles.neutralCard} ${styles.kpiSkeleton}`}>
             <Skeleton width={28} height={28} radius="var(--radius-sm)" />
@@ -375,7 +378,7 @@ function DashboardSkeleton() {
             </div>
           </div>
         ))}
-      </div>
+      </KpiGrid>
 
       <>
       <div className={`${panelStyles.neutralCard} ${styles.patrimonyCompact}`}>

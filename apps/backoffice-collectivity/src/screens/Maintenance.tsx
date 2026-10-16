@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Segmented, Select, StatCard } from "@toboggo/design-system";
+import { Button, Icon, Input, Segmented, Select, StatCard, Tag } from "@toboggo/design-system";
 import { completeMaintenance, createMaintenance, listMaintenance, listParks, listTeam, logActivity, type Maintenance as MaintenanceType, type MaintenanceRecurrence } from "@toboggo/shared";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
+import { PanelEmpty } from "@toboggo/backoffice-core/components/Panel";
+import styles from "@toboggo/backoffice-core/components/Records.module.css";
 import { ParkLink } from "@toboggo/backoffice-core/components/ParkLink";
 import { MaintenanceModal } from "../components/MaintenanceModal";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
@@ -55,13 +57,13 @@ export default function Maintenance() {
     <div>
       <PageHeader title="Entretien" />
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24, maxWidth: 480 }}>
+      <div className={styles.kpis}>
         <StatCard value={counts.upcoming} label="À venir" />
         <StatCard value={counts.late} label="En retard" />
         <StatCard value={counts.done} label="Terminées" />
       </div>
 
-      <div style={{ background: "var(--color-surface)", borderRadius: 14, padding: 16, marginBottom: 24, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div className={styles.planForm}>
         <Select label="Parc" value={formParkId} onChange={(e) => setFormParkId(e.target.value)} style={{ minWidth: 160 }}>
           <option value="">Sélectionner…</option>
           {parks.map((p) => (
@@ -90,6 +92,7 @@ export default function Maintenance() {
         </Button>
       </div>
 
+<div className={styles.segWrap}>
       <Segmented
         options={[
           { value: "upcoming", label: `À venir (${counts.upcoming})` },
@@ -99,31 +102,37 @@ export default function Maintenance() {
         value={tab}
         onChange={(v) => setTab(v as TabValue)}
       />
+      </div>
 
-      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+      <div className={styles.list} style={{ marginTop: 16 }}>
         {filtered.map((item) => {
           const park = parks.find((p) => p.id === item.park_id);
           return (
-            <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: 12, background: "var(--color-surface)", borderRadius: 12 }}>
+            <div key={item.id} className={`${styles.card} ${styles.row}`}>
               {!item.done && (
-                <input type="checkbox" checked={false} onChange={() => onComplete(item)} style={{ width: 18, height: 18 }} />
+                <input type="checkbox" checked={false} onChange={() => onComplete(item)} className={styles.check} aria-label="Marquer l'intervention comme réalisée" />
               )}
-              <div style={{ flex: 1 }}>
-                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 14 }}>
-                  {park ? <ParkLink parkId={park.id}>{park.name}</ParkLink> : null} {item.recur !== "none" && <span style={{ fontSize: 11, color: "var(--color-text-muted)" }}>↻ {item.recur === "monthly" ? "Mensuel" : "Annuel"}</span>}
+              <div className={styles.grow}>
+                <div className={styles.name}>
+                  {park ? <ParkLink parkId={park.id}>{park.name}</ParkLink> : null} {item.recur !== "none" && <Tag>{item.recur === "monthly" ? "Mensuel" : "Annuel"}</Tag>}
                 </div>
-                <div style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>
+                <div className={styles.meta}>
                   {new Date(item.date).toLocaleDateString("fr-FR")} · {item.note} · {item.assignee ?? "Non assigné"}
                 </div>
-                {item.done && item.done_date && <div style={{ fontSize: 11.5, color: "var(--color-primary)" }}>réalisé le {new Date(item.done_date).toLocaleDateString("fr-FR")}</div>}
+                {item.done && item.done_date && <div className={styles.done}>réalisé le {new Date(item.done_date).toLocaleDateString("fr-FR")}</div>}
               </div>
-              <button onClick={() => setEditing(item)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 15 }}>
-                ✏️
+              <button
+                onClick={() => setEditing(item)}
+                aria-label="Modifier l'intervention"
+                className={styles.iconButton}
+                type="button"
+              >
+                <Icon name="ic-pencil" size={16} />
               </button>
             </div>
           );
         })}
-        {filtered.length === 0 && <p style={{ color: "var(--color-text-muted)" }}>Aucune inspection dans cette catégorie.</p>}
+        {filtered.length === 0 && <PanelEmpty icon="ic-wrench" text="Aucune inspection dans cette catégorie." />}
       </div>
 
       {editing && <MaintenanceModal item={editing} parks={parks} team={team} onClose={() => setEditing(null)} />}

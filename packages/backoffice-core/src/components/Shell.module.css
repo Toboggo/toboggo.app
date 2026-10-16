@@ -14,144 +14,120 @@
   left: 0;
 }
 
-/* Sidebar Collectivité (défaut) = vert Toboggo profond (--color-primary-pressed).
- * L'Admin sombre (Admin-UI-7C, ci-dessous) est une SURCHARGE scoped sous
- * `:global(.bo-shell-admin)` — ce bloc reste la vérité pour la Collectivité,
- * intégralement inchangé. cf. docs/DESIGN-SYSTEM.md §6. */
+/* ════════════════════════════════════════════════════════════════════════
+   Sidebar — Brand Book v2 : Encre (#24303A), IDENTIQUE pour l'Admin et les
+   Collectivités (même marque, même structure). Seul le repère de contexte
+   (pastille sous le logo + bloc d'identité) distingue les deux espaces.
+   Toutes les couleurs viennent de bo-theme.css.
+   ════════════════════════════════════════════════════════════════════════ */
 .sidebar {
-  width: var(--sidebar-width, 212px);
+  width: var(--sidebar-width, 232px);
   flex-shrink: 0;
-  background: var(--color-primary-pressed);
-  color: #fff;
+  background: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
+  padding: 16px 12px 12px;
   position: sticky;
   top: 0;
   height: 100vh;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
-/* ════════════════════════════════════════════════════════════════════════
-   Admin-UI-7C — Shell Admin sombre (scoped, Admin uniquement)
-   ────────────────────────────────────────────────────────────────────────
-   `:global(.bo-shell-admin)` n'est posé sur la racine que si `isAdmin`
-   (Shell.tsx) : la Collectivité ne charge jamais ces règles. Presque noir /
-   bleu nuit plutôt qu'une grande surface verte — le vert Toboggo devient un
-   ACCENT (item actif) et non plus le fond structurel.
-   ════════════════════════════════════════════════════════════════════════ */
-:global(.bo-shell-admin) .sidebar {
-  background: var(--color-sidebar-bg);
-}
-:global(.bo-shell-admin) .navItem {
-  color: var(--color-sidebar-text);
-}
-:global(.bo-shell-admin) .navItem:hover {
-  background: var(--color-sidebar-surface-hover);
-  color: var(--color-sidebar-text-active);
-}
-/* Item actif = halo vert Toboggo (surface + liseré), pas violet, pas un
- * simple blanc translucide comme sur la Collectivité. */
-:global(.bo-shell-admin) .navItem.active {
-  background: rgba(47, 163, 124, 0.18);
-  color: var(--color-sidebar-text-active);
-}
-:global(.bo-shell-admin) .navItem.active::before {
-  background: var(--color-primary);
-}
-:global(.bo-shell-admin) .groupTitle {
-  color: rgba(255, 255, 255, 0.42);
-}
-:global(.bo-shell-admin) .orgLabel {
-  color: var(--color-sidebar-text-active);
-}
-:global(.bo-shell-admin) .orgBlock {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
-}
-:global(.bo-shell-admin) .orgSwitch {
-  background: var(--color-sidebar-surface-hover);
-  border-color: rgba(255, 255, 255, 0.14);
-}
-:global(.bo-shell-admin) .adminBadge {
-  background: var(--color-primary);
-  color: #fff;
-}
+/* Logo + pastille de contexte. */
 .brand {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 6px;
-  margin-bottom: 14px;
+  gap: 10px;
+  padding: 2px 8px 0;
+  margin-bottom: 16px;
   flex-shrink: 0;
 }
-/* Pastille « Admin » (Admin-UI-1, maquette produit) — structure/typo repris
- * de la maquette, teinte volontairement neutre (blanc translucide) : le vert
- * de marque reste l'accent, cette pastille est un simple repère de contexte. */
-.adminBadge {
-  font-family: var(--font-heading);
-  font-size: 10px;
+.contextBadge {
+  font-family: var(--font-body);
+  font-size: 10.5px;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.92);
-  background: rgba(255, 255, 255, 0.16);
+  line-height: 1;
+  padding: 4px 8px;
   border-radius: var(--radius-pill);
-  padding: 2px 8px;
+  white-space: nowrap;
+}
+/* Admin Toboggo : aplat vert de marque. */
+.contextAdmin {
+  background: var(--color-primary-hover); /* Vert profond : texte blanc lisible */
+  color: var(--color-on-primary);
+}
+/* Collectivité : contour léger sur l'Encre (même poids visuel, ton plus calme). */
+.contextCommune {
+  background: transparent;
+  color: var(--color-sidebar-text-active);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
 }
 
-/* Bloc identité (org courante + sélecteur) séparé visuellement de la nav —
- * hiérarchie plus lisible qu'un simple empilement (Admin-UI-1). */
+/* Bloc identité : organisation courante (+ sélecteur si plusieurs). */
 .orgBlock {
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 10px 10px 12px;
+  margin: 0 0 14px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
   flex-shrink: 0;
 }
+.orgCaption {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-sidebar-muted);
+  margin-bottom: 2px;
+}
 .orgLabel {
-  padding: 0 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.92);
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-sidebar-text-active);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .orgSwitch {
   width: 100%;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  color: inherit;
+  color: var(--color-sidebar-text-active);
   border-radius: var(--radius-xs);
   padding: 6px 8px;
-  font-size: 12px;
-  margin-top: 6px;
+  font-size: 12.5px;
+  margin-top: 8px;
   cursor: pointer;
   flex-shrink: 0;
+}
+.orgSwitch option {
+  color: var(--bo-ink, #24303a);
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 18px;
   flex: 1;
 }
 .group {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
 }
-/* Un peu plus de contraste sur le libellé : la hiérarchie des sections se
- * lit à l'œil sans dépendre d'un grand espace vide entre elles (qui donnait
- * la sensation de sidebar creuse) — l'espacement inter-groupes vient du
- * `gap` de `.nav`, resserré ci-dessus, pas d'un padding supplémentaire ici. */
+/* Libellé de section : Nunito 700, petit, espacé — lisible sans décorer. */
 .groupTitle {
-  font-family: var(--font-heading);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.07em;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.56);
-  padding: 0 8px 4px;
+  color: var(--color-sidebar-muted);
+  padding: 0 10px 6px;
 }
 .navItem {
   position: relative;
@@ -159,10 +135,13 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 6px 8px;
-  border-radius: var(--radius-xs);
-  color: rgba(255, 255, 255, 0.75);
-  font-size: 13px;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--color-sidebar-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
   text-decoration: none;
   cursor: pointer;
   background: none;
@@ -172,61 +151,72 @@
   transition: background-color 0.12s ease, color 0.12s ease;
 }
 .navItem:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--color-sidebar-surface-hover);
+  color: var(--color-sidebar-text-active);
 }
-/* Actif = repérable immédiatement par la conjonction poids + blanc pur +
- * fond léger + liseré d'accent à gauche (Admin-UI-1 — reprend la lisibilité
- * de la maquette sans en reprendre sa teinte violette, cf. vert de marque). */
+.navItem:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+/* Actif : fond vert translucide + texte blanc + repère vert à gauche. */
 .navItem.active {
-  background: rgba(255, 255, 255, 0.14);
-  color: #fff;
-  font-weight: 600;
+  background: var(--color-sidebar-surface-active);
+  color: var(--color-sidebar-text-active);
 }
 .navItem.active::before {
   content: "";
   position: absolute;
   left: -12px;
-  top: 5px;
-  bottom: 5px;
+  top: 7px;
+  bottom: 7px;
   width: 3px;
   border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
-  background: #fff;
+  background: var(--color-primary);
+}
+.navItem.active .navIcon {
+  color: var(--color-primary);
 }
 .navLabel {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
+}
+.navIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 .navLabelText {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* Entrées sans pictogramme approprié dans le sprite (Entretien / Photos /
- * Journal — voir NAV_ICON_GAPS) : slot vide de la largeur d'une vraie icône
- * pour que tous les labels restent alignés. Aucune icône inventée, aucune
- * puce (qui se lirait comme un pictogramme manquant). */
+/* Entrées sans pictogramme dans le sprite (voir NAV_ICON_GAPS) : emplacement
+ * vide de la largeur d'une icône pour que tous les libellés restent alignés. */
 .navIconSlot {
   display: inline-block;
   width: 16px;
   height: 16px;
   flex-shrink: 0;
 }
+/* Compteur : aplat orange (accent), texte Encre — l'orange n'est jamais un
+ * texte, et le texte blanc sur orange manquait de contraste. */
 .badge {
   background: var(--color-accent);
-  color: #fff;
-  font-size: 10px;
+  color: var(--color-on-accent);
+  font-family: var(--font-body);
+  font-size: 11px;
   font-weight: 700;
   border-radius: var(--radius-pill);
-  min-width: 16px;
-  height: 16px;
+  min-width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 5px;
+  padding: 0 6px;
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .column {
@@ -253,20 +243,21 @@
     display: none;
   }
   .orgBlock {
-    border-bottom: none;
-    padding-bottom: 0;
-    margin-bottom: 0;
+    background: none;
+    padding: 0;
+    margin: 0;
   }
+  .orgCaption,
   .orgLabel {
     display: none;
   }
   /* La barre d'accent à gauche n'a pas de sens dans la barre du bas (items
-   * empilés icône+label, pas une liste verticale) — supprimée ici seulement. */
+   * empilés icône+label) — supprimée ici seulement. */
   .navItem.active::before {
     display: none;
   }
   .orgSwitch {
-    margin-bottom: 6px;
+    margin: 0 0 6px;
     font-size: 11.5px;
     padding: 7px 10px;
   }
@@ -277,49 +268,40 @@
     gap: 0;
     overflow-x: auto;
   }
-  /* Flattens the named groups back into one row of icons for the compact
-   * bottom bar — the grouping stays meaningful at desktop width, where the
-   * vertical list has room for it, without a second, divergent mobile nav
-   * data structure. */
+  /* Aplatit les groupes en une rangée d'icônes pour la barre basse compacte. */
   .group {
     display: contents;
   }
   .groupTitle {
     display: none;
   }
-  /* Le `width: 100%` du mode bureau (liste verticale) donnerait à chaque
-   * entrée toute la largeur de la barre (≈744 px à 760 px) : une seule serait
-   * visible. Ici chaque entrée prend sa largeur naturelle, s'étire pour
-   * répartir l'espace restant quand tout tient, et la barre défile
-   * horizontalement (pas la page) quand ça ne tient pas (téléphone). */
   .navItem {
     flex-direction: column;
     justify-content: center;
     font-size: 10px;
     padding: 6px 8px;
+    min-height: 0;
     width: auto;
     min-width: 56px;
     flex: 1 0 auto;
     text-align: center;
   }
   .navItem.active {
-    background: rgba(255, 255, 255, 0.11);
+    background: var(--color-sidebar-surface-active);
   }
-  /* Pastille de compteur : posée sur l'angle de l'item plutôt qu'empilée sous
-   * le libellé (qui rendrait les items inégaux en hauteur). */
   .badge {
     position: absolute;
     top: 2px;
     right: 6px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 10px;
+    padding: 0 4px;
   }
-  /* Icône AU-DESSUS du libellé (comme le commente le bloc plus haut : « items
-   * empilés icône+label ») : sans ça l'icône et le texte restent côte à côte
-   * et la barre déborde dès ~760 px. */
   .navLabel {
     flex-direction: column;
     gap: 2px;
   }
-  /* Libellé sur 2 lignes max (au lieu d'une ellipse qui coupe « Tableau de… »). */
   .navLabelText {
     max-width: 64px;
     white-space: normal;

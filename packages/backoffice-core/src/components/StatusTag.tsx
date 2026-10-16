@@ -18,10 +18,10 @@ const PARK_LABEL: Record<ParkStatus, string> = {
   blocked: "Bloqué",
   rejected: "Refusé",
 };
-const PARK_TONE: Record<ParkStatus, "primary" | "warning" | "error" | "neutral"> = {
+const PARK_TONE: Record<ParkStatus, "success" | "warning" | "error" | "neutral"> = {
   draft: "neutral",
   pending: "warning",
-  published: "primary",
+  published: "success",
   blocked: "error",
   rejected: "error",
 };
@@ -36,11 +36,11 @@ const VERIFICATION_LABEL: Record<VerificationStatus, string> = {
   organization_verified: "Collectivité",
   toboggo_verified: "Toboggo",
 };
-const VERIFICATION_TONE: Record<VerificationStatus, "neutral" | "info" | "primary"> = {
+const VERIFICATION_TONE: Record<VerificationStatus, "neutral" | "info" | "success"> = {
   unverified: "neutral",
   community_verified: "info",
-  organization_verified: "primary",
-  toboggo_verified: "primary",
+  organization_verified: "success",
+  toboggo_verified: "success",
 };
 
 /** `unverified` (the default for every OSM-imported park) renders as a discreet
@@ -52,7 +52,7 @@ export function ParkVerificationTag({ status }: { status: VerificationStatus }) 
 }
 
 const REPORT_LABEL: Record<ReportStatus, string> = { open: "Ouvert", in_progress: "En cours", resolved: "Résolu", dismissed: "Ignoré" };
-const REPORT_TONE: Record<ReportStatus, "warning" | "primary" | "neutral"> = { open: "warning", in_progress: "warning", resolved: "primary", dismissed: "neutral" };
+const REPORT_TONE: Record<ReportStatus, "warning" | "success" | "neutral"> = { open: "warning", in_progress: "warning", resolved: "success", dismissed: "neutral" };
 
 export function ReportStatusTag({ status }: { status: ReportStatus }) {
   return <Tag tone={REPORT_TONE[status]}>{REPORT_LABEL[status]}</Tag>;
@@ -80,8 +80,8 @@ const REVIEW_LABEL: Record<ReviewStatus, string> = {
   hidden: "Masqué",
   pending: "En attente",
 };
-const REVIEW_TONE: Record<ReviewStatus, "primary" | "error" | "neutral" | "warning"> = {
-  published: "primary",
+const REVIEW_TONE: Record<ReviewStatus, "success" | "error" | "neutral" | "warning"> = {
+  published: "success",
   flagged: "error",
   hidden: "neutral",
   pending: "warning",
@@ -97,11 +97,11 @@ const EDIT_LABEL: Record<EditStatus, string> = {
   rejected: "Rejetée",
   auto_approved: "Auto-approuvée",
 };
-const EDIT_TONE: Record<EditStatus, "warning" | "primary" | "error"> = {
+const EDIT_TONE: Record<EditStatus, "warning" | "success" | "error"> = {
   pending: "warning",
-  approved: "primary",
+  approved: "success",
   rejected: "error",
-  auto_approved: "primary",
+  auto_approved: "success",
 };
 
 export function ParkEditStatusTag({ status }: { status: EditStatus }) {
@@ -117,8 +117,8 @@ const ITEM_RESULT_LABEL: Record<ParkEditItemResult, string> = {
   CONFLICT: "Conflit",
   NOT_AUTOMATICALLY_APPLICABLE: "Vérification manuelle",
 };
-const ITEM_RESULT_TONE: Record<ParkEditItemResult, "primary" | "neutral" | "error" | "warning"> = {
-  APPLICABLE: "primary",
+const ITEM_RESULT_TONE: Record<ParkEditItemResult, "success" | "neutral" | "error" | "warning"> = {
+  APPLICABLE: "success",
   ALREADY_APPLIED: "neutral",
   CONFLICT: "error",
   NOT_AUTOMATICALLY_APPLICABLE: "warning",
@@ -129,7 +129,7 @@ export function ParkEditItemResultTag({ result }: { result: ParkEditItemResult }
 }
 
 const MEDIA_LABEL: Record<MediaStatus, string> = { pending: "En attente", approved: "Approuvée", rejected: "Refusée" };
-const MEDIA_TONE: Record<MediaStatus, "warning" | "primary" | "error"> = { pending: "warning", approved: "primary", rejected: "error" };
+const MEDIA_TONE: Record<MediaStatus, "warning" | "success" | "error"> = { pending: "warning", approved: "success", rejected: "error" };
 
 export function MediaStatusTag({ status }: { status: MediaStatus }) {
   return <Tag tone={MEDIA_TONE[status]}>{MEDIA_LABEL[status]}</Tag>;

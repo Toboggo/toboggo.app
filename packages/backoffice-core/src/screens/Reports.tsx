@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button, DataTable, Input, Select, type DataTableColumn } from "@toboggo/design-system";
+import { Button, DataTable, Input, Select, type DataTableColumn, FilterBar } from "@toboggo/design-system";
 import {
   listReports,
   listReportConfirmationCounts,
@@ -231,7 +231,7 @@ export default function Reports() {
         }
       />
 
-      <div className={styles.filterBar}>
+      <FilterBar>
         <Input
           className={styles.search}
           label="Rechercher"
@@ -275,7 +275,7 @@ export default function Reports() {
             {filtered.length} signalement{filtered.length > 1 ? "s" : ""}
           </span>
         )}
-      </div>
+      </FilterBar>
 
       <DataTable
         caption="Liste des signalements"

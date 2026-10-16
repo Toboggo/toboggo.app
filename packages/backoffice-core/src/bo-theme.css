@@ -1,0 +1,174 @@
+/*
+  Toboggo — thème back-office (Brand Book v2).
+  ────────────────────────────────────────────────────────────────────────────
+  Une seule couche de surcharge, chargée UNIQUEMENT par les deux back-offices
+  (Admin + Collectivités) après `tokens.css` : l'app mobile (bundle séparé) ne
+  la charge jamais et reste donc strictement inchangée.
+
+  Même marque, deux tons : l'app familles est chaleureuse et ludique ; le
+  back-office est structuré, dense et lisible, avec le même ADN (vert Toboggo,
+  Fredoka pour les titres/chiffres, Nunito pour l'interface).
+
+  Palette officielle — AUCUNE autre couleur de base. Les teintes claires
+  (fonds d'état, bordures) sont dérivées des couleurs officielles par
+  `color-mix` : elles ne sont pas de nouvelles couleurs, elles s'ajustent si la
+  charte évolue.
+*/
+
+:root {
+  /* ── Palette officielle ───────────────────────────────────────────────── */
+  --bo-green: #2fa37c; /* Vert Toboggo — marque, actions principales, aplats */
+  --bo-green-deep: #1f7d5f; /* Vert profond — liens, boutons secondaires */
+  --bo-orange: #ffb020; /* Orange — accent / attention. Jamais en texte. */
+  --bo-ink: #24303a; /* Encre — texte principal + sidebar */
+  --bo-mint: #e6f5ee; /* Vert d'eau — sélections légères */
+  --bo-white: #ffffff;
+  --bo-blue: #4c9eeb; /* Bleu — information secondaire (graphiques) */
+  --bo-success: #1a6b51;
+  --bo-warning: #8a5a00; /* Alerte (texte sur fond clair) */
+  --bo-error: #b91c1c;
+  --bo-info: #1f6fbf;
+  --bo-text-2: #6b6659; /* Texte secondaire */
+
+  /* ── Surfaces & texte ────────────────────────────────────────────────── */
+  --color-bg: var(--bo-white);
+  --color-bg-alt: color-mix(in srgb, var(--bo-ink) 5%, var(--bo-white));
+  --color-surface: var(--bo-white);
+  --color-surface-alt: color-mix(in srgb, var(--bo-ink) 3%, var(--bo-white));
+  --color-surface-neutral: color-mix(in srgb, var(--bo-ink) 5%, var(--bo-white));
+  --color-text: var(--bo-ink);
+  --color-text-muted: var(--bo-text-2);
+  --color-text-faint: var(--bo-text-2); /* pas de texte plus pâle que le texte secondaire */
+  --color-border: color-mix(in srgb, var(--bo-ink) 13%, var(--bo-white));
+  --color-border-strong: color-mix(in srgb, var(--bo-ink) 22%, var(--bo-white));
+  --color-border-neutral: var(--color-border);
+
+
+  /* ── Marque & actions ────────────────────────────────────────────────── */
+  --color-primary: var(--bo-green);
+  --color-primary-hover: var(--bo-green-deep);
+  --color-primary-pressed: color-mix(in srgb, var(--bo-green-deep) 82%, var(--bo-ink));
+  --color-primary-tint: var(--bo-mint);
+  --color-on-primary: var(--bo-white);
+  --color-link: var(--bo-green-deep);
+
+  /* ── États : neutral / success / warning / error / info ──────────────── */
+  --color-accent: var(--bo-orange);
+  --color-accent-tint: color-mix(in srgb, var(--bo-orange) 16%, var(--bo-white));
+  --color-accent-text: var(--bo-warning); /* l'orange n'est jamais une couleur de texte */
+  --color-on-accent: var(--bo-ink); /* texte posé SUR un aplat orange */
+  --color-status-pending: var(--bo-orange);
+
+  --color-success: var(--bo-success);
+  --color-success-text: var(--bo-success);
+  --color-success-tint: var(--bo-mint);
+  --color-warning-bg: color-mix(in srgb, var(--bo-orange) 16%, var(--bo-white));
+  --color-warning-text: var(--bo-warning);
+  --color-error: var(--bo-error);
+  --color-error-tint: color-mix(in srgb, var(--bo-error) 8%, var(--bo-white));
+  --color-info: var(--bo-info);
+  --color-info-tint: color-mix(in srgb, var(--bo-blue) 14%, var(--bo-white));
+
+  /* ── Sidebar : Encre, identique Admin et Collectivités ───────────────── */
+  --color-sidebar-bg: var(--bo-ink);
+  --color-sidebar-surface-hover: rgba(255, 255, 255, 0.07);
+  --color-sidebar-surface-active: rgba(47, 163, 124, 0.2);
+  --color-sidebar-text: rgba(255, 255, 255, 0.74);
+  --color-sidebar-text-active: var(--bo-white);
+  --color-sidebar-muted: rgba(255, 255, 255, 0.46);
+  --color-sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-width: 232px;
+  --topbar-height: 56px;
+
+  /* ── Formes : plus nettes que l'app familles ─────────────────────────── */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(36, 48, 58, 0.06);
+  --shadow-md: 0 4px 14px rgba(36, 48, 58, 0.1);
+  --shadow-lg: 0 12px 28px rgba(36, 48, 58, 0.16);
+
+  /* ── Tokens de composants (lus par design-system avec repli « app ») ──── */
+  --font-ui-label: var(--font-body); /* libellés, badges, en-têtes de tableau */
+  --btn-radius: var(--radius-sm);
+  --btn-font: var(--font-body);
+  --btn-weight: 700;
+  --btn-size: 14px;
+  --btn-size-sm: 13px;
+  --btn-pad: 9px 16px;
+  --btn-pad-sm: 6px 12px;
+  /* Bouton principal : Vert profond + blanc (≈ 5:1, AA). Le Vert Toboggo
+     #2FA37C + blanc n'atteint que ≈ 3,1:1 : il reste la couleur de marque
+     (focus, nav active, pins, aplats sans texte) mais pas le fond des boutons. */
+  --btn-primary-bg: var(--bo-green-deep);
+  --btn-primary-bg-hover: color-mix(in srgb, var(--bo-green-deep) 86%, var(--bo-ink));
+  --btn-primary-bg-active: color-mix(in srgb, var(--bo-green-deep) 72%, var(--bo-ink));
+  --btn-border: 1px solid var(--color-border-strong);
+  --input-radius: var(--radius-sm);
+  --input-pad: 9px 12px;
+  --input-size: 14px;
+  --input-border: 1px solid var(--color-border-strong);
+  --label-font: var(--font-body);
+  --label-size: 12.5px;
+  --tag-radius: var(--radius-pill);
+  --tag-pad: 3px 10px;
+  --tag-size: 12px;
+  --th-transform: none; /* en-têtes de tableau en casse normale */
+  --card-radius: var(--radius-md);
+  --card-border: 1px solid var(--color-border); /* surfaces blanches : bordure fine, sans ombre */
+  --card-shadow: none;
+  --kpi-size: 28px; /* chiffres clés : Fredoka 600 */
+  --kpi-weight: 600;
+  --kpi-label-weight: 600;
+  --kpi-icon: 30px;
+  --kpi-icon-inline: 36px;
+  --kpi-icon-radius: var(--radius-sm);
+
+  /* ── Échelle typographique back-office ───────────────────────────────── */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 22px;
+  --text-2xl: 28px;
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+html,
+body {
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  background: var(--color-bg);
+}
+
+/* Fredoka 600 pour les titres ; Nunito pour tout le reste de l'interface. */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  color: var(--color-text);
+  letter-spacing: -0.005em;
+}
+
+/* Chiffres alignés (KPI, tableaux, compteurs). */
+table,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+a {
+  color: var(--color-link);
+}
+
+/* Sélection de texte aux couleurs de la marque. */
+::selection {
+  background: color-mix(in srgb, var(--bo-green) 28%, var(--bo-white));
+}
+
+:focus-visible {
+  outline: 2px solid var(--bo-green-deep);
+  outline-offset: 2px;
+}

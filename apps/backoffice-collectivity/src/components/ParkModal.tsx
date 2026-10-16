@@ -232,7 +232,7 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
         </div>
 
         <div>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Équipements</div>
+          <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Équipements</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {SERVICE_KEYS.map((k) => (
               <Chip key={k} active={services.has(k)} onClick={() => canManage && toggle(services, setServices, k)}>
@@ -243,7 +243,7 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
         </div>
 
         <div>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Jeux</div>
+          <div style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: 13, marginBottom: 6 }}>Jeux</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {EQUIPMENT.map((eq) => (
               <Chip key={eq} active={equipment.has(eq)} onClick={() => canManage && toggle(equipment, setEquipment, eq)}>
@@ -273,7 +273,7 @@ export function ParkModal({ park, onClose, canManage }: { park: Park | "new" | n
                     <button
                       aria-label="Retirer la photo"
                       onClick={() => setPhotos(photos.filter((_, idx) => idx !== i))}
-                      style={{ position: "absolute", top: -6, right: -6, background: "var(--color-error)", color: "white", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+                      style={{ position: "absolute", top: -6, right: -6, background: "var(--color-error)", color: "var(--color-on-primary)", border: "none", borderRadius: "50%", width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
                     >
                       <Icon name="ic-close" size={11} />
                     </button>

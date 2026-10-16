@@ -3,7 +3,7 @@
  * actions). `.filterBar` here is passed as its own `className` and only
  * carries the field-sizing fix below + the compact "admin" look shared with
  * `DataTable`'s `variant="admin"` right below it (neutral border, tighter
- * radius — Admin-UI-7B `--color-border-admin`/`--radius-xs`, not the beige
+ * radius — Admin-UI-7B `--color-border`/`--radius-xs`, not the beige
  * `--color-border-strong`/`--radius-sm` of a standalone form field). */
 .filterBar {
   margin-bottom: var(--space-4);
@@ -40,14 +40,14 @@
   padding: 8px 12px 8px 34px;
   font-size: 13px;
   border-radius: var(--radius-xs);
-  border-color: var(--color-border-admin);
+  border-color: var(--color-border);
 }
 .select {
   min-width: 150px;
   padding: 8px 12px;
   font-size: 13px;
   border-radius: var(--radius-xs);
-  border-color: var(--color-border-admin);
+  border-color: var(--color-border);
 }
 .reset {
   background: none;
@@ -67,8 +67,8 @@
 /* ── Cellule « Parc » ─────────────────────────────────────────────────── */
 .parkName {
   display: block;
-  font-family: var(--font-heading);
-  font-weight: 600;
+  font-family: var(--font-body);
+  font-weight: 700;
   font-size: 13.5px;
   color: var(--color-text);
   overflow: hidden;

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Segmented, Select, StarRating, useConfirm } from "@toboggo/design-system";
+import { Button, Input, Segmented, Select, StarRating, useConfirm, FilterBar } from "@toboggo/design-system";
 import { deleteReview, listReviews, replyToReview, toCsv, downloadCsv, type Review, type ReviewStatus } from "@toboggo/shared";
 import { PageHeader } from "../components/PageHeader";
+import { PanelEmpty } from "../components/Panel";
+import styles from "../components/Records.module.css";
 import { ReviewStatusTag } from "../components/StatusTag";
 import { useOrgScope } from "../lib/orgScope";
 import { useOrgSession } from "../lib/orgSession";
@@ -112,7 +114,7 @@ export default function Reviews() {
           </Button>
         }
       />
-      <div style={{ display: "flex", gap: 12, marginBottom: 16, flexWrap: "wrap", alignItems: "center" }}>
+      <FilterBar>
         <Segmented
           options={[
             { value: "all", label: "Toutes" },
@@ -138,21 +140,21 @@ export default function Reviews() {
         <div style={{ maxWidth: 260 }}>
           <Input placeholder="Auteur, parc ou texte…" value={query} onChange={(e) => setQuery(e.target.value)} />
         </div>
-      </div>
+      </FilterBar>
 
       {filtered.length === 0 ? (
-        <p style={{ color: "var(--color-text-muted)" }}>Aucun avis ne correspond.</p>
+        <PanelEmpty icon="ic-review" text="Aucun avis ne correspond." />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div className={styles.list}>
           {filtered.map((r) => (
-            <div key={r.id} style={{ padding: 14, background: "var(--color-surface)", borderRadius: 12 }}>
+            <div key={r.id} className={styles.card}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <strong>{r.author_name}</strong>
+                    <span className={styles.name}>{r.author_name}</span>
                     <ReviewStatusTag status={r.status} />
                   </div>
-                  <div style={{ fontSize: 12.5, color: "var(--color-text-muted)", marginTop: 2 }}>
+                  <div className={styles.meta}>
                     {r.parks ? (
                       <a
                         href={`/parks/${r.park_id}`}
@@ -160,7 +162,7 @@ export default function Reviews() {
                           e.preventDefault();
                           navigate(`/parks/${r.park_id}`);
                         }}
-                        style={{ color: "inherit", textDecoration: "underline" }}
+                        className={styles.inlineLink}
                       >
                         {r.parks.name}
                       </a>
@@ -172,25 +174,21 @@ export default function Reviews() {
                   </div>
                 </div>
                 {canDeleteReview && (
-                  <button
-                    disabled={deleting}
-                    onClick={() => onDelete(r.id)}
-                    style={{ background: "none", border: "none", color: "var(--color-error)", cursor: "pointer", fontSize: 12.5, flexShrink: 0 }}
-                  >
+                  <button type="button" disabled={deleting} onClick={() => onDelete(r.id)} className={styles.linkDanger}>
                     Supprimer
                   </button>
                 )}
               </div>
               <StarRating value={r.rating} size="sm" />
-              {r.comment && <p style={{ fontSize: 13.5, marginTop: 6 }}>{r.comment}</p>}
+              {r.comment && <p className={styles.comment}>{r.comment}</p>}
 
               <div style={{ marginTop: 10 }}>
                 {r.reply ? (
-                  <div style={{ background: "var(--color-bg-alt)", borderRadius: 10, padding: 10, fontSize: 12.5 }}>
+                  <div className={styles.reply}>
                     <strong>Réponse :</strong> {r.reply}
                   </div>
                 ) : canReplyToReview ? (
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className={styles.replyForm}>
                     <Input
                       placeholder="Répondre à cet avis…"
                       value={replyDrafts[r.id] ?? ""}

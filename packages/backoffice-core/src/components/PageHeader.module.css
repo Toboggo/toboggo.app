@@ -1,7 +1,3 @@
-/* Admin-UI-7B — valeurs identiques à l'ancienne version inline (22px / 24px /
- * 12px / 13px / 4px / 8px correspondent exactement à --text-xl / --space-6 /
- * --space-3 / --text-sm / --space-1 / --space-2) : aucun changement visuel,
- * juste le passage sur les tokens existants. */
 .header {
   display: flex;
   justify-content: space-between;
@@ -10,13 +6,15 @@
   flex-wrap: wrap;
   gap: var(--space-3);
 }
+/* Titre d'écran : Fredoka 600, même échelle partout (Admin et Collectivités). */
 .title {
-  font-size: var(--text-xl);
+  font-size: 24px;
+  line-height: 1.2;
 }
 .subtitle {
-  font-size: var(--text-sm);
+  font-size: 14px;
   color: var(--color-text-muted);
-  margin-top: var(--space-1);
+  margin: var(--space-1) 0 0;
 }
 .actions {
   display: flex;

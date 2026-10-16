@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toCsv, downloadCsv, listParks, listReports, listReviews, listActivity } from "@toboggo/shared";
-import { Button, Card } from "@toboggo/design-system";
+import { Button, Card, Icon } from "@toboggo/design-system";
 import { PageHeader } from "@toboggo/backoffice-core/components/PageHeader";
 import { useOrgScope } from "@toboggo/backoffice-core/lib/orgScope";
 import { SERVICE_LABEL } from "../lib/equipmentLabels";
@@ -69,7 +69,7 @@ export default function Statistiques() {
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
         <Card>
           <h2 style={{ fontSize: 15, marginBottom: 12 }}>Fréquentation</h2>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 26, marginBottom: 12 }}>{totalViews} vues</div>
+          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 26, marginBottom: 12 }}>{totalViews} vues</div>
           {parks
             .slice()
             .sort((a, b) => b.views - a.views)
@@ -85,7 +85,7 @@ export default function Statistiques() {
 
         <Card>
           <h2 style={{ fontSize: 15, marginBottom: 12 }}>Traitement des signalements</h2>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 26, marginBottom: 4 }}>{resolutionRate}%</div>
+          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 26, marginBottom: 4 }}>{resolutionRate}%</div>
           <div style={{ fontSize: 12, color: "var(--color-text-muted)", marginBottom: 12 }}>
             {avgResolutionDays != null ? `Traité en ${avgResolutionDays}j en moyenne` : "Pas encore de données de délai"}
           </div>
@@ -103,7 +103,12 @@ export default function Statistiques() {
 
         <Card>
           <h2 style={{ fontSize: 15, marginBottom: 12 }}>Note moyenne</h2>
-          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 26, marginBottom: 12 }}>⭐ {avgRating.toFixed(1)}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: 28, marginBottom: 12 }}>
+            <span style={{ display: "inline-flex", color: "var(--color-accent)" }} aria-hidden="true">
+              <Icon name="ic-star" size={24} />
+            </span>
+            {avgRating.toFixed(1)}
+          </div>
           {reviews.length === 0 ? (
             <p style={{ fontSize: 12.5, color: "var(--color-text-muted)" }}>Aucun avis pour l'instant.</p>
           ) : (

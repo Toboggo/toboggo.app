@@ -23,11 +23,11 @@ export default function Login() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--color-bg-alt)" }}>
-      <form onSubmit={submit} style={{ width: 360, background: "var(--color-surface)", borderRadius: 20, padding: 32, boxShadow: "var(--shadow-lg)" }}>
+      <form onSubmit={submit} style={{ width: 360, background: "var(--color-surface)", borderRadius: "var(--radius-lg)", padding: 32, border: "1px solid var(--color-border)", boxShadow: "var(--shadow-md)" }}>
         <Logo size={30} suffix="Back office" />
         <p style={{ fontSize: 13, color: "var(--color-text-muted)", margin: "12px 0 24px" }}>Réservé à l'équipe Toboggo et aux collectivités partenaires.</p>
         {error && (
-          <div style={{ background: "var(--color-error-tint)", color: "var(--color-error)", padding: 10, borderRadius: 10, fontSize: 13, marginBottom: 16 }}>
+          <div style={{ background: "var(--color-error-tint)", color: "var(--color-error)", padding: 10, borderRadius: "var(--radius-sm)", fontSize: 13, marginBottom: 16 }}>
             {error}
           </div>
         )}

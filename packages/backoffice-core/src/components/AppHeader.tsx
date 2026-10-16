@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import clsx from "clsx";
 import { Avatar, Button, Icon, Input, Menu, MenuItem, MenuLabel } from "@toboggo/design-system";
 import type { TeamRole } from "@toboggo/shared";
 import { useOrgSession } from "../lib/orgSession";
-import { useOrgScope } from "../lib/orgScope";
 import styles from "./AppHeader.module.css";
 
 // Mêmes libellés que le sélecteur de rôle d'InviteModal — pas de 2e formulation.
@@ -35,7 +33,6 @@ export function AppHeader({
   detailLabel?: string;
 }) {
   const navigate = useNavigate();
-  const { isAdmin } = useOrgScope();
   const { userName, userEmail, currentRole, signOut } = useOrgSession();
   const [query, setQuery] = useState("");
   // `Input` (design-system) n'est pas un `forwardRef` — on cible son <input>
@@ -66,7 +63,7 @@ export function AppHeader({
   const roleLabel = role ? ROLE_LABEL[role] : null;
 
   return (
-    <header className={clsx(styles.header, isAdmin && styles.adminHeader)}>
+    <header className={styles.header}>
       <nav aria-label="Fil d'Ariane" className={styles.breadcrumb}>
         <span>{orgLabel}</span>
         {screenLabel && (
@@ -89,18 +86,16 @@ export function AppHeader({
 
       <form role="search" className={styles.search} onSubmit={submitSearch}>
         <div className={styles.searchWrap} ref={searchWrapRef}>
-          {isAdmin && (
-            <span className={styles.searchIcon} aria-hidden="true">
-              <Icon name="ic-search" size={14} />
-            </span>
-          )}
+          <span className={styles.searchIcon} aria-hidden="true">
+            <Icon name="ic-search" size={14} />
+          </span>
           <Input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Rechercher un parc…"
             aria-label="Rechercher un parc"
-            className={clsx(styles.searchInput, isAdmin && styles.searchInputAdmin)}
+            className={styles.searchInput}
           />
           <kbd className={styles.kbdHint} aria-hidden="true">
             ⌘K

@@ -281,3 +281,63 @@ Issu de l'audit du 31/08/2026. Progressif, sans refonte.
   placeholder n'est jamais persisté.
 - Provenance et licences des photos : `docs/operations/OSM.md` §Photos +
   migration `0025_park_media_provenance.sql`.
+
+## 14. Back-offices — Brand Book v2 (16/10/2026)
+
+**Même marque, deux tons.** L'app familles est chaleureuse et ludique ; les
+back-offices (Admin + Collectivités) sont structurés, denses et lisibles, avec le
+même ADN (vert Toboggo, Fredoka pour les titres et chiffres, Nunito pour
+l'interface). **Présentation uniquement** : aucune logique, requête, migration ou
+policy n'est concernée.
+
+- **Une seule couche de thème** : `packages/backoffice-core/src/bo-theme.css`,
+  importée par `backoffice-core/src/index.css` après `tokens.css`. Elle n'est
+  chargée **que** par les deux back-offices (bundles séparés) : l'app mobile ne
+  la voit jamais et reste inchangée.
+- **Palette** = exactement celle du Brand Book (`--bo-green #2FA37C`,
+  `--bo-green-deep #1F7D5F`, `--bo-orange #FFB020`, `--bo-ink #24303A`,
+  `--bo-mint #E6F5EE`, blanc, `--bo-blue #4C9EEB`, succès `#1A6B51`, alerte
+  `#8A5A00`, erreur `#B91C1C`, info `#1F6FBF`, texte secondaire `#6B6659`). Les
+  fonds d'état et bordures sont **dérivés** par `color-mix` — jamais de nouveau
+  hex. L'orange est un **aplat d'accent** (texte posé dessus = Encre,
+  `--color-on-accent`), jamais une couleur de texte (`--color-accent-text`).
+- **Plus aucun token `-admin` consommé** par les back-offices : Admin et
+  Collectivités partagent les mêmes surfaces (décision #7 conservée : la
+  distinction est un repère, pas une seconde palette). Les définitions héritées
+  de `tokens.css` restent, inutilisées côté BO.
+- **Sidebar** : Encre `#24303A`, identique aux deux espaces. Repère de contexte =
+  pastille sous le logo (`ADMIN` aplat vert / `COLLECTIVITÉ` contour) + bloc
+  d'identité (« Espace » / « Organisation »). Actif = fond vert translucide +
+  repère vert ; compteurs = aplat orange + texte Encre.
+- **Typographie** : Fredoka 500/600 (titres, KPI) ; Nunito 400/600/700 (texte,
+  boutons, libellés, en-têtes de tableau, badges). Fredoka 700 n'est plus
+  chargé.
+- **Tokens de composant** (lus par `design-system` avec **repli sur les valeurs
+  de l'app familles**, donc sans effet sur le mobile) : `--btn-*`, `--input-*`,
+  `--label-*`, `--tag-*`, `--card-radius`, `--kpi-*`, `--font-ui-label`,
+  `--th-transform`, `--color-accent-text`, `--color-on-accent`,
+  `--color-success-text`. Rayons BO plus nets (6/8/10/14 px).
+- **États** : `neutral / success / warning / error / info` (`Tag` gagne le ton
+  `success` ; `StatusTag` mappe les statuts métier dessus).
+- **Composants partagés introduits** : `KpiGrid` (grille KPI 4/2/1 col.),
+  `StatStrip` (bandeau de chiffres secondaires), `lib/mapPalette.ts` (couleurs de
+  repères de carte en palette officielle). `FilterBar` remplace les barres de
+  filtres recopiées dans 8 écrans.
+- **Hiérarchie des tableaux de bord** — Admin : KPI actionnables → totaux de
+  contexte → *À traiter* → tendance → couverture ; rail : raccourcis, sources,
+  top collectivités. Collectivités : KPI → *À traiter* (signalements / infos à
+  vérifier / entretien) → patrimoine + carte → suivi (tendances, avis, activité).
+- **Contraste** : blanc sur `#2FA37C` ≈ 3,1:1 (insuffisant pour du texte). Le
+  Vert Toboggo reste la couleur de marque/d'action (focus, navigation active,
+  repères de carte, aplats sans texte) mais **tout aplat portant du texte blanc**
+  (bouton principal, toast de succès, pastille « ADMIN », pastilles « Oui »,
+  compteurs) utilise le **Vert profond `#1F7D5F`** (≈ 5:1, AA) via
+  `--btn-primary-bg` / `--color-primary-hover`. Aucune couleur ajoutée.
+  `--color-text-faint` est aligné sur le texte secondaire `#6B6659` (pas de
+  texte plus pâle).
+- **Listes d'enregistrements** (Photos, Avis, Utilisateurs, Entretien, Journal,
+  Paramètres) : `components/Records.module.css` — cartes blanches à bordure fine
+  (`--card-border`), sans ombre ; `Card` en BO suit le même principe. États
+  vides = `PanelEmpty` (pictogramme du sprite, jamais d'emoji). Navigation :
+  toutes les entrées ont un pictogramme (`ic-wrench` Entretien, `ic-clock`
+  Journal).

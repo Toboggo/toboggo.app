@@ -3,6 +3,7 @@ import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { Button, Input } from "@toboggo/design-system";
 import { isValidCoordinate, mapStyleUrl } from "@toboggo/shared";
+import { PIN_COLORS } from "../../lib/mapPalette";
 import styles from "../ParkDetail.module.css";
 
 // Centre de repli (métropole) quand le parc n'a pas encore de position lisible.
@@ -153,7 +154,7 @@ export function ParkLocationEditor({
     }
 
     if (!markerRef.current) {
-      const marker = new maplibregl.Marker({ draggable: false });
+      const marker = new maplibregl.Marker({ draggable: false, color: PIN_COLORS.ok });
       marker.setLngLat([lng as number, lat as number]).addTo(map);
       marker.on("dragend", () => {
         const p = marker.getLngLat();

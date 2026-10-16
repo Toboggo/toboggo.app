@@ -2,7 +2,7 @@
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
 import "../styles/global.css";
-import { SITE_URL, SITE_NAME, SITE_LOCALE, DEFAULT_OG_IMAGE, DEFAULT_OG_IMAGE_ALT, CONTACT_EMAIL } from "../config/site";
+import { SITE_URL, SITE_NAME, SITE_LOCALE, DEFAULT_OG_IMAGE, DEFAULT_OG_IMAGE_ALT, BRAND_ICON_512, CONTACT_EMAIL } from "../config/site";
 
 interface Props {
   title: string;
@@ -20,7 +20,7 @@ interface Props {
   jsonLd?: Record<string, unknown>[];
   /** Type Open Graph (défaut "website" ; "article" pour les articles de blog). */
   ogType?: "website" | "article";
-  /** Carte Twitter (défaut "summary" : l'image par défaut est carrée ; "summary_large_image" pour une couverture 1200×630). */
+  /** Carte Twitter (défaut "summary_large_image" : l'image par défaut est le visuel officiel 1200×630 ; "summary" pour une image carrée). */
   twitterCard?: "summary" | "summary_large_image";
   /** Métadonnées Open Graph article:* (ISO 8601). */
   article?: { publishedTime: string; modifiedTime?: string; section?: string; author?: string };
@@ -28,7 +28,7 @@ interface Props {
   footerCta?: boolean;
 }
 
-const { title, description, noindex = false, robots, ogImage = DEFAULT_OG_IMAGE, ogImageAlt = DEFAULT_OG_IMAGE_ALT, jsonLd = [], errorPage = false, footerCta = false, ogType = "website", twitterCard = "summary", article } = Astro.props;
+const { title, description, noindex = false, robots, ogImage = DEFAULT_OG_IMAGE, ogImageAlt = DEFAULT_OG_IMAGE_ALT, jsonLd = [], errorPage = false, footerCta = false, ogType = "website", twitterCard = "summary_large_image", article } = Astro.props;
 // Canonical toujours bâti sur SITE_URL (jamais sur l'hôte de la requête, ex. un
 // déploiement preview), avec le même slash final que le sitemap.
 const canonicalURL = new URL(Astro.url.pathname, SITE_URL);
@@ -42,7 +42,7 @@ const organization = {
   "@type": "Organization",
   name: SITE_NAME,
   url: SITE_URL,
-  logo: new URL("/icon-512.png", SITE_URL).toString(),
+  logo: new URL(BRAND_ICON_512, SITE_URL).toString(),
   email: CONTACT_EMAIL,
 };
 const structuredData = [organization, ...jsonLd.map((item) => ({ "@context": "https://schema.org", ...item }))];
@@ -82,6 +82,8 @@ const structuredData = [organization, ...jsonLd.map((item) => ({ "@context": "ht
         navigateur attend les polices préchargées). Le décalage au chargement est évité par les polices
         de repli aux métriques ajustées (global.css), qui n'empêchent pas d'afficher le texte. */}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <meta name="theme-color" content="#2FA37C" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   </head>
   <body>

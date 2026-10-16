@@ -54,7 +54,7 @@ const socials = listSocials(SOCIAL_LINKS);
 
   <div class="wrap footer-main">
     <div class="footer-brand">
-      <Logo size={44} />
+      <Logo size={52} />
       <p class="tagline">{dict.footer.tagline}</p>
       {
         socials.length > 0 && (
@@ -245,12 +245,6 @@ const socials = listSocials(SOCIAL_LINKS);
     gap: var(--space-6);
     padding-top: 72px;
     padding-bottom: 56px;
-  }
-
-  /* le logo est l'ancre visuelle du pied de page : plus grand que dans l'en-tête */
-  .footer-brand :global(.brand) {
-    font-size: 28px;
-    gap: 12px;
   }
 
   .footer-brand .tagline {

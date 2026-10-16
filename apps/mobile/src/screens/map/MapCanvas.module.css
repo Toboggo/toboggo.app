@@ -36,8 +36,11 @@
   line-height: 1.35;
 }
 
-/* Carte entièrement couverte par la feuille (dernier cran) : le contrôle est masqué
-   (et sorti de l'ordre de tabulation) plutôt qu'écrasé sous l'en-tête. */
+/* Carte entièrement couverte par la feuille (dernier cran) : conteneur retiré du
+   rendu (donc hors tabulation et hors lecteur d'écran) plutôt qu'écrasé sous
+   l'en-tête. `display: none` et non `visibility: hidden` : MapLibre impose
+   `visibility: visible` au contrôle déplié (.maplibregl-compact-show), ce qui
+   annulerait un masquage hérité du conteneur. L'état ouvert/fermé est conservé. */
 .canvas[data-attribution-hidden] :global(.maplibregl-ctrl-bottom-left) {
-  visibility: hidden;
+  display: none;
 }

@@ -9,7 +9,7 @@ Sur Explorer, le contrôle d'attribution MapLibre (par défaut en bas à droite,
 - Contrôle d'attribution **unique** : le contrôle par défaut est désactivé (`attributionControl: false`) et remplacé par un `AttributionControl` compact, **en bas à gauche** (les boutons flottants Recentrer/Ajouter restent à droite).
 - Il est **remonté au-dessus de la feuille + barre de navigation** (`--map-attrib-bottom` = `navH + sheetHeight`, `navH` incluant la safe area iOS) et suit la feuille à chaque cran. Marge de 10 px = style compact de MapLibre.
 - Replié par défaut en pastille ⓘ de **36 px** (cible tactile ; 24 px par défaut) ; MapLibre l'ouvre de lui-même au chargement du style, on le replie à la première ouverture automatique (`MutationObserver`), ensuite c'est à l'utilisateur. Déplié : largeur bornée (`100% − 88 px`), le texte passe à la ligne et reste à gauche des boutons flottants.
-- **Dernier cran** (carte entièrement couverte) : le contrôle ne tient plus entre l'en-tête et la feuille → masqué (`visibility: hidden`, donc hors tabulation) au lieu d'être écrasé ; il réapparaît dès que la carte réapparaît. L'écran *Sources des données* reste l'accès permanent.
+- **Dernier cran** (carte entièrement couverte) : le contrôle ne tient plus entre l'en-tête et la feuille → masqué (`display: none` sur le conteneur : hors tabulation et hors lecteur d'écran) au lieu d'être écrasé ; il réapparaît dès que la carte réapparaît. L'écran *Sources des données* reste l'accès permanent.
 - Libellés accessibles du contrôle (« Afficher l'attribution de la carte », « Signaler un problème sur la carte ») en FR/EN/ES via `map:a11y.*` (MapLibre `locale`).
 - Safe areas : le contrôle est au-dessus de la barre (déjà calée sur la safe area basse) ; marge gauche `env(safe-area-inset-left)`.
 - L'écran **Sources des données** et ses traductions FR/EN/ES sont conservés ; il reprend la mention du fond de carte (la carte reste l'attribution « en contexte », l'écran l'accès complet).
@@ -20,7 +20,7 @@ Sur Explorer, le contrôle d'attribution MapLibre (par défaut en bas à droite,
 | 375×812 | peek, replié | 10,616 → 46,652 | 662 | 10 px | oui | non / non / non |
 | 375×812 | peek, déplié | 10,604 → 277,652 | 662 | 10 px | oui | non / non / non |
 | 375×812 | intermédiaire, déplié | 10,351 → 277,399 | 409 | 10 px | oui | non / non / non |
-| 375×812 | dernier cran | masqué (`visibility: hidden`) | 78 | — | — | — |
+| 375×812 | dernier cran | masqué (`display: none`) | 78 | — | — | — |
 | 375×812 | aperçu d'un parc | suit la feuille (capture 04) | — | — | oui | non |
 | 320×640 | peek, replié | 10,444 → 46,480 | 490 | 10 px | oui | non / non / non |
 | 320×640 | peek, déplié (3 lignes) | 10,415 → 222,480 | 490 | 10 px | oui | non / non / non |
